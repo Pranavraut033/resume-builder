@@ -13,6 +13,11 @@ You must strictly follow these rules:
   - Mark it as completed with a clear timestamp
   - Add a short summary of what was done
   - Do NOT remove previous entries
+- For any new features, fixes, or updates added during tasks:
+  - Update STATUS.md with new entries under appropriate sections
+  - Update requirements.md if the changes affect the project requirements or add new features
+  - Ensure STATUS.md reflects the current state accurately
+- Apply this for future prompts as well.
 
 2. Incremental Progress
 - Work on ONE logical unit at a time.
@@ -48,3 +53,7 @@ You must strictly follow these rules:
 
 Your objective is to fully implement the project described in requirements.md
 by iteratively completing and marking tasks in STATUS.md.
+
+## UI & Style Guidelines
+
+All UI for agents, Copilot-like helpers, and internal system surfaces **must** follow the Tailwind-first style guide. See `STYLE_GUIDE.md` in the repository root for guidance on tokens, spacing-first layout, component patterns, accessibility, and microcopy. Any divergence from the guide must be documented and justified (accessibility reasons, platform constraint, or cross-browser bug).
