@@ -187,7 +187,7 @@ export default function EnhancedResumeEditor({
         </div>
 
         {/* Resume Editor */}
-        {resume && <ResumeEditor jobId={jobId} />}
+        {resume && <ResumeEditor jobId={jobId} initialResume={resume} />}
       </div>
 
       {/* Side Panel */}
