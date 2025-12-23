@@ -79,10 +79,10 @@ export function Modal({
                 <div className="p-6">{children}</div>
 
                 <div className="flex justify-end gap-3 p-6 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700">
-                  <Button variant="ghost" onClick={onClose}>
+                  <Button variant="secondary" onClick={onClose}>
                     Cancel
                   </Button>
-                  {onSave && <Button onClick={onSave}>{saveLabel}</Button>}
+                  {onSave && <Button variant="primary" onClick={onSave}>{saveLabel}</Button>}
                 </div>
               </Dialog.Panel>
             </Transition.Child>

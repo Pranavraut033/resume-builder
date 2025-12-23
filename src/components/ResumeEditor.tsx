@@ -654,6 +654,7 @@ export default function ResumeEditor({ jobId, initialResume }: ResumeEditorProps
               onChange={(value) =>
                 setEditingData({ ...(editingData as ContactInfo), name: value })
               }
+              onAIGenerate={async () => ""}
               required
             />
             <TextField
@@ -665,6 +666,7 @@ export default function ResumeEditor({ jobId, initialResume }: ResumeEditorProps
                   email: value,
                 })
               }
+              onAIGenerate={async () => ""}
               required
             />
             <TextField
@@ -727,6 +729,7 @@ export default function ResumeEditor({ jobId, initialResume }: ResumeEditorProps
             onChange={setEditingData}
             placeholder="Write a compelling summary of your professional background..."
             rows={6}
+            onAIGenerate={async () => ""}
           />
         )}
 
@@ -737,6 +740,7 @@ export default function ResumeEditor({ jobId, initialResume }: ResumeEditorProps
             onTagsChange={setEditingData}
             placeholder="Add a skill and press Enter"
             helpText="Add technologies, languages, and competencies"
+            onAIGenerate={async () => []}
           />
         )}
 
@@ -778,6 +782,7 @@ export default function ResumeEditor({ jobId, initialResume }: ResumeEditorProps
               }
               placeholder="Describe your main responsibilities and achievements..."
               rows={4}
+              onAIGenerate={async () => ""}
             />
             <BulletListEditor
               label="Key Achievements"
@@ -787,6 +792,7 @@ export default function ResumeEditor({ jobId, initialResume }: ResumeEditorProps
               }
               placeholder="Add an achievement"
               helpText="Use bullet points to highlight measurable accomplishments"
+              onAIGenerate={async () => []}
             />
           </div>
         )}
