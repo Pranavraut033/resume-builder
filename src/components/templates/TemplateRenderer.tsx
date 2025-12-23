@@ -5,6 +5,11 @@
 import React from "react";
 import { ResumeJSON, TemplateType, ResumeColors } from "@/types/resume";
 import { ModernMinimalTemplate } from "./ModernMinimalTemplate";
+import { TechSidebarTemplate } from "./TechSidebarTemplate";
+import { BusinessProfessionalTemplate } from "./BusinessProfessionalTemplate";
+import { ElegantTimelineTemplate } from "./ElegantTimelineTemplate";
+import { CreativeModernTemplate } from "./CreativeModernTemplate";
+import { BJetProfessionalTemplate } from "./BJetProfessionalTemplate";
 
 interface TemplateRendererProps {
   template: TemplateType;
@@ -14,6 +19,15 @@ interface TemplateRendererProps {
   fontFamily: string;
 }
 
+const templateMap = {
+  "modern-minimal": ModernMinimalTemplate,
+  "tech-sidebar": TechSidebarTemplate,
+  "business-professional": BusinessProfessionalTemplate,
+  "elegant-timeline": ElegantTimelineTemplate,
+  "creative-modern": CreativeModernTemplate,
+  "bjet-professional": BJetProfessionalTemplate,
+};
+
 export const TemplateRenderer: React.FC<TemplateRendererProps> = ({
   template,
   resume,
@@ -21,9 +35,7 @@ export const TemplateRenderer: React.FC<TemplateRendererProps> = ({
   fontSize,
   fontFamily,
 }) => {
-  // For now, we'll use ModernMinimalTemplate for all templates
-  // In future PRs, we'll add the other 5 templates
-  const TemplateComponent = ModernMinimalTemplate;
+  const TemplateComponent = templateMap[template] || ModernMinimalTemplate;
 
   return (
     <TemplateComponent
