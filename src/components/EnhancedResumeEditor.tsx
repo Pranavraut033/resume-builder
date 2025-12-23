@@ -19,6 +19,7 @@ import {
   getResumeCustomization,
   updateResumeCustomization,
 } from "@/actions/job";
+import { getProfile } from "@/actions/profile";
 import { generateResumePDF } from "@/lib/pdfExport";
 import { Button } from "./ui";
 import { Icon } from "./ui/Icon";
@@ -37,12 +38,14 @@ export default function EnhancedResumeEditor({
     DEFAULT_CUSTOMIZATION,
   );
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [showPreviewModal, setShowPreviewModal] = useState(false);
 
   useEffect(() => {
     const loadData = async () => {
       try {
         setLoading(true);
+        setError(null);
         const jobIdNum = parseInt(jobId);
 
         // Load resume data and customization in parallel
@@ -53,11 +56,16 @@ export default function EnhancedResumeEditor({
 
         if (resumeData) {
           setResume(resumeData);
+        } else {
+          // No resume exists for this job, load profile as starting point
+          const profileData = await getProfile();
+          setResume(profileData);
         }
 
         setCustomization(customizationData);
       } catch (error) {
         console.error("Failed to load resume data:", error);
+        setError("Failed to load resume data. Please try again.");
       } finally {
         setLoading(false);
       }
@@ -109,6 +117,28 @@ export default function EnhancedResumeEditor({
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
           <p className="mt-4 text-gray-600 dark:text-gray-400">Loading resume...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error || !resume) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center max-w-md">
+          <Icon name="alert" className="w-16 h-16 text-yellow-500 mx-auto mb-4" />
+          <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
+            {error || "Resume Not Found"}
+          </h2>
+          <p className="text-gray-600 dark:text-gray-400 mb-6">
+            {error || "No resume data available for this job."}
+          </p>
+          <Button
+            variant="primary"
+            onClick={() => window.history.back()}
+          >
+            Go Back
+          </Button>
         </div>
       </div>
     );
