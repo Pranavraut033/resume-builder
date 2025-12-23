@@ -274,3 +274,10 @@ MIT
 - Desktop app powered by [Tauri](https://tauri.app/)
 - Database by [Prisma](https://www.prisma.io/)
 - LLM providers: OpenAI, Google Gemini, Grok, Ollama
+- Resume templates adapted from [Resumify](https://github.com/Afif718/Resumify) by M. H. A. Afif (MIT License)
+
+## Attribution
+
+This project incorporates code and concepts from [Resumify](https://github.com/Afif718/Resumify), an excellent open-source resume builder by M. H. A. Afif. We have adapted their professional resume templates, template system, and color customization features to work with our local-first architecture while maintaining their beautiful designs. We are grateful for their contribution to the open-source community.
+
+See [LICENSE-THIRD-PARTY.md](./LICENSE-THIRD-PARTY.md) for complete attribution and license information.

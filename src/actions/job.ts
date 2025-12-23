@@ -1,7 +1,12 @@
 'use server';
 
 import { prisma } from '@/lib/prisma';
-import { ResumeJSON, JobDetails } from '@/types/resume';
+import {
+  ResumeJSON,
+  JobDetails,
+  ResumeCustomization,
+  DEFAULT_CUSTOMIZATION,
+} from '@/types/resume';
 import { JobStatus, JOB_STATUSES } from '@/types/job';
 import { revalidatePath } from 'next/cache';
 
@@ -180,4 +185,69 @@ export async function updateCoverLetter(jobId: number, contentText: string) {
   });
   revalidatePath(`/cover-letter/${jobId}`);
   return { success: true };
+}
+
+/**
+ * Update resume customization (template, colors, fonts, etc.)
+ * Adapted from Resumify (https://github.com/Afif718/Resumify)
+ */
+export async function updateResumeCustomization(
+  jobId: number,
+  customization: Partial<ResumeCustomization>
+) {
+  const data: Record<string, unknown> = {};
+
+  if (customization.template) {
+    data.template = customization.template;
+  }
+  if (customization.pageFormat) {
+    data.pageFormat = customization.pageFormat;
+  }
+  if (customization.fontSize) {
+    data.fontSize = customization.fontSize;
+  }
+  if (customization.fontFamily) {
+    data.fontFamily = customization.fontFamily;
+  }
+  if (customization.colors) {
+    data.colorsJson = JSON.stringify(customization.colors);
+  }
+
+  await prisma.resume.updateMany({
+    where: { jobId },
+    data,
+  });
+
+  revalidatePath(`/resume/${jobId}`);
+  return { success: true };
+}
+
+/**
+ * Get resume customization for a job
+ */
+export async function getResumeCustomization(
+  jobId: number
+): Promise<ResumeCustomization> {
+  const resume = await prisma.resume.findFirst({
+    where: { jobId },
+    select: {
+      template: true,
+      pageFormat: true,
+      fontSize: true,
+      fontFamily: true,
+      colorsJson: true,
+    },
+  });
+
+  if (!resume) {
+    return DEFAULT_CUSTOMIZATION;
+  }
+
+  return {
+    template: resume.template as ResumeCustomization['template'],
+    pageFormat: resume.pageFormat as ResumeCustomization['pageFormat'],
+    fontSize: resume.fontSize as ResumeCustomization['fontSize'],
+    fontFamily: resume.fontFamily,
+    colors: resume.colorsJson ? JSON.parse(resume.colorsJson) : DEFAULT_CUSTOMIZATION.colors,
+  };
 }
