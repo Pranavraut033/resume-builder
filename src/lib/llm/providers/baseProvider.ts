@@ -7,6 +7,17 @@ import { ResumePromptInput, CoverLetterPromptInput } from "@/types/llm";
 
 export abstract class BaseLLMProvider {
   /**
+   * Get temperature settings based on model compatibility.
+   * Some models (like OpenAI o1) don't support custom temperature.
+   */
+  protected getTemperatureConfig(model?: string): { temperature?: number } {
+    // OpenAI o1 models don't support custom temperature
+    if (model && (model.includes("o1") || model.includes("o3"))) {
+      return {}; // Omit temperature parameter
+    }
+    return {};
+  }
+  /**
    * Generate a resume tailoring prompt
    */
   protected generateResumePrompt(input: ResumePromptInput): string {
@@ -85,4 +96,37 @@ Extract comprehensive job information including:
 
 Ensure all arrays and nested objects follow the schema exactly.`;
   }
+
+  /**
+   * Generate a resume parsing prompt (for structured output)
+   */
+  protected generateResumeParsingSystemPrompt(): string {
+    return `You are an information extraction system for resumes and CVs.
+
+Extract structured data from the provided resume/CV text.
+Follow these rules strictly:
+- Extract all information present in the resume
+- Do not infer facts that are not explicitly stated
+- If a field is missing, return null or empty array as appropriate
+- Normalize dates to YYYY-MM format where possible
+- Return valid JSON only
+- Do not include explanations
+
+Extract comprehensive resume information including:
+- Contact information (name, email, phone, location, LinkedIn, GitHub, website)
+- Professional summary
+- Work experience (company, role, dates, description, key achievements)
+- Projects (name, description, technologies used, URL, dates)
+- Skills (technical skills, tools, languages, frameworks)
+- Education (institution, degree, field of study, dates, GPA if mentioned)
+- Certifications (name, issuer, date, credential URL)
+- Publications (title, authors, venue, date, URL, DOI)
+- Languages (name, proficiency level)
+- Volunteer experience (organization, role, dates, description)
+- Awards and honors (title, issuer, date, description)
+
+Ensure all arrays and nested objects follow the schema exactly.
+For achievements, extract bullet points as separate items in the array.`;
+  }
 }
+
