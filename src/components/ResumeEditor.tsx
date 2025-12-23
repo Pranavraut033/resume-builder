@@ -740,7 +740,7 @@ export default function ResumeEditor({ jobId, initialResume }: ResumeEditorProps
           />
         )}
 
-        {editingSection === "experience.add" && editingData !== null && (
+        {(editingSection === "experience.add" || editingSection === "experience.edit") && editingData !== null && (
           <div className="space-y-4">
             <TextField
               label="Company"
@@ -791,7 +791,7 @@ export default function ResumeEditor({ jobId, initialResume }: ResumeEditorProps
           </div>
         )}
 
-        {editingSection === "education.add" && editingData !== null && (
+        {(editingSection === "education.add" || editingSection === "education.edit") && editingData !== null && (
           <div className="space-y-4">
             <TextField
               label="Institution"
@@ -841,7 +841,7 @@ export default function ResumeEditor({ jobId, initialResume }: ResumeEditorProps
           </div>
         )}
 
-        {editingSection === "projects.add" && editingData !== null && (
+        {(editingSection === "projects.add" || editingSection === "projects.edit") && editingData !== null && (
           <div className="space-y-4">
             <TextField
               label="Project Name"
@@ -892,7 +892,7 @@ export default function ResumeEditor({ jobId, initialResume }: ResumeEditorProps
           </div>
         )}
 
-        {editingSection === "certifications.add" && editingData !== null && (
+        {(editingSection === "certifications.add" || editingSection === "certifications.edit") && editingData !== null && (
           <div className="space-y-4">
             <TextField
               label="Certification Name"
