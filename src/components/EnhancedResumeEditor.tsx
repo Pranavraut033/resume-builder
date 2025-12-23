@@ -26,6 +26,8 @@ interface EnhancedResumeEditorProps {
 export default function EnhancedResumeEditor({
   jobId,
 }: EnhancedResumeEditorProps) {
+  console.log({ jobId });
+
   const [resume, setResume] = useState<ResumeJSON | null>(null);
   const [customization, setCustomization] = useState<ResumeCustomization>(
     DEFAULT_CUSTOMIZATION,

@@ -144,6 +144,9 @@ export async function deleteJob(id: number) {
 export async function getResumeByJobId(
   jobId: number,
 ): Promise<ResumeJSON | null> {
+  if (typeof jobId !== 'number' || isNaN(jobId)) {
+    throw new Error('Invalid or missing jobId argument');
+  }
   const resume = await prisma.resume.findFirst({
     where: { jobId },
   });
@@ -232,6 +235,9 @@ export async function updateResumeCustomization(
 export async function getResumeCustomization(
   jobId: number,
 ): Promise<ResumeCustomization> {
+  if (typeof jobId !== 'number' || isNaN(jobId)) {
+    throw new Error('Invalid or missing jobId argument');
+  }
   const resume = await prisma.resume.findFirst({
     where: { jobId },
     select: {

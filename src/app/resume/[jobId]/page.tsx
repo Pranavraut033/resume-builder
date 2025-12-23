@@ -1,11 +1,14 @@
 import EnhancedResumeEditor from "@/components/EnhancedResumeEditor";
 import BackButton from "@/components/BackButton";
 
-export default function ResumeEditorPage({
-  params,
+export default async function ResumeEditorPage({
+  params: _p,
 }: {
-  params: { jobId: string };
+  params: Promise<{ jobId: string }>;
 }) {
+  const params = await _p
+
+
   return (
     <div>
       <BackButton />
