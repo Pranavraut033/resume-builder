@@ -1,0 +1,37 @@
+
+@import "tailwindcss";
+
+@theme {
+  /* Builder UI blocky/lego theme tokens */
+  --color-blocky-100: #f3f4f6;
+  --color-blocky-500: #eab308;
+  --color-blocky-900: #1e293b;
+  --radius-block: 0.5rem;
+  --radius-block-lg: 1rem;
+  --spacing-block: 1rem;
+  --shadow-block: 0 2px 0 0 #eab308, 0 4px 8px 0 rgba(30,41,59,0.08);
+  --font-blocky: 'Geist Mono', 'Fira Mono', monospace;
+  /* Standard theme tokens */
+  --color-background: #ffffff;
+  --color-foreground: #0f1724;
+  --font-sans: 'Geist Sans', Arial, Helvetica, sans-serif;
+  --font-mono: 'Geist Mono', 'Fira Mono', monospace;
+}
+
+@media (prefers-color-scheme: dark) {
+  @theme {
+    --color-background: #0b1220;
+    --color-foreground: #e6eef8;
+    --color-blocky-100: #1e293b;
+    --color-blocky-500: #eab308;
+    --color-blocky-900: #f3f4f6;
+  }
+}
+
+body {
+  @apply text-blocky-900 bg-blocky-100 font-blocky;
+  background-color: var(--color-background);
+  color: var(--color-foreground);
+  font-family: var(--font-blocky);
+  transition: background-color 180ms ease, color 180ms ease;
+}
