@@ -1,9 +1,13 @@
-import { LLMProvider, ResumePromptInput, CoverLetterPromptInput } from '@/types/llm';
-import { ResumeJSON } from '@/types/resume';
-import { BaseLLMProvider } from './baseProvider';
-import { createLogger } from '@/lib/logger';
+import {
+  LLMProvider,
+  ResumePromptInput,
+  CoverLetterPromptInput,
+} from "@/types/llm";
+import { ResumeJSON } from "@/types/resume";
+import { BaseLLMProvider } from "./baseProvider";
+import { createLogger } from "@/lib/logger";
 
-const logger = createLogger('Ollama');
+const logger = createLogger("Ollama");
 
 interface OllamaResponse {
   response: string;
@@ -18,7 +22,10 @@ export class OllamaProvider extends BaseLLMProvider implements LLMProvider {
   private baseUrl: string;
   private model: string;
 
-  constructor(baseUrl: string = 'http://localhost:11434', model: string = 'llama2') {
+  constructor(
+    baseUrl: string = "http://localhost:11434",
+    model: string = "llama2",
+  ) {
     super();
     this.baseUrl = baseUrl;
     this.model = model;
@@ -26,8 +33,8 @@ export class OllamaProvider extends BaseLLMProvider implements LLMProvider {
 
   private async callOllama(prompt: string, model?: string): Promise<string> {
     const response = await fetch(`${this.baseUrl}/api/generate`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         model: model || this.model,
         prompt,
@@ -35,7 +42,7 @@ export class OllamaProvider extends BaseLLMProvider implements LLMProvider {
       }),
     });
 
-    if (!response.ok) throw new Error('Ollama API error');
+    if (!response.ok) throw new Error("Ollama API error");
 
     const data: OllamaResponse = await response.json();
     return data.response;
@@ -49,7 +56,7 @@ export class OllamaProvider extends BaseLLMProvider implements LLMProvider {
     try {
       return JSON.parse(content) as ResumeJSON;
     } catch (e) {
-      throw new Error('Invalid JSON response from Ollama');
+      throw new Error("Invalid JSON response from Ollama");
     }
   }
 
@@ -62,12 +69,14 @@ export class OllamaProvider extends BaseLLMProvider implements LLMProvider {
   async fetchModels(): Promise<string[]> {
     try {
       const response = await fetch(`${this.baseUrl}/api/tags`);
-      if (!response.ok) throw new Error('Ollama API error');
+      if (!response.ok) throw new Error("Ollama API error");
       const data = await response.json();
       return data.models.map((model: OllamaModel) => model.name);
     } catch (error) {
-      logger.warn('Ollama not available, falling back to default models', { error });
-      return ['llama2', 'llama3'];
+      logger.warn("Ollama not available, falling back to default models", {
+        error,
+      });
+      return ["llama2", "llama3"];
     }
   }
 }

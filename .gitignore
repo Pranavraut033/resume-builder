@@ -51,3 +51,4 @@ drizzle/meta/_journal.json
 # Encrypted API keys (sensitive)
 .resume-builder/
 keys.enc
+.env

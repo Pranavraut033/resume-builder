@@ -11,12 +11,14 @@ Purpose: Minimal rules for consistent agent UIs — Tailwind-only, spacing-first
 - Buttons, cards, and sections should look like draggable, connectable blocks.
 
 ## Principles
+
 - Tailwind-only utilities; prefer semantic tokens (`bg-blocky-100`, `text-blocky-900`).
 - Spacing-first: use `gap-block`, `p-block`, `space-y-block` for layout.
 - Use `rounded-block`, `rounded-block-lg`, and `shadow-block` for blocky feel.
 - Accessibility: visible focus (`ring-blocky-500 ring-offset-2`), keyboard operability, and good contrast.
 
 ## Theme Tokens (add to tailwind.config.js)
+
 ```js
 // colors: blocky-100, blocky-500, blocky-900
 // borderRadius: block, block-lg
@@ -25,6 +27,7 @@ Purpose: Minimal rules for consistent agent UIs — Tailwind-only, spacing-first
 ```
 
 ## Examples
+
 - Block Button: `inline-flex gap-block px-block py-block rounded-block bg-blocky-500 text-blocky-900 shadow-block font-blocky`
 - Block Card: `p-block bg-blocky-100 rounded-block-lg shadow-block border border-blocky-500 font-blocky`
 - Connectable Section: `flex gap-block space-y-block rounded-block bg-blocky-100 border-blocky-500`

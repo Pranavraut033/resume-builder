@@ -1,49 +1,49 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { PrismaClient } from '@prisma/client';
+import { describe, it, expect, beforeEach, vi } from "vitest";
+import { PrismaClient } from "@prisma/client";
 
-describe('Prisma Initialization', () => {
-  it('should create a PrismaClient instance', () => {
+describe("Prisma Initialization", () => {
+  it("should create a PrismaClient instance", () => {
     const prisma = new PrismaClient();
     expect(prisma).toBeDefined();
     expect(prisma).toBeInstanceOf(PrismaClient);
   });
 
-  it('should use correct log levels in development', () => {
+  it("should use correct log levels in development", () => {
     const originalEnv = process.env.NODE_ENV;
-    vi.stubEnv('NODE_ENV', 'development');
+    vi.stubEnv("NODE_ENV", "development");
 
     const prisma = new PrismaClient({
-      log: ['query', 'error', 'warn'],
+      log: ["query", "error", "warn"],
     });
 
     expect(prisma).toBeDefined();
     vi.unstubAllEnvs();
-    if (originalEnv) process.env.NODE_ENV = originalEnv;
+    // No need to restore NODE_ENV - vi.unstubAllEnvs handles it
   });
 
-  it('should use error-only logs in production', () => {
+  it("should use error-only logs in production", () => {
     const originalEnv = process.env.NODE_ENV;
-    vi.stubEnv('NODE_ENV', 'production');
+    vi.stubEnv("NODE_ENV", "production");
 
     const prisma = new PrismaClient({
-      log: ['error'],
+      log: ["error"],
     });
 
     expect(prisma).toBeDefined();
     vi.unstubAllEnvs();
-    if (originalEnv) process.env.NODE_ENV = originalEnv;
+    // No need to restore NODE_ENV - vi.unstubAllEnvs handles it
   });
 
-  it('should be a singleton in non-production environments', async () => {
+  it("should be a singleton in non-production environments", async () => {
     // This test verifies the singleton pattern used in src/lib/prisma.ts
-    const { prisma: prisma1 } = await import('@/lib/prisma');
-    const { prisma: prisma2 } = await import('@/lib/prisma');
+    const { prisma: prisma1 } = await import("@/lib/prisma");
+    const { prisma: prisma2 } = await import("@/lib/prisma");
 
     expect(prisma1).toBe(prisma2);
   });
 
-  it('should have all required models', async () => {
-    const { prisma } = await import('@/lib/prisma');
+  it("should have all required models", async () => {
+    const { prisma } = await import("@/lib/prisma");
 
     expect(prisma.profile).toBeDefined();
     expect(prisma.job).toBeDefined();
@@ -52,9 +52,9 @@ describe('Prisma Initialization', () => {
   });
 });
 
-describe('Prisma Database Schema', () => {
-  it('should define profile model with correct fields', async () => {
-    const { prisma } = await import('@/lib/prisma');
+describe("Prisma Database Schema", () => {
+  it("should define profile model with correct fields", async () => {
+    const { prisma } = await import("@/lib/prisma");
 
     // Verify the model has required methods
     expect(prisma.profile.findFirst).toBeDefined();
@@ -64,8 +64,8 @@ describe('Prisma Database Schema', () => {
     expect(prisma.profile.delete).toBeDefined();
   });
 
-  it('should define job model with correct fields', async () => {
-    const { prisma } = await import('@/lib/prisma');
+  it("should define job model with correct fields", async () => {
+    const { prisma } = await import("@/lib/prisma");
 
     expect(prisma.job.findMany).toBeDefined();
     expect(prisma.job.findUnique).toBeDefined();
@@ -74,8 +74,8 @@ describe('Prisma Database Schema', () => {
     expect(prisma.job.delete).toBeDefined();
   });
 
-  it('should define resume model with correct fields', async () => {
-    const { prisma } = await import('@/lib/prisma');
+  it("should define resume model with correct fields", async () => {
+    const { prisma } = await import("@/lib/prisma");
 
     expect(prisma.resume.findFirst).toBeDefined();
     expect(prisma.resume.findUnique).toBeDefined();
@@ -83,8 +83,8 @@ describe('Prisma Database Schema', () => {
     expect(prisma.resume.update).toBeDefined();
   });
 
-  it('should define coverLetter model with correct fields', async () => {
-    const { prisma } = await import('@/lib/prisma');
+  it("should define coverLetter model with correct fields", async () => {
+    const { prisma } = await import("@/lib/prisma");
 
     expect(prisma.coverLetter.findFirst).toBeDefined();
     expect(prisma.coverLetter.findUnique).toBeDefined();
@@ -92,15 +92,15 @@ describe('Prisma Database Schema', () => {
     expect(prisma.coverLetter.update).toBeDefined();
   });
 
-  it('should support transactions', async () => {
-    const { prisma } = await import('@/lib/prisma');
+  it("should support transactions", async () => {
+    const { prisma } = await import("@/lib/prisma");
 
     expect(prisma.$transaction).toBeDefined();
-    expect(typeof prisma.$transaction).toBe('function');
+    expect(typeof prisma.$transaction).toBe("function");
   });
 
-  it('should support raw queries', async () => {
-    const { prisma } = await import('@/lib/prisma');
+  it("should support raw queries", async () => {
+    const { prisma } = await import("@/lib/prisma");
 
     expect(prisma.$queryRaw).toBeDefined();
     expect(prisma.$executeRaw).toBeDefined();

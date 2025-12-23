@@ -1,15 +1,15 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import { setApiKey, getApiKey } from '@/lib/keyStorage';
-import { MultiSelect } from '@/components/ui/MultiSelect';
-import { Card } from '@/components/ui/Card';
-import { FormField } from '@/components/ui/FormField';
-import { Button } from '@/components/ui/Button';
-import { createLogger } from '@/lib/logger';
-import { useModelStore } from '@/store/modelStore';
+import { useState, useEffect } from "react";
+import { setApiKey, getApiKey } from "@/lib/keyStorage";
+import { MultiSelect } from "@/components/ui/MultiSelect";
+import { Card } from "@/components/ui/Card";
+import { FormField } from "@/components/ui/FormField";
+import { Button } from "@/components/ui/Button";
+import { createLogger } from "@/lib/logger";
+import { useModelStore } from "@/store/modelStore";
 
-const logger = createLogger('SettingsPage');
+const logger = createLogger("SettingsPage");
 
 export default function SettingsPage() {
   const [keys, setKeys] = useState<Record<string, string>>({});
@@ -35,7 +35,7 @@ export default function SettingsPage() {
         await loadModels();
 
         // Load API keys
-        const providers = ['openai', 'gemini', 'grok', 'perplexity'];
+        const providers = ["openai", "gemini", "grok", "perplexity"];
         const loadedKeys: Record<string, string> = {};
         for (const provider of providers) {
           const key = await getApiKey(provider);
@@ -43,27 +43,27 @@ export default function SettingsPage() {
         }
         setKeys(loadedKeys);
       } catch (error) {
-        logger.error('Error loading data', { error });
+        logger.error("Error loading data", { error });
       }
     };
     loadData();
   }, [loadModels]);
 
-
   const handleSaveApiKeys = async () => {
     setIsSaving(true);
     try {
       await Promise.all(
-        Object.entries(keys).map(([provider, key]) => setApiKey(provider, key))
+        Object.entries(keys).map(([provider, key]) => setApiKey(provider, key)),
       );
 
       // Refresh models after saving API keys using store
       await refreshModels();
 
-      alert('API keys saved and models refreshed');
+      alert("API keys saved and models refreshed");
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
-      logger.error('Error saving API keys', { error, errorMessage });
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error occurred";
+      logger.error("Error saving API keys", { error, errorMessage });
       alert(`Error saving API keys: ${errorMessage}`);
     } finally {
       setIsSaving(false);
@@ -72,7 +72,7 @@ export default function SettingsPage() {
 
   const saveAllSettings = () => {
     // Settings are already saved to localStorage via store actions
-    alert('Settings saved');
+    alert("Settings saved");
   };
 
   return (
@@ -85,12 +85,12 @@ export default function SettingsPage() {
         <Card>
           <h2 className="text-lg font-semibold mb-3">API Key Management</h2>
           <div className="grid grid-cols-1 gap-4">
-            {['openai', 'gemini', 'grok', 'perplexity'].map(provider => (
+            {["openai", "gemini", "grok", "perplexity"].map((provider) => (
               <FormField
                 key={provider}
                 label={`${provider} API Key`}
                 type="password"
-                value={keys[provider] || ''}
+                value={keys[provider] || ""}
                 onChange={(v) => setKeys({ ...keys, [provider]: v })}
                 placeholder={`Enter ${provider} API key`}
               />
@@ -101,7 +101,7 @@ export default function SettingsPage() {
                 onClick={handleSaveApiKeys}
                 disabled={isSaving}
               >
-                {isSaving ? 'Saving...' : 'Save API Keys'}
+                {isSaving ? "Saving..." : "Save API Keys"}
               </Button>
             </div>
           </div>
@@ -110,7 +110,8 @@ export default function SettingsPage() {
         <Card>
           <h2 className="text-lg font-semibold mb-3">Model Selection</h2>
           <p className="text-sm mb-3 text-muted">
-            Select models from each provider. Your selections will be used for resume and cover letter generation.
+            Select models from each provider. Your selections will be used for
+            resume and cover letter generation.
           </p>
 
           {error && (
@@ -131,15 +132,19 @@ export default function SettingsPage() {
               <div>
                 <label className="block text-sm font-medium mb-2">
                   OpenAI Models
-                  {selectedProvider === 'openai' && (
-                    <span className="ml-2 text-xs text-blue-600 dark:text-blue-400">(Primary)</span>
+                  {selectedProvider === "openai" && (
+                    <span className="ml-2 text-xs text-blue-600 dark:text-blue-400">
+                      (Primary)
+                    </span>
                   )}
                 </label>
                 <MultiSelect
                   value={selectedModelsByProvider.openai || []}
-                  onChange={(models) => setProviderModels('openai', models)}
+                  onChange={(models) => setProviderModels("openai", models)}
                   options={modelsByProvider.openai}
-                  placeholder={isLoading ? "Loading..." : "Select OpenAI models"}
+                  placeholder={
+                    isLoading ? "Loading..." : "Select OpenAI models"
+                  }
                   disabled={isLoading}
                 />
               </div>
@@ -150,15 +155,19 @@ export default function SettingsPage() {
               <div>
                 <label className="block text-sm font-medium mb-2">
                   Gemini Models
-                  {selectedProvider === 'gemini' && (
-                    <span className="ml-2 text-xs text-blue-600 dark:text-blue-400">(Primary)</span>
+                  {selectedProvider === "gemini" && (
+                    <span className="ml-2 text-xs text-blue-600 dark:text-blue-400">
+                      (Primary)
+                    </span>
                   )}
                 </label>
                 <MultiSelect
                   value={selectedModelsByProvider.gemini || []}
-                  onChange={(models) => setProviderModels('gemini', models)}
+                  onChange={(models) => setProviderModels("gemini", models)}
                   options={modelsByProvider.gemini}
-                  placeholder={isLoading ? "Loading..." : "Select Gemini models"}
+                  placeholder={
+                    isLoading ? "Loading..." : "Select Gemini models"
+                  }
                   disabled={isLoading}
                 />
               </div>
@@ -169,13 +178,15 @@ export default function SettingsPage() {
               <div>
                 <label className="block text-sm font-medium mb-2">
                   Grok Models
-                  {selectedProvider === 'grok' && (
-                    <span className="ml-2 text-xs text-blue-600 dark:text-blue-400">(Primary)</span>
+                  {selectedProvider === "grok" && (
+                    <span className="ml-2 text-xs text-blue-600 dark:text-blue-400">
+                      (Primary)
+                    </span>
                   )}
                 </label>
                 <MultiSelect
                   value={selectedModelsByProvider.grok || []}
-                  onChange={(models) => setProviderModels('grok', models)}
+                  onChange={(models) => setProviderModels("grok", models)}
                   options={modelsByProvider.grok}
                   placeholder={isLoading ? "Loading..." : "Select Grok models"}
                   disabled={isLoading}
@@ -184,38 +195,49 @@ export default function SettingsPage() {
             )}
 
             {/* Perplexity Models */}
-            {modelsByProvider.perplexity && modelsByProvider.perplexity.length > 0 && (
-              <div>
-                <label className="block text-sm font-medium mb-2">
-                  Perplexity Models
-                  {selectedProvider === 'perplexity' && (
-                    <span className="ml-2 text-xs text-blue-600 dark:text-blue-400">(Primary)</span>
-                  )}
-                </label>
-                <MultiSelect
-                  value={selectedModelsByProvider.perplexity || []}
-                  onChange={(models) => setProviderModels('perplexity', models)}
-                  options={modelsByProvider.perplexity}
-                  placeholder={isLoading ? "Loading..." : "Select Perplexity models"}
-                  disabled={isLoading}
-                />
-              </div>
-            )}
+            {modelsByProvider.perplexity &&
+              modelsByProvider.perplexity.length > 0 && (
+                <div>
+                  <label className="block text-sm font-medium mb-2">
+                    Perplexity Models
+                    {selectedProvider === "perplexity" && (
+                      <span className="ml-2 text-xs text-blue-600 dark:text-blue-400">
+                        (Primary)
+                      </span>
+                    )}
+                  </label>
+                  <MultiSelect
+                    value={selectedModelsByProvider.perplexity || []}
+                    onChange={(models) =>
+                      setProviderModels("perplexity", models)
+                    }
+                    options={modelsByProvider.perplexity}
+                    placeholder={
+                      isLoading ? "Loading..." : "Select Perplexity models"
+                    }
+                    disabled={isLoading}
+                  />
+                </div>
+              )}
 
             {/* Ollama Models */}
             {modelsByProvider.ollama && modelsByProvider.ollama.length > 0 && (
               <div>
                 <label className="block text-sm font-medium mb-2">
                   Ollama Models (Local)
-                  {selectedProvider === 'ollama' && (
-                    <span className="ml-2 text-xs text-blue-600 dark:text-blue-400">(Primary)</span>
+                  {selectedProvider === "ollama" && (
+                    <span className="ml-2 text-xs text-blue-600 dark:text-blue-400">
+                      (Primary)
+                    </span>
                   )}
                 </label>
                 <MultiSelect
                   value={selectedModelsByProvider.ollama || []}
-                  onChange={(models) => setProviderModels('ollama', models)}
+                  onChange={(models) => setProviderModels("ollama", models)}
                   options={modelsByProvider.ollama}
-                  placeholder={isLoading ? "Loading..." : "Select Ollama models"}
+                  placeholder={
+                    isLoading ? "Loading..." : "Select Ollama models"
+                  }
                   disabled={isLoading}
                 />
               </div>
@@ -226,21 +248,27 @@ export default function SettingsPage() {
             <div className="mt-4 p-3 bg-gray-50 dark:bg-gray-800 rounded text-sm">
               <p className="font-medium mb-1">Selected Models Summary:</p>
               <p className="text-muted">
-                Total: {Object.values(selectedModelsByProvider).flat().length} model(s) selected
+                Total: {Object.values(selectedModelsByProvider).flat().length}{" "}
+                model(s) selected
                 {selectedProvider && ` • Primary provider: ${selectedProvider}`}
               </p>
             </div>
           )}
 
           <div className="mt-4 flex justify-end">
-            <Button variant="primary" onClick={saveAllSettings}>Save Settings</Button>
+            <Button variant="primary" onClick={saveAllSettings}>
+              Save Settings
+            </Button>
           </div>
         </Card>
       </div>
 
       <Card>
         <h2 className="text-lg font-semibold mb-3">Backup Settings</h2>
-        <p>Google Drive backup is optional. Configure API key above for Google services.</p>
+        <p>
+          Google Drive backup is optional. Configure API key above for Google
+          services.
+        </p>
       </Card>
     </div>
   );

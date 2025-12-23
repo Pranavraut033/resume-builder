@@ -5,9 +5,11 @@ This directory contains comprehensive documentation for the Resume Builder appli
 ## Core Documentation
 
 ### [CLIENT_SIDE_LLM.md](./CLIENT_SIDE_LLM.md)
+
 **Purpose**: Complete guide to client-side LLM operations
 
 **Contents**:
+
 - Architecture overview and rationale
 - Why LLM operations are client-side
 - All LLM functions with usage examples:
@@ -21,7 +23,8 @@ This directory contains comprehensive documentation for the Resume Builder appli
 - Error handling patterns
 - Testing strategies
 
-**Use When**: 
+**Use When**:
+
 - Implementing new LLM features
 - Understanding how AI generation works
 - Debugging LLM operations
@@ -30,9 +33,11 @@ This directory contains comprehensive documentation for the Resume Builder appli
 ---
 
 ### [SERVER_ACTIONS.md](./SERVER_ACTIONS.md)
+
 **Purpose**: Complete guide to Next.js Server Actions for database operations
 
 **Contents**:
+
 - Server actions overview and patterns
 - Profile actions (CRUD operations)
 - Job actions (CRUD operations)
@@ -45,6 +50,7 @@ This directory contains comprehensive documentation for the Resume Builder appli
 - Best practices and common mistakes
 
 **Use When**:
+
 - Creating new server actions
 - Understanding database operations
 - Debugging data persistence
@@ -53,9 +59,11 @@ This directory contains comprehensive documentation for the Resume Builder appli
 ---
 
 ### [MIGRATION_GUIDE.md](./MIGRATION_GUIDE.md)
+
 **Purpose**: Step-by-step guide for migrating from REST API to Server Actions + Client-Side LLM
 
 **Contents**:
+
 - Architecture changes overview
 - Database migration (Drizzle → Prisma)
 - API routes → Server Actions mapping
@@ -70,6 +78,7 @@ This directory contains comprehensive documentation for the Resume Builder appli
 - Security improvements
 
 **Use When**:
+
 - Understanding the architecture evolution
 - Troubleshooting migration issues
 - Learning the new patterns
@@ -78,9 +87,11 @@ This directory contains comprehensive documentation for the Resume Builder appli
 ---
 
 ### [CHANGELOG.md](./CHANGELOG.md)
+
 **Purpose**: Version history and detailed changelog
 
 **Contents**:
+
 - Version 2.0.0 breaking changes
 - New files and features
 - Changed components and patterns
@@ -92,6 +103,7 @@ This directory contains comprehensive documentation for the Resume Builder appli
 - Future roadmap
 
 **Use When**:
+
 - Understanding what changed between versions
 - Checking migration requirements
 - Planning upgrades
@@ -102,9 +114,11 @@ This directory contains comprehensive documentation for the Resume Builder appli
 ## Root Documentation Files
 
 ### [../README.md](../README.md)
+
 **Purpose**: Main project README with quick start guide
 
 **Contents**:
+
 - Project overview and features
 - Tech stack
 - Architecture summary
@@ -117,6 +131,7 @@ This directory contains comprehensive documentation for the Resume Builder appli
 - Contributing guidelines
 
 **Use When**:
+
 - First-time setup
 - Getting started quickly
 - Understanding project overview
@@ -124,9 +139,11 @@ This directory contains comprehensive documentation for the Resume Builder appli
 ---
 
 ### [../ARCHITECTURE.md](../ARCHITECTURE.md)
+
 **Purpose**: Complete architecture documentation
 
 **Contents**:
+
 - Migration summary (Old → New)
 - Files created, modified, deleted
 - API routes to server actions mapping
@@ -137,6 +154,7 @@ This directory contains comprehensive documentation for the Resume Builder appli
 - Data flow diagrams
 
 **Use When**:
+
 - Understanding overall architecture
 - Learning architectural decisions
 - Reviewing migration details
@@ -145,9 +163,11 @@ This directory contains comprehensive documentation for the Resume Builder appli
 ---
 
 ### [../requirements.md](../requirements.md)
+
 **Purpose**: Complete feature requirements and specifications
 
 **Contents**:
+
 - Application overview
 - Core features list
 - User workflows
@@ -157,6 +177,7 @@ This directory contains comprehensive documentation for the Resume Builder appli
 - Export formats
 
 **Use When**:
+
 - Understanding product requirements
 - Planning new features
 - Checking feature completeness
@@ -164,15 +185,18 @@ This directory contains comprehensive documentation for the Resume Builder appli
 ---
 
 ### [../STATUS.md](../STATUS.md)
+
 **Purpose**: Feature checklist and progress tracking
 
 **Contents**:
+
 - Architecture migration checklist
 - Feature implementation status
 - Completed items with timestamps
 - Future roadmap items
 
 **Use When**:
+
 - Tracking development progress
 - Checking what's complete
 - Planning next tasks
@@ -180,9 +204,11 @@ This directory contains comprehensive documentation for the Resume Builder appli
 ---
 
 ### [../STYLE_GUIDE.md](../STYLE_GUIDE.md)
+
 **Purpose**: UI/UX guidelines and component patterns
 
 **Contents**:
+
 - Tailwind-first styling approach
 - Component patterns
 - Spacing and layout rules
@@ -191,6 +217,7 @@ This directory contains comprehensive documentation for the Resume Builder appli
 - Accessibility guidelines
 
 **Use When**:
+
 - Creating new UI components
 - Ensuring consistent styling
 - Following design patterns
@@ -198,9 +225,11 @@ This directory contains comprehensive documentation for the Resume Builder appli
 ---
 
 ### [../agents.md](../agents.md)
+
 **Purpose**: Instructions for AI coding agents
 
 **Contents**:
+
 - Status tracking rules
 - Incremental progress guidelines
 - Architecture constraints
@@ -209,6 +238,7 @@ This directory contains comprehensive documentation for the Resume Builder appli
 - Documentation requirements
 
 **Use When**:
+
 - Configuring AI agents
 - Understanding agent workflows
 - Following development process
@@ -282,6 +312,7 @@ When adding or modifying features:
 Documentation was last fully updated on: **2025-12-21**
 
 Major updates included:
+
 - Created CLIENT_SIDE_LLM.md
 - Created SERVER_ACTIONS.md
 - Created MIGRATION_GUIDE.md
@@ -291,6 +322,7 @@ Major updates included:
 - Updated all agent instructions
 
 Next update needed when:
+
 - New features are added
 - Architecture changes occur
 - Breaking changes are introduced

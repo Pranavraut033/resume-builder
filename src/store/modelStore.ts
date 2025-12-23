@@ -1,20 +1,20 @@
 /**
  * Zustand store for managing LLM model state.
- * 
+ *
  * This store centralizes model-related state including:
  * - Available models organized by provider
  * - Selected models for each provider
  * - Current primary provider
- * 
+ *
  * The store handles fetching models from LLM providers and persisting
  * selections to localStorage for persistence across sessions.
  */
 
-import { create } from 'zustand';
-import { fetchModels } from '@/lib/clientLLM';
-import { createLogger } from '@/lib/logger';
+import { create } from "zustand";
+import { fetchModels } from "@/lib/clientLLM";
+import { createLogger } from "@/lib/logger";
 
-const logger = createLogger('ModelStore');
+const logger = createLogger("ModelStore");
 
 type ProviderModels = Record<string, string[]>;
 
@@ -49,7 +49,7 @@ interface ModelState {
 export const useModelStore = create<ModelState>((set, get) => ({
   modelsByProvider: {},
   selectedModelsByProvider: {},
-  selectedProvider: '',
+  selectedProvider: "",
   isLoading: false,
   error: null,
 
@@ -61,8 +61,8 @@ export const useModelStore = create<ModelState>((set, get) => ({
       const data = await fetchModels();
 
       // Load persisted selections from localStorage
-      const savedSelections = localStorage.getItem('selectedModelsByProvider');
-      const savedProvider = localStorage.getItem('selectedProvider') || '';
+      const savedSelections = localStorage.getItem("selectedModelsByProvider");
+      const savedProvider = localStorage.getItem("selectedProvider") || "";
 
       const selectedByProvider = savedSelections
         ? JSON.parse(savedSelections)
@@ -75,8 +75,9 @@ export const useModelStore = create<ModelState>((set, get) => ({
         isLoading: false,
       });
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to load models';
-      logger.error('Error loading models', { error });
+      const errorMessage =
+        error instanceof Error ? error.message : "Failed to load models";
+      logger.error("Error loading models", { error });
       set({
         isLoading: false,
         error: errorMessage,
@@ -98,9 +99,11 @@ export const useModelStore = create<ModelState>((set, get) => ({
       primaryProvider = provider;
     } else if (models.length === 0 && primaryProvider === provider) {
       // Find another provider with selected models
-      const providersWithModels = Object.entries(updatedSelections)
-        .filter(([, m]) => m.length > 0);
-      primaryProvider = providersWithModels.length > 0 ? providersWithModels[0][0] : '';
+      const providersWithModels = Object.entries(updatedSelections).filter(
+        ([, m]) => m.length > 0,
+      );
+      primaryProvider =
+        providersWithModels.length > 0 ? providersWithModels[0][0] : "";
     }
 
     set({
@@ -109,17 +112,20 @@ export const useModelStore = create<ModelState>((set, get) => ({
     });
 
     // Persist to localStorage
-    localStorage.setItem('selectedModelsByProvider', JSON.stringify(updatedSelections));
-    localStorage.setItem('selectedProvider', primaryProvider);
+    localStorage.setItem(
+      "selectedModelsByProvider",
+      JSON.stringify(updatedSelections),
+    );
+    localStorage.setItem("selectedProvider", primaryProvider);
 
     // Keep backward compatibility with old format
     const allSelected = Object.values(updatedSelections).flat();
-    localStorage.setItem('selectedModel', JSON.stringify(allSelected));
+    localStorage.setItem("selectedModel", JSON.stringify(allSelected));
   },
 
   setSelectedProvider: (provider: string) => {
     set({ selectedProvider: provider });
-    localStorage.setItem('selectedProvider', provider);
+    localStorage.setItem("selectedProvider", provider);
   },
 
   refreshModels: async () => {
@@ -139,14 +145,20 @@ export const useModelStore = create<ModelState>((set, get) => ({
     const { selectedProvider, selectedModelsByProvider } = get();
 
     // Return current provider if valid
-    if (selectedProvider && selectedModelsByProvider[selectedProvider]?.length > 0) {
+    if (
+      selectedProvider &&
+      selectedModelsByProvider[selectedProvider]?.length > 0
+    ) {
       return selectedProvider;
     }
 
     // Otherwise return first provider with selected models
-    const providersWithModels = Object.entries(selectedModelsByProvider)
-      .filter(([, models]) => models.length > 0);
+    const providersWithModels = Object.entries(selectedModelsByProvider).filter(
+      ([, models]) => models.length > 0,
+    );
 
-    return providersWithModels.length > 0 ? providersWithModels[0][0] : 'ollama';
+    return providersWithModels.length > 0
+      ? providersWithModels[0][0]
+      : "ollama";
   },
 }));

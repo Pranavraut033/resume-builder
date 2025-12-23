@@ -1,13 +1,15 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import { getCoverLetterByJobId, updateCoverLetter } from '@/actions/job';
-import { createLogger } from '@/lib/logger';
+import { useState, useEffect } from "react";
+import { getCoverLetterByJobId, updateCoverLetter } from "@/actions/job";
+import { createLogger } from "@/lib/logger";
 
-const logger = createLogger('CoverLetterEditor');
+const logger = createLogger("CoverLetterEditor");
 
 export default function CoverLetterEditor({ jobId }: { jobId: string }) {
-  const [coverLetter, setCoverLetter] = useState<string>('Dear Hiring Manager,\n\nI am writing to express my interest in the position...\n\nSincerely,\n[Your Name]');
+  const [coverLetter, setCoverLetter] = useState<string>(
+    "Dear Hiring Manager,\n\nI am writing to express my interest in the position...\n\nSincerely,\n[Your Name]",
+  );
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
@@ -19,7 +21,7 @@ export default function CoverLetterEditor({ jobId }: { jobId: string }) {
           setCoverLetter(data);
         }
       } catch (error) {
-        logger.error('Error loading cover letter', { error });
+        logger.error("Error loading cover letter", { error });
       } finally {
         setLoading(false);
       }
@@ -31,17 +33,21 @@ export default function CoverLetterEditor({ jobId }: { jobId: string }) {
     setSaving(true);
     try {
       await updateCoverLetter(parseInt(jobId), coverLetter);
-      alert('Cover letter saved!');
+      alert("Cover letter saved!");
     } catch (error) {
-      logger.error('Error saving cover letter', { error });
-      alert('Error saving cover letter');
+      logger.error("Error saving cover letter", { error });
+      alert("Error saving cover letter");
     } finally {
       setSaving(false);
     }
   };
 
   if (loading) {
-    return <div className="container mx-auto p-4"><p>Loading...</p></div>;
+    return (
+      <div className="container mx-auto p-4">
+        <p>Loading...</p>
+      </div>
+    );
   }
 
   return (
@@ -58,7 +64,7 @@ export default function CoverLetterEditor({ jobId }: { jobId: string }) {
         disabled={saving}
         className="mt-4 px-4 py-2 bg-blue-500 text-white rounded disabled:opacity-50"
       >
-        {saving ? 'Saving...' : 'Save Cover Letter'}
+        {saving ? "Saving..." : "Save Cover Letter"}
       </button>
     </div>
   );

@@ -1,25 +1,34 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import { Select } from '@/components/ui';
-import BackButton from '@/components/BackButton';
-import { createLogger } from '@/lib/logger';
-import { createJob } from '@/actions/job';
-import { getProfile } from '@/actions/profile';
-import { parseJobDescription, generateResume, generateCoverLetter } from '@/lib/clientLLM';
-import { useModelStore } from '@/store/modelStore';
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { Select } from "@/components/ui";
+import BackButton from "@/components/BackButton";
+import { createLogger } from "@/lib/logger";
+import { createJob } from "@/actions/job";
+import { getProfile } from "@/actions/profile";
+import {
+  parseJobDescription,
+  generateResume,
+  generateCoverLetter,
+} from "@/lib/clientLLM";
+import { useModelStore } from "@/store/modelStore";
 
-const logger = createLogger('NewJobPage');
+const logger = createLogger("NewJobPage");
 
 export default function NewJobPage() {
-  const [description, setDescription] = useState('');
-  const [selectedModel, setSelectedModel] = useState('');
+  const [description, setDescription] = useState("");
+  const [selectedModel, setSelectedModel] = useState("");
   const [loading, setLoading] = useState(false);
   const router = useRouter();
 
   // Use Zustand store for model state
-  const { selectedModelsByProvider, getSelectedProvider, getAllSelectedModels, loadModels } = useModelStore();
+  const {
+    selectedModelsByProvider,
+    getSelectedProvider,
+    getAllSelectedModels,
+    loadModels,
+  } = useModelStore();
 
   useEffect(() => {
     // Load models from store
@@ -42,7 +51,11 @@ export default function NewJobPage() {
       const provider = getSelectedProvider();
 
       // Step 1: Parse job description (client-side)
-      const jobDetails = await parseJobDescription(description, selectedModel, provider);
+      const jobDetails = await parseJobDescription(
+        description,
+        selectedModel,
+        provider,
+      );
 
       // // Step 2: Get base profile
       // const baseProfile = await getProfile();
@@ -69,12 +82,12 @@ export default function NewJobPage() {
       // );
 
       // Step 5: Save to database (server action)
-      await createJob({ jobDetails, });
+      await createJob({ jobDetails });
 
-      router.push('/');
+      router.push("/");
     } catch (error) {
-      logger.error('Error creating job', { error });
-      alert('Error creating job');
+      logger.error("Error creating job", { error });
+      alert("Error creating job");
     } finally {
       setLoading(false);
     }
@@ -84,10 +97,15 @@ export default function NewJobPage() {
     <div>
       <BackButton />
       <h1 className="text-2xl font-bold mb-4">Add New Job</h1>
-      <p className="mb-4">Paste the job description below. The system will auto-parse company and role, and generate a tailored resume and cover letter.</p>
+      <p className="mb-4">
+        Paste the job description below. The system will auto-parse company and
+        role, and generate a tailored resume and cover letter.
+      </p>
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
-          <label htmlFor="description" className="block text-sm font-medium">Job Description</label>
+          <label htmlFor="description" className="block text-sm font-medium">
+            Job Description
+          </label>
           <textarea
             id="description"
             value={description}
@@ -98,7 +116,9 @@ export default function NewJobPage() {
           />
         </div>
         <div>
-          <label htmlFor="model" className="block text-sm font-medium">AI Model</label>
+          <label htmlFor="model" className="block text-sm font-medium">
+            AI Model
+          </label>
           <Select
             value={selectedModel}
             onChange={setSelectedModel}
@@ -111,7 +131,7 @@ export default function NewJobPage() {
           disabled={loading}
           className="px-4 py-2 bg-blue-500 text-white rounded disabled:opacity-50"
         >
-          {loading ? 'Creating...' : 'Create Job, Resume & Cover Letter'}
+          {loading ? "Creating..." : "Create Job, Resume & Cover Letter"}
         </button>
       </form>
     </div>

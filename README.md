@@ -5,6 +5,7 @@ A local-first, AI-powered desktop application for creating tailored resumes and 
 ## Architecture
 
 This application uses a modern **client-first architecture**:
+
 - **Server Actions** for all database operations (Prisma + SQLite)
 - **Client-Side LLM** operations (OpenAI, Gemini, Grok, Ollama)
 - **No REST APIs** - direct server action calls from client
@@ -67,6 +68,7 @@ npx prisma db push   # Apply schema changes
 ### Quick Start
 
 1. **Run development server**:
+
    ```bash
    npm run dev
    ```
@@ -202,6 +204,7 @@ resume-builder/
 ### Code Quality
 
 Before committing:
+
 ```bash
 npm run lint:fix    # Fix linting issues
 npm run format      # Format code
@@ -211,6 +214,7 @@ npm run type-check  # Verify types
 ### Database Changes
 
 When modifying `prisma/schema.prisma`:
+
 ```bash
 npx prisma generate  # Regenerate Prisma client
 npx prisma db push   # Apply changes to database
@@ -230,21 +234,25 @@ npx prisma db push   # Apply changes to database
 ### Common Issues
 
 **"Cannot find module '@prisma/client'"**
+
 ```bash
 npx prisma generate
 ```
 
 **"API key not found"**
+
 - Go to `/settings` and add API keys
 - Keys stored in Tauri encrypted storage (desktop) or localStorage (web)
 
 **Type errors after schema changes**
+
 ```bash
 npx prisma generate
 npm run type-check
 ```
 
 **Database schema out of sync**
+
 ```bash
 npx prisma db push
 ```
@@ -274,3 +282,10 @@ MIT
 - Desktop app powered by [Tauri](https://tauri.app/)
 - Database by [Prisma](https://www.prisma.io/)
 - LLM providers: OpenAI, Google Gemini, Grok, Ollama
+- Resume templates adapted from [Resumify](https://github.com/Afif718/Resumify) by M. H. A. Afif (MIT License)
+
+## Attribution
+
+This project incorporates code and concepts from [Resumify](https://github.com/Afif718/Resumify), an excellent open-source resume builder by M. H. A. Afif. We have adapted their professional resume templates, template system, and color customization features to work with our local-first architecture while maintaining their beautiful designs. We are grateful for their contribution to the open-source community.
+
+See [LICENSE-THIRD-PARTY.md](./LICENSE-THIRD-PARTY.md) for complete attribution and license information.

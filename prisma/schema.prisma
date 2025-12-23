@@ -71,6 +71,15 @@ model Resume {
   contentJson String @map("content_json") // JSON string containing ResumeJSON structure
   lastEdited  String @map("last_edited")
   
+  // Resumify integration: template customization options
+  template    String @default("modern-minimal") // tech-sidebar, business-professional, modern-minimal, elegant-timeline, creative-modern, bjet-professional
+  pageFormat  String @default("letter") @map("page_format") // letter or a4
+  fontSize    String @default("medium") @map("font_size") // small, medium, large
+  fontFamily  String @default("Inter") @map("font_family") // Inter, Georgia, Poppins, etc.
+  
+  // Color theme (stored as JSON: {primary, secondary, accent, text, background})
+  colorsJson  String? @default("{\"primary\":\"#3b82f6\",\"secondary\":\"#64748b\",\"accent\":\"#8b5cf6\",\"text\":\"#1f2937\",\"background\":\"#ffffff\"}") @map("colors_json")
+  
   job Job @relation(fields: [jobId], references: [id], onDelete: Cascade)
 
   @@map("resumes")

@@ -45,15 +45,16 @@ All LLM (Large Language Model) operations in this application run **client-side*
 ### Functions
 
 #### `parseJobDescription()`
+
 Parse a job description using LLM to extract structured data.
 
 ```typescript
-import { parseJobDescription } from '@/lib/clientLLM';
+import { parseJobDescription } from "@/lib/clientLLM";
 
 const jobDetails = await parseJobDescription(
-  description,      // Job description text
-  selectedModel,    // e.g., 'gpt-4'
-  selectedProvider  // e.g., 'openai'
+  description, // Job description text
+  selectedModel, // e.g., 'gpt-4'
+  selectedProvider, // e.g., 'openai'
 );
 
 // Returns: JobDetails object with structured data
@@ -64,27 +65,29 @@ const jobDetails = await parseJobDescription(
 ```
 
 **Provider Support**:
+
 - OpenAI: Uses structured outputs for best results
 - Gemini, Grok, Ollama: Uses regex fallback
 
 ---
 
 #### `generateResume()`
+
 Generate a tailored resume from base profile and job details.
 
 ```typescript
-import { generateResume } from '@/lib/clientLLM';
-import { getProfile } from '@/actions/profile';
+import { generateResume } from "@/lib/clientLLM";
+import { getProfile } from "@/actions/profile";
 
 const baseProfile = await getProfile();
 
 const tailoredResume = await generateResume(
-  baseProfile,      // Base profile from database
-  jobDescription,   // Raw job description
-  jobRole,          // Extracted job title
-  company,          // Company name
-  selectedModel,    // LLM model to use
-  selectedProvider  // Provider name
+  baseProfile, // Base profile from database
+  jobDescription, // Raw job description
+  jobRole, // Extracted job title
+  company, // Company name
+  selectedModel, // LLM model to use
+  selectedProvider, // Provider name
 );
 
 // Returns: ResumeJSON object
@@ -98,6 +101,7 @@ const tailoredResume = await generateResume(
 ```
 
 **How it works**:
+
 - Provider generates tailored content based on job requirements
 - Highlights relevant experience and skills
 - Adjusts summary to match job description
@@ -106,19 +110,20 @@ const tailoredResume = await generateResume(
 ---
 
 #### `generateCoverLetter()`
+
 Generate a personalized cover letter.
 
 ```typescript
-import { generateCoverLetter } from '@/lib/clientLLM';
+import { generateCoverLetter } from "@/lib/clientLLM";
 
 const coverLetterText = await generateCoverLetter(
-  baseProfile,      // Base profile
-  tailoredResume,   // Generated resume
-  jobDescription,   // Job description
-  jobRole,          // Job title
-  company,          // Company name
-  selectedModel,    // LLM model
-  selectedProvider  // Provider name
+  baseProfile, // Base profile
+  tailoredResume, // Generated resume
+  jobDescription, // Job description
+  jobRole, // Job title
+  company, // Company name
+  selectedModel, // LLM model
+  selectedProvider, // Provider name
 );
 
 // Returns: string (formatted cover letter)
@@ -127,10 +132,11 @@ const coverLetterText = await generateCoverLetter(
 ---
 
 #### `fetchModels()`
+
 Fetch available models from all configured providers.
 
 ```typescript
-import { fetchModels } from '@/lib/clientLLM';
+import { fetchModels } from "@/lib/clientLLM";
 
 const modelsMap = await fetchModels();
 
@@ -155,10 +161,11 @@ Internal class that manages LLM provider instances with caching.
 // Automatically instantiates correct provider based on name
 // Retrieves API keys from Tauri storage
 // Caches instances to avoid re-initialization
-const provider = await ProviderFactory.getInstance('openai');
+const provider = await ProviderFactory.getInstance("openai");
 ```
 
 **Providers Supported**:
+
 - `openai` - OpenAI API (requires API key)
 - `gemini` - Google Gemini (requires API key)
 - `grok` - Grok API (requires API key)
@@ -174,10 +181,10 @@ const provider = await ProviderFactory.getInstance('openai');
 'use client';
 
 import { useState } from 'react';
-import { 
-  parseJobDescription, 
-  generateResume, 
-  generateCoverLetter 
+import {
+  parseJobDescription,
+  generateResume,
+  generateCoverLetter
 } from '@/lib/clientLLM';
 import { getProfile } from '@/actions/profile';
 import { createJob } from '@/actions/job';
@@ -190,17 +197,17 @@ export default function NewJobPage() {
     try {
       const model = 'gpt-4';
       const provider = 'openai';
-      
+
       // Step 1: Parse job description (CLIENT-SIDE LLM)
       const jobDetails = await parseJobDescription(
-        description, 
-        model, 
+        description,
+        model,
         provider
       );
-      
+
       // Step 2: Get base profile (SERVER ACTION - Database)
       const baseProfile = await getProfile();
-      
+
       // Step 3: Generate resume (CLIENT-SIDE LLM)
       const tailoredResume = await generateResume(
         baseProfile,
@@ -210,7 +217,7 @@ export default function NewJobPage() {
         model,
         provider
       );
-      
+
       // Step 4: Generate cover letter (CLIENT-SIDE LLM)
       const coverLetterText = await generateCoverLetter(
         baseProfile,
@@ -221,14 +228,14 @@ export default function NewJobPage() {
         model,
         provider
       );
-      
+
       // Step 5: Save to database (SERVER ACTION - Database)
-      await createJob({ 
-        jobDetails, 
-        tailoredResume, 
-        coverLetterText 
+      await createJob({
+        jobDetails,
+        tailoredResume,
+        coverLetterText
       });
-      
+
       // Done!
     } catch (error) {
       console.error('Error:', error);
@@ -248,16 +255,17 @@ export default function NewJobPage() {
 API keys are stored in Tauri's secure storage and accessed client-side:
 
 ```typescript
-import { getApiKey, setApiKey } from '@/lib/keyStorage';
+import { getApiKey, setApiKey } from "@/lib/keyStorage";
 
 // Store key
-await setApiKey('openai', 'sk-...');
+await setApiKey("openai", "sk-...");
 
 // Retrieve key
-const key = await getApiKey('openai');
+const key = await getApiKey("openai");
 ```
 
 **Security Notes**:
+
 - Keys stored encrypted in Tauri storage
 - Never transmitted to server
 - Only accessible in Tauri/browser client context
@@ -281,17 +289,17 @@ export async function createJob(input: {
       company: input.jobDetails.company.company_name,
       role: input.jobDetails.job.job_title,
       // ...
-    }
+    },
   });
-  
+
   await prisma.resume.create({
     data: {
       jobId: job.id,
       contentJson: JSON.stringify(input.tailoredResume),
       // ...
-    }
+    },
   });
-  
+
   // ... save cover letter
 }
 ```
@@ -317,12 +325,13 @@ try {
   const jobDetails = await parseJobDescription(desc, model, provider);
 } catch (error) {
   // Handle LLM errors (rate limits, invalid keys, etc.)
-  console.error('LLM operation failed:', error);
-  alert('Error parsing job description. Check your API key.');
+  console.error("LLM operation failed:", error);
+  alert("Error parsing job description. Check your API key.");
 }
 ```
 
 **Common Errors**:
+
 - Invalid API key
 - Rate limit exceeded
 - Network timeout
@@ -344,12 +353,12 @@ Example test:
 
 ```typescript
 // Mock provider for testing
-jest.mock('@/lib/clientLLM', () => ({
+jest.mock("@/lib/clientLLM", () => ({
   parseJobDescription: jest.fn().mockResolvedValue({
-    job: { job_title: 'Software Engineer' },
-    company: { company_name: 'Test Corp' },
+    job: { job_title: "Software Engineer" },
+    company: { company_name: "Test Corp" },
     // ... mock data
-  })
+  }),
 }));
 ```
 

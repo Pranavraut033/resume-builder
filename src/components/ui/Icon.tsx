@@ -1,4 +1,4 @@
-'use client';
+"use client";
 
 import {
   GripVertical,
@@ -19,8 +19,8 @@ import {
   LayoutGrid,
   Rows3,
   Search,
-  Loader2
-} from 'lucide-react';
+  Loader2,
+} from "lucide-react";
 
 const iconMap = {
   gripVertical: GripVertical,
@@ -52,11 +52,23 @@ interface IconProps {
   className?: string;
 }
 
-export function Icon({ name, size = 16, className = '' }: IconProps) {
+export function Icon({ name, size = 16, className = "" }: IconProps) {
   const IconComponent = iconMap[name];
 
   return <IconComponent size={size} className={className} />;
 }
 
 // Export individual icons for convenience
-export { GripVertical, Plus, Edit2, Trash2, Download, FileText, Cloud, Save, X, Eye, EyeOff };
+export {
+  GripVertical,
+  Plus,
+  Edit2,
+  Trash2,
+  Download,
+  FileText,
+  Cloud,
+  Save,
+  X,
+  Eye,
+  EyeOff,
+};

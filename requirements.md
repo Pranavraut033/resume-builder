@@ -13,12 +13,12 @@ The application must run without mandatory cloud dependencies, support multiple 
 
 ## 2. Core Principles
 
-* Local-first (works offline)
-* Privacy-focused (no forced cloud storage)
-* Open-source
-* Provider-agnostic AI layer
-* Deterministic, ATS-friendly output
-* Desktop-first UX
+- Local-first (works offline)
+- Privacy-focused (no forced cloud storage)
+- Open-source
+- Provider-agnostic AI layer
+- Deterministic, ATS-friendly output
+- Desktop-first UX
 
 ---
 
@@ -26,32 +26,32 @@ The application must run without mandatory cloud dependencies, support multiple 
 
 ### Frontend
 
-* **Framework:** Next.js (App Router or Pages Router allowed)
-* **Language:** TypeScript (strict mode)
-* **UI:** React + Tailwind CSS
-* **Drag & Drop:** dnd-kit
+- **Framework:** Next.js (App Router or Pages Router allowed)
+- **Language:** TypeScript (strict mode)
+- **UI:** React + Tailwind CSS
+- **Drag & Drop:** dnd-kit
 
 ### Desktop Wrapper
 
-* **Tauri** (preferred) or Electron
+- **Tauri** (preferred) or Electron
 
 ### Backend (Local)
 
-* **Runtime:** Next.js Server Actions
-* **Database:** SQLite
-* **ORM:** Prisma
+- **Runtime:** Next.js Server Actions
+- **Database:** SQLite
+- **ORM:** Prisma
 
 ### AI / LLM
 
-* OpenAI API
-* Google Gemini API
-* Grok API
-* Ollama (local models)
+- OpenAI API
+- Google Gemini API
+- Grok API
+- Ollama (local models)
 
 ### File & Export
 
-* PDF generation: react-pdf or pdf-lib
-* Text export: plain text / markdown
+- PDF generation: react-pdf or pdf-lib
+- Text export: plain text / markdown
 
 ---
 
@@ -63,19 +63,18 @@ The application must run without mandatory cloud dependencies, support multiple 
 
 **Features:**
 
-* Table listing all jobs
-* Columns:
+- Table listing all jobs
+- Columns:
+  - Company
+  - Role
+  - Status (Draft / Applied / Interview / Offer / Rejected)
+  - Last updated
 
-  * Company
-  * Role
-  * Status (Draft / Applied / Interview / Offer / Rejected)
-  * Last updated
-* Actions:
-
-  * Open resume
-  * Open cover letter
-  * Regenerate
-  * Download
+- Actions:
+  - Open resume
+  - Open cover letter
+  - Regenerate
+  - Download
 
 ---
 
@@ -85,21 +84,20 @@ The application must run without mandatory cloud dependencies, support multiple 
 
 **Features:**
 
-* Single large input box for job description
-* Auto-parsing of:
+- Single large input box for job description
+- Auto-parsing of:
+  - Company name
+  - Role
+  - Keywords
 
-  * Company name
-  * Role
-  * Keywords
-* Generate:
+- Generate:
+  - Job entry
+  - Tailored resume (from base profile)
+  - Tailored cover letter
 
-  * Job entry
-  * Tailored resume (from base profile)
-  * Tailored cover letter
-* Fields:
-
-  * Status
-  * Recruiter feedback / notes
+- Fields:
+  - Status
+  - Recruiter feedback / notes
 
 ---
 
@@ -109,21 +107,21 @@ The application must run without mandatory cloud dependencies, support multiple 
 
 **Features:**
 
-* Drag-and-drop resume sections
-* Editable text blocks
-* Toggle sections on/off
-* Resume stored as structured JSON
-* Live preview
+- Drag-and-drop resume sections
+- Editable text blocks
+- Toggle sections on/off
+- Resume stored as structured JSON
+- Live preview
 
 **Resume Block Types:**
 
-* Header
-* Summary
-* Experience
-* Projects
-* Skills
-* Education
-* Certifications
+- Header
+- Summary
+- Experience
+- Projects
+- Skills
+- Education
+- Certifications
 
 ---
 
@@ -133,9 +131,9 @@ The application must run without mandatory cloud dependencies, support multiple 
 
 **Features:**
 
-* Rich text editor
-* Regenerate with prompt tweaks
-* Export as PDF or TXT
+- Rich text editor
+- Regenerate with prompt tweaks
+- Export as PDF or TXT
 
 ---
 
@@ -145,10 +143,10 @@ The application must run without mandatory cloud dependencies, support multiple 
 
 **Features:**
 
-* One canonical base resume
-* Structured input (not free text)
-* Skills, experience, education
-* Used as source for all generations
+- One canonical base resume
+- Structured input (not free text)
+- Skills, experience, education
+- Used as source for all generations
 
 ---
 
@@ -160,22 +158,22 @@ The application must run without mandatory cloud dependencies, support multiple 
 
 #### AI Providers
 
-* Add / remove API keys
-* Provider selection
-* Model selection
-* Ollama detection & configuration
+- Add / remove API keys
+- Provider selection
+- Model selection
+- Ollama detection & configuration
 
 #### Storage & Backup
 
-* Local DB location
-* Manual export
-* Google Drive backup (optional)
+- Local DB location
+- Manual export
+- Google Drive backup (optional)
 
 #### App Settings
 
-* Default resume template
-* Language
-* PDF formatting options
+- Default resume template
+- Language
+- PDF formatting options
 
 ---
 
@@ -187,8 +185,8 @@ All LLMs must implement a shared interface:
 
 ```ts
 interface LLMProvider {
-  generateResume(input: ResumePromptInput): Promise<ResumeJSON>
-  generateCoverLetter(input: CoverLetterPromptInput): Promise<string>
+  generateResume(input: ResumePromptInput): Promise<ResumeJSON>;
+  generateCoverLetter(input: CoverLetterPromptInput): Promise<string>;
 }
 ```
 
@@ -196,12 +194,12 @@ interface LLMProvider {
 
 ### 5.2 Prompt Strategy
 
-* Enforce structured JSON output for resumes
-* Separate prompts for:
+- Enforce structured JSON output for resumes
+- Separate prompts for:
+  - Resume tailoring
+  - Cover letter generation
 
-  * Resume tailoring
-  * Cover letter generation
-* Include ATS constraints
+- Include ATS constraints
 
 ---
 
@@ -209,78 +207,77 @@ interface LLMProvider {
 
 ### Profile
 
-* id
-* resume_json
-* created_at
-* updated_at
+- id
+- resume_json
+- created_at
+- updated_at
 
 ### Job
 
-* id
-* company
-* role
-* description
-* status
-* notes
-* created_at
+- id
+- company
+- role
+- description
+- status
+- notes
+- created_at
 
 ### Resume
 
-* id
-* job_id
-* content_json
-* last_edited
+- id
+- job_id
+- content_json
+- last_edited
 
 ### CoverLetter
 
-* id
-* job_id
-* content_text
+- id
+- job_id
+- content_text
 
 ---
 
 ## 7. Export Requirements
 
-* PDF:
+- PDF:
+  - ATS-friendly
+  - Single-column
+  - Deterministic layout
 
-  * ATS-friendly
-  * Single-column
-  * Deterministic layout
-* TXT:
-
-  * Clean formatting
-  * No markdown artifacts
+- TXT:
+  - Clean formatting
+  - No markdown artifacts
 
 ---
 
 ## 8. Security Requirements
 
-* API keys stored via OS keychain
-* No plaintext secrets in DB
-* No telemetry by default
+- API keys stored via OS keychain
+- No plaintext secrets in DB
+- No telemetry by default
 
 ---
 
 ## 9. Offline Requirements
 
-* App must fully function without internet
-* Ollama supported for generation
-* Cloud APIs optional
+- App must fully function without internet
+- Ollama supported for generation
+- Cloud APIs optional
 
 ---
 
 ## 10. Open Source & Licensing
 
-* License: GPL-3 or AGPL-3
-* No proprietary lock-in
+- License: GPL-3 or AGPL-3
+- No proprietary lock-in
 
 ---
 
 ## 11. Non-Goals (Explicit)
 
-* SaaS hosting
-* Multi-user auth
-* Cloud-only storage
+- SaaS hosting
+- Multi-user auth
+- Cloud-only storage
 
 ---
 
@@ -288,17 +285,17 @@ interface LLMProvider {
 
 ### Milestone 1
 
-* Base profile
-* Job creation
-* Single LLM integration
+- Base profile
+- Job creation
+- Single LLM integration
 
 ### Milestone 2
 
-* Resume editor
-* PDF export
+- Resume editor
+- PDF export
 
 ### Milestone 3
 
-* Multi-provider support
-* Job tracking
-* Backup
+- Multi-provider support
+- Job tracking
+- Backup
