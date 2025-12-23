@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Icon } from "./Icon";
 
 interface FormFieldProps {
-  label: string;
+  label?: string;
   type?: "text" | "email" | "tel" | "url" | "textarea" | "password";
   value: string;
   onChange: (value: string) => void;
@@ -12,6 +12,7 @@ interface FormFieldProps {
   required?: boolean;
   rows?: number;
   className?: string;
+  helpText?: string;
 }
 
 export function FormField({
@@ -23,6 +24,7 @@ export function FormField({
   required = false,
   rows = 4,
   className = "",
+  helpText,
 }: FormFieldProps) {
   const [showPassword, setShowPassword] = useState(false);
   const isPasswordField = type === "password";
@@ -33,10 +35,12 @@ export function FormField({
 
   return (
     <div className={`space-y-1 ${className}`}>
-      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-        {label}
-        {required && <span className="text-red-500 ml-1">*</span>}
-      </label>
+      {label && (
+        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+          {label}
+          {required && <span className="text-red-500 ml-1">*</span>}
+        </label>
+      )}
       {type === "textarea" ? (
         <textarea
           value={value}
@@ -70,6 +74,11 @@ export function FormField({
             </button>
           )}
         </div>
+      )}
+      {helpText && (
+        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+          {helpText}
+        </p>
       )}
     </div>
   );

@@ -10,6 +10,7 @@ interface SectionProps {
   onDelete?: () => void;
   canDelete?: boolean;
   className?: string;
+  actions?: ReactNode;
 }
 
 export function Section({
@@ -19,6 +20,7 @@ export function Section({
   onDelete,
   canDelete = false,
   className = "",
+  actions,
 }: SectionProps) {
   return (
     <div className={`mb-8 ${className}`}>
@@ -27,6 +29,7 @@ export function Section({
           {title}
         </h2>
         <div className="flex gap-2">
+          {actions}
           {onEdit && (
             <button
               onClick={onEdit}
