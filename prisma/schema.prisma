@@ -12,7 +12,40 @@ datasource db {
 
 model Profile {
   id         Int      @id @default(autoincrement())
-  resumeJson String   @map("resume_json") // JSON string containing ResumeJSON structure
+  
+  // Header / Contact Info
+  name       String
+  email      String
+  phone      String?
+  location   String?
+  linkedin   String?
+  github     String?
+  website    String?
+  
+  // Professional Summary
+  summary    String?
+  
+  // Skills (stored as JSON array)
+  skillsJson String   @default("[]") @map("skills_json")
+  
+  // Experience, Projects, Education, Certifications stored as JSON arrays
+  experienceJson     String @default("[]") @map("experience_json")
+  projectsJson       String @default("[]") @map("projects_json")
+  educationJson      String @default("[]") @map("education_json")
+  certificationsJson String @default("[]") @map("certifications_json")
+  
+  // Publications (optional)
+  publicationsJson   String? @map("publications_json")
+  
+  // Languages (optional)
+  languagesJson      String? @map("languages_json")
+  
+  // Volunteer work (optional)
+  volunteerJson      String? @map("volunteer_json")
+  
+  // Awards/Honors (optional)
+  awardsJson         String? @map("awards_json")
+  
   createdAt  String   @map("created_at")
   updatedAt  String   @map("updated_at")
 
