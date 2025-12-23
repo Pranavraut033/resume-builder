@@ -104,6 +104,17 @@ describe('Job Actions', () => {
         jobId: 2,
         contentJson: JSON.stringify(sampleTailoredResume),
         lastEdited: new Date().toISOString(),
+        template: 'modern-minimal',
+        pageFormat: 'letter',
+        fontSize: 'medium',
+        fontFamily: 'Inter',
+        colorsJson: JSON.stringify({
+          primary: '#3b82f6',
+          secondary: '#64748b',
+          accent: '#8b5cf6',
+          text: '#1f2937',
+          background: '#ffffff',
+        }),
       };
 
       const mockCoverLetter = {
@@ -281,6 +292,17 @@ describe('Job Actions', () => {
         jobId: 1,
         contentJson: JSON.stringify(sampleTailoredResume),
         lastEdited: new Date().toISOString(),
+        template: 'modern-minimal',
+        pageFormat: 'letter',
+        fontSize: 'medium',
+        fontFamily: 'Inter',
+        colorsJson: JSON.stringify({
+          primary: '#3b82f6',
+          secondary: '#64748b',
+          accent: '#8b5cf6',
+          text: '#1f2937',
+          background: '#ffffff',
+        }),
       };
 
       prismaMock.resume.findFirst.mockResolvedValue(mockResume);

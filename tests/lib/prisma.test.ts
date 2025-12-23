@@ -18,7 +18,7 @@ describe('Prisma Initialization', () => {
 
     expect(prisma).toBeDefined();
     vi.unstubAllEnvs();
-    if (originalEnv) process.env.NODE_ENV = originalEnv;
+    // No need to restore NODE_ENV - vi.unstubAllEnvs handles it
   });
 
   it('should use error-only logs in production', () => {
@@ -31,7 +31,7 @@ describe('Prisma Initialization', () => {
 
     expect(prisma).toBeDefined();
     vi.unstubAllEnvs();
-    if (originalEnv) process.env.NODE_ENV = originalEnv;
+    // No need to restore NODE_ENV - vi.unstubAllEnvs handles it
   });
 
   it('should be a singleton in non-production environments', async () => {
