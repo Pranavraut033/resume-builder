@@ -1,0 +1,87 @@
+// Prisma Schema for Resume Builder
+// Migrated from Drizzle ORM
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Profile {
+  id         Int      @id @default(autoincrement())
+  resumeJson String   @map("resume_json") // JSON string containing ResumeJSON structure
+  createdAt  String   @map("created_at")
+  updatedAt  String   @map("updated_at")
+
+  @@map("profiles")
+}
+
+model Company {
+  id                  Int     @id @default(autoincrement())
+  name                String
+  industry            String?
+  description         String?
+  marketPosition      String? @map("market_position")
+  locationCity        String? @map("location_city")
+  locationCountry     String? @map("location_country")
+  officeLocationDetails String? @map("office_location_details")
+  
+  jobs Job[]
+
+  @@map("companies")
+}
+
+model Contact {
+  id                   Int     @id @default(autoincrement())
+  recruiterName        String? @map("recruiter_name")
+  recruiterRole        String? @map("recruiter_role")
+  contactEmail         String? @map("contact_email")
+  contactPhone         String? @map("contact_phone")
+  contactWhatsappAvailable Boolean? @map("contact_whatsapp_available")
+  
+  jobs Job[]
+
+  @@map("contacts")
+}
+
+model Job {
+  id              Int            @id @default(autoincrement())
+  companyId       Int?           @map("company_id")
+  contactId       Int?           @map("contact_id")
+  role            String
+  description     String
+  status          String @default("DRAFT") // constrained at application level
+  jobDetailsJson  String? // JSON string containing parsed JobDetails structure with company info, contact, and requirements
+  createdAt       String         @map("created_at")
+  
+  company Company? @relation(fields: [companyId], references: [id], onDelete: SetNull)
+  contact Contact? @relation(fields: [contactId], references: [id], onDelete: SetNull)
+  resumes       Resume[]
+  coverLetters  CoverLetter[]
+
+  @@map("jobs")
+}
+
+model Resume {
+  id          Int    @id @default(autoincrement())
+  jobId       Int    @map("job_id")
+  contentJson String @map("content_json") // JSON string containing ResumeJSON structure
+  lastEdited  String @map("last_edited")
+  
+  job Job @relation(fields: [jobId], references: [id], onDelete: Cascade)
+
+  @@map("resumes")
+}
+
+model CoverLetter {
+  id          Int    @id @default(autoincrement())
+  jobId       Int    @map("job_id")
+  contentText String @map("content_text")
+  
+  job Job @relation(fields: [jobId], references: [id], onDelete: Cascade)
+
+  @@map("cover_letters")
+}
