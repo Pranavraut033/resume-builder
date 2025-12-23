@@ -5,6 +5,14 @@ import { ResumeJSON } from "@/types/resume";
 import { revalidatePath } from "next/cache";
 
 /**
+ * Check if a base profile exists
+ */
+export async function hasProfile(): Promise<boolean> {
+  const profile = await prisma.profile.findFirst();
+  return profile !== null && profile.name !== "" && profile.email !== "";
+}
+
+/**
  * Get the base profile (returns first profile or default structure)
  */
 export async function getProfile(): Promise<ResumeJSON> {
@@ -19,10 +27,36 @@ export async function getProfile(): Promise<ResumeJSON> {
       skills: [],
       education: [],
       certifications: [],
+      publications: [],
+      languages: [],
+      volunteer: [],
+      awards: [],
     };
   }
 
-  return JSON.parse(profile.resumeJson) as ResumeJSON;
+  return {
+    header: {
+      name: profile.name,
+      email: profile.email,
+      phone: profile.phone || undefined,
+      location: profile.location || undefined,
+      linkedin: profile.linkedin || undefined,
+      github: profile.github || undefined,
+      website: profile.website || undefined,
+    },
+    summary: profile.summary || "",
+    experience: JSON.parse(profile.experienceJson),
+    projects: JSON.parse(profile.projectsJson),
+    skills: JSON.parse(profile.skillsJson),
+    education: JSON.parse(profile.educationJson),
+    certifications: JSON.parse(profile.certificationsJson),
+    publications: profile.publicationsJson
+      ? JSON.parse(profile.publicationsJson)
+      : [],
+    languages: profile.languagesJson ? JSON.parse(profile.languagesJson) : [],
+    volunteer: profile.volunteerJson ? JSON.parse(profile.volunteerJson) : [],
+    awards: profile.awardsJson ? JSON.parse(profile.awardsJson) : [],
+  };
 }
 
 /**
@@ -34,21 +68,44 @@ export async function saveProfile(
   const now = new Date().toISOString();
   const existing = await prisma.profile.findFirst();
 
+  const data = {
+    name: resumeJson.header.name,
+    email: resumeJson.header.email,
+    phone: resumeJson.header.phone || null,
+    location: resumeJson.header.location || null,
+    linkedin: resumeJson.header.linkedin || null,
+    github: resumeJson.header.github || null,
+    website: resumeJson.header.website || null,
+    summary: resumeJson.summary || null,
+    skillsJson: JSON.stringify(resumeJson.skills),
+    experienceJson: JSON.stringify(resumeJson.experience),
+    projectsJson: JSON.stringify(resumeJson.projects),
+    educationJson: JSON.stringify(resumeJson.education),
+    certificationsJson: JSON.stringify(resumeJson.certifications),
+    publicationsJson: resumeJson.publications
+      ? JSON.stringify(resumeJson.publications)
+      : null,
+    languagesJson: resumeJson.languages
+      ? JSON.stringify(resumeJson.languages)
+      : null,
+    volunteerJson: resumeJson.volunteer
+      ? JSON.stringify(resumeJson.volunteer)
+      : null,
+    awardsJson: resumeJson.awards ? JSON.stringify(resumeJson.awards) : null,
+    updatedAt: now,
+  };
+
   if (!existing) {
     await prisma.profile.create({
       data: {
-        resumeJson: JSON.stringify(resumeJson),
+        ...data,
         createdAt: now,
-        updatedAt: now,
       },
     });
   } else {
     await prisma.profile.update({
       where: { id: existing.id },
-      data: {
-        resumeJson: JSON.stringify(resumeJson),
-        updatedAt: now,
-      },
+      data,
     });
   }
 
