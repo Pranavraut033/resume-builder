@@ -2,10 +2,10 @@
 // Copyright (c) 2025 M. H. A. Afif
 // Licensed under MIT License
 
-'use client';
+"use client";
 
-import React, { useState, useEffect } from 'react';
-import { Settings, Eye, Download } from 'lucide-react';
+import React, { useState, useEffect } from "react";
+import { Settings, Eye, Download } from "lucide-react";
 import {
   ResumeCustomization,
   DEFAULT_CUSTOMIZATION,
@@ -13,13 +13,13 @@ import {
   PageFormat,
   FontSize,
   AVAILABLE_FONTS,
-} from '@/types/resume';
-import { Button } from './ui/Button';
-import { Card } from './ui/Card';
-import { FormField } from './ui/FormField';
-import { Modal } from './ui/Modal';
-import { TemplateSelector } from './TemplateSelector';
-import { ColorCustomizer } from './ColorCustomizer';
+} from "@/types/resume";
+import { Button } from "./ui/Button";
+import { Card } from "./ui/Card";
+import { FormField } from "./ui/FormField";
+import { Modal } from "./ui/Modal";
+import { TemplateSelector } from "./TemplateSelector";
+import { ColorCustomizer } from "./ColorCustomizer";
 
 interface ResumeCustomizationPanelProps {
   jobId: number;
@@ -27,13 +27,13 @@ interface ResumeCustomizationPanelProps {
   onCustomizationChange: (customization: Partial<ResumeCustomization>) => void;
 }
 
-export const ResumeCustomizationPanel: React.FC<ResumeCustomizationPanelProps> = ({
-  jobId,
-  customization,
-  onCustomizationChange,
-}) => {
+export const ResumeCustomizationPanel: React.FC<
+  ResumeCustomizationPanelProps
+> = ({ jobId, customization, onCustomizationChange }) => {
   const [showSettings, setShowSettings] = useState(false);
-  const [activeTab, setActiveTab] = useState<'template' | 'colors' | 'format'>('template');
+  const [activeTab, setActiveTab] = useState<"template" | "colors" | "format">(
+    "template",
+  );
 
   const handleTemplateChange = (template: TemplateType) => {
     onCustomizationChange({ template });
@@ -74,31 +74,31 @@ export const ResumeCustomizationPanel: React.FC<ResumeCustomizationPanelProps> =
           {/* Tabs */}
           <div className="flex gap-2 border-b border-blocky-300 pb-2">
             <button
-              onClick={() => setActiveTab('template')}
+              onClick={() => setActiveTab("template")}
               className={`px-4 py-2 rounded-block font-medium transition-all ${
-                activeTab === 'template'
-                  ? 'bg-blocky-500 text-white'
-                  : 'bg-blocky-100 text-blocky-700 hover:bg-blocky-200'
+                activeTab === "template"
+                  ? "bg-blocky-500 text-white"
+                  : "bg-blocky-100 text-blocky-700 hover:bg-blocky-200"
               }`}
             >
               Template
             </button>
             <button
-              onClick={() => setActiveTab('colors')}
+              onClick={() => setActiveTab("colors")}
               className={`px-4 py-2 rounded-block font-medium transition-all ${
-                activeTab === 'colors'
-                  ? 'bg-blocky-500 text-white'
-                  : 'bg-blocky-100 text-blocky-700 hover:bg-blocky-200'
+                activeTab === "colors"
+                  ? "bg-blocky-500 text-white"
+                  : "bg-blocky-100 text-blocky-700 hover:bg-blocky-200"
               }`}
             >
               Colors
             </button>
             <button
-              onClick={() => setActiveTab('format')}
+              onClick={() => setActiveTab("format")}
               className={`px-4 py-2 rounded-block font-medium transition-all ${
-                activeTab === 'format'
-                  ? 'bg-blocky-500 text-white'
-                  : 'bg-blocky-100 text-blocky-700 hover:bg-blocky-200'
+                activeTab === "format"
+                  ? "bg-blocky-500 text-white"
+                  : "bg-blocky-100 text-blocky-700 hover:bg-blocky-200"
               }`}
             >
               Format
@@ -107,21 +107,21 @@ export const ResumeCustomizationPanel: React.FC<ResumeCustomizationPanelProps> =
 
           {/* Tab Content */}
           <div className="max-h-[60vh] overflow-y-auto">
-            {activeTab === 'template' && (
+            {activeTab === "template" && (
               <TemplateSelector
                 selectedTemplate={customization.template}
                 onSelectTemplate={handleTemplateChange}
               />
             )}
 
-            {activeTab === 'colors' && (
+            {activeTab === "colors" && (
               <ColorCustomizer
                 colors={customization.colors}
                 onColorsChange={(colors) => onCustomizationChange({ colors })}
               />
             )}
 
-            {activeTab === 'format' && (
+            {activeTab === "format" && (
               <Card>
                 <div className="p-block space-y-block">
                   <div>
@@ -140,26 +140,30 @@ export const ResumeCustomizationPanel: React.FC<ResumeCustomizationPanelProps> =
                     </label>
                     <div className="flex gap-2">
                       <button
-                        onClick={() => handlePageFormatChange('letter')}
+                        onClick={() => handlePageFormatChange("letter")}
                         className={`flex-1 px-4 py-3 rounded-block border-2 transition-all ${
-                          customization.pageFormat === 'letter'
-                            ? 'border-blocky-500 bg-blocky-50'
-                            : 'border-blocky-300 hover:border-blocky-400'
+                          customization.pageFormat === "letter"
+                            ? "border-blocky-500 bg-blocky-50"
+                            : "border-blocky-300 hover:border-blocky-400"
                         }`}
                       >
                         <div className="font-medium">US Letter</div>
-                        <div className="text-xs text-blocky-600">8.5" × 11"</div>
+                        <div className="text-xs text-blocky-600">
+                          8.5" × 11"
+                        </div>
                       </button>
                       <button
-                        onClick={() => handlePageFormatChange('a4')}
+                        onClick={() => handlePageFormatChange("a4")}
                         className={`flex-1 px-4 py-3 rounded-block border-2 transition-all ${
-                          customization.pageFormat === 'a4'
-                            ? 'border-blocky-500 bg-blocky-50'
-                            : 'border-blocky-300 hover:border-blocky-400'
+                          customization.pageFormat === "a4"
+                            ? "border-blocky-500 bg-blocky-50"
+                            : "border-blocky-300 hover:border-blocky-400"
                         }`}
                       >
                         <div className="font-medium">A4</div>
-                        <div className="text-xs text-blocky-600">210 × 297 mm</div>
+                        <div className="text-xs text-blocky-600">
+                          210 × 297 mm
+                        </div>
                       </button>
                     </div>
                   </div>
@@ -170,19 +174,21 @@ export const ResumeCustomizationPanel: React.FC<ResumeCustomizationPanelProps> =
                       Font Size
                     </label>
                     <div className="flex gap-2">
-                      {(['small', 'medium', 'large'] as FontSize[]).map((size) => (
-                        <button
-                          key={size}
-                          onClick={() => handleFontSizeChange(size)}
-                          className={`flex-1 px-4 py-2 rounded-block border-2 transition-all capitalize ${
-                            customization.fontSize === size
-                              ? 'border-blocky-500 bg-blocky-50'
-                              : 'border-blocky-300 hover:border-blocky-400'
-                          }`}
-                        >
-                          {size}
-                        </button>
-                      ))}
+                      {(["small", "medium", "large"] as FontSize[]).map(
+                        (size) => (
+                          <button
+                            key={size}
+                            onClick={() => handleFontSizeChange(size)}
+                            className={`flex-1 px-4 py-2 rounded-block border-2 transition-all capitalize ${
+                              customization.fontSize === size
+                                ? "border-blocky-500 bg-blocky-50"
+                                : "border-blocky-300 hover:border-blocky-400"
+                            }`}
+                          >
+                            {size}
+                          </button>
+                        ),
+                      )}
                     </div>
                   </div>
 
@@ -197,7 +203,11 @@ export const ResumeCustomizationPanel: React.FC<ResumeCustomizationPanelProps> =
                       className="w-full px-4 py-2 rounded-block border border-blocky-300 bg-white focus:border-blocky-500 focus:ring-2 focus:ring-blocky-500 focus:ring-opacity-20"
                     >
                       {AVAILABLE_FONTS.map((font) => (
-                        <option key={font} value={font} style={{ fontFamily: font }}>
+                        <option
+                          key={font}
+                          value={font}
+                          style={{ fontFamily: font }}
+                        >
                           {font}
                         </option>
                       ))}

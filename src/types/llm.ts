@@ -1,6 +1,6 @@
 // Types for LLM inputs and outputs
 
-import { ResumeJSON } from './resume';
+import { ResumeJSON } from "./resume";
 
 export interface ResumePromptInput {
   baseProfile: ResumeJSON;
@@ -10,7 +10,7 @@ export interface ResumePromptInput {
   model?: string;
 }
 
-export type Providers = 'openai' | 'gemini' | 'grok' | 'perplexity' | 'ollama';
+export type Providers = "openai" | "gemini" | "grok" | "perplexity" | "ollama";
 
 export interface CoverLetterPromptInput {
   baseProfile: ResumeJSON;

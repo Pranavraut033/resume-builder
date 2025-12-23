@@ -1,14 +1,14 @@
-'use server';
+"use server";
 
-import { prisma } from '@/lib/prisma';
+import { prisma } from "@/lib/prisma";
 import {
   ResumeJSON,
   JobDetails,
   ResumeCustomization,
   DEFAULT_CUSTOMIZATION,
-} from '@/types/resume';
-import { JobStatus, JOB_STATUSES } from '@/types/job';
-import { revalidatePath } from 'next/cache';
+} from "@/types/resume";
+import { JobStatus, JOB_STATUSES } from "@/types/job";
+import { revalidatePath } from "next/cache";
 
 /**
  * Create a new job with parsed details, resume, and cover letter
@@ -56,7 +56,7 @@ export async function createJob(input: {
       contactId,
       role: jobDetails.job.job_title,
       description: jobDetails.raw_description,
-      status: 'DRAFT',
+      status: "DRAFT",
       jobDetailsJson: JSON.stringify(jobDetails),
       createdAt: new Date().toISOString(),
     },
@@ -83,7 +83,7 @@ export async function createJob(input: {
     });
   }
 
-  revalidatePath('/');
+  revalidatePath("/");
   return { jobId: job.id };
 }
 
@@ -92,7 +92,7 @@ export async function createJob(input: {
  */
 export async function getAllJobs() {
   const jobs = await prisma.job.findMany({
-    orderBy: { createdAt: 'desc' },
+    orderBy: { createdAt: "desc" },
     include: {
       company: true,
     },
@@ -122,7 +122,7 @@ export async function updateJobStatus(id: number, status: JobStatus) {
     where: { id },
     data: { status },
   });
-  revalidatePath('/');
+  revalidatePath("/");
   revalidatePath(`/job/${id}`);
   return { success: true };
 }
@@ -134,14 +134,16 @@ export async function deleteJob(id: number) {
   await prisma.job.delete({
     where: { id },
   });
-  revalidatePath('/');
+  revalidatePath("/");
   return { success: true };
 }
 
 /**
  * Get resume for a job
  */
-export async function getResumeByJobId(jobId: number): Promise<ResumeJSON | null> {
+export async function getResumeByJobId(
+  jobId: number,
+): Promise<ResumeJSON | null> {
   const resume = await prisma.resume.findFirst({
     where: { jobId },
   });
@@ -168,7 +170,9 @@ export async function updateResume(jobId: number, contentJson: ResumeJSON) {
 /**
  * Get cover letter for a job
  */
-export async function getCoverLetterByJobId(jobId: number): Promise<string | null> {
+export async function getCoverLetterByJobId(
+  jobId: number,
+): Promise<string | null> {
   const coverLetter = await prisma.coverLetter.findFirst({
     where: { jobId },
   });
@@ -193,7 +197,7 @@ export async function updateCoverLetter(jobId: number, contentText: string) {
  */
 export async function updateResumeCustomization(
   jobId: number,
-  customization: Partial<ResumeCustomization>
+  customization: Partial<ResumeCustomization>,
 ) {
   const data: Record<string, unknown> = {};
 
@@ -226,7 +230,7 @@ export async function updateResumeCustomization(
  * Get resume customization for a job
  */
 export async function getResumeCustomization(
-  jobId: number
+  jobId: number,
 ): Promise<ResumeCustomization> {
   const resume = await prisma.resume.findFirst({
     where: { jobId },
@@ -244,10 +248,12 @@ export async function getResumeCustomization(
   }
 
   return {
-    template: resume.template as ResumeCustomization['template'],
-    pageFormat: resume.pageFormat as ResumeCustomization['pageFormat'],
-    fontSize: resume.fontSize as ResumeCustomization['fontSize'],
+    template: resume.template as ResumeCustomization["template"],
+    pageFormat: resume.pageFormat as ResumeCustomization["pageFormat"],
+    fontSize: resume.fontSize as ResumeCustomization["fontSize"],
     fontFamily: resume.fontFamily,
-    colors: resume.colorsJson ? JSON.parse(resume.colorsJson) : DEFAULT_CUSTOMIZATION.colors,
+    colors: resume.colorsJson
+      ? JSON.parse(resume.colorsJson)
+      : DEFAULT_CUSTOMIZATION.colors,
   };
 }

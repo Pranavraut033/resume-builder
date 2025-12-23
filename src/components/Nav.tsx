@@ -1,17 +1,17 @@
-'use client';
+"use client";
 
-import Link from 'next/link';
-import { usePathname } from 'next/navigation';
-import { Icon } from './ui/Icon';
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { Icon } from "./ui/Icon";
 
 export default function Nav() {
   const pathname = usePathname();
 
   const navItems = [
-    { href: '/', label: 'Dashboard' },
-    { href: '/profile', label: 'Profile' },
-    { href: '/job/new', label: 'New Job' },
-    { href: '/settings', label: 'Settings' },
+    { href: "/", label: "Dashboard" },
+    { href: "/profile", label: "Profile" },
+    { href: "/job/new", label: "New Job" },
+    { href: "/settings", label: "Settings" },
   ];
 
   return (
@@ -22,7 +22,9 @@ export default function Nav() {
             <div className="p-1 rounded-lg bg-gradient-to-br from-blue-50 to-white">
               <Icon name="fileText" className="text-blue-600" />
             </div>
-            <span className="text-lg font-semibold text-gray-900 dark:text-gray-100">Resume Builder</span>
+            <span className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+              Resume Builder
+            </span>
           </div>
         </div>
 
@@ -34,8 +36,8 @@ export default function Nav() {
                 <Link
                   key={item.href}
                   href={item.href}
-                  aria-current={isActive ? 'page' : undefined}
-                  className={`inline-flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-300 ${isActive ? 'bg-blue-50 text-blue-700 font-semibold dark:bg-blue-900 dark:text-blue-200' : 'text-gray-700 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-800'}`}
+                  aria-current={isActive ? "page" : undefined}
+                  className={`inline-flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-300 ${isActive ? "bg-blue-50 text-blue-700 font-semibold dark:bg-blue-900 dark:text-blue-200" : "text-gray-700 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-800"}`}
                 >
                   {item.label}
                 </Link>

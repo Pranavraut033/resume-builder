@@ -1,6 +1,6 @@
 // Types for resume data structure
 
-import { z } from 'zod';
+import { z } from "zod";
 
 // Job Identification
 const JobIdentificationSchema = z.object({
@@ -167,15 +167,15 @@ export interface ResumeJSON {
 // Licensed under MIT License
 
 export type TemplateType =
-  | 'tech-sidebar'
-  | 'business-professional'
-  | 'modern-minimal'
-  | 'elegant-timeline'
-  | 'creative-modern'
-  | 'bjet-professional';
+  | "tech-sidebar"
+  | "business-professional"
+  | "modern-minimal"
+  | "elegant-timeline"
+  | "creative-modern"
+  | "bjet-professional";
 
-export type PageFormat = 'letter' | 'a4';
-export type FontSize = 'small' | 'medium' | 'large';
+export type PageFormat = "letter" | "a4";
+export type FontSize = "small" | "medium" | "large";
 
 export interface ResumeColors {
   primary: string;
@@ -194,18 +194,18 @@ export interface ResumeCustomization {
 }
 
 export const DEFAULT_COLORS: ResumeColors = {
-  primary: '#3b82f6',
-  secondary: '#64748b',
-  accent: '#8b5cf6',
-  text: '#1f2937',
-  background: '#ffffff',
+  primary: "#3b82f6",
+  secondary: "#64748b",
+  accent: "#8b5cf6",
+  text: "#1f2937",
+  background: "#ffffff",
 };
 
 export const DEFAULT_CUSTOMIZATION: ResumeCustomization = {
-  template: 'modern-minimal',
-  pageFormat: 'letter',
-  fontSize: 'medium',
-  fontFamily: 'Inter',
+  template: "modern-minimal",
+  pageFormat: "letter",
+  fontSize: "medium",
+  fontFamily: "Inter",
   colors: DEFAULT_COLORS,
 };
 
@@ -218,64 +218,68 @@ export const AVAILABLE_TEMPLATES: Array<{
   bestFor: string;
 }> = [
   {
-    id: 'tech-sidebar',
-    name: 'Tech Sidebar',
-    description: 'Perfect for developers and engineers with sidebar layout',
-    fontFamily: 'Inter',
-    features: ['Two-column layout', 'Tech-focused design', 'Profile photo support'],
-    bestFor: 'Software developers, engineers, technical roles',
+    id: "tech-sidebar",
+    name: "Tech Sidebar",
+    description: "Perfect for developers and engineers with sidebar layout",
+    fontFamily: "Inter",
+    features: [
+      "Two-column layout",
+      "Tech-focused design",
+      "Profile photo support",
+    ],
+    bestFor: "Software developers, engineers, technical roles",
   },
   {
-    id: 'business-professional',
-    name: 'Business Professional',
-    description: 'Clean and formal design for corporate roles',
-    fontFamily: 'Georgia',
-    features: ['Single column', 'Professional typography', 'Minimal design'],
-    bestFor: 'Corporate positions, management roles, traditional industries',
+    id: "business-professional",
+    name: "Business Professional",
+    description: "Clean and formal design for corporate roles",
+    fontFamily: "Georgia",
+    features: ["Single column", "Professional typography", "Minimal design"],
+    bestFor: "Corporate positions, management roles, traditional industries",
   },
   {
-    id: 'modern-minimal',
-    name: 'Modern Minimal',
-    description: 'Balanced design for creative and technical roles',
-    fontFamily: 'Poppins',
-    features: ['Two-column layout', 'Clean typography', 'Modern aesthetics'],
-    bestFor: 'Creative professionals, designers, modern companies',
+    id: "modern-minimal",
+    name: "Modern Minimal",
+    description: "Balanced design for creative and technical roles",
+    fontFamily: "Poppins",
+    features: ["Two-column layout", "Clean typography", "Modern aesthetics"],
+    bestFor: "Creative professionals, designers, modern companies",
   },
   {
-    id: 'elegant-timeline',
-    name: 'Elegant Timeline',
-    description: 'Timeline-based layout emphasizing career progression',
-    fontFamily: 'Lora',
-    features: ['Timeline visualization', 'Elegant typography', 'Career focus'],
-    bestFor: 'Experienced professionals, career changers',
+    id: "elegant-timeline",
+    name: "Elegant Timeline",
+    description: "Timeline-based layout emphasizing career progression",
+    fontFamily: "Lora",
+    features: ["Timeline visualization", "Elegant typography", "Career focus"],
+    bestFor: "Experienced professionals, career changers",
   },
   {
-    id: 'creative-modern',
-    name: 'Creative Modern',
-    description: 'Bold and creative design for standout applications',
-    fontFamily: 'Montserrat',
-    features: ['Creative layout', 'Bold colors', 'Visual hierarchy'],
-    bestFor: 'Creative roles, startups, design-focused companies',
+    id: "creative-modern",
+    name: "Creative Modern",
+    description: "Bold and creative design for standout applications",
+    fontFamily: "Montserrat",
+    features: ["Creative layout", "Bold colors", "Visual hierarchy"],
+    bestFor: "Creative roles, startups, design-focused companies",
   },
   {
-    id: 'bjet-professional',
-    name: 'BJet Professional',
-    description: 'Executive-level professional template',
-    fontFamily: 'Playfair Display',
-    features: ['Executive style', 'Premium look', 'Professional layout'],
-    bestFor: 'Senior positions, executive roles, premium applications',
+    id: "bjet-professional",
+    name: "BJet Professional",
+    description: "Executive-level professional template",
+    fontFamily: "Playfair Display",
+    features: ["Executive style", "Premium look", "Professional layout"],
+    bestFor: "Senior positions, executive roles, premium applications",
   },
 ];
 
 export const AVAILABLE_FONTS = [
-  'Inter',
-  'Georgia',
-  'Poppins',
-  'Lora',
-  'Montserrat',
-  'Playfair Display',
-  'Roboto',
-  'Open Sans',
-  'Arial',
-  'Times New Roman',
+  "Inter",
+  "Georgia",
+  "Poppins",
+  "Lora",
+  "Montserrat",
+  "Playfair Display",
+  "Roboto",
+  "Open Sans",
+  "Arial",
+  "Times New Roman",
 ];

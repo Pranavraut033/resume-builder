@@ -1,10 +1,10 @@
-'use client';
+"use client";
 
-import { ReactNode } from 'react';
-import { Dialog, Transition } from '@headlessui/react';
-import { Fragment } from 'react';
-import { Icon } from './Icon';
-import { Button } from './Button';
+import { ReactNode } from "react";
+import { Dialog, Transition } from "@headlessui/react";
+import { Fragment } from "react";
+import { Icon } from "./Icon";
+import { Button } from "./Button";
 
 interface ModalProps {
   isOpen: boolean;
@@ -13,7 +13,7 @@ interface ModalProps {
   children: ReactNode;
   onSave?: () => void;
   saveLabel?: string;
-  size?: 'sm' | 'md' | 'lg' | 'xl';
+  size?: "sm" | "md" | "lg" | "xl";
 }
 
 export function Modal({
@@ -22,14 +22,14 @@ export function Modal({
   title,
   children,
   onSave,
-  saveLabel = 'Save Changes',
-  size = 'md'
+  saveLabel = "Save Changes",
+  size = "md",
 }: ModalProps) {
   const sizes = {
-    sm: 'max-w-md',
-    md: 'max-w-2xl',
-    lg: 'max-w-4xl',
-    xl: 'max-w-6xl'
+    sm: "max-w-md",
+    md: "max-w-2xl",
+    lg: "max-w-4xl",
+    xl: "max-w-6xl",
   };
 
   return (
@@ -58,9 +58,14 @@ export function Modal({
               leaveFrom="opacity-100 scale-100"
               leaveTo="opacity-0 scale-95"
             >
-              <Dialog.Panel className={`w-full ${sizes[size]} transform overflow-hidden rounded-lg bg-white dark:bg-gray-800 text-left align-middle shadow-xl transition-all border border-gray-200 dark:border-gray-700 max-h-[90vh] overflow-y-auto`}>
+              <Dialog.Panel
+                className={`w-full ${sizes[size]} transform overflow-hidden rounded-lg bg-white dark:bg-gray-800 text-left align-middle shadow-xl transition-all border border-gray-200 dark:border-gray-700 max-h-[90vh] overflow-y-auto`}
+              >
                 <div className="flex justify-between items-center p-6 border-b border-gray-200 dark:border-gray-700">
-                  <Dialog.Title as="h2" className="text-xl font-semibold text-gray-900 dark:text-white">
+                  <Dialog.Title
+                    as="h2"
+                    className="text-xl font-semibold text-gray-900 dark:text-white"
+                  >
                     {title}
                   </Dialog.Title>
                   <button
@@ -71,19 +76,13 @@ export function Modal({
                   </button>
                 </div>
 
-                <div className="p-6">
-                  {children}
-                </div>
+                <div className="p-6">{children}</div>
 
                 <div className="flex justify-end gap-3 p-6 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700">
                   <Button variant="ghost" onClick={onClose}>
                     Cancel
                   </Button>
-                  {onSave && (
-                    <Button onClick={onSave}>
-                      {saveLabel}
-                    </Button>
-                  )}
+                  {onSave && <Button onClick={onSave}>{saveLabel}</Button>}
                 </div>
               </Dialog.Panel>
             </Transition.Child>

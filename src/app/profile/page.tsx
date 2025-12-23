@@ -1,24 +1,24 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import { ResumeJSON } from '@/types/resume';
-import { Card } from '@/components/ui/Card';
-import { FormField } from '@/components/ui/FormField';
-import { Button } from '@/components/ui/Button';
-import { createLogger } from '@/lib/logger';
-import { getProfile, saveProfile } from '@/actions/profile';
+import { useState, useEffect } from "react";
+import { ResumeJSON } from "@/types/resume";
+import { Card } from "@/components/ui/Card";
+import { FormField } from "@/components/ui/FormField";
+import { Button } from "@/components/ui/Button";
+import { createLogger } from "@/lib/logger";
+import { getProfile, saveProfile } from "@/actions/profile";
 
-const logger = createLogger('ProfilePage');
+const logger = createLogger("ProfilePage");
 
 export default function ProfilePage() {
   const [profile, setProfile] = useState<ResumeJSON>({
-    header: { name: '', email: '' },
-    summary: '',
+    header: { name: "", email: "" },
+    summary: "",
     experience: [],
     projects: [],
     skills: [],
     education: [],
-    certifications: []
+    certifications: [],
   });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -29,7 +29,7 @@ export default function ProfilePage() {
         const data = await getProfile();
         setProfile(data);
       } catch (error) {
-        logger.error('Error loading profile', { error });
+        logger.error("Error loading profile", { error });
       } finally {
         setLoading(false);
       }
@@ -41,10 +41,10 @@ export default function ProfilePage() {
     setSaving(true);
     try {
       await saveProfile(profile);
-      alert('Profile saved!');
+      alert("Profile saved!");
     } catch (error) {
-      logger.error('Error saving profile', { error });
-      alert('Error saving profile');
+      logger.error("Error saving profile", { error });
+      alert("Error saving profile");
     } finally {
       setSaving(false);
     }
@@ -64,7 +64,12 @@ export default function ProfilePage() {
             <FormField
               label="Name"
               value={profile.header.name}
-              onChange={(v) => setProfile({ ...profile, header: { ...profile.header, name: v } })}
+              onChange={(v) =>
+                setProfile({
+                  ...profile,
+                  header: { ...profile.header, name: v },
+                })
+              }
               placeholder="Full name"
             />
 
@@ -72,7 +77,12 @@ export default function ProfilePage() {
               label="Email"
               type="email"
               value={profile.header.email}
-              onChange={(v) => setProfile({ ...profile, header: { ...profile.header, email: v } })}
+              onChange={(v) =>
+                setProfile({
+                  ...profile,
+                  header: { ...profile.header, email: v },
+                })
+              }
               placeholder="you@example.com"
             />
           </div>
@@ -88,18 +98,37 @@ export default function ProfilePage() {
           <FormField
             label="Skills"
             type="textarea"
-            value={profile.skills.join(', ')}
-            onChange={(v) => setProfile({ ...profile, skills: v.split(',').map(s => s.trim()) })}
+            value={profile.skills.join(", ")}
+            onChange={(v) =>
+              setProfile({
+                ...profile,
+                skills: v.split(",").map((s) => s.trim()),
+              })
+            }
             rows={3}
             placeholder="Comma-separated skills"
           />
 
           <div className="flex items-center justify-end">
-            <Button variant="secondary" className="mr-2" onClick={() => setProfile({ header: { name: '', email: '' }, summary: '', experience: [], projects: [], skills: [], education: [], certifications: [] })}>
+            <Button
+              variant="secondary"
+              className="mr-2"
+              onClick={() =>
+                setProfile({
+                  header: { name: "", email: "" },
+                  summary: "",
+                  experience: [],
+                  projects: [],
+                  skills: [],
+                  education: [],
+                  certifications: [],
+                })
+              }
+            >
               Reset
             </Button>
             <Button variant="primary" onClick={handleSave} disabled={saving}>
-              {saving ? 'Saving…' : 'Save Profile'}
+              {saving ? "Saving…" : "Save Profile"}
             </Button>
           </div>
         </Card>

@@ -1,4 +1,3 @@
-
 @import "tailwindcss";
 
 @theme {
@@ -9,13 +8,13 @@
   --radius-block: 0.5rem;
   --radius-block-lg: 1rem;
   --spacing-block: 1rem;
-  --shadow-block: 0 2px 0 0 #eab308, 0 4px 8px 0 rgba(30,41,59,0.08);
-  --font-blocky: 'Geist Mono', 'Fira Mono', monospace;
+  --shadow-block: 0 2px 0 0 #eab308, 0 4px 8px 0 rgba(30, 41, 59, 0.08);
+  --font-blocky: "Geist Mono", "Fira Mono", monospace;
   /* Standard theme tokens */
   --color-background: #ffffff;
   --color-foreground: #0f1724;
-  --font-sans: 'Geist Sans', Arial, Helvetica, sans-serif;
-  --font-mono: 'Geist Mono', 'Fira Mono', monospace;
+  --font-sans: "Geist Sans", Arial, Helvetica, sans-serif;
+  --font-mono: "Geist Mono", "Fira Mono", monospace;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -33,5 +32,7 @@ body {
   background-color: var(--color-background);
   color: var(--color-foreground);
   font-family: var(--font-blocky);
-  transition: background-color 180ms ease, color 180ms ease;
+  transition:
+    background-color 180ms ease,
+    color 180ms ease;
 }

@@ -2,26 +2,26 @@
 // Copyright (c) 2025 M. H. A. Afif
 // Licensed under MIT License
 
-import React from 'react';
-import { ResumeJSON, ResumeColors } from '@/types/resume';
+import React from "react";
+import { ResumeJSON, ResumeColors } from "@/types/resume";
 
 interface ModernMinimalTemplateProps {
   resume: ResumeJSON;
   colors: ResumeColors;
-  fontSize: 'small' | 'medium' | 'large';
+  fontSize: "small" | "medium" | "large";
   fontFamily: string;
 }
 
 const fontSizeMap = {
-  small: 'text-xs',
-  medium: 'text-sm',
-  large: 'text-base',
+  small: "text-xs",
+  medium: "text-sm",
+  large: "text-base",
 };
 
 const headingSizeMap = {
-  small: 'text-lg',
-  medium: 'text-xl',
-  large: 'text-2xl',
+  small: "text-lg",
+  medium: "text-xl",
+  large: "text-2xl",
 };
 
 export const ModernMinimalTemplate: React.FC<ModernMinimalTemplateProps> = ({
@@ -43,7 +43,10 @@ export const ModernMinimalTemplate: React.FC<ModernMinimalTemplateProps> = ({
       }}
     >
       {/* Header */}
-      <header className="mb-8 border-b-2 pb-4" style={{ borderColor: colors.primary }}>
+      <header
+        className="mb-8 border-b-2 pb-4"
+        style={{ borderColor: colors.primary }}
+      >
         <h1
           className="text-4xl font-bold mb-2"
           style={{ color: colors.primary }}
@@ -58,17 +61,29 @@ export const ModernMinimalTemplate: React.FC<ModernMinimalTemplateProps> = ({
           </div>
           <div className="flex flex-wrap gap-4">
             {resume.header.linkedin && (
-              <a href={resume.header.linkedin} className="hover:underline" style={{ color: colors.accent }}>
+              <a
+                href={resume.header.linkedin}
+                className="hover:underline"
+                style={{ color: colors.accent }}
+              >
                 LinkedIn
               </a>
             )}
             {resume.header.github && (
-              <a href={resume.header.github} className="hover:underline" style={{ color: colors.accent }}>
+              <a
+                href={resume.header.github}
+                className="hover:underline"
+                style={{ color: colors.accent }}
+              >
                 GitHub
               </a>
             )}
             {resume.header.website && (
-              <a href={resume.header.website} className="hover:underline" style={{ color: colors.accent }}>
+              <a
+                href={resume.header.website}
+                className="hover:underline"
+                style={{ color: colors.accent }}
+              >
                 Website
               </a>
             )}
@@ -105,18 +120,25 @@ export const ModernMinimalTemplate: React.FC<ModernMinimalTemplateProps> = ({
               <div key={index}>
                 <div className="flex justify-between items-start mb-1">
                   <div>
-                    <h3 className="font-semibold" style={{ color: colors.accent }}>
+                    <h3
+                      className="font-semibold"
+                      style={{ color: colors.accent }}
+                    >
                       {exp.role}
                     </h3>
                     <p className={`${textSize} text-gray-600`}>{exp.company}</p>
                   </div>
                   <span className={`${textSize} text-gray-500`}>
-                    {exp.startDate} - {exp.endDate || 'Present'}
+                    {exp.startDate} - {exp.endDate || "Present"}
                   </span>
                 </div>
-                <p className={`${textSize} text-gray-700 mb-2`}>{exp.description}</p>
+                <p className={`${textSize} text-gray-700 mb-2`}>
+                  {exp.description}
+                </p>
                 {exp.achievements.length > 0 && (
-                  <ul className={`${textSize} text-gray-700 list-disc list-inside space-y-1`}>
+                  <ul
+                    className={`${textSize} text-gray-700 list-disc list-inside space-y-1`}
+                  >
                     {exp.achievements.map((achievement, i) => (
                       <li key={i}>{achievement}</li>
                     ))}
@@ -152,9 +174,12 @@ export const ModernMinimalTemplate: React.FC<ModernMinimalTemplateProps> = ({
                     </a>
                   )}
                 </h3>
-                <p className={`${textSize} text-gray-700 mb-1`}>{project.description}</p>
+                <p className={`${textSize} text-gray-700 mb-1`}>
+                  {project.description}
+                </p>
                 <div className={`${textSize} text-gray-600`}>
-                  <span className="font-medium">Technologies:</span> {project.technologies.join(', ')}
+                  <span className="font-medium">Technologies:</span>{" "}
+                  {project.technologies.join(", ")}
                 </div>
               </div>
             ))}
@@ -172,7 +197,7 @@ export const ModernMinimalTemplate: React.FC<ModernMinimalTemplateProps> = ({
             Skills
           </h2>
           <div className={`${textSize} text-gray-700`}>
-            {resume.skills.join(' • ')}
+            {resume.skills.join(" • ")}
           </div>
         </section>
       )}
@@ -191,13 +216,18 @@ export const ModernMinimalTemplate: React.FC<ModernMinimalTemplateProps> = ({
               <div key={index}>
                 <div className="flex justify-between items-start">
                   <div>
-                    <h3 className="font-semibold" style={{ color: colors.accent }}>
+                    <h3
+                      className="font-semibold"
+                      style={{ color: colors.accent }}
+                    >
                       {edu.degree} in {edu.field}
                     </h3>
-                    <p className={`${textSize} text-gray-600`}>{edu.institution}</p>
+                    <p className={`${textSize} text-gray-600`}>
+                      {edu.institution}
+                    </p>
                   </div>
                   <span className={`${textSize} text-gray-500`}>
-                    {edu.startDate} - {edu.endDate || 'Present'}
+                    {edu.startDate} - {edu.endDate || "Present"}
                   </span>
                 </div>
                 {edu.gpa && (

@@ -1,13 +1,17 @@
-import { GoogleGenAI } from '@google/genai';
-import { LLMProvider, ResumePromptInput, CoverLetterPromptInput } from '@/types/llm';
-import { ResumeJSON } from '@/types/resume';
-import { BaseLLMProvider } from './baseProvider';
+import { GoogleGenAI } from "@google/genai";
+import {
+  LLMProvider,
+  ResumePromptInput,
+  CoverLetterPromptInput,
+} from "@/types/llm";
+import { ResumeJSON } from "@/types/resume";
+import { BaseLLMProvider } from "./baseProvider";
 
 export class GeminiProvider extends BaseLLMProvider implements LLMProvider {
   private client: GoogleGenAI;
   private model: string;
   private apiKey: string;
-  constructor(apiKey: string, model: string = 'gemini-2.5-flash') {
+  constructor(apiKey: string, model: string = "gemini-2.5-flash") {
     super();
     this.apiKey = apiKey;
     this.client = new GoogleGenAI({ apiKey });
@@ -24,14 +28,14 @@ export class GeminiProvider extends BaseLLMProvider implements LLMProvider {
       });
 
       const content = response.text;
-      if (!content) throw new Error('No response from Gemini');
+      if (!content) throw new Error("No response from Gemini");
 
       return JSON.parse(content) as ResumeJSON;
     } catch (e: any) {
-      if (e.message && e.message.includes('JSON')) {
-        throw new Error('Invalid JSON response from Gemini');
+      if (e.message && e.message.includes("JSON")) {
+        throw new Error("Invalid JSON response from Gemini");
       }
-      throw new Error('Gemini generateResume failed: ' + e.message);
+      throw new Error("Gemini generateResume failed: " + e.message);
     }
   }
 
@@ -43,7 +47,7 @@ export class GeminiProvider extends BaseLLMProvider implements LLMProvider {
       contents: prompt,
     });
 
-    return response.text || '';
+    return response.text || "";
   }
 
   async fetchModels(): Promise<string[]> {
@@ -51,14 +55,17 @@ export class GeminiProvider extends BaseLLMProvider implements LLMProvider {
       headers: {
         "x-goog-api-key": this.apiKey,
       },
-    }).then(res => res.json()).then(data => {
-      if (!data.models || !Array.isArray(data.models)) {
-        throw new Error('Invalid response from Gemini models API');
-      }
-      return data.models.map((model: any) => model.name);
-    }).catch((error) => {
-      console.error('Error fetching Gemini models:', error);
-      return ['gemini-1.5-flash', 'gemini-1.5-pro', 'gemini-pro']; // fallback
-    });
+    })
+      .then((res) => res.json())
+      .then((data) => {
+        if (!data.models || !Array.isArray(data.models)) {
+          throw new Error("Invalid response from Gemini models API");
+        }
+        return data.models.map((model: any) => model.name);
+      })
+      .catch((error) => {
+        console.error("Error fetching Gemini models:", error);
+        return ["gemini-1.5-flash", "gemini-1.5-pro", "gemini-pro"]; // fallback
+      });
   }
 }

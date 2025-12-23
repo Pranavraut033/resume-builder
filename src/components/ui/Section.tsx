@@ -1,7 +1,7 @@
-'use client';
+"use client";
 
-import { ReactNode } from 'react';
-import { Icon } from './Icon';
+import { ReactNode } from "react";
+import { Icon } from "./Icon";
 
 interface SectionProps {
   title: string;
@@ -18,7 +18,7 @@ export function Section({
   onEdit,
   onDelete,
   canDelete = false,
-  className = ''
+  className = "",
 }: SectionProps) {
   return (
     <div className={`mb-8 ${className}`}>

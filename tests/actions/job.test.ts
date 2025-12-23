@@ -1,22 +1,22 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { prismaMock, resetPrismaMock } from '../mocks/prisma';
-import { sampleJobDetails, sampleTailoredResume } from '../fixtures/data';
+import { describe, it, expect, beforeEach, vi } from "vitest";
+import { prismaMock, resetPrismaMock } from "../mocks/prisma";
+import { sampleJobDetails, sampleTailoredResume } from "../fixtures/data";
 
 // Mock revalidatePath
-vi.mock('next/cache', () => ({
+vi.mock("next/cache", () => ({
   revalidatePath: vi.fn(),
 }));
 
-describe('Job Actions', () => {
+describe("Job Actions", () => {
   beforeEach(() => {
     resetPrismaMock();
   });
 
-  describe('createJob', () => {
-    it('should create a job with parsed details', async () => {
+  describe("createJob", () => {
+    it("should create a job with parsed details", async () => {
       const mockCompany = {
         id: 1,
-        name: 'Acme Corporation',
+        name: "Acme Corporation",
         industry: null,
         description: null,
         marketPosition: null,
@@ -38,9 +38,9 @@ describe('Job Actions', () => {
         id: 1,
         companyId: 1,
         contactId: 1,
-        role: 'Full Stack Developer',
-        description: 'Full Stack Developer position at Acme Corporation...',
-        status: 'Draft',
+        role: "Full Stack Developer",
+        description: "Full Stack Developer position at Acme Corporation...",
+        status: "Draft",
         jobDetailsJson: JSON.stringify(sampleJobDetails),
         createdAt: new Date().toISOString(),
       };
@@ -49,7 +49,7 @@ describe('Job Actions', () => {
       prismaMock.contact.create.mockResolvedValue(mockContact);
       prismaMock.job.create.mockResolvedValue(mockJob);
 
-      const { createJob } = await import('@/actions/job');
+      const { createJob } = await import("@/actions/job");
 
       const result = await createJob({
         jobDetails: sampleJobDetails,
@@ -61,16 +61,16 @@ describe('Job Actions', () => {
         data: expect.objectContaining({
           companyId: 1,
           contactId: 1,
-          role: 'Full Stack Developer',
-          status: 'Draft',
+          role: "Full Stack Developer",
+          status: "Draft",
         }),
       });
     });
 
-    it('should create job with resume and cover letter', async () => {
+    it("should create job with resume and cover letter", async () => {
       const mockCompany = {
         id: 2,
-        name: 'Acme Corporation',
+        name: "Acme Corporation",
         industry: null,
         description: null,
         marketPosition: null,
@@ -92,9 +92,9 @@ describe('Job Actions', () => {
         id: 2,
         companyId: 2,
         contactId: 2,
-        role: 'Full Stack Developer',
-        description: 'Job description',
-        status: 'Draft',
+        role: "Full Stack Developer",
+        description: "Job description",
+        status: "Draft",
         jobDetailsJson: JSON.stringify(sampleJobDetails),
         createdAt: new Date().toISOString(),
       };
@@ -104,23 +104,23 @@ describe('Job Actions', () => {
         jobId: 2,
         contentJson: JSON.stringify(sampleTailoredResume),
         lastEdited: new Date().toISOString(),
-        template: 'modern-minimal',
-        pageFormat: 'letter',
-        fontSize: 'medium',
-        fontFamily: 'Inter',
+        template: "modern-minimal",
+        pageFormat: "letter",
+        fontSize: "medium",
+        fontFamily: "Inter",
         colorsJson: JSON.stringify({
-          primary: '#3b82f6',
-          secondary: '#64748b',
-          accent: '#8b5cf6',
-          text: '#1f2937',
-          background: '#ffffff',
+          primary: "#3b82f6",
+          secondary: "#64748b",
+          accent: "#8b5cf6",
+          text: "#1f2937",
+          background: "#ffffff",
         }),
       };
 
       const mockCoverLetter = {
         id: 1,
         jobId: 2,
-        contentText: 'Cover letter text',
+        contentText: "Cover letter text",
       };
 
       prismaMock.company.create.mockResolvedValue(mockCompany);
@@ -129,12 +129,12 @@ describe('Job Actions', () => {
       prismaMock.resume.create.mockResolvedValue(mockResume);
       prismaMock.coverLetter.create.mockResolvedValue(mockCoverLetter);
 
-      const { createJob } = await import('@/actions/job');
+      const { createJob } = await import("@/actions/job");
 
       const result = await createJob({
         jobDetails: sampleJobDetails,
         tailoredResume: sampleTailoredResume,
-        coverLetterText: 'Cover letter text',
+        coverLetterText: "Cover letter text",
       });
 
       expect(result).toEqual({ jobId: 2 });
@@ -148,74 +148,74 @@ describe('Job Actions', () => {
       expect(prismaMock.coverLetter.create).toHaveBeenCalledWith({
         data: expect.objectContaining({
           jobId: 2,
-          contentText: 'Cover letter text',
+          contentText: "Cover letter text",
         }),
       });
     });
   });
 
-  describe('getAllJobs', () => {
-    it('should return all jobs ordered by creation date', async () => {
+  describe("getAllJobs", () => {
+    it("should return all jobs ordered by creation date", async () => {
       const mockJobs = [
         {
           id: 2,
           companyId: 2,
           contactId: null,
-          role: 'Role B',
-          description: 'Desc B',
-          status: 'Draft',
-          jobDetailsJson: '{}',
-          createdAt: '2025-01-02T00:00:00.000Z',
+          role: "Role B",
+          description: "Desc B",
+          status: "Draft",
+          jobDetailsJson: "{}",
+          createdAt: "2025-01-02T00:00:00.000Z",
         },
         {
           id: 1,
           companyId: 1,
           contactId: null,
-          role: 'Role A',
-          description: 'Desc A',
-          status: 'Applied',
-          jobDetailsJson: '{}',
-          createdAt: '2025-01-01T00:00:00.000Z',
+          role: "Role A",
+          description: "Desc A",
+          status: "Applied",
+          jobDetailsJson: "{}",
+          createdAt: "2025-01-01T00:00:00.000Z",
         },
       ];
 
       prismaMock.job.findMany.mockResolvedValue(mockJobs);
 
-      const { getAllJobs } = await import('@/actions/job');
+      const { getAllJobs } = await import("@/actions/job");
       const result = await getAllJobs();
 
       expect(result).toEqual(mockJobs);
       expect(prismaMock.job.findMany).toHaveBeenCalledWith({
-        orderBy: { createdAt: 'desc' },
+        orderBy: { createdAt: "desc" },
       });
     });
 
-    it('should return empty array when no jobs exist', async () => {
+    it("should return empty array when no jobs exist", async () => {
       prismaMock.job.findMany.mockResolvedValue([]);
 
-      const { getAllJobs } = await import('@/actions/job');
+      const { getAllJobs } = await import("@/actions/job");
       const result = await getAllJobs();
 
       expect(result).toEqual([]);
     });
   });
 
-  describe('getJobById', () => {
-    it('should return a job by ID', async () => {
+  describe("getJobById", () => {
+    it("should return a job by ID", async () => {
       const mockJob = {
         id: 1,
         companyId: 1,
         contactId: null,
-        role: 'Test Role',
-        description: 'Test Description',
-        status: 'Draft',
-        jobDetailsJson: '{}',
+        role: "Test Role",
+        description: "Test Description",
+        status: "Draft",
+        jobDetailsJson: "{}",
         createdAt: new Date().toISOString(),
       };
 
       prismaMock.job.findUnique.mockResolvedValue(mockJob);
 
-      const { getJobById } = await import('@/actions/job');
+      const { getJobById } = await import("@/actions/job");
       const result = await getJobById(1);
 
       expect(result).toEqual(mockJob);
@@ -224,58 +224,58 @@ describe('Job Actions', () => {
       });
     });
 
-    it('should return null when job does not exist', async () => {
+    it("should return null when job does not exist", async () => {
       prismaMock.job.findUnique.mockResolvedValue(null);
 
-      const { getJobById } = await import('@/actions/job');
+      const { getJobById } = await import("@/actions/job");
       const result = await getJobById(999);
 
       expect(result).toBeNull();
     });
   });
 
-  describe('updateJobStatus', () => {
-    it('should update job status', async () => {
+  describe("updateJobStatus", () => {
+    it("should update job status", async () => {
       const mockJob = {
         id: 1,
         companyId: 1,
         contactId: null,
-        role: 'Test Role',
-        description: 'Test Description',
-        status: 'APPLIED',
-        jobDetailsJson: '{}',
+        role: "Test Role",
+        description: "Test Description",
+        status: "APPLIED",
+        jobDetailsJson: "{}",
         createdAt: new Date().toISOString(),
       };
 
       prismaMock.job.update.mockResolvedValue(mockJob);
 
-      const { updateJobStatus } = await import('@/actions/job');
-      const result = await updateJobStatus(1, 'APPLIED');
+      const { updateJobStatus } = await import("@/actions/job");
+      const result = await updateJobStatus(1, "APPLIED");
 
       expect(result).toEqual({ success: true });
       expect(prismaMock.job.update).toHaveBeenCalledWith({
         where: { id: 1 },
-        data: { status: 'APPLIED' },
+        data: { status: "APPLIED" },
       });
     });
   });
 
-  describe('deleteJob', () => {
-    it('should delete a job', async () => {
+  describe("deleteJob", () => {
+    it("should delete a job", async () => {
       const mockJob = {
         id: 1,
         companyId: 1,
         contactId: null,
-        role: 'Test Role',
-        description: 'Test Description',
-        status: 'Draft',
-        jobDetailsJson: '{}',
+        role: "Test Role",
+        description: "Test Description",
+        status: "Draft",
+        jobDetailsJson: "{}",
         createdAt: new Date().toISOString(),
       };
 
       prismaMock.job.delete.mockResolvedValue(mockJob);
 
-      const { deleteJob } = await import('@/actions/job');
+      const { deleteJob } = await import("@/actions/job");
       const result = await deleteJob(1);
 
       expect(result).toEqual({ success: true });
@@ -285,29 +285,29 @@ describe('Job Actions', () => {
     });
   });
 
-  describe('getResumeByJobId', () => {
-    it('should return resume for a job', async () => {
+  describe("getResumeByJobId", () => {
+    it("should return resume for a job", async () => {
       const mockResume = {
         id: 1,
         jobId: 1,
         contentJson: JSON.stringify(sampleTailoredResume),
         lastEdited: new Date().toISOString(),
-        template: 'modern-minimal',
-        pageFormat: 'letter',
-        fontSize: 'medium',
-        fontFamily: 'Inter',
+        template: "modern-minimal",
+        pageFormat: "letter",
+        fontSize: "medium",
+        fontFamily: "Inter",
         colorsJson: JSON.stringify({
-          primary: '#3b82f6',
-          secondary: '#64748b',
-          accent: '#8b5cf6',
-          text: '#1f2937',
-          background: '#ffffff',
+          primary: "#3b82f6",
+          secondary: "#64748b",
+          accent: "#8b5cf6",
+          text: "#1f2937",
+          background: "#ffffff",
         }),
       };
 
       prismaMock.resume.findFirst.mockResolvedValue(mockResume);
 
-      const { getResumeByJobId } = await import('@/actions/job');
+      const { getResumeByJobId } = await import("@/actions/job");
       const result = await getResumeByJobId(1);
 
       expect(result).toEqual(sampleTailoredResume);
@@ -316,31 +316,34 @@ describe('Job Actions', () => {
       });
     });
 
-    it('should return null when resume does not exist', async () => {
+    it("should return null when resume does not exist", async () => {
       prismaMock.resume.findFirst.mockResolvedValue(null);
 
-      const { getResumeByJobId } = await import('@/actions/job');
+      const { getResumeByJobId } = await import("@/actions/job");
       const result = await getResumeByJobId(999);
 
       expect(result).toBeNull();
     });
   });
 
-  describe('updateResume', () => {
-    it('should update existing resume', async () => {
+  describe("updateResume", () => {
+    it("should update existing resume", async () => {
       prismaMock.resume.updateMany.mockResolvedValue({ count: 1 });
 
-      const { updateResume } = await import('@/actions/job');
-      const result = await updateResume(1, { ...sampleTailoredResume, summary: 'Updated' });
+      const { updateResume } = await import("@/actions/job");
+      const result = await updateResume(1, {
+        ...sampleTailoredResume,
+        summary: "Updated",
+      });
 
       expect(result).toEqual({ success: true });
       expect(prismaMock.resume.updateMany).toHaveBeenCalled();
     });
 
-    it('should update with updateMany even when no existing resume', async () => {
+    it("should update with updateMany even when no existing resume", async () => {
       prismaMock.resume.updateMany.mockResolvedValue({ count: 0 });
 
-      const { updateResume } = await import('@/actions/job');
+      const { updateResume } = await import("@/actions/job");
       const result = await updateResume(1, sampleTailoredResume);
 
       expect(result).toEqual({ success: true });
@@ -348,29 +351,29 @@ describe('Job Actions', () => {
     });
   });
 
-  describe('getCoverLetterByJobId', () => {
-    it('should return cover letter for a job', async () => {
+  describe("getCoverLetterByJobId", () => {
+    it("should return cover letter for a job", async () => {
       const mockCoverLetter = {
         id: 1,
         jobId: 1,
-        contentText: 'Cover letter text',
+        contentText: "Cover letter text",
       };
 
       prismaMock.coverLetter.findFirst.mockResolvedValue(mockCoverLetter);
 
-      const { getCoverLetterByJobId } = await import('@/actions/job');
+      const { getCoverLetterByJobId } = await import("@/actions/job");
       const result = await getCoverLetterByJobId(1);
 
-      expect(result).toEqual('Cover letter text');
+      expect(result).toEqual("Cover letter text");
     });
   });
 
-  describe('updateCoverLetter', () => {
-    it('should update existing cover letter', async () => {
+  describe("updateCoverLetter", () => {
+    it("should update existing cover letter", async () => {
       prismaMock.coverLetter.updateMany.mockResolvedValue({ count: 1 });
 
-      const { updateCoverLetter } = await import('@/actions/job');
-      const result = await updateCoverLetter(1, 'Updated text');
+      const { updateCoverLetter } = await import("@/actions/job");
+      const result = await updateCoverLetter(1, "Updated text");
 
       expect(result).toEqual({ success: true });
       expect(prismaMock.coverLetter.updateMany).toHaveBeenCalled();

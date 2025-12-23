@@ -9,12 +9,14 @@ Complete architecture overhaul from REST API + Drizzle ORM to Server Actions + P
 ### Added
 
 #### New Architecture
+
 - **Server Actions**: All database operations now use Next.js Server Actions
 - **Prisma ORM**: Replaced Drizzle ORM with Prisma 5.22.0
 - **Client-Side LLM**: All LLM operations moved to client-side module
 - **Type Safety**: Full end-to-end type safety with Prisma generated types
 
 #### New Files
+
 - `src/actions/profile.ts` - Profile CRUD operations
 - `src/actions/job.ts` - Job, Resume, Cover Letter CRUD operations
 - `src/lib/clientLLM.ts` - Client-side LLM operations module
@@ -23,6 +25,7 @@ Complete architecture overhaul from REST API + Drizzle ORM to Server Actions + P
 - `.env` - Environment configuration with DATABASE_URL
 
 #### New Documentation
+
 - `docs/CLIENT_SIDE_LLM.md` - Complete guide to client-side LLM operations
 - `docs/SERVER_ACTIONS.md` - Server actions documentation
 - `docs/MIGRATION_GUIDE.md` - Migration guide from old to new architecture
@@ -33,6 +36,7 @@ Complete architecture overhaul from REST API + Drizzle ORM to Server Actions + P
 ### Changed
 
 #### Architecture Changes
+
 - **Database Access**: Changed from Drizzle `db.select()` to Prisma `prisma.findMany()`
 - **API Layer**: Removed all REST API routes, replaced with direct server action calls
 - **LLM Operations**: Moved from mixed client/server to purely client-side
@@ -40,6 +44,7 @@ Complete architecture overhaul from REST API + Drizzle ORM to Server Actions + P
 - **Model Fetching**: Changed from server action + cache to client-side function
 
 #### Updated Components
+
 - `src/app/page.tsx` - Using Prisma directly in server component
 - `src/app/profile/page.tsx` - Calls server actions instead of React Query hooks
 - `src/app/settings/page.tsx` - Uses client-side `fetchModels()` instead of server action
@@ -53,11 +58,13 @@ Complete architecture overhaul from REST API + Drizzle ORM to Server Actions + P
 - `src/components/ui/Block.tsx` - Fixed TypeScript errors using `createElement()`
 
 #### Updated Configuration
+
 - `package.json` - Updated scripts for Prisma (`db:generate` → `npx prisma generate`)
 - `package.json` - Added Prisma dependencies, removed Drizzle/axios/React Query
 - `.gitignore` - Added Prisma and Next.js build artifacts
 
 #### Updated Documentation
+
 - `README.md` - Completely rewritten with architecture details
 - `requirements.md` - Updated architecture description
 - `agents.md` - Updated with client-side LLM rules
@@ -67,6 +74,7 @@ Complete architecture overhaul from REST API + Drizzle ORM to Server Actions + P
 ### Removed
 
 #### Deleted Files
+
 - `src/app/api/job/route.ts` - Job API route
 - `src/app/api/profile/route.ts` - Profile API route
 - `src/app/api/models/route.ts` - Models API route
@@ -83,6 +91,7 @@ Complete architecture overhaul from REST API + Drizzle ORM to Server Actions + P
 - `src/lib/modelCache.ts` - Model cache service
 
 #### Removed Dependencies (122 packages)
+
 - `drizzle-orm` - Replaced with Prisma
 - `drizzle-kit` - Replaced with Prisma CLI
 - `better-sqlite3` - Using Prisma's SQLite adapter
@@ -93,11 +102,13 @@ Complete architecture overhaul from REST API + Drizzle ORM to Server Actions + P
 ### Fixed
 
 #### TypeScript Errors
+
 - Fixed `Block.tsx` using `any` type - replaced with `createElement()` pattern
 - Fixed `keyStorage.ts` null handling - added proper null checks
 - All type checks now pass successfully
 
 #### Architecture Issues
+
 - **API Key Access**: Fixed by moving LLM operations to client-side where Tauri storage is accessible
 - **Server Action Complexity**: Simplified by removing all LLM logic, keeping only database operations
 - **Type Safety**: Improved with Prisma generated types
@@ -141,6 +152,7 @@ Client → axios → REST API (/api/*) → Drizzle → SQLite
 ```
 
 **Issues**:
+
 - API keys accessed server-side (incompatible with Tauri storage)
 - Unnecessary HTTP layer for internal calls
 - Complex state management with React Query
@@ -155,6 +167,7 @@ Client → Server Actions → Prisma → SQLite
 ```
 
 **Benefits**:
+
 - API keys stay client-side (secure, Tauri-compatible)
 - No HTTP overhead for internal calls
 - Clear separation: Server = Database, Client = LLM + UI

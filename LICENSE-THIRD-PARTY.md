@@ -45,6 +45,7 @@ We have adapted the following components from Resumify:
 - **PDF Export**: Enhanced PDF generation using @react-pdf/renderer
 
 All adapted code has been modified to:
+
 - Work with our Next.js + Tauri architecture
 - Use Prisma ORM and SQLite for data persistence
 - Follow our Server Actions pattern instead of REST APIs

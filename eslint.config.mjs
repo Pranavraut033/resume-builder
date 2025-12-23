@@ -7,8 +7,11 @@ const eslintConfig = defineConfig([
   ...nextTs,
   {
     rules: {
-      "no-warning-comments": ["warn", { "terms": ["todo", "fixme"], "location": "anywhere" }]
-    }
+      "no-warning-comments": [
+        "warn",
+        { terms: ["todo", "fixme"], location: "anywhere" },
+      ],
+    },
   },
   // Override default ignores of eslint-config-next.
   globalIgnores([

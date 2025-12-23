@@ -1,44 +1,44 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { prismaMock, resetPrismaMock } from '../mocks/prisma';
-import { sampleBaseProfile } from '../fixtures/data';
+import { describe, it, expect, beforeEach, vi } from "vitest";
+import { prismaMock, resetPrismaMock } from "../mocks/prisma";
+import { sampleBaseProfile } from "../fixtures/data";
 
 // Mock revalidatePath
-vi.mock('next/cache', () => ({
+vi.mock("next/cache", () => ({
   revalidatePath: vi.fn(),
 }));
 
-describe('Profile Actions', () => {
+describe("Profile Actions", () => {
   beforeEach(() => {
     resetPrismaMock();
   });
 
-  describe('getProfile', () => {
-    it('should return existing profile', async () => {
+  describe("getProfile", () => {
+    it("should return existing profile", async () => {
       const mockProfile = {
         id: 1,
         resumeJson: JSON.stringify(sampleBaseProfile),
-        createdAt: '2025-01-01T00:00:00.000Z',
-        updatedAt: '2025-01-01T00:00:00.000Z',
+        createdAt: "2025-01-01T00:00:00.000Z",
+        updatedAt: "2025-01-01T00:00:00.000Z",
       };
 
       prismaMock.profile.findFirst.mockResolvedValue(mockProfile);
 
-      const { getProfile } = await import('@/actions/profile');
+      const { getProfile } = await import("@/actions/profile");
       const result = await getProfile();
 
       expect(result).toEqual(sampleBaseProfile);
       expect(prismaMock.profile.findFirst).toHaveBeenCalled();
     });
 
-    it('should return default profile structure when no profile exists', async () => {
+    it("should return default profile structure when no profile exists", async () => {
       prismaMock.profile.findFirst.mockResolvedValue(null);
 
-      const { getProfile } = await import('@/actions/profile');
+      const { getProfile } = await import("@/actions/profile");
       const result = await getProfile();
 
       expect(result).toEqual({
-        header: { name: '', email: '' },
-        summary: '',
+        header: { name: "", email: "" },
+        summary: "",
         experience: [],
         projects: [],
         skills: [],
@@ -48,8 +48,8 @@ describe('Profile Actions', () => {
     });
   });
 
-  describe('saveProfile', () => {
-    it('should create new profile when none exists', async () => {
+  describe("saveProfile", () => {
+    it("should create new profile when none exists", async () => {
       prismaMock.profile.findFirst.mockResolvedValue(null);
       prismaMock.profile.create.mockResolvedValue({
         id: 1,
@@ -58,7 +58,7 @@ describe('Profile Actions', () => {
         updatedAt: new Date().toISOString(),
       });
 
-      const { saveProfile } = await import('@/actions/profile');
+      const { saveProfile } = await import("@/actions/profile");
       const result = await saveProfile(sampleBaseProfile);
 
       expect(result).toEqual({ success: true });
@@ -69,12 +69,15 @@ describe('Profile Actions', () => {
       });
     });
 
-    it('should update existing profile', async () => {
+    it("should update existing profile", async () => {
       const existingProfile = {
         id: 1,
-        resumeJson: JSON.stringify({ ...sampleBaseProfile, summary: 'Old summary' }),
-        createdAt: '2025-01-01T00:00:00.000Z',
-        updatedAt: '2025-01-01T00:00:00.000Z',
+        resumeJson: JSON.stringify({
+          ...sampleBaseProfile,
+          summary: "Old summary",
+        }),
+        createdAt: "2025-01-01T00:00:00.000Z",
+        updatedAt: "2025-01-01T00:00:00.000Z",
       };
 
       prismaMock.profile.findFirst.mockResolvedValue(existingProfile);
@@ -84,7 +87,7 @@ describe('Profile Actions', () => {
         updatedAt: new Date().toISOString(),
       });
 
-      const { saveProfile } = await import('@/actions/profile');
+      const { saveProfile } = await import("@/actions/profile");
       const result = await saveProfile(sampleBaseProfile);
 
       expect(result).toEqual({ success: true });
@@ -96,17 +99,17 @@ describe('Profile Actions', () => {
       });
     });
 
-    it('should handle JSON serialization correctly', async () => {
+    it("should handle JSON serialization correctly", async () => {
       const profileWithComplexData = {
         ...sampleBaseProfile,
         experience: [
           {
-            company: 'Test Company',
-            role: 'Engineer',
-            startDate: '2020-01',
-            endDate: 'Present',
-            description: 'Led development of key features',
-            achievements: ['Task 1', 'Task 2'],
+            company: "Test Company",
+            role: "Engineer",
+            startDate: "2020-01",
+            endDate: "Present",
+            description: "Led development of key features",
+            achievements: ["Task 1", "Task 2"],
           },
         ],
       };
@@ -119,7 +122,7 @@ describe('Profile Actions', () => {
         updatedAt: new Date().toISOString(),
       });
 
-      const { saveProfile } = await import('@/actions/profile');
+      const { saveProfile } = await import("@/actions/profile");
       const result = await saveProfile(profileWithComplexData);
 
       expect(result).toEqual({ success: true });

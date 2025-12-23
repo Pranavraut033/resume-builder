@@ -1,19 +1,19 @@
-import { redirect, notFound } from 'next/navigation';
-import { prisma } from '@/lib/prisma';
-import BackButton from '@/components/BackButton';
-import { revalidatePath } from 'next/cache';
+import { redirect, notFound } from "next/navigation";
+import { prisma } from "@/lib/prisma";
+import BackButton from "@/components/BackButton";
+import { revalidatePath } from "next/cache";
 
 async function updateJob(id: number, formData: FormData) {
-  'use server';
+  "use server";
 
-  const role = formData.get('role') as string;
-  const description = formData.get('description') as string;
-  const status = formData.get('status') as string;
-  const jobDetailsJson = formData.get('jobDetailsJson') as string;
-  const companyName = formData.get('companyName') as string;
-  const companyIndustry = formData.get('companyIndustry') as string;
-  const recruiterName = formData.get('recruiterName') as string;
-  const recruiterEmail = formData.get('recruiterEmail') as string;
+  const role = formData.get("role") as string;
+  const description = formData.get("description") as string;
+  const status = formData.get("status") as string;
+  const jobDetailsJson = formData.get("jobDetailsJson") as string;
+  const companyName = formData.get("companyName") as string;
+  const companyIndustry = formData.get("companyIndustry") as string;
+  const recruiterName = formData.get("recruiterName") as string;
+  const recruiterEmail = formData.get("recruiterEmail") as string;
 
   // Update company if it exists
   const job = await prisma.job.findUnique({
@@ -52,19 +52,19 @@ async function updateJob(id: number, formData: FormData) {
     },
   });
 
-  revalidatePath('/');
-  redirect('/');
+  revalidatePath("/");
+  redirect("/");
 }
 
 async function deleteJob(id: number) {
-  'use server';
+  "use server";
 
   await prisma.job.delete({
     where: { id },
   });
 
-  revalidatePath('/');
-  redirect('/');
+  revalidatePath("/");
+  redirect("/");
 }
 
 export default async function JobPage({ params }: { params: { id: string } }) {
@@ -87,32 +87,92 @@ export default async function JobPage({ params }: { params: { id: string } }) {
       <h1 className="text-2xl font-bold mb-4">Edit Job</h1>
       <form action={updateJob.bind(null, id)} className="space-y-4">
         <div>
-          <label htmlFor="companyName" className="block text-sm font-medium">Company Name</label>
-          <input type="text" id="companyName" name="companyName" defaultValue={job.company?.name || ''} className="w-full border p-2" />
+          <label htmlFor="companyName" className="block text-sm font-medium">
+            Company Name
+          </label>
+          <input
+            type="text"
+            id="companyName"
+            name="companyName"
+            defaultValue={job.company?.name || ""}
+            className="w-full border p-2"
+          />
         </div>
         <div>
-          <label htmlFor="companyIndustry" className="block text-sm font-medium">Company Industry</label>
-          <input type="text" id="companyIndustry" name="companyIndustry" defaultValue={job.company?.industry || ''} className="w-full border p-2" />
+          <label
+            htmlFor="companyIndustry"
+            className="block text-sm font-medium"
+          >
+            Company Industry
+          </label>
+          <input
+            type="text"
+            id="companyIndustry"
+            name="companyIndustry"
+            defaultValue={job.company?.industry || ""}
+            className="w-full border p-2"
+          />
         </div>
         <div>
-          <label htmlFor="recruiterName" className="block text-sm font-medium">Recruiter Name</label>
-          <input type="text" id="recruiterName" name="recruiterName" defaultValue={job.contact?.recruiterName || ''} className="w-full border p-2" />
+          <label htmlFor="recruiterName" className="block text-sm font-medium">
+            Recruiter Name
+          </label>
+          <input
+            type="text"
+            id="recruiterName"
+            name="recruiterName"
+            defaultValue={job.contact?.recruiterName || ""}
+            className="w-full border p-2"
+          />
         </div>
         <div>
-          <label htmlFor="recruiterEmail" className="block text-sm font-medium">Recruiter Email</label>
-          <input type="email" id="recruiterEmail" name="recruiterEmail" defaultValue={job.contact?.contactEmail || ''} className="w-full border p-2" />
+          <label htmlFor="recruiterEmail" className="block text-sm font-medium">
+            Recruiter Email
+          </label>
+          <input
+            type="email"
+            id="recruiterEmail"
+            name="recruiterEmail"
+            defaultValue={job.contact?.contactEmail || ""}
+            className="w-full border p-2"
+          />
         </div>
         <div>
-          <label htmlFor="role" className="block text-sm font-medium">Role</label>
-          <input type="text" id="role" name="role" defaultValue={job.role} required className="w-full border p-2" />
+          <label htmlFor="role" className="block text-sm font-medium">
+            Role
+          </label>
+          <input
+            type="text"
+            id="role"
+            name="role"
+            defaultValue={job.role}
+            required
+            className="w-full border p-2"
+          />
         </div>
         <div>
-          <label htmlFor="description" className="block text-sm font-medium">Job Description</label>
-          <textarea id="description" name="description" defaultValue={job.description} required className="w-full border p-2 h-32"></textarea>
+          <label htmlFor="description" className="block text-sm font-medium">
+            Job Description
+          </label>
+          <textarea
+            id="description"
+            name="description"
+            defaultValue={job.description}
+            required
+            className="w-full border p-2 h-32"
+          ></textarea>
         </div>
         <div>
-          <label htmlFor="status" className="block text-sm font-medium">Status</label>
-          <select id="status" name="status" defaultValue={job.status} required className="w-full border p-2">
+          <label htmlFor="status" className="block text-sm font-medium">
+            Status
+          </label>
+          <select
+            id="status"
+            name="status"
+            defaultValue={job.status}
+            required
+            className="w-full border p-2"
+          >
             <option value="Draft">Draft</option>
             <option value="Applied">Applied</option>
             <option value="Interview">Interview</option>
@@ -121,13 +181,30 @@ export default async function JobPage({ params }: { params: { id: string } }) {
           </select>
         </div>
         <div>
-          <label htmlFor="jobDetailsJson" className="block text-sm font-medium">Job Details (JSON)</label>
-          <textarea id="jobDetailsJson" name="jobDetailsJson" defaultValue={job.jobDetailsJson || ''} className="w-full border p-2 h-24"></textarea>
+          <label htmlFor="jobDetailsJson" className="block text-sm font-medium">
+            Job Details (JSON)
+          </label>
+          <textarea
+            id="jobDetailsJson"
+            name="jobDetailsJson"
+            defaultValue={job.jobDetailsJson || ""}
+            className="w-full border p-2 h-24"
+          ></textarea>
         </div>
         <div className="flex gap-2">
-          <button type="submit" className="px-4 py-2 bg-blue-500 text-white rounded">Update Job</button>
+          <button
+            type="submit"
+            className="px-4 py-2 bg-blue-500 text-white rounded"
+          >
+            Update Job
+          </button>
           <form action={deleteJob.bind(null, id)}>
-            <button type="submit" className="px-4 py-2 bg-red-500 text-white rounded">Delete Job</button>
+            <button
+              type="submit"
+              className="px-4 py-2 bg-red-500 text-white rounded"
+            >
+              Delete Job
+            </button>
           </form>
         </div>
       </form>

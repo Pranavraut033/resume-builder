@@ -9,12 +9,14 @@ This guide documents the complete migration from a REST API + Drizzle ORM archit
 ### Architecture Changes
 
 **Before**:
+
 ```
 Client → axios → REST API (/api/*) → Drizzle → SQLite
        → React Query for state management
 ```
 
 **After**:
+
 ```
 Client → Server Actions → Prisma → SQLite
        → Client-Side LLM (with Tauri key storage)
@@ -22,14 +24,14 @@ Client → Server Actions → Prisma → SQLite
 
 ### Key Differences
 
-| Aspect | Old | New |
-|--------|-----|-----|
-| **Database ORM** | Drizzle | Prisma |
-| **API Layer** | REST API routes in `/api/*` | Server Actions in `src/actions/` |
-| **Client HTTP** | axios, @tanstack/react-query | Direct server action calls |
-| **LLM Operations** | Mixed (client/server) | Client-side only (`clientLLM.ts`) |
-| **Model Fetching** | Server action + cache | Client-side with API keys |
-| **State Management** | React Query | Built-in React state + server actions |
+| Aspect               | Old                          | New                                   |
+| -------------------- | ---------------------------- | ------------------------------------- |
+| **Database ORM**     | Drizzle                      | Prisma                                |
+| **API Layer**        | REST API routes in `/api/*`  | Server Actions in `src/actions/`      |
+| **Client HTTP**      | axios, @tanstack/react-query | Direct server action calls            |
+| **LLM Operations**   | Mixed (client/server)        | Client-side only (`clientLLM.ts`)     |
+| **Model Fetching**   | Server action + cache        | Client-side with API keys             |
+| **State Management** | React Query                  | Built-in React state + server actions |
 
 ---
 
@@ -39,9 +41,9 @@ Client → Server Actions → Prisma → SQLite
 
 ```typescript
 // src/db/schema.ts
-export const profiles = sqliteTable('profiles', {
-  id: integer('id').primaryKey({ autoIncrement: true }),
-  resumeJson: text('resume_json').notNull(),
+export const profiles = sqliteTable("profiles", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  resumeJson: text("resume_json").notNull(),
   // ...
 });
 ```
@@ -60,6 +62,7 @@ model Profile {
 ### Migration Steps
 
 1. **Install Prisma**:
+
 ```bash
 npm install prisma@5.22.0 @prisma/client@5.22.0
 ```
@@ -67,11 +70,13 @@ npm install prisma@5.22.0 @prisma/client@5.22.0
 2. **Generate Prisma Schema**: Created `prisma/schema.prisma` from Drizzle schema
 
 3. **Generate Client**:
+
 ```bash
 npx prisma generate
 ```
 
 4. **Push Schema**:
+
 ```bash
 npx prisma db push
 ```
@@ -106,10 +111,10 @@ export async function POST(request: Request) {
 
 ```typescript
 // src/actions/profile.ts
-'use server';
+"use server";
 
-import { prisma } from '@/lib/prisma';
-import { revalidatePath } from 'next/cache';
+import { prisma } from "@/lib/prisma";
+import { revalidatePath } from "next/cache";
 
 export async function getProfile() {
   const profile = await prisma.profile.findFirst();
@@ -118,19 +123,19 @@ export async function getProfile() {
 
 export async function saveProfile(resumeJson) {
   const existing = await prisma.profile.findFirst();
-  
+
   if (existing) {
     await prisma.profile.update({
       where: { id: existing.id },
-      data: { resumeJson: JSON.stringify(resumeJson) }
+      data: { resumeJson: JSON.stringify(resumeJson) },
     });
   } else {
     await prisma.profile.create({
-      data: { resumeJson: JSON.stringify(resumeJson) }
+      data: { resumeJson: JSON.stringify(resumeJson) },
     });
   }
-  
-  revalidatePath('/profile');
+
+  revalidatePath("/profile");
 }
 ```
 
@@ -144,13 +149,13 @@ export async function saveProfile(resumeJson) {
 // src/app/api/job/route.ts
 export async function POST(request: Request) {
   const { description, selectedModel, selectedProvider } = await request.json();
-  
+
   // ❌ LLM operations in API route
   const apiKey = await getApiKey(selectedProvider);
   const provider = createProvider(selectedProvider, apiKey);
   const jobDetails = await provider.parseJobDescription(description);
   const resume = await provider.generateResume(...);
-  
+
   // Database operations
   const db = getDb();
   const job = await db.insert(jobs).values({
@@ -158,7 +163,7 @@ export async function POST(request: Request) {
     role: jobDetails.role,
     // ...
   }).returning();
-  
+
   return Response.json(job);
 }
 ```
@@ -167,9 +172,9 @@ export async function POST(request: Request) {
 
 ```typescript
 // src/actions/job.ts
-'use server';
+"use server";
 
-import { prisma } from '@/lib/prisma';
+import { prisma } from "@/lib/prisma";
 
 export async function createJob(input: {
   jobDetails: JobDetails;
@@ -181,28 +186,28 @@ export async function createJob(input: {
     data: {
       company: input.jobDetails.company.company_name,
       role: input.jobDetails.job.job_title,
-      description: input.jobDetails.job.job_description || '',
-      status: 'Draft',
-      jobDetailsJson: JSON.stringify(input.jobDetails)
-    }
+      description: input.jobDetails.job.job_description || "",
+      status: "Draft",
+      jobDetailsJson: JSON.stringify(input.jobDetails),
+    },
   });
-  
+
   await prisma.resume.create({
     data: {
       jobId: job.id,
-      contentJson: JSON.stringify(input.tailoredResume)
-    }
+      contentJson: JSON.stringify(input.tailoredResume),
+    },
   });
-  
+
   await prisma.coverLetter.create({
     data: {
       jobId: job.id,
-      contentText: input.coverLetterText
-    }
+      contentText: input.coverLetterText,
+    },
   });
-  
-  revalidatePath('/');
-  
+
+  revalidatePath("/");
+
   return { jobId: job.id };
 }
 ```
@@ -214,7 +219,7 @@ export async function createJob(input: {
 export async function parseJobDescription(
   description: string,
   model: string,
-  provider: string
+  provider: string,
 ): Promise<JobDetails> {
   const llmProvider = await ProviderFactory.getInstance(provider);
   // Parse with LLM (with API key from Tauri storage)
@@ -227,7 +232,7 @@ export async function generateResume(
   jobRole: string,
   company: string,
   model: string,
-  provider: string
+  provider: string,
 ): Promise<ResumeJSON> {
   const llmProvider = await ProviderFactory.getInstance(provider);
   // Generate tailored resume
@@ -255,14 +260,14 @@ export default function ProfilePage() {
       return res.data;
     }
   });
-  
+
   const mutation = useMutation({
     mutationFn: async (profile) => {
       await axios.post('/api/profile', profile);
     },
     onSuccess: () => refetch()
   });
-  
+
   return <div>...</div>;
 }
 ```
@@ -279,7 +284,7 @@ import { getProfile, saveProfile } from '@/actions/profile';
 export default function ProfilePage() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(false);
-  
+
   useEffect(() => {
     const load = async () => {
       const profile = await getProfile();
@@ -287,7 +292,7 @@ export default function ProfilePage() {
     };
     load();
   }, []);
-  
+
   const handleSave = async () => {
     setLoading(true);
     try {
@@ -299,7 +304,7 @@ export default function ProfilePage() {
       setLoading(false);
     }
   };
-  
+
   return <div>...</div>;
 }
 ```
@@ -314,11 +319,11 @@ export default function ProfilePage() {
 // ❌ Old: LLM in API route
 export async function POST(request: Request) {
   const { description, model, provider } = await request.json();
-  
+
   const apiKey = await getApiKey(provider); // Server tries to access Tauri
-  const llm = new OpenAIProvider(apiKey);   // But keys are client-side!
+  const llm = new OpenAIProvider(apiKey); // But keys are client-side!
   const result = await llm.parse(description);
-  
+
   return Response.json(result);
 }
 ```
@@ -341,10 +346,10 @@ export default function NewJobPage() {
       selectedModel,
       selectedProvider
     );
-    
+
     // Step 2: Get base profile (server action - DB only)
     const baseProfile = await getProfile();
-    
+
     // Step 3: Generate resume on client
     const tailoredResume = await generateResume(
       baseProfile,
@@ -354,11 +359,11 @@ export default function NewJobPage() {
       selectedModel,
       selectedProvider
     );
-    
+
     // Step 4: Save to DB (server action)
     await createJob({ jobDetails, tailoredResume, coverLetterText });
   };
-  
+
   return <form>...</form>;
 }
 ```
@@ -371,9 +376,9 @@ export default function NewJobPage() {
 
 ```typescript
 // src/actions/models.ts
-'use server';
+"use server";
 
-import { getModels as getCachedModels } from '@/lib/modelCache';
+import { getModels as getCachedModels } from "@/lib/modelCache";
 
 export async function getModels() {
   return getCachedModels();
@@ -392,10 +397,10 @@ export async function fetchModels(): Promise<Record<string, string[]>> {
   // Returns hardcoded model lists
   // Future: Query providers dynamically with API keys
   return {
-    openai: ['gpt-4', 'gpt-4-turbo', 'gpt-3.5-turbo'],
-    gemini: ['gemini-pro', 'gemini-pro-vision'],
-    grok: ['grok-4-1-fast-reasoning', 'grok-vision-beta'],
-    ollama: ['llama3', 'codellama', 'mistral']
+    openai: ["gpt-4", "gpt-4-turbo", "gpt-3.5-turbo"],
+    gemini: ["gemini-pro", "gemini-pro-vision"],
+    grok: ["grok-4-1-fast-reasoning", "grok-vision-beta"],
+    ollama: ["llama3", "codellama", "mistral"],
   };
 }
 ```
@@ -455,6 +460,7 @@ const loadData = async () => {
 ## New Files
 
 ### Server Actions
+
 ```
 ✅ Created:
 - src/actions/profile.ts     # Profile CRUD
@@ -462,12 +468,14 @@ const loadData = async () => {
 ```
 
 ### Client-Side LLM
+
 ```
 ✅ Created:
 - src/lib/clientLLM.ts        # All LLM operations
 ```
 
 ### Database
+
 ```
 ✅ Created:
 - prisma/schema.prisma        # Prisma schema
@@ -476,6 +484,7 @@ const loadData = async () => {
 ```
 
 ### Documentation
+
 ```
 ✅ Created:
 - docs/CLIENT_SIDE_LLM.md     # Client-side LLM documentation
@@ -489,30 +498,39 @@ const loadData = async () => {
 ## Testing After Migration
 
 ### 1. Type Check
+
 ```bash
 npm run type-check
 ```
+
 Expected: ✅ Type check passed
 
 ### 2. Development Server
+
 ```bash
 npm run dev
 ```
+
 Expected: Server starts on http://localhost:3000
 
 ### 3. Database Studio
+
 ```bash
 npx prisma studio
 ```
+
 Expected: Opens database GUI at http://localhost:5555
 
 ### 4. Tauri Desktop
+
 ```bash
 npm run tauri dev
 ```
+
 Expected: Desktop app launches
 
 ### 5. End-to-End Test
+
 1. Navigate to `/profile` → Add profile data → Save
 2. Navigate to `/settings` → Add API keys → Save
 3. Navigate to `/job/new` → Paste job description → Submit
@@ -527,6 +545,7 @@ Expected: Desktop app launches
 ### Issue: "Cannot find module '@prisma/client'"
 
 **Solution**:
+
 ```bash
 npx prisma generate
 ```
@@ -537,7 +556,8 @@ npx prisma generate
 
 ### Issue: "API key not found"
 
-**Solution**: 
+**Solution**:
+
 1. Go to `/settings`
 2. Add API keys for your providers
 3. Keys stored in Tauri storage (encrypted)
@@ -546,8 +566,9 @@ npx prisma generate
 ### Issue: Type errors with ResumeJSON
 
 **Solution**: Import from `@/types/resume`:
+
 ```typescript
-import type { ResumeJSON } from '@/types/resume';
+import type { ResumeJSON } from "@/types/resume";
 ```
 
 ---
@@ -555,12 +576,14 @@ import type { ResumeJSON } from '@/types/resume';
 ## Performance Improvements
 
 ### Before Migration
+
 - HTTP roundtrip for every API call
 - JSON serialization overhead
 - React Query cache management
 - Separate API and database layers
 
 ### After Migration
+
 - Direct server action calls (no HTTP)
 - Native Next.js caching
 - Automatic revalidation
@@ -622,6 +645,7 @@ import type { ResumeJSON } from '@/types/resume';
 ## Summary
 
 The migration successfully:
+
 - ✅ Replaced Drizzle with Prisma
 - ✅ Eliminated all REST API routes
 - ✅ Moved to Server Actions for database operations

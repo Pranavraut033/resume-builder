@@ -2,12 +2,12 @@
 // Copyright (c) 2025 M. H. A. Afif
 // Licensed under MIT License
 
-'use client';
+"use client";
 
-import React from 'react';
-import { ResumeColors, DEFAULT_COLORS } from '@/types/resume';
-import { Card } from './ui/Card';
-import { Button } from './ui/Button';
+import React from "react";
+import { ResumeColors, DEFAULT_COLORS } from "@/types/resume";
+import { Card } from "./ui/Card";
+import { Button } from "./ui/Button";
 
 interface ColorCustomizerProps {
   colors: ResumeColors;
@@ -16,57 +16,57 @@ interface ColorCustomizerProps {
 
 const COLOR_PRESETS: Array<{ name: string; colors: ResumeColors }> = [
   {
-    name: 'Default Blue',
+    name: "Default Blue",
     colors: DEFAULT_COLORS,
   },
   {
-    name: 'Professional Gray',
+    name: "Professional Gray",
     colors: {
-      primary: '#6b7280',
-      secondary: '#9ca3af',
-      accent: '#374151',
-      text: '#1f2937',
-      background: '#ffffff',
+      primary: "#6b7280",
+      secondary: "#9ca3af",
+      accent: "#374151",
+      text: "#1f2937",
+      background: "#ffffff",
     },
   },
   {
-    name: 'Modern Green',
+    name: "Modern Green",
     colors: {
-      primary: '#10b981',
-      secondary: '#6ee7b7',
-      accent: '#059669',
-      text: '#1f2937',
-      background: '#ffffff',
+      primary: "#10b981",
+      secondary: "#6ee7b7",
+      accent: "#059669",
+      text: "#1f2937",
+      background: "#ffffff",
     },
   },
   {
-    name: 'Creative Purple',
+    name: "Creative Purple",
     colors: {
-      primary: '#8b5cf6',
-      secondary: '#a78bfa',
-      accent: '#7c3aed',
-      text: '#1f2937',
-      background: '#ffffff',
+      primary: "#8b5cf6",
+      secondary: "#a78bfa",
+      accent: "#7c3aed",
+      text: "#1f2937",
+      background: "#ffffff",
     },
   },
   {
-    name: 'Executive Navy',
+    name: "Executive Navy",
     colors: {
-      primary: '#1e40af',
-      secondary: '#3b82f6',
-      accent: '#1e3a8a',
-      text: '#1f2937',
-      background: '#ffffff',
+      primary: "#1e40af",
+      secondary: "#3b82f6",
+      accent: "#1e3a8a",
+      text: "#1f2937",
+      background: "#ffffff",
     },
   },
   {
-    name: 'Elegant Rose',
+    name: "Elegant Rose",
     colors: {
-      primary: '#e11d48',
-      secondary: '#fb7185',
-      accent: '#be123c',
-      text: '#1f2937',
-      background: '#ffffff',
+      primary: "#e11d48",
+      secondary: "#fb7185",
+      accent: "#be123c",
+      text: "#1f2937",
+      background: "#ffffff",
     },
   },
 ];
@@ -135,7 +135,7 @@ export const ColorCustomizer: React.FC<ColorCustomizerProps> = ({
           <label className="block text-sm font-medium text-blocky-900">
             Custom Colors
           </label>
-          
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-block">
             <div>
               <label className="block text-sm text-blocky-700 mb-1">
@@ -145,13 +145,13 @@ export const ColorCustomizer: React.FC<ColorCustomizerProps> = ({
                 <input
                   type="color"
                   value={colors.primary}
-                  onChange={(e) => handleColorChange('primary', e.target.value)}
+                  onChange={(e) => handleColorChange("primary", e.target.value)}
                   className="w-12 h-10 rounded-block border border-blocky-300 cursor-pointer"
                 />
                 <input
                   type="text"
                   value={colors.primary}
-                  onChange={(e) => handleColorChange('primary', e.target.value)}
+                  onChange={(e) => handleColorChange("primary", e.target.value)}
                   placeholder="#3b82f6"
                   className="flex-1 px-4 py-2 rounded-block border border-blocky-300 focus:border-blocky-500 focus:ring-2 focus:ring-blocky-500 focus:ring-opacity-20"
                 />
@@ -166,13 +166,17 @@ export const ColorCustomizer: React.FC<ColorCustomizerProps> = ({
                 <input
                   type="color"
                   value={colors.secondary}
-                  onChange={(e) => handleColorChange('secondary', e.target.value)}
+                  onChange={(e) =>
+                    handleColorChange("secondary", e.target.value)
+                  }
                   className="w-12 h-10 rounded-block border border-blocky-300 cursor-pointer"
                 />
                 <input
                   type="text"
                   value={colors.secondary}
-                  onChange={(e) => handleColorChange('secondary', e.target.value)}
+                  onChange={(e) =>
+                    handleColorChange("secondary", e.target.value)
+                  }
                   placeholder="#64748b"
                   className="flex-1 px-4 py-2 rounded-block border border-blocky-300 focus:border-blocky-500 focus:ring-2 focus:ring-blocky-500 focus:ring-opacity-20"
                 />
@@ -187,13 +191,13 @@ export const ColorCustomizer: React.FC<ColorCustomizerProps> = ({
                 <input
                   type="color"
                   value={colors.accent}
-                  onChange={(e) => handleColorChange('accent', e.target.value)}
+                  onChange={(e) => handleColorChange("accent", e.target.value)}
                   className="w-12 h-10 rounded-block border border-blocky-300 cursor-pointer"
                 />
                 <input
                   type="text"
                   value={colors.accent}
-                  onChange={(e) => handleColorChange('accent', e.target.value)}
+                  onChange={(e) => handleColorChange("accent", e.target.value)}
                   placeholder="#8b5cf6"
                   className="flex-1 px-4 py-2 rounded-block border border-blocky-300 focus:border-blocky-500 focus:ring-2 focus:ring-blocky-500 focus:ring-opacity-20"
                 />
@@ -208,13 +212,13 @@ export const ColorCustomizer: React.FC<ColorCustomizerProps> = ({
                 <input
                   type="color"
                   value={colors.text}
-                  onChange={(e) => handleColorChange('text', e.target.value)}
+                  onChange={(e) => handleColorChange("text", e.target.value)}
                   className="w-12 h-10 rounded-block border border-blocky-300 cursor-pointer"
                 />
                 <input
                   type="text"
                   value={colors.text}
-                  onChange={(e) => handleColorChange('text', e.target.value)}
+                  onChange={(e) => handleColorChange("text", e.target.value)}
                   placeholder="#1f2937"
                   className="flex-1 px-4 py-2 rounded-block border border-blocky-300 focus:border-blocky-500 focus:ring-2 focus:ring-blocky-500 focus:ring-opacity-20"
                 />

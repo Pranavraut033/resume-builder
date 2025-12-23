@@ -7,6 +7,7 @@ This directory contains centralized configuration for all test suites.
 ### `test.config.ts`
 
 Central configuration file for:
+
 - **API Keys**: Loaded from environment variables (see `.env.test.example`)
 - **Models**: Smallest/cheapest models for each provider to minimize testing costs
 - **Timeouts**: Configurable timeouts for different test types
@@ -16,12 +17,12 @@ Central configuration file for:
 
 The test configuration uses the smallest, fastest, and cheapest models available:
 
-| Provider | Model | Notes |
-|----------|-------|-------|
-| OpenAI | `gpt-4o-mini` | Smallest, fastest, cheapest GPT model |
-| Gemini | `gemini-1.5-flash` | Fast and cost-effective |
-| Grok | `grok-4-1-fast-reasoning` | xAI's Grok model |
-| Ollama | `llama3` | Runs locally, no API costs |
+| Provider | Model                     | Notes                                 |
+| -------- | ------------------------- | ------------------------------------- |
+| OpenAI   | `gpt-4o-mini`             | Smallest, fastest, cheapest GPT model |
+| Gemini   | `gemini-1.5-flash`        | Fast and cost-effective               |
+| Grok     | `grok-4-1-fast-reasoning` | xAI's Grok model                      |
+| Ollama   | `llama3`                  | Runs locally, no API costs            |
 
 ## Environment Variables
 
@@ -44,13 +45,17 @@ TEST_GROK_API_KEY=gsk_...
 Import the test config in your test files:
 
 ```typescript
-import { TEST_CONFIG, getTestApiKey, getTestModel } from '../config/test.config';
+import {
+  TEST_CONFIG,
+  getTestApiKey,
+  getTestModel,
+} from "../config/test.config";
 
 // Get API key for a provider
-const apiKey = getTestApiKey('openai');
+const apiKey = getTestApiKey("openai");
 
 // Get model for a provider
-const model = getTestModel('gemini');
+const model = getTestModel("gemini");
 
 // Use the full config
 const timeout = TEST_CONFIG.timeouts.llmRequest;
@@ -81,7 +86,7 @@ env:
   TEST_OPENAI_API_KEY: ${{ secrets.TEST_OPENAI_API_KEY }}
   TEST_GEMINI_API_KEY: ${{ secrets.TEST_GEMINI_API_KEY }}
   TEST_GROK_API_KEY: ${{ secrets.TEST_GROK_API_KEY }}
-  USE_MOCK_LLM: true  # Keep mocking enabled in CI
+  USE_MOCK_LLM: true # Keep mocking enabled in CI
 ```
 
 ## Helper Functions

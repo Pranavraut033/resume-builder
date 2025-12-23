@@ -32,7 +32,7 @@ src/actions/
 Get the base profile or return default structure.
 
 ```typescript
-import { getProfile } from '@/actions/profile';
+import { getProfile } from "@/actions/profile";
 
 const profile = await getProfile();
 
@@ -59,15 +59,17 @@ const profile = await getProfile();
 Save or update the base profile.
 
 ```typescript
-import { saveProfile } from '@/actions/profile';
+import { saveProfile } from "@/actions/profile";
 
 await saveProfile(resumeJson);
 ```
 
 **Parameters**:
+
 - `resumeJson: ResumeJSON` - Complete profile data
 
-**Database Operations**: 
+**Database Operations**:
+
 - `prisma.profile.create()` if no profile exists
 - `prisma.profile.update()` if profile exists
 
@@ -84,25 +86,27 @@ await saveProfile(resumeJson);
 Create a new job with pre-generated resume and cover letter.
 
 ```typescript
-import { createJob } from '@/actions/job';
+import { createJob } from "@/actions/job";
 
 const { jobId } = await createJob({
-  jobDetails: parsedJobDetails,      // From client-side LLM
-  tailoredResume: generatedResume,   // From client-side LLM
-  coverLetterText: coverLetter       // From client-side LLM
+  jobDetails: parsedJobDetails, // From client-side LLM
+  tailoredResume: generatedResume, // From client-side LLM
+  coverLetterText: coverLetter, // From client-side LLM
 });
 ```
 
 **Parameters**:
+
 ```typescript
 {
-  jobDetails: JobDetails;      // Parsed job information
-  tailoredResume: ResumeJSON;  // Generated resume
-  coverLetterText: string;     // Generated cover letter
+  jobDetails: JobDetails; // Parsed job information
+  tailoredResume: ResumeJSON; // Generated resume
+  coverLetterText: string; // Generated cover letter
 }
 ```
 
 **Database Operations**:
+
 1. `prisma.job.create()` - Creates job record
 2. `prisma.resume.create()` - Saves tailored resume
 3. `prisma.coverLetter.create()` - Saves cover letter
@@ -120,7 +124,7 @@ const { jobId } = await createJob({
 Get all jobs ordered by creation date.
 
 ```typescript
-import { getAllJobs } from '@/actions/job';
+import { getAllJobs } from "@/actions/job";
 
 const jobs = await getAllJobs();
 
@@ -145,7 +149,7 @@ const jobs = await getAllJobs();
 Get a single job by ID.
 
 ```typescript
-import { getJobById } from '@/actions/job';
+import { getJobById } from "@/actions/job";
 
 const job = await getJobById(123);
 
@@ -161,12 +165,13 @@ const job = await getJobById(123);
 Update the status of a job.
 
 ```typescript
-import { updateJobStatus } from '@/actions/job';
+import { updateJobStatus } from "@/actions/job";
 
-await updateJobStatus(123, 'Applied');
+await updateJobStatus(123, "Applied");
 ```
 
 **Parameters**:
+
 - `id: number` - Job ID
 - `status: string` - New status (e.g., 'Draft', 'Applied', 'Interview', 'Offer', 'Rejected')
 
@@ -181,14 +186,15 @@ await updateJobStatus(123, 'Applied');
 Delete a job (cascade deletes resumes and cover letters).
 
 ```typescript
-import { deleteJob } from '@/actions/job';
+import { deleteJob } from "@/actions/job";
 
 await deleteJob(123);
 ```
 
 **Database Operation**: `prisma.job.delete({ where: { id } })`
 
-**Side Effects**: 
+**Side Effects**:
+
 - Automatically deletes related resumes and cover letters (Prisma cascade)
 - Calls `revalidatePath('/')` to refresh job list
 
@@ -199,7 +205,7 @@ await deleteJob(123);
 Get the tailored resume for a job.
 
 ```typescript
-import { getResumeByJobId } from '@/actions/job';
+import { getResumeByJobId } from "@/actions/job";
 
 const resume = await getResumeByJobId(123);
 
@@ -217,12 +223,13 @@ const resume = await getResumeByJobId(123);
 Update the resume content for a job.
 
 ```typescript
-import { updateResume } from '@/actions/job';
+import { updateResume } from "@/actions/job";
 
 await updateResume(123, updatedResumeJson);
 ```
 
 **Parameters**:
+
 - `jobId: number` - Job ID
 - `contentJson: ResumeJSON` - Updated resume content
 
@@ -237,7 +244,7 @@ await updateResume(123, updatedResumeJson);
 Get the cover letter for a job.
 
 ```typescript
-import { getCoverLetterByJobId } from '@/actions/job';
+import { getCoverLetterByJobId } from "@/actions/job";
 
 const coverLetter = await getCoverLetterByJobId(123);
 
@@ -253,12 +260,13 @@ const coverLetter = await getCoverLetterByJobId(123);
 Update the cover letter text for a job.
 
 ```typescript
-import { updateCoverLetter } from '@/actions/job';
+import { updateCoverLetter } from "@/actions/job";
 
 await updateCoverLetter(123, updatedText);
 ```
 
 **Parameters**:
+
 - `jobId: number` - Job ID
 - `contentText: string` - Updated cover letter text
 
@@ -281,16 +289,17 @@ import { revalidatePath } from 'next/cache';
 export async function myAction(params) {
   // 1. Database operation using Prisma
   const result = await prisma.table.operation(...);
-  
+
   // 2. Revalidate paths to refresh UI
   revalidatePath('/path');
-  
+
   // 3. Return result
   return result;
 }
 ```
 
 **Key Points**:
+
 - `'use server'` directive at top of file
 - Import Prisma from `@/lib/prisma`
 - Use `revalidatePath()` to refresh cached pages
@@ -307,15 +316,15 @@ Server actions can be used directly in forms:
 // In a server component
 async function updateJobForm(id: number, formData: FormData) {
   'use server';
-  
+
   const company = formData.get('company') as string;
   const role = formData.get('role') as string;
-  
+
   await prisma.job.update({
     where: { id },
     data: { company, role }
   });
-  
+
   revalidatePath('/');
   redirect('/');
 }
@@ -368,19 +377,20 @@ if (!result.success) {
 Use `revalidatePath()` to refresh cached pages:
 
 ```typescript
-import { revalidatePath } from 'next/cache';
+import { revalidatePath } from "next/cache";
 
 // Revalidate specific path
-revalidatePath('/jobs');
+revalidatePath("/jobs");
 
 // Revalidate dynamic route
 revalidatePath(`/job/${jobId}`);
 
 // Revalidate entire layout
-revalidatePath('/', 'layout');
+revalidatePath("/", "layout");
 ```
 
 **When to revalidate**:
+
 - After creating records → revalidate list page
 - After updating records → revalidate detail page
 - After deleting records → revalidate list page
@@ -404,13 +414,14 @@ type CreateJobOutput = {
 };
 
 export async function createJob(
-  input: CreateJobInput
+  input: CreateJobInput,
 ): Promise<CreateJobOutput> {
   // Implementation
 }
 ```
 
 **Benefits**:
+
 - TypeScript checks at compile time
 - Auto-complete in IDEs
 - Catch errors before runtime
@@ -423,25 +434,25 @@ export async function createJob(
 Server actions can be tested directly:
 
 ```typescript
-import { createJob } from '@/actions/job';
-import { prisma } from '@/lib/prisma';
+import { createJob } from "@/actions/job";
+import { prisma } from "@/lib/prisma";
 
 // Mock Prisma
-jest.mock('@/lib/prisma', () => ({
+jest.mock("@/lib/prisma", () => ({
   prisma: {
     job: {
-      create: jest.fn().mockResolvedValue({ id: 1 })
-    }
-  }
+      create: jest.fn().mockResolvedValue({ id: 1 }),
+    },
+  },
 }));
 
-test('createJob creates job in database', async () => {
+test("createJob creates job in database", async () => {
   const result = await createJob({
     jobDetails: mockJobDetails,
     tailoredResume: mockResume,
-    coverLetterText: mockCoverLetter
+    coverLetterText: mockCoverLetter,
   });
-  
+
   expect(result.jobId).toBe(1);
   expect(prisma.job.create).toHaveBeenCalled();
 });
@@ -465,9 +476,10 @@ test('createJob creates job in database', async () => {
 ## Common Mistakes
 
 ❌ **Wrong - LLM in Server Action**:
+
 ```typescript
 export async function createJob(description: string) {
-  'use server';
+  "use server";
   const provider = new OpenAIProvider(apiKey); // ❌ NO!
   const jobDetails = await provider.parse(description);
   // ...
@@ -475,6 +487,7 @@ export async function createJob(description: string) {
 ```
 
 ✅ **Correct - LLM on Client, Server Action for DB**:
+
 ```typescript
 // Client component
 const jobDetails = await parseJobDescription(...); // Client-side LLM
@@ -484,20 +497,23 @@ await createJob({ jobDetails, ... }); // Server action for DB
 ---
 
 ❌ **Wrong - Accessing Request in Server Action**:
+
 ```typescript
-export async function getJobs(request: Request) { // ❌ NO!
-  'use server';
+export async function getJobs(request: Request) {
+  // ❌ NO!
+  "use server";
   const cookies = request.cookies;
   // ...
 }
 ```
 
 ✅ **Correct - Use cookies() helper**:
+
 ```typescript
-import { cookies } from 'next/headers';
+import { cookies } from "next/headers";
 
 export async function getJobs() {
-  'use server';
+  "use server";
   const cookieStore = cookies();
   // ...
 }

@@ -1,7 +1,7 @@
-'use client';
+"use client";
 
-import { useMemo, useState } from 'react';
-import { cn } from '@/lib/cn';
+import { useMemo, useState } from "react";
+import { cn } from "@/lib/cn";
 
 // Displays a company logo (fetched via Clearbit) with graceful fallbacks
 interface CompanyAvatarProps {
@@ -10,28 +10,28 @@ interface CompanyAvatarProps {
 }
 
 const COLORS = [
-  'bg-sky-200 text-sky-900',
-  'bg-emerald-200 text-emerald-900',
-  'bg-amber-200 text-amber-900',
-  'bg-purple-200 text-purple-900',
-  'bg-pink-200 text-pink-900',
-  'bg-blocky-300 text-blocky-900',
+  "bg-sky-200 text-sky-900",
+  "bg-emerald-200 text-emerald-900",
+  "bg-amber-200 text-amber-900",
+  "bg-purple-200 text-purple-900",
+  "bg-pink-200 text-pink-900",
+  "bg-blocky-300 text-blocky-900",
 ];
 
 function getInitials(name?: string | null) {
-  if (!name) return '??';
+  if (!name) return "??";
   const parts = name.trim().split(/\s+/);
   if (parts.length === 1) {
     return parts[0].slice(0, 2).toUpperCase();
   }
-  return `${parts[0][0] ?? ''}${parts[parts.length - 1][0] ?? ''}`.toUpperCase();
+  return `${parts[0][0] ?? ""}${parts[parts.length - 1][0] ?? ""}`.toUpperCase();
 }
 
 function buildLogoUrl(name?: string | null) {
   if (!name) return null;
   const domain = name
     .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '')
+    .replace(/[^a-z0-9]+/g, "")
     .slice(0, 40);
   if (!domain) return null;
   return `https://logo.clearbit.com/${domain}.com`;
@@ -49,14 +49,17 @@ export function CompanyAvatar({ name, size = 48 }: CompanyAvatarProps) {
 
   return (
     <div
-      className={cn('flex items-center justify-center rounded-2xl font-semibold uppercase shadow-sm border border-black/10 overflow-hidden', colorClass)}
+      className={cn(
+        "flex items-center justify-center rounded-2xl font-semibold uppercase shadow-sm border border-black/10 overflow-hidden",
+        colorClass,
+      )}
       style={{ width: size, height: size }}
       aria-hidden="true"
     >
       {logoUrl && !failed ? (
         <img
           src={logoUrl}
-          alt={`${name ?? 'Company'} logo`}
+          alt={`${name ?? "Company"} logo`}
           className="w-full h-full object-contain bg-white p-1.5"
           onError={() => setFailed(true)}
           draggable={false}

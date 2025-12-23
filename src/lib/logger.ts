@@ -1,6 +1,6 @@
 /**
  * Logger Library
- * 
+ *
  * A comprehensive logging utility with:
  * - Tag-based categorization
  * - Structured data support
@@ -9,7 +9,7 @@
  * - Formatting and metadata
  */
 
-export type LogLevel = 'debug' | 'info' | 'warn' | 'error' | 'fatal';
+export type LogLevel = "debug" | "info" | "warn" | "error" | "fatal";
 
 export interface LogEntry {
   level: LogLevel;
@@ -17,7 +17,7 @@ export interface LogEntry {
   message: string;
   data?: unknown;
   timestamp: string;
-  environment: 'development' | 'production';
+  environment: "development" | "production";
 }
 
 export interface LoggerConfig {
@@ -42,10 +42,10 @@ const LOG_LEVELS: Record<LogLevel, number> = {
 };
 
 const DEFAULT_CONFIG: LoggerConfig = {
-  minLevel: process.env.NODE_ENV === 'production' ? 'info' : 'debug',
+  minLevel: process.env.NODE_ENV === "production" ? "info" : "debug",
   enableConsole: true,
   enableTimestamps: true,
-  prettyPrint: process.env.NODE_ENV !== 'production',
+  prettyPrint: process.env.NODE_ENV !== "production",
   customHandler: undefined,
 };
 
@@ -54,11 +54,12 @@ const DEFAULT_CONFIG: LoggerConfig = {
  */
 export class Logger {
   private config: LoggerConfig;
-  private environment: 'development' | 'production';
+  private environment: "development" | "production";
 
   constructor(config: Partial<LoggerConfig> = {}) {
     this.config = { ...DEFAULT_CONFIG, ...config };
-    this.environment = process.env.NODE_ENV === 'production' ? 'production' : 'development';
+    this.environment =
+      process.env.NODE_ENV === "production" ? "production" : "development";
   }
 
   /**
@@ -79,20 +80,22 @@ export class Logger {
    * Format log entry for console output
    */
   private formatForConsole(entry: LogEntry): string {
-    const timestamp = this.config.enableTimestamps ? `[${entry.timestamp}] ` : '';
+    const timestamp = this.config.enableTimestamps
+      ? `[${entry.timestamp}] `
+      : "";
     const tag = `[${entry.tag}]`;
     const level = entry.level.toUpperCase();
 
     if (this.config.prettyPrint) {
       // Development: colorful, detailed output
       const colors: Record<LogLevel, string> = {
-        debug: '\x1b[36m', // Cyan
-        info: '\x1b[34m',  // Blue
-        warn: '\x1b[33m',  // Yellow
-        error: '\x1b[31m', // Red
-        fatal: '\x1b[35m', // Magenta
+        debug: "\x1b[36m", // Cyan
+        info: "\x1b[34m", // Blue
+        warn: "\x1b[33m", // Yellow
+        error: "\x1b[31m", // Red
+        fatal: "\x1b[35m", // Magenta
       };
-      const reset = '\x1b[0m';
+      const reset = "\x1b[0m";
       const color = colors[entry.level];
 
       let output = `${color}${timestamp}${level}${reset} ${tag} ${entry.message}`;
@@ -118,7 +121,12 @@ export class Logger {
   /**
    * Core logging method
    */
-  private log(level: LogLevel, tag: string, message: string, data?: unknown): void {
+  private log(
+    level: LogLevel,
+    tag: string,
+    message: string,
+    data?: unknown,
+  ): void {
     if (!this.shouldLog(level)) {
       return;
     }
@@ -137,17 +145,17 @@ export class Logger {
       const formatted = this.formatForConsole(entry);
 
       switch (level) {
-        case 'debug':
+        case "debug":
           console.debug(formatted);
           break;
-        case 'info':
+        case "info":
           console.info(formatted);
           break;
-        case 'warn':
+        case "warn":
           console.warn(formatted);
           break;
-        case 'error':
-        case 'fatal':
+        case "error":
+        case "fatal":
           console.error(formatted);
           break;
       }
@@ -163,35 +171,35 @@ export class Logger {
    * Log debug message (development only by default)
    */
   debug(tag: string, message: string, data?: unknown): void {
-    this.log('debug', tag, message, data);
+    this.log("debug", tag, message, data);
   }
 
   /**
    * Log info message
    */
   info(tag: string, message: string, data?: unknown): void {
-    this.log('info', tag, message, data);
+    this.log("info", tag, message, data);
   }
 
   /**
    * Log warning message
    */
   warn(tag: string, message: string, data?: unknown): void {
-    this.log('warn', tag, message, data);
+    this.log("warn", tag, message, data);
   }
 
   /**
    * Log error message
    */
   error(tag: string, message: string, data?: unknown): void {
-    this.log('error', tag, message, data);
+    this.log("error", tag, message, data);
   }
 
   /**
    * Log fatal error message
    */
   fatal(tag: string, message: string, data?: unknown): void {
-    this.log('fatal', tag, message, data);
+    this.log("fatal", tag, message, data);
   }
 
   /**
@@ -208,8 +216,8 @@ export class Logger {
 export class ScopedLogger {
   constructor(
     private logger: Logger,
-    private tag: string
-  ) { }
+    private tag: string,
+  ) {}
 
   debug(message: string, data?: unknown): void {
     this.logger.debug(this.tag, message, data);

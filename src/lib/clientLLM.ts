@@ -3,24 +3,25 @@
  * These functions run in the browser/Tauri context where API keys are accessible
  */
 
-import { OpenAIProvider } from '@/lib/llm/providers/openai';
-import { GeminiProvider } from '@/lib/llm/providers/gemini';
-import { GrokProvider } from '@/lib/llm/providers/grok';
-import { PerplexityProvider } from '@/lib/llm/providers/perplexity';
-import { OllamaProvider } from '@/lib/llm/providers/ollama';
-import { ResumeJSON, JobDetails } from '@/types/resume';
-import { getApiKey } from '@/lib/keyStorage';
-import { LLMProvider } from '@/types/llm';
-import { createLogger } from '@/lib/logger';
+import { OpenAIProvider } from "@/lib/llm/providers/openai";
+import { GeminiProvider } from "@/lib/llm/providers/gemini";
+import { GrokProvider } from "@/lib/llm/providers/grok";
+import { PerplexityProvider } from "@/lib/llm/providers/perplexity";
+import { OllamaProvider } from "@/lib/llm/providers/ollama";
+import { ResumeJSON, JobDetails } from "@/types/resume";
+import { getApiKey } from "@/lib/keyStorage";
+import { LLMProvider } from "@/types/llm";
+import { createLogger } from "@/lib/logger";
 
-const logger = createLogger('ClientLLM');
+const logger = createLogger("ClientLLM");
 
 // Provider Factory for managing instances
 class ProviderFactory {
   private static instances: Map<string, LLMProvider> = new Map();
 
   static async getInstance(providerName: string): Promise<LLMProvider | null> {
-    const apiKey = providerName === 'ollama' ? undefined : await getApiKey(providerName);
+    const apiKey =
+      providerName === "ollama" ? undefined : await getApiKey(providerName);
     const key = `${providerName}`;
 
     if (this.instances.has(key)) {
@@ -30,19 +31,19 @@ class ProviderFactory {
     let instance = null;
 
     switch (providerName) {
-      case 'openai':
+      case "openai":
         if (apiKey) instance = new OpenAIProvider(apiKey);
         break;
-      case 'gemini':
+      case "gemini":
         if (apiKey) instance = new GeminiProvider(apiKey);
         break;
-      case 'grok':
+      case "grok":
         if (apiKey) instance = new GrokProvider(apiKey);
         break;
-      case 'perplexity':
+      case "perplexity":
         if (apiKey) instance = new PerplexityProvider(apiKey);
         break;
-      case 'ollama':
+      case "ollama":
         instance = new OllamaProvider();
         break;
     }
@@ -65,34 +66,39 @@ class ProviderFactory {
 export async function parseJobDescription(
   description: string,
   selectedModel: string,
-  selectedProvider: string
+  selectedProvider: string,
 ): Promise<JobDetails> {
   const provider = await ProviderFactory.getInstance(selectedProvider);
 
   console.log({ provider, selectedProvider, selectedModel });
 
-
   if (!provider) {
-    throw new Error('No provider available for parsing');
+    throw new Error("No provider available for parsing");
   }
 
-  if (selectedProvider === 'openai' && provider instanceof OpenAIProvider) {
+  if (selectedProvider === "openai" && provider instanceof OpenAIProvider) {
     try {
       const parsed = await provider.parseJobDetails(description, selectedModel);
       return { ...parsed, raw_description: description };
     } catch (error) {
-      logger.error('Structured parsing failed', { error, provider: selectedProvider });
+      logger.error("Structured parsing failed", {
+        error,
+        provider: selectedProvider,
+      });
     }
   }
 
   // Fallback to simple parsing for non-OpenAI providers
-  const companyMatch = description.match(/\s+at\s+([A-Z][a-zA-Z\s&.]+?)(?:\s+to|\s+in|\s+for|\s*$|\.|,)/i);
-  const companyName = companyMatch ? companyMatch[1].trim() : 'Unknown Company';
+  const companyMatch = description.match(
+    /\s+at\s+([A-Z][a-zA-Z\s&.]+?)(?:\s+to|\s+in|\s+for|\s*$|\.|,)/i,
+  );
+  const companyName = companyMatch ? companyMatch[1].trim() : "Unknown Company";
 
   const roleMatch =
-    description.match(/(?:position|role|job)\s+(?:of|for|as)?\s*([A-Z][a-zA-Z\s]+?)(?:\s|$|at|\.)/i) ||
-    description.match(/^([A-Z][a-zA-Z\s]+?)(?:\s|$|at)/i);
-  const jobTitle = roleMatch ? roleMatch[1].trim() : 'Unknown Position';
+    description.match(
+      /(?:position|role|job)\s+(?:of|for|as)?\s*([A-Z][a-zA-Z\s]+?)(?:\s|$|at|\.)/i,
+    ) || description.match(/^([A-Z][a-zA-Z\s]+?)(?:\s|$|at)/i);
+  const jobTitle = roleMatch ? roleMatch[1].trim() : "Unknown Position";
 
   return {
     job: {
@@ -179,12 +185,12 @@ export async function generateResume(
   jobRole: string,
   company: string,
   selectedModel: string,
-  selectedProvider: string
+  selectedProvider: string,
 ): Promise<ResumeJSON> {
   const provider = await ProviderFactory.getInstance(selectedProvider);
 
   if (!provider) {
-    throw new Error('Provider not available');
+    throw new Error("Provider not available");
   }
 
   return await provider.generateResume({
@@ -206,12 +212,12 @@ export async function generateCoverLetter(
   jobRole: string,
   company: string,
   selectedModel: string,
-  selectedProvider: string
+  selectedProvider: string,
 ): Promise<string> {
   const provider = await ProviderFactory.getInstance(selectedProvider);
 
   if (!provider) {
-    throw new Error('Provider not available');
+    throw new Error("Provider not available");
   }
 
   return await provider.generateCoverLetter({
@@ -233,10 +239,9 @@ export async function fetchModels(): Promise<Record<string, string[]>> {
     gemini: [],
     grok: [],
     perplexity: [],
-    ollama: []
+    ollama: [],
   };
   console.log("Hello");
-
 
   for (const [name] of Object.entries(modelsMap)) {
     try {
@@ -244,15 +249,21 @@ export async function fetchModels(): Promise<Record<string, string[]>> {
       if (provider) {
         // Provider successfully initialized, use static models
         modelsMap[name] = await provider.fetchModels();
-        logger.debug(`Models loaded for ${name}`, { count: modelsMap[name].length });
+        logger.debug(`Models loaded for ${name}`, {
+          count: modelsMap[name].length,
+        });
       } else {
         // Provider not available (likely no API key), return empty array
         modelsMap[name] = [];
         logger.debug(`Provider ${name} not available (no API key)`);
       }
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      logger.error(`Failed to initialize provider ${name}`, { error, errorMessage });
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error";
+      logger.error(`Failed to initialize provider ${name}`, {
+        error,
+        errorMessage,
+      });
       modelsMap[name] = [];
     }
   }

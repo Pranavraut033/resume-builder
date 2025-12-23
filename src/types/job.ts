@@ -1,10 +1,10 @@
 // Shared job status definitions used in UI + Server Actions
 export const JOB_STATUSES = [
-  'DRAFT',
-  'APPLIED',
-  'INTERVIEW',
-  'REJECTED',
-  'OFFER'
+  "DRAFT",
+  "APPLIED",
+  "INTERVIEW",
+  "REJECTED",
+  "OFFER",
 ] as const;
 
 export type JobStatus = (typeof JOB_STATUSES)[number];

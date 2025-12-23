@@ -2,15 +2,15 @@
 // Copyright (c) 2025 M. H. A. Afif
 // Licensed under MIT License
 
-import React from 'react';
-import { ResumeJSON, TemplateType, ResumeColors } from '@/types/resume';
-import { ModernMinimalTemplate } from './ModernMinimalTemplate';
+import React from "react";
+import { ResumeJSON, TemplateType, ResumeColors } from "@/types/resume";
+import { ModernMinimalTemplate } from "./ModernMinimalTemplate";
 
 interface TemplateRendererProps {
   template: TemplateType;
   resume: ResumeJSON;
   colors: ResumeColors;
-  fontSize: 'small' | 'medium' | 'large';
+  fontSize: "small" | "medium" | "large";
   fontFamily: string;
 }
 

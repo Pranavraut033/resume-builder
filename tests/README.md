@@ -65,11 +65,13 @@ See [tests/config/README.md](./config/README.md) for detailed configuration docu
 ### Setting Up API Keys
 
 1. Copy the example environment file:
+
    ```bash
    cp .env.test.example .env.test
    ```
 
 2. Add your API keys to `.env.test`:
+
    ```env
    TEST_OPENAI_API_KEY=sk-...
    TEST_GEMINI_API_KEY=AI...
@@ -86,6 +88,7 @@ See [tests/config/README.md](./config/README.md) for detailed configuration docu
 ### 1. Prisma Initialization Tests
 
 Located in `tests/lib/prisma.test.ts`, these tests verify:
+
 - PrismaClient instantiation
 - Singleton pattern implementation
 - Correct log levels for different environments
@@ -96,6 +99,7 @@ Located in `tests/lib/prisma.test.ts`, these tests verify:
 Located in `tests/actions/`, these tests verify Server Actions:
 
 **Job Actions** (`job.test.ts`):
+
 - Creating jobs with parsed details, resumes, and cover letters
 - Getting all jobs
 - Getting job by ID
@@ -104,6 +108,7 @@ Located in `tests/actions/`, these tests verify Server Actions:
 - CRUD operations for resumes and cover letters
 
 **Profile Actions** (`profile.test.ts`):
+
 - Getting profile (existing or default)
 - Creating new profiles
 - Updating existing profiles
@@ -112,6 +117,7 @@ Located in `tests/actions/`, these tests verify Server Actions:
 ### 3. LLM Provider Tests
 
 Located in `tests/lib/llm/providers/`, these tests verify each provider:
+
 - Resume generation
 - Cover letter generation
 - Model fetching
@@ -122,6 +128,7 @@ Located in `tests/lib/llm/providers/`, these tests verify each provider:
 ### 4. Client LLM Functions Tests
 
 Located in `tests/lib/clientLLM.test.ts`, these tests verify:
+
 - Job description parsing with structured outputs
 - Fallback parsing for non-OpenAI providers
 - Resume generation
@@ -136,7 +143,7 @@ Located in `tests/lib/clientLLM.test.ts`, these tests verify:
 Using `vitest-mock-extended` for deep mocking:
 
 ```typescript
-import { prismaMock } from '../mocks/prisma';
+import { prismaMock } from "../mocks/prisma";
 
 // Mock return values
 prismaMock.job.findMany.mockResolvedValue([...jobs]);
@@ -147,8 +154,8 @@ prismaMock.job.findMany.mockResolvedValue([...jobs]);
 Mocking external APIs to avoid real API calls:
 
 ```typescript
-vi.mock('openai', () => ({
-  default: vi.fn().mockImplementation(function(this: any) {
+vi.mock("openai", () => ({
+  default: vi.fn().mockImplementation(function (this: any) {
     this.chat = { completions: { create: mockCreate } };
     return this;
   }),
@@ -160,7 +167,7 @@ vi.mock('openai', () => ({
 Mocking Tauri plugins (store, stronghold) for client-side testing:
 
 ```typescript
-vi.mock('@tauri-apps/plugin-store', () => ({
+vi.mock("@tauri-apps/plugin-store", () => ({
   Store: vi.fn().mockImplementation(() => ({
     get: vi.fn(),
     set: vi.fn(),
@@ -173,16 +180,16 @@ vi.mock('@tauri-apps/plugin-store', () => ({
 ### Basic Test Structure
 
 ```typescript
-import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { prismaMock, resetPrismaMock } from '../mocks/prisma';
+import { describe, it, expect, beforeEach, vi } from "vitest";
+import { prismaMock, resetPrismaMock } from "../mocks/prisma";
 
-describe('Feature Name', () => {
+describe("Feature Name", () => {
   beforeEach(() => {
     resetPrismaMock();
   });
 
-  describe('functionName', () => {
-    it('should do something', async () => {
+  describe("functionName", () => {
+    it("should do something", async () => {
       // Arrange
       prismaMock.model.method.mockResolvedValue(mockData);
 
@@ -200,10 +207,10 @@ describe('Feature Name', () => {
 ### Testing Server Actions
 
 ```typescript
-import { createJob } from '@/actions/job';
+import { createJob } from "@/actions/job";
 
-it('should create a job', async () => {
-  const mockJob = { id: 1, company: 'Test', role: 'Engineer', /* ... */ };
+it("should create a job", async () => {
+  const mockJob = { id: 1, company: "Test", role: "Engineer" /* ... */ };
   prismaMock.job.create.mockResolvedValue(mockJob);
 
   const result = await createJob({ jobDetails: sampleJobDetails });
@@ -221,8 +228,10 @@ it('should create a job', async () => {
 ### Testing LLM Providers
 
 ```typescript
-it('should generate resume', async () => {
-  const mockResume = { /* ... */ };
+it("should generate resume", async () => {
+  const mockResume = {
+    /* ... */
+  };
   mockClient.chat.completions.create.mockResolvedValue({
     choices: [{ message: { content: JSON.stringify(mockResume) } }],
   });
@@ -230,7 +239,7 @@ it('should generate resume', async () => {
   const result = await provider.generateResume({
     baseProfile: sampleBaseProfile,
     jobDetails: sampleJobDetails,
-    model: 'gpt-4o',
+    model: "gpt-4o",
   });
 
   expect(result).toEqual(mockResume);
@@ -248,17 +257,19 @@ Located in `tests/fixtures/data.ts`:
 Use these fixtures in tests to maintain consistency:
 
 ```typescript
-import { sampleBaseProfile, sampleJobDetails } from '../fixtures/data';
+import { sampleBaseProfile, sampleJobDetails } from "../fixtures/data";
 ```
 
 ## Coverage
 
 Coverage reports are generated using V8 and output in multiple formats:
+
 - Text summary in terminal
 - JSON for CI integration
 - HTML for detailed browsing
 
 View HTML coverage report after running `npm test:coverage`:
+
 ```bash
 open coverage/index.html
 ```
@@ -266,6 +277,7 @@ open coverage/index.html
 ## CI Integration
 
 Tests are designed to run in CI environments:
+
 - Fast execution (< 2 seconds)
 - No external dependencies
 - Deterministic results
@@ -287,6 +299,7 @@ Tests are designed to run in CI environments:
 ### Module Not Found
 
 If you see "module not found" errors:
+
 ```bash
 npm run db:generate  # Regenerate Prisma client
 ```
@@ -294,18 +307,20 @@ npm run db:generate  # Regenerate Prisma client
 ### Mock Not Working
 
 Ensure mocks are defined before imports:
+
 ```typescript
-vi.mock('@/lib/prisma');  // Must be before import
-import { prisma } from '@/lib/prisma';
+vi.mock("@/lib/prisma"); // Must be before import
+import { prisma } from "@/lib/prisma";
 ```
 
 ### Timeout Errors
 
 Increase timeout for slow tests:
+
 ```typescript
-it('slow test', async () => {
+it("slow test", async () => {
   // test code
-}, 10000);  // 10 second timeout
+}, 10000); // 10 second timeout
 ```
 
 ## Future Improvements

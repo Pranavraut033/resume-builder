@@ -1,21 +1,25 @@
 # Project Status
 
 ## Architecture Migration
+
 - [x] Migrated to Prisma + Server Actions - Completed on 2025-12-21 - Replaced Drizzle ORM and REST API routes with Prisma ORM and Next.js Server Actions. Removed all `/api/*` routes, axios, and React Query. All database operations now use server actions calling Prisma. See ARCHITECTURE.md for complete details.
 - [x] Client-Side LLM Operations - Completed on 2025-12-21 - Moved all LLM operations (job parsing, resume generation, cover letter generation, model fetching) to client-side via `src/lib/clientLLM.ts`. Server actions now handle database operations only. API keys accessed via Tauri storage on client-side. Removed `src/actions/models.ts` and `src/lib/modelCache.ts`. Updated `createJob()` to accept pre-generated data from client.
 - [x] Documentation Update - Completed on 2025-12-21 - Created comprehensive documentation: CLIENT_SIDE_LLM.md (client LLM guide), SERVER_ACTIONS.md (server actions guide), MIGRATION_GUIDE.md (migration steps), CHANGELOG.md (version history). Updated README.md, ARCHITECTURE.md, agents.md, copilot-instructions.md, and requirements.md to reflect new architecture. All code examples, workflows, and patterns documented with usage examples.
 
 ## Foundation
+
 - [x] Project scaffolding (Next.js + TS) - Completed on 2025-12-13 - Basic Next.js 16 app with TypeScript, TailwindCSS, and ESLint configured.
 - [x] SQLite setup & ORM - Completed on 2025-12-21 - Migrated to Prisma ORM v5.22.0 with SQLite, configured schema, and generated client.
 - [x] Tauri integration - Completed on 2025-12-13 - Configured Tauri with correct frontendDist to ../dist, updated bundle identifier, and verified build process starts successfully.
 
 ## Core Data
+
 - [x] Base profile model & page - Completed on 2025-12-13 - Defined database schema for profiles table with resume_json, created types for ResumeJSON, and built a basic profile editing page.
 - [x] Job model & CRUD - Completed on 2025-12-13 - Implemented full CRUD operations for jobs with database schema, home page job table, new job form, and edit job page with update/delete functionality.
 - [x] Resume JSON schema - Completed on 2025-12-13 - Defined TypeScript interfaces for ResumeJSON structure including header, summary, experience, projects, skills, education, and certifications.
 
 ## AI
+
 - [x] LLM provider abstraction - Completed on 2025-12-13 - Defined LLMProvider interface, input/output types, and a provider registry system for managing multiple LLM implementations.
 - [x] First provider integration - Completed on 2025-12-13 - Implemented OpenAI provider with generateResume and generateCoverLetter methods using GPT-4.
 - [x] Ollama support - Completed on 2025-12-13 - Implemented Ollama provider for local LLM support using HTTP API calls to localhost:11434.
@@ -32,50 +36,56 @@
 - [x] Provider factory for singleton instances - Completed on 2025-12-13 - Implemented ProviderFactory class with getInstance method to ensure each LLM provider is initialized only once, preventing redundant API calls and improving performance.
 
 ## Bug Fixes
+
 - [x] Fix: API key storage error in web mode - Completed on 2025-12-21 - Fixed error when saving API keys in web development mode. Added localStorage fallback for `setApiKey`, `getApiKey`, and `deleteApiKey` functions when not in Tauri context. Improved error messages to show actual error details instead of empty error objects. Updated settings page to display meaningful error messages to users. Also fixed model fetching to handle missing API keys gracefully and log meaningful error messages.
 - [x] Fix: OpenAI SDK browser environment blocking - Completed on 2025-12-21 - Enabled `dangerouslyAllowBrowser: true` for OpenAI and Grok providers. This is safe in the Tauri desktop app context where API keys are stored locally with encryption. Without this flag, the OpenAI SDK blocks all requests when running in browser-like environments.
 
 ## UI
+
 - [x] Home job table - Completed on 2025-12-13 - Implemented job dashboard on home page with table displaying company, role, status, last updated, and action links.
 - [x] Resume editor (drag & drop) - Completed on 2025-12-13 - Implemented modern page-like resume editor with drag & drop reordering using dnd-kit, professional styling, section management, and inline editing with modal forms for all sections. Refactored with reusable UI components (Button, FormField, Modal, Section, Card, Icon) following DRY principles. Added dark mode support for all components.
 - [x] Cover letter editor - Completed on 2025-12-13 - Implemented basic cover letter editor with textarea for editing cover letter text.
 - [x] Job description auto-parsing (one box input to create job, resume, cover letter) - Completed on 2025-12-13 - Updated new job page to use single textarea for job description, auto-parse company and role, and generate tailored resume and cover letter using Ollama, saving all to database.
 - [x] Base profile page enhancements - Completed on 2025-12-13 - Enhanced base profile page with form fields for header, summary, and skills, replacing the raw JSON editor.
 - [x] Navigation added to all pages - Completed on 2025-12-13 - Added navigation bar with links to Home, Profile, and Settings on all main pages.
- - [x] Navigation updated to style guide - Completed on 2025-12-14 - Updated top navigation to follow `STYLE_GUIDE.md`: spacing-first layout, rounded buttons, subtle shadow, visible focus rings, accessible active states, and added primary-accented action button.
- - [x] Home page: migrate to table component & style update - Completed on 2025-12-14 - Replaced raw HTML table with a TanStack-based `Table` component and updated home page to use `Button` component and style tokens from `STYLE_GUIDE.md`.
- - [x] Home page: migrate to blocky builder theme & nested components - Completed on 2025-12-21 - Added `Block` component, updated `Button`, `Card`, and `Table` to use new blocky theme tokens and updated `src/app/page.tsx` and `JobTableClient` to show connectable block-like UI.
- - [x] Home page revamp: card/table views, search, inline status, icons, toast, peek modal - Completed on 2025-12-23 - Completely revamped home dashboard UI with toggle between card/table views, search input filtering, inline status updates with dropdown, icon-based actions (peek, edit, delete), toast notifications for all user actions, company logo avatars via Clearbit, peek modal showing structured job details. Built using React Table for table rendering (sorting, filtering), optimistic updates for status and delete, accessible icon buttons with hover states. All critical job info visible in both views. Updated Prisma schema with application-level job status constraint (DRAFT, APPLIED, INTERVIEW, REJECTED, OFFER). Created `ToastProvider`, `CompanyAvatar`, updated `Icon` component with search/grid/list/spinner/alert icons, and refactored `JobTableClient` to DRY, reusable components following STYLE_GUIDE.md.
- - [x] Home page: migrate to table component & style update - Completed on 2025-12-14 - Replaced raw HTML table with a TanStack-based `Table` component and updated home page to use `Button` component and style tokens from `STYLE_GUIDE.md`.
- - [x] Settings page: restyle to style guide - Completed on 2025-12-14 - Restyled `src/app/settings/page.tsx` to use `Card`, `FormField`, `Button`, `MultiSelect`, made layout responsive, and deferred sync state updates in effects to avoid lint rule about setState in effects.
- - [x] Profile page: restyle to style guide - Completed on 2025-12-14 - Restyled `src/app/profile/page.tsx` to use `Card`, `FormField`, `Button`, removed synchronous setState in effect by deferring, and added Reset/Save actions.
- - [x] Home page: migrate to table component & style update - Completed on 2025-12-14 - Replaced raw HTML table with a TanStack-based `Table` component and updated home page to use `Button` component and style tokens from `STYLE_GUIDE.md`.
- - [ ] Dev server check - Incomplete on 2025-12-14 - Attempted to run development server to visually verify the changes, but an existing Next.js dev lock prevented starting the server. Next: clear lock and re-run `npm run dev` locally.
+- [x] Navigation updated to style guide - Completed on 2025-12-14 - Updated top navigation to follow `STYLE_GUIDE.md`: spacing-first layout, rounded buttons, subtle shadow, visible focus rings, accessible active states, and added primary-accented action button.
+- [x] Home page: migrate to table component & style update - Completed on 2025-12-14 - Replaced raw HTML table with a TanStack-based `Table` component and updated home page to use `Button` component and style tokens from `STYLE_GUIDE.md`.
+- [x] Home page: migrate to blocky builder theme & nested components - Completed on 2025-12-21 - Added `Block` component, updated `Button`, `Card`, and `Table` to use new blocky theme tokens and updated `src/app/page.tsx` and `JobTableClient` to show connectable block-like UI.
+- [x] Home page revamp: card/table views, search, inline status, icons, toast, peek modal - Completed on 2025-12-23 - Completely revamped home dashboard UI with toggle between card/table views, search input filtering, inline status updates with dropdown, icon-based actions (peek, edit, delete), toast notifications for all user actions, company logo avatars via Clearbit, peek modal showing structured job details. Built using React Table for table rendering (sorting, filtering), optimistic updates for status and delete, accessible icon buttons with hover states. All critical job info visible in both views. Updated Prisma schema with application-level job status constraint (DRAFT, APPLIED, INTERVIEW, REJECTED, OFFER). Created `ToastProvider`, `CompanyAvatar`, updated `Icon` component with search/grid/list/spinner/alert icons, and refactored `JobTableClient` to DRY, reusable components following STYLE_GUIDE.md.
+- [x] Home page: migrate to table component & style update - Completed on 2025-12-14 - Replaced raw HTML table with a TanStack-based `Table` component and updated home page to use `Button` component and style tokens from `STYLE_GUIDE.md`.
+- [x] Settings page: restyle to style guide - Completed on 2025-12-14 - Restyled `src/app/settings/page.tsx` to use `Card`, `FormField`, `Button`, `MultiSelect`, made layout responsive, and deferred sync state updates in effects to avoid lint rule about setState in effects.
+- [x] Profile page: restyle to style guide - Completed on 2025-12-14 - Restyled `src/app/profile/page.tsx` to use `Card`, `FormField`, `Button`, removed synchronous setState in effect by deferring, and added Reset/Save actions.
+- [x] Home page: migrate to table component & style update - Completed on 2025-12-14 - Replaced raw HTML table with a TanStack-based `Table` component and updated home page to use `Button` component and style tokens from `STYLE_GUIDE.md`.
+- [ ] Dev server check - Incomplete on 2025-12-14 - Attempted to run development server to visually verify the changes, but an existing Next.js dev lock prevented starting the server. Next: clear lock and re-run `npm run dev` locally.
 - [x] Profile page database integration - Completed on 2025-12-13 - Implemented API route for profile CRUD operations and updated profile page to save/load from database instead of localStorage.
 - [x] Model selection in job creation UI - Completed on 2025-12-13 - Added dropdown in new job page to select AI model for generation, with options fetched from available providers.
 - [x] Headless UI integration - Completed on 2025-12-14 - Replaced custom Modal component with Headless UI Dialog, created Select component using Combobox for searchable dropdowns, updated all select elements in settings and job creation pages to use Headless UI components.
 - [x] Menu bar for dev console refresh and back - Completed on 2025-12-14 - Added Developer menu in Tauri config with Back, Refresh, and Toggle Dev Tools options with keyboard accelerators.
 
 ## Design & Style
+
 - [x] Tailwind-first style guide for Agents & Copilot - Completed on 2025-12-14 - Added `STYLE_GUIDE.md`, `src/components/ui/README.md`, and referenced the guide from `agents.md`.
 - [x] Blocky / Lego builder theme & tokens - Completed on 2025-12-21 - Added `@theme` variables in `src/app/globals.css` for `--color-blocky-*`, `--radius-block*`, `--shadow-block`, and documentation in `STYLE_GUIDE.md` to support blocky builder-like UI.
 
 ## Export & Backup
+
 - [x] PDF export - Completed on 2025-12-13 - Implemented PDF export functionality using pdf-lib, added export button to resume editor for downloading resume as PDF.
 - [x] TXT export - Completed on 2025-12-13 - Implemented TXT export functionality, added export button to resume editor for downloading resume as plain text.
 - [x] Google Drive backup - Completed on 2025-12-13 - Implemented placeholder for Google Drive backup functionality, added backup button to resume editor (full integration optional and configurable).
 
 ## Settings
+
 - [x] API key management UI - Completed on 2025-12-13 - Implemented settings page with forms for managing API keys for OpenAI, Gemini, and Grok providers using secure storage.
 - [x] Model selection UI - Completed on 2025-12-13 - Added model selection dropdown in settings page for choosing between GPT-4, Gemini, Grok Llama, and Ollama models.
- - [x] Model selection UI - Completed on 2025-12-13 - Added model selection dropdown in settings page for choosing between GPT-4, Gemini, Grok Llama, and Ollama models.
- - [x] Model multi-select autocomplete (enhancement) - Completed on 2025-12-14 - Added `MultiSelect` component to allow searching and selecting multiple models in Settings; replaced checkbox list with searchable tokenized selector and persisted selections to localStorage.
+- [x] Model selection UI - Completed on 2025-12-13 - Added model selection dropdown in settings page for choosing between GPT-4, Gemini, Grok Llama, and Ollama models.
+- [x] Model multi-select autocomplete (enhancement) - Completed on 2025-12-14 - Added `MultiSelect` component to allow searching and selecting multiple models in Settings; replaced checkbox list with searchable tokenized selector and persisted selections to localStorage.
 - [x] Backup settings - Completed on 2025-12-13 - Added backup settings section in settings page, noting Google Drive backup is optional.
 - [x] Dynamic model fetching - Completed on 2025-12-13 - Implemented dynamic fetching of available models from APIs when API keys are provided, updating the model selection dropdown with real models from OpenAI, Gemini, Grok, and Ollama.
 - [x] Zustand state management for models - Completed on 2025-12-21 - Implemented Zustand store (`src/store/modelStore.ts`) for centralized model state management including available models, selected models, model-provider mapping, and loading states. Updated settings page and new job page to use the store instead of local state and localStorage. Added error handling, loading states, and disabled states to MultiSelect component.
 - [x] Provider-separated model selection - Completed on 2025-12-21 - Restructured model store to organize models by provider with separate MultiSelect components for OpenAI, Gemini, Grok, and Ollama. Each provider section shows chip UI with X button to remove selected models. Primary provider is automatically determined from first provider with selections. Added visual indicators for primary provider and summary of total selections.
 
 ## Build & Deployment
+
 - [x] Dynamic route compatibility - Completed on 2025-12-13 - Removed static export configuration to enable server-side rendering for dynamic routes, allowing new jobs/resumes to be accessible without rebuild.
 - [x] TypeScript fixes in export functions - Completed on 2025-12-13 - Fixed property name mismatches in pdfExport.ts and txtExport.ts to match ResumeJSON types (e.g., role instead of title, startDate instead of year).
 - [x] Secure key storage fixes - Completed on 2025-12-13 - Updated keyStorage.ts to properly initialize Tauri Store asynchronously, fixing constructor access issues.
@@ -86,13 +96,15 @@
 - [x] ESLint TODO comment warnings - Completed on 2025-12-14 - Added ESLint rule to warn on TODO comments, exported errors to temp file, and removed all TODO comments from codebase to clear warnings.
 
 ## Utilities
+
 - [x] Typed API client - Completed on 2025-12-14 - Added `src/lib/api.ts` (ApiError, apiFetch, helpers) with typed request options, query builder, and convenience helpers; example usage added in `src/lib/api.example.ts`.
- - [x] Axios-based API client - Completed on 2025-12-14 - Migrated to an axios-backed `src/lib/api.ts` exposing an `api` object with high-level methods like `getModels`, `createJob`, `getProfile`, and `saveProfile`.
- - [x] React Query integration - Completed on 2025-12-14 - Added TanStack React Query (`@tanstack/react-query`) and a client provider `src/components/QueryProvider.tsx`; added typed hooks in `src/lib/apiHooks.ts` (`useModels`, `useProfile`, `useSaveProfile`, `useCreateJob`) and refactored pages to use these hooks.
+- [x] Axios-based API client - Completed on 2025-12-14 - Migrated to an axios-backed `src/lib/api.ts` exposing an `api` object with high-level methods like `getModels`, `createJob`, `getProfile`, and `saveProfile`.
+- [x] React Query integration - Completed on 2025-12-14 - Added TanStack React Query (`@tanstack/react-query`) and a client provider `src/components/QueryProvider.tsx`; added typed hooks in `src/lib/apiHooks.ts` (`useModels`, `useProfile`, `useSaveProfile`, `useCreateJob`) and refactored pages to use these hooks.
 - [x] Logger library - Completed on 2025-12-21 - Created `src/lib/logger.ts` with structured logging supporting tags, messages, data objects, and environment-aware behavior (dev/prod). Includes configurable log levels (debug, info, warn, error, fatal), pretty-printed colored output in development, JSON output in production, timestamps, custom handlers, and scoped loggers for fixed tags. Exports singleton instance and factory functions for convenience.
 - [x] Migrate all console statements to logger - Completed on 2025-12-21 - Replaced all `console.log`, `console.error`, `console.warn`, `console.info`, and `console.debug` statements across the codebase with the new logger library. Updated 13 files including all LLM providers (OpenAI, Gemini, Grok, Ollama), modelCache, keyStorage, backup, API routes, and UI pages. Each module now uses a scoped logger with appropriate tags for better log categorization and structured data logging.
 
 ## Testing
+
 - [x] Test infrastructure setup - Completed on 2025-12-22 - Installed Vitest, @vitest/ui, @testing-library/react, @testing-library/jest-dom, jsdom, and vitest-mock-extended. Created vitest.config.ts with global test environment setup, coverage configuration, and path aliases. Added test scripts to package.json (test, test:ui, test:run, test:coverage).
 - [x] Test utilities and mocks - Completed on 2025-12-22 - Created comprehensive mocking infrastructure in tests/mocks/ for Prisma (using vitest-mock-extended) and LLM providers. Added test fixtures in tests/fixtures/data.ts with sample profiles, job details, and tailored resumes. Set up global test setup in tests/setup.ts with Tauri API mocks.
 - [x] Prisma initialization tests - Completed on 2025-12-22 - Created tests/lib/prisma.test.ts with 11 tests covering PrismaClient instantiation, singleton pattern, log levels for different environments, database schema model definitions (profile, job, resume, coverLetter), transaction support, and raw query capabilities.
@@ -103,3 +115,11 @@
 - [x] Real LLM API testing infrastructure - Completed on 2025-12-23 - Updated test config helpers to be used throughout test suite. Added `shouldUseRealLLMs()` checks to conditionally skip mocks when real APIs are enabled. Created end-to-end test suite at `tests/integration/llm-e2e.test.ts` with real API tests for all providers (OpenAI, Gemini, Grok, Ollama). Updated all provider tests (openai, gemini, grok, grok, ollama) to use config helpers and conditionally enable/disable mocks. Created comprehensive documentation in `docs/TESTING_REAL_LLMS.md` with usage patterns, environment variables, cost optimization tips, CI/CD examples, and troubleshooting guide.
 - [x] Fix TypeScript errors in tests - Completed on 2025-12-22 - Fixed all 53 TypeScript errors across test files including: Updated function signatures to match new LLM provider parameters (separate jobDescription, jobRole, company instead of jobDetails object), corrected test fixtures to match current type definitions (Experience.description as string not array, Education with field property, Benefits and JobDetails schema updates), fixed import paths, removed NODE_ENV mutations, and removed parseJobDetails tests for providers that don't support it (Gemini, Grok, Ollama). All tests now pass TypeScript type checking. Test execution shows 46 passing tests with 37 failing due to mocking complexities (expected behavior requiring further mock refinement).
 - [x] Cost-effective test configuration with environment variables - Completed on 2025-12-22 - Created centralized test configuration in tests/config/test.config.ts with smallest/cheapest models for all providers (OpenAI: gpt-4o-mini, Gemini: gemini-1.5-flash, Grok: grok-4-1-fast-reasoning, Ollama: llama3). API keys now loaded from environment variables (TEST_OPENAI_API_KEY, TEST_GEMINI_API_KEY, TEST_GROK_API_KEY) with fallback to mock keys. Added .env.test.example template and tests/config/README.md documentation. Updated all provider tests to use centralized config for consistent, cost-effective testing. Added USE_REAL_LLM_APIS flag to enable integration testing with real APIs when needed.
+
+## Resumify Integration
+
+- [x] Phase 1: Attribution & Database Schema - Completed on 2025-12-23 - Added LICENSE-THIRD-PARTY.md with Resumify MIT license attribution. Updated README.md acknowledgments section. Extended Prisma Resume model with template, pageFormat, fontSize, fontFamily, colorsJson fields. Added comprehensive TypeScript type definitions: TemplateType, PageFormat, FontSize, ResumeColors, ResumeCustomization, DEFAULT_COLORS, DEFAULT_CUSTOMIZATION, AVAILABLE_TEMPLATES (6 templates), AVAILABLE_FONTS. Created server actions: updateResumeCustomization(), getResumeCustomization(). Applied database migrations with new schema. Updated test fixtures with new resume fields.
+- [x] Phase 2: Template System Components - Completed on 2025-12-23 - Installed @react-pdf/renderer dependency. Created TemplateSelector component with grid layout displaying all 6 template options with descriptions and features. Created ColorCustomizer component with 6 color presets (Default Blue, Professional Gray, Modern Green, Creative Purple, Executive Navy, Elegant Rose) and custom color pickers for primary/secondary/accent/text colors. Created ResumeCustomizationPanel with tabbed interface for Template/Colors/Format selection including page size (Letter/A4), font size (small/medium/large), and font family selection. Implemented ModernMinimalTemplate as first professional resume template with responsive design and color theming. Created TemplateRenderer component for template switching. Created EnhancedResumeEditor component wrapping original ResumeEditor with template preview toggle and customization integration. Updated resume page to use EnhancedResumeEditor. Fixed TypeScript errors in components and tests. All type checking passing.
+- [ ] Phase 3: Additional Templates - Implement remaining 5 professional templates (Tech Sidebar, Business Professional, Elegant Timeline, Creative Modern, BJet Professional) adapted from Resumify with proper attribution.
+- [ ] Phase 4: PDF Export Enhancement - Integrate @react-pdf/renderer for template-aware PDF generation while keeping existing pdf-lib as fallback.
+- [ ] Phase 5: End-to-End Testing - Test complete workflow from job creation to template customization to PDF export.

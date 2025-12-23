@@ -3,7 +3,7 @@
  * This eliminates prompt duplication across different LLM providers.
  */
 
-import { ResumePromptInput, CoverLetterPromptInput } from '@/types/llm';
+import { ResumePromptInput, CoverLetterPromptInput } from "@/types/llm";
 
 export abstract class BaseLLMProvider {
   /**

@@ -1,8 +1,8 @@
-'use client';
+"use client";
 
-import { Fragment, useState } from 'react';
-import { Combobox, Transition } from '@headlessui/react';
-import { Icon } from './Icon';
+import { Fragment, useState } from "react";
+import { Combobox, Transition } from "@headlessui/react";
+import { Icon } from "./Icon";
 
 interface SelectProps {
   value: string;
@@ -16,17 +16,20 @@ export function Select({
   value,
   onChange,
   options,
-  placeholder = 'Select an option',
-  className = ''
+  placeholder = "Select an option",
+  className = "",
 }: SelectProps) {
-  const [query, setQuery] = useState('');
+  const [query, setQuery] = useState("");
 
   const filteredOptions =
-    query === ''
+    query === ""
       ? options
       : options.filter((option) =>
-        option.toLowerCase().replace(/\s+/g, '').includes(query.toLowerCase().replace(/\s+/g, ''))
-      );
+          option
+            .toLowerCase()
+            .replace(/\s+/g, "")
+            .includes(query.toLowerCase().replace(/\s+/g, "")),
+        );
 
   return (
     <div className={`relative ${className}`}>
@@ -47,10 +50,10 @@ export function Select({
           leave="transition ease-in duration-100"
           leaveFrom="opacity-100"
           leaveTo="opacity-0"
-          afterLeave={() => setQuery('')}
+          afterLeave={() => setQuery("")}
         >
           <Combobox.Options className="absolute z-10 mt-1 max-h-60 w-full overflow-auto rounded-md bg-white dark:bg-gray-700 py-1 text-base shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none sm:text-sm">
-            {filteredOptions.length === 0 && query !== '' ? (
+            {filteredOptions.length === 0 && query !== "" ? (
               <div className="relative cursor-default select-none py-2 px-4 text-gray-700 dark:text-gray-300">
                 Nothing found.
               </div>
@@ -59,20 +62,26 @@ export function Select({
                 <Combobox.Option
                   key={option}
                   className={({ active }) =>
-                    `relative cursor-default select-none py-2 pl-10 pr-4 ${active ? 'bg-primary-600 text-white' : 'text-gray-900 dark:text-white'
+                    `relative cursor-default select-none py-2 pl-10 pr-4 ${
+                      active
+                        ? "bg-primary-600 text-white"
+                        : "text-gray-900 dark:text-white"
                     }`
                   }
                   value={option}
                 >
                   {({ selected, active }) => (
                     <>
-                      <span className={`block truncate ${selected ? 'font-medium' : 'font-normal'}`}>
+                      <span
+                        className={`block truncate ${selected ? "font-medium" : "font-normal"}`}
+                      >
                         {option}
                       </span>
                       {selected ? (
                         <span
-                          className={`absolute inset-y-0 left-0 flex items-center pl-3 ${active ? 'text-white' : 'text-primary-600'
-                            }`}
+                          className={`absolute inset-y-0 left-0 flex items-center pl-3 ${
+                            active ? "text-white" : "text-primary-600"
+                          }`}
                         >
                           <Icon name="check" size={16} />
                         </span>
