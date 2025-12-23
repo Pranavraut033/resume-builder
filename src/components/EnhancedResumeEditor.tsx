@@ -10,14 +10,20 @@ import {
   ResumeCustomization,
   DEFAULT_CUSTOMIZATION,
 } from "@/types/resume";
-import { ResumeCustomizationPanel } from "./ResumeCustomizationPanel";
-import { TemplateRenderer } from "./templates/TemplateRenderer";
+import { ResumeSidePanel } from "./ResumeSidePanel";
+import { ResumePreviewModal } from "./ResumePreviewModal";
+import { ExportDropdown } from "./ExportDropdown";
 import ResumeEditor from "./ResumeEditor";
 import {
   getResumeByJobId,
   getResumeCustomization,
   updateResumeCustomization,
 } from "@/actions/job";
+import { generateResumePDF } from "@/lib/pdfExport";
+import { Button } from "./ui";
+import { Icon } from "./ui/Icon";
+
+type IconName = React.ComponentProps<typeof Icon>["name"];
 
 interface EnhancedResumeEditorProps {
   jobId: string;
@@ -26,14 +32,12 @@ interface EnhancedResumeEditorProps {
 export default function EnhancedResumeEditor({
   jobId,
 }: EnhancedResumeEditorProps) {
-  console.log({ jobId });
-
   const [resume, setResume] = useState<ResumeJSON | null>(null);
   const [customization, setCustomization] = useState<ResumeCustomization>(
     DEFAULT_CUSTOMIZATION,
   );
   const [loading, setLoading] = useState(true);
-  const [showPreview, setShowPreview] = useState(false);
+  const [showPreviewModal, setShowPreviewModal] = useState(false);
 
   useEffect(() => {
     const loadData = async () => {
@@ -80,87 +84,101 @@ export default function EnhancedResumeEditor({
     }
   };
 
+  const handleExportPDF = () => {
+    if (!resume) return;
+    generateResumePDF(resume);
+  };
+
+  const handleExportJSON = () => {
+    if (!resume) return;
+    const dataStr = JSON.stringify(resume, null, 2);
+    const dataBlob = new Blob([dataStr], { type: "application/json" });
+    const url = URL.createObjectURL(dataBlob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `resume-${Date.now()}.json`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blocky-500 mx-auto"></div>
-          <p className="mt-4 text-blocky-700">Loading resume...</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600 dark:text-gray-400">Loading resume...</p>
         </div>
       </div>
     );
   }
 
+  const exportOptions: Array<{
+    label: string;
+    icon: IconName;
+    description: string;
+    onExport: () => void;
+  }> = [
+    {
+      label: "PDF",
+      icon: "download",
+      description: "Download as PDF",
+      onExport: handleExportPDF,
+    },
+    {
+      label: "JSON",
+      icon: "fileText",
+      description: "Export as JSON",
+      onExport: handleExportJSON,
+    },
+  ];
+
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Original drag-and-drop editor */}
-      <div className={showPreview ? "hidden" : "block"}>
-        <ResumeEditor jobId={jobId} />
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex flex-col lg:flex-row">
+      {/* Main Editor Content */}
+      <div className="flex-1 overflow-y-auto">
+        <div className="sticky top-0 z-10 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-6 py-4">
+          <div className="max-w-4xl mx-auto flex justify-between items-center">
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+              Resume Editor
+            </h1>
+            <div className="flex gap-2">
+              <Button
+                variant="secondary"
+                onClick={() => setShowPreviewModal(true)}
+                icon={<Icon name="grid" />}
+              >
+                Preview
+              </Button>
+              <ExportDropdown options={exportOptions} defaultLabel="Export" />
+            </div>
+          </div>
+        </div>
+
+        {/* Resume Editor */}
+        {resume && <ResumeEditor jobId={jobId} />}
       </div>
 
-      {/* Template preview (when enabled) */}
-      {showPreview && resume && (
-        <div className="max-w-7xl mx-auto p-8">
-          <div className="mb-4 flex justify-between items-center">
-            <h2 className="text-2xl font-bold text-blocky-900">
-              Resume Preview
-            </h2>
-            <button
-              onClick={() => setShowPreview(false)}
-              className="px-4 py-2 bg-blocky-500 text-white rounded-block hover:bg-blocky-600"
-            >
-              Back to Editor
-            </button>
-          </div>
-
-          <div className="bg-white shadow-lg">
-            <TemplateRenderer
-              template={customization.template}
-              resume={resume}
-              colors={customization.colors}
-              fontSize={customization.fontSize}
-              fontFamily={customization.fontFamily}
-            />
-          </div>
-        </div>
+      {/* Side Panel */}
+      {resume && (
+        <ResumeSidePanel
+          resume={resume}
+          customization={customization}
+          onCustomizationChange={handleCustomizationChange}
+          onPreview={() => setShowPreviewModal(true)}
+          onExport={handleExportPDF}
+        />
       )}
 
-      {/* Customization Panel */}
-      <ResumeCustomizationPanel
-        jobId={parseInt(jobId)}
-        customization={customization}
-        onCustomizationChange={handleCustomizationChange}
-      />
-
-      {/* Toggle Preview Button */}
-      {!showPreview && (
-        <div className="fixed bottom-8 right-24 z-10">
-          <button
-            onClick={() => setShowPreview(true)}
-            className="rounded-full w-12 h-12 shadow-lg bg-blocky-700 text-white hover:bg-blocky-800 flex items-center justify-center"
-            title="Preview with Template"
-          >
-            <svg
-              className="w-5 h-5"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-              />
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
-              />
-            </svg>
-          </button>
-        </div>
+      {/* Preview Modal */}
+      {resume && (
+        <ResumePreviewModal
+          isOpen={showPreviewModal}
+          onClose={() => setShowPreviewModal(false)}
+          resume={resume}
+          customization={customization}
+        />
       )}
     </div>
   );
