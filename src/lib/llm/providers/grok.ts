@@ -29,7 +29,7 @@ export class GrokProvider extends BaseLLMProvider implements LLMProvider {
       const response = await this.client.chat.completions.create({
         model: input.model || "grok-4-1-fast-reasoning", // or another Grok model
         messages: [{ role: "user", content: prompt }],
-        temperature: 0.7,
+        ...this.getTemperatureConfig(input.model),
       });
 
       const content = response.choices[0]?.message?.content;
@@ -50,7 +50,7 @@ export class GrokProvider extends BaseLLMProvider implements LLMProvider {
     const response = await this.client.chat.completions.create({
       model: input.model || "grok-4-1-fast-reasoning",
       messages: [{ role: "user", content: prompt }],
-      temperature: 0.7,
+      ...this.getTemperatureConfig(input.model),
     });
 
     return response.choices[0]?.message?.content || "";

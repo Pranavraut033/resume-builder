@@ -5,7 +5,13 @@ import {
   ResumePromptInput,
   CoverLetterPromptInput,
 } from "@/types/llm";
-import { ResumeJSON, JobDetails, JobDetailsSchema } from "@/types/resume";
+import {
+  ResumeJSON,
+  JobDetails,
+  JobDetailsSchema,
+  ParsedResume,
+  ResumeParsingSchema,
+} from "@/types/resume";
 import { BaseLLMProvider } from "./baseProvider";
 import { createLogger } from "@/lib/logger";
 
@@ -30,7 +36,7 @@ export class OpenAIProvider extends BaseLLMProvider implements LLMProvider {
       response = await this.client.chat.completions.create({
         model: input.model || "gpt-4o",
         messages: [{ role: "user", content: prompt }],
-        temperature: 0.7,
+        ...this.getTemperatureConfig(input.model),
       });
     } catch (err: any) {
       logger.error("generateResume failed", {
@@ -58,7 +64,7 @@ export class OpenAIProvider extends BaseLLMProvider implements LLMProvider {
       response = await this.client.chat.completions.create({
         model: input.model || "gpt-4o",
         messages: [{ role: "user", content: prompt }],
-        temperature: 0.7,
+        ...this.getTemperatureConfig(input.model),
       });
     } catch (err: any) {
       logger.error("generateCoverLetter failed", {
@@ -104,6 +110,31 @@ export class OpenAIProvider extends BaseLLMProvider implements LLMProvider {
 
     if (!completion.choices[0].message.parsed) {
       throw new Error("Failed to parse job details");
+    }
+
+    return completion.choices[0].message.parsed;
+  }
+
+  /**
+   * Parse resume text into structured data using OpenAI structured outputs
+   */
+  async parseResume(
+    resumeText: string,
+    model?: string,
+  ): Promise<ParsedResume> {
+    const systemPrompt = this.generateResumeParsingSystemPrompt();
+
+    const completion = await this.client.chat.completions.parse({
+      model: model || "gpt-4o",
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: resumeText },
+      ],
+      response_format: zodResponseFormat(ResumeParsingSchema, "resume_data"),
+    });
+
+    if (!completion.choices[0].message.parsed) {
+      throw new Error("Failed to parse resume");
     }
 
     return completion.choices[0].message.parsed;

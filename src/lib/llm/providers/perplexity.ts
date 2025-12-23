@@ -30,7 +30,7 @@ export class PerplexityProvider extends BaseLLMProvider implements LLMProvider {
       response = await this.client.chat.completions.create({
         model: input.model || "sonar-pro",
         messages: [{ role: "user", content: prompt }],
-        temperature: 0.7,
+        ...this.getTemperatureConfig(input.model),
       });
     } catch (err: any) {
       logger.error("generateResume failed", {
@@ -60,7 +60,7 @@ export class PerplexityProvider extends BaseLLMProvider implements LLMProvider {
       response = await this.client.chat.completions.create({
         model: input.model || "sonar-pro",
         messages: [{ role: "user", content: prompt }],
-        temperature: 0.7,
+        ...this.getTemperatureConfig(input.model),
       });
     } catch (err: any) {
       logger.error("generateCoverLetter failed", {
