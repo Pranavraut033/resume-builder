@@ -5,6 +5,8 @@
 **Project Name (working):** Local AI Resume Builder
 **Goal:** A local-first, open-source desktop application that automatically generates tailored resumes and cover letters from a base profile and a job description, similar in spirit to Enhancv, but privacy-first and offline-capable.
 
+The application uses a client-first Next.js architecture with **Server Actions for database operations** and **client-side LLM operations**. No traditional REST API or backend services exist. All database access happens through Next.js Server Actions calling Prisma directly. All LLM operations (job parsing, resume generation, cover letter generation) happen client-side where API keys are accessible via Tauri storage.
+
 The application must run without mandatory cloud dependencies, support multiple LLM providers (cloud + local), and allow full manual editing via a drag-and-drop resume editor.
 
 ---
@@ -35,15 +37,15 @@ The application must run without mandatory cloud dependencies, support multiple 
 
 ### Backend (Local)
 
-* **Runtime:** Node.js (via Tauri sidecar)
+* **Runtime:** Next.js Server Actions
 * **Database:** SQLite
-* **ORM:** Prisma or Drizzle
+* **ORM:** Prisma
 
 ### AI / LLM
 
 * OpenAI API
 * Google Gemini API
-* Groq API
+* Grok API
 * Ollama (local models)
 
 ### File & Export

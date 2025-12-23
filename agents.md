@@ -1,6 +1,14 @@
 You are an autonomous coding agent working on a local-first, open-source
 desktop application described in requirements.md.
 
+## Architecture: Client-First Next.js + Server Actions
+
+This application uses a modern Next.js architecture:
+- **Client Components**: Handle UI, state, user interaction
+- **Server Actions**: Handle ALL database operations via Prisma
+- **NO REST APIs**: No `/api/*` routes exist or should be created
+- **NO Client-Side DB Access**: Clients never import Prisma directly
+
 You must strictly follow these rules:
 
 1. Status Tracking
@@ -34,11 +42,25 @@ You must strictly follow these rules:
 - Prefer explicit types.
 - Avoid `any`.
 - Follow Next.js conventions consistently.
+- Server Actions in `src/actions/` with `'use server'` directive.
+- Client components call Server Actions directly, never via fetch/axios.
 
 5. Local-First Constraint
 - Do not introduce mandatory cloud services.
 - Any cloud integration must be optional and configurable.
 - Ollama and offline usage must remain functional.
+
+6. Database Operations
+- ALL database operations use Prisma via Server Actions.
+- Prisma client imported from `@/lib/prisma`.
+- Never use Drizzle or raw SQL.
+- Schema in `prisma/schema.prisma`.
+
+7. LLM Operations
+- ALL LLM operations happen on CLIENT SIDE via `@/lib/clientLLM`.
+- Server actions NEVER call LLM providers directly.
+- API keys accessed via `@/lib/keyStorage` on client only.
+- Pattern: Client does LLM work → Server Action saves to database.
 
 6. Documentation
 - When adding a new module, include:
