@@ -1,0 +1,30 @@
+# Dependencies
+node_modules/
+
+# Next.js
+.next/
+out/
+dist/
+build/
+build/
+
+# Tauri
+src-tauri/target/
+src-tauri/gen/
+
+# Database
+drizzle/meta/_journal.json
+drizzle/0000_*.sql
+
+# Environment files
+.env*
+
+# Logs
+*.log
+
+# OS generated files
+.DS_Store
+
+# TypeScript
+*.tsbuildinfo
+next-env.d.ts
