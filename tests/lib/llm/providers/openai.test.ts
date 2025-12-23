@@ -79,7 +79,7 @@ describe("OpenAIProvider", () => {
       expect(mockClient.chat.completions.create).toHaveBeenCalledWith(
         expect.objectContaining({
           model: "gpt-4o",
-          temperature: 0.7,
+          temperature: 0.7, // gpt-4o supports custom temperature
         }),
       );
     });
@@ -107,6 +107,42 @@ describe("OpenAIProvider", () => {
           model: "gpt-4o",
         }),
       );
+    });
+
+    it("should omit temperature for o1 models", async () => {
+      const testResume = {
+        header: { name: "John Doe", email: "john@example.com" },
+        summary: "Tailored summary",
+        experience: [],
+        projects: [],
+        skills: [],
+        education: [],
+        certifications: [],
+      };
+
+      mockClient.chat.completions.create.mockResolvedValue({
+        choices: [
+          {
+            message: {
+              content: JSON.stringify(testResume),
+            },
+          },
+        ],
+      });
+
+      await provider.generateResume({
+        baseProfile: sampleBaseProfile,
+        jobDescription: sampleJobDetails.raw_description,
+        jobRole: sampleJobDetails.job.job_title,
+        company: sampleJobDetails.company.company_name,
+        model: "o1-preview",
+      });
+
+      const mockFn = mockClient.chat.completions.create as ReturnType<typeof vi.fn>;
+      const lastCallIndex = mockFn.mock.calls.length - 1;
+      const callArgs = mockFn.mock.calls[lastCallIndex][0];
+      expect(callArgs.model).toBe("o1-preview");
+      expect(callArgs.temperature).toBeUndefined();
     });
 
     it("should throw error on API failure", async () => {

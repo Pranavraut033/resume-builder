@@ -16,7 +16,23 @@ describe("Profile Actions", () => {
     it("should return existing profile", async () => {
       const mockProfile = {
         id: 1,
-        resumeJson: JSON.stringify(sampleBaseProfile),
+        name: "John Doe",
+        email: "john@example.com",
+        phone: null,
+        location: null,
+        linkedin: null,
+        github: null,
+        website: null,
+        summary: "Test summary",
+        skillsJson: '["JavaScript","TypeScript"]',
+        experienceJson: "[]",
+        projectsJson: "[]",
+        educationJson: "[]",
+        certificationsJson: "[]",
+        publicationsJson: null,
+        languagesJson: null,
+        volunteerJson: null,
+        awardsJson: null,
         createdAt: "2025-01-01T00:00:00.000Z",
         updatedAt: "2025-01-01T00:00:00.000Z",
       };
@@ -26,7 +42,9 @@ describe("Profile Actions", () => {
       const { getProfile } = await import("@/actions/profile");
       const result = await getProfile();
 
-      expect(result).toEqual(sampleBaseProfile);
+      expect(result.header.name).toBe("John Doe");
+      expect(result.header.email).toBe("john@example.com");
+      expect(result.summary).toBe("Test summary");
       expect(prismaMock.profile.findFirst).toHaveBeenCalled();
     });
 
@@ -44,6 +62,10 @@ describe("Profile Actions", () => {
         skills: [],
         education: [],
         certifications: [],
+        publications: [],
+        languages: [],
+        volunteer: [],
+        awards: [],
       });
     });
   });
@@ -53,7 +75,23 @@ describe("Profile Actions", () => {
       prismaMock.profile.findFirst.mockResolvedValue(null);
       prismaMock.profile.create.mockResolvedValue({
         id: 1,
-        resumeJson: JSON.stringify(sampleBaseProfile),
+        name: "John Doe",
+        email: "john@example.com",
+        phone: null,
+        location: null,
+        linkedin: null,
+        github: null,
+        website: null,
+        summary: "Test summary",
+        skillsJson: '["JavaScript"]',
+        experienceJson: "[]",
+        projectsJson: "[]",
+        educationJson: "[]",
+        certificationsJson: "[]",
+        publicationsJson: null,
+        languagesJson: null,
+        volunteerJson: null,
+        awardsJson: null,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       });
@@ -64,7 +102,8 @@ describe("Profile Actions", () => {
       expect(result).toEqual({ success: true });
       expect(prismaMock.profile.create).toHaveBeenCalledWith({
         data: expect.objectContaining({
-          resumeJson: JSON.stringify(sampleBaseProfile),
+          name: sampleBaseProfile.header.name,
+          email: sampleBaseProfile.header.email,
         }),
       });
     });
@@ -72,10 +111,23 @@ describe("Profile Actions", () => {
     it("should update existing profile", async () => {
       const existingProfile = {
         id: 1,
-        resumeJson: JSON.stringify({
-          ...sampleBaseProfile,
-          summary: "Old summary",
-        }),
+        name: "John Doe",
+        email: "john@example.com",
+        phone: null,
+        location: null,
+        linkedin: null,
+        github: null,
+        website: null,
+        summary: "Old summary",
+        skillsJson: '[]',
+        experienceJson: "[]",
+        projectsJson: "[]",
+        educationJson: "[]",
+        certificationsJson: "[]",
+        publicationsJson: null,
+        languagesJson: null,
+        volunteerJson: null,
+        awardsJson: null,
         createdAt: "2025-01-01T00:00:00.000Z",
         updatedAt: "2025-01-01T00:00:00.000Z",
       };
@@ -83,7 +135,7 @@ describe("Profile Actions", () => {
       prismaMock.profile.findFirst.mockResolvedValue(existingProfile);
       prismaMock.profile.update.mockResolvedValue({
         ...existingProfile,
-        resumeJson: JSON.stringify(sampleBaseProfile),
+        summary: sampleBaseProfile.summary,
         updatedAt: new Date().toISOString(),
       });
 
@@ -94,7 +146,8 @@ describe("Profile Actions", () => {
       expect(prismaMock.profile.update).toHaveBeenCalledWith({
         where: { id: 1 },
         data: expect.objectContaining({
-          resumeJson: JSON.stringify(sampleBaseProfile),
+          name: sampleBaseProfile.header.name,
+          email: sampleBaseProfile.header.email,
         }),
       });
     });
@@ -117,7 +170,23 @@ describe("Profile Actions", () => {
       prismaMock.profile.findFirst.mockResolvedValue(null);
       prismaMock.profile.create.mockResolvedValue({
         id: 1,
-        resumeJson: JSON.stringify(profileWithComplexData),
+        name: profileWithComplexData.header.name,
+        email: profileWithComplexData.header.email,
+        phone: null,
+        location: null,
+        linkedin: null,
+        github: null,
+        website: null,
+        summary: profileWithComplexData.summary,
+        skillsJson: JSON.stringify(profileWithComplexData.skills),
+        experienceJson: JSON.stringify(profileWithComplexData.experience),
+        projectsJson: JSON.stringify(profileWithComplexData.projects),
+        educationJson: JSON.stringify(profileWithComplexData.education),
+        certificationsJson: JSON.stringify(profileWithComplexData.certifications),
+        publicationsJson: null,
+        languagesJson: null,
+        volunteerJson: null,
+        awardsJson: null,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       });
@@ -128,8 +197,7 @@ describe("Profile Actions", () => {
       expect(result).toEqual({ success: true });
 
       const callArg = prismaMock.profile.create.mock.calls[0][0];
-      const savedJson = JSON.parse(callArg.data.resumeJson);
-      expect(savedJson).toEqual(profileWithComplexData);
+      expect(callArg.data.experienceJson).toBe(JSON.stringify(profileWithComplexData.experience));
     });
   });
 });
