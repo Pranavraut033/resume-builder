@@ -3,11 +3,12 @@
 // Licensed under MIT License
 
 import React from "react";
-import { ResumeJSON, ResumeColors } from "@/types/resume";
+
+import { ResumeJSON, ThemeColors } from "@/types/resume";
 
 interface CreativeModernTemplateProps {
   resume: ResumeJSON;
-  colors: ResumeColors;
+  colors: ThemeColors;
   fontSize: "small" | "medium" | "large";
   fontFamily: string;
 }
@@ -35,7 +36,7 @@ export const CreativeModernTemplate: React.FC<CreativeModernTemplateProps> = ({
 
   return (
     <div
-      className="resume-content bg-white min-h-[11in] w-[8.5in] mx-auto shadow-lg"
+      className="resume-content mx-auto min-h-[11in] w-[8.5in] bg-white shadow-lg"
       style={{
         fontFamily: fontFamily,
         color: colors.text,
@@ -43,11 +44,16 @@ export const CreativeModernTemplate: React.FC<CreativeModernTemplateProps> = ({
       }}
     >
       {/* Header with Bold Accent */}
-      <header className="p-8" style={{ background: `linear-gradient(135deg, ${colors.primary} 0%, ${colors.accent} 100%)` }}>
-        <h1 className="text-4xl font-bold text-white mb-2">
+      <header
+        className="p-8"
+        style={{
+          background: `linear-gradient(135deg, ${colors.primary} 0%, ${colors.accent} 100%)`,
+        }}
+      >
+        <h1 className="mb-2 text-4xl font-bold text-white">
           {resume.header.name}
         </h1>
-        <div className="flex flex-wrap gap-4 text-white text-sm opacity-95">
+        <div className="flex flex-wrap gap-4 text-sm text-white opacity-95">
           {resume.header.email && <span>✉ {resume.header.email}</span>}
           {resume.header.phone && <span>📞 {resume.header.phone}</span>}
           {resume.header.location && <span>📍 {resume.header.location}</span>}
@@ -58,12 +64,15 @@ export const CreativeModernTemplate: React.FC<CreativeModernTemplateProps> = ({
 
       <div className="flex">
         {/* Left Column - 40% */}
-        <div className="w-[40%] p-6 space-y-6" style={{ backgroundColor: colors.secondary + "08" }}>
+        <div
+          className="w-[40%] space-y-6 p-6"
+          style={{ backgroundColor: colors.secondary + "08" }}
+        >
           {/* Professional Summary */}
           {resume.summary && (
             <section>
               <h2
-                className={`${headingSize} font-bold mb-3 pb-2 border-b-2`}
+                className={`${headingSize} mb-3 border-b-2 pb-2 font-bold`}
                 style={{ color: colors.primary, borderColor: colors.accent }}
               >
                 ABOUT ME
@@ -76,7 +85,7 @@ export const CreativeModernTemplate: React.FC<CreativeModernTemplateProps> = ({
           {resume.skills && resume.skills.length > 0 && (
             <section>
               <h2
-                className={`${headingSize} font-bold mb-3 pb-2 border-b-2`}
+                className={`${headingSize} mb-3 border-b-2 pb-2 font-bold`}
                 style={{ color: colors.primary, borderColor: colors.accent }}
               >
                 SKILLS
@@ -85,7 +94,7 @@ export const CreativeModernTemplate: React.FC<CreativeModernTemplateProps> = ({
                 {resume.skills.map((skill, idx) => (
                   <div key={idx} className="flex items-center">
                     <div
-                      className="w-2 h-2 rounded-full mr-2"
+                      className="mr-2 h-2 w-2 rounded-full"
                       style={{ backgroundColor: colors.accent }}
                     />
                     <span className={`${textSize}`}>{skill}</span>
@@ -99,7 +108,7 @@ export const CreativeModernTemplate: React.FC<CreativeModernTemplateProps> = ({
           {resume.education && resume.education.length > 0 && (
             <section>
               <h2
-                className={`${headingSize} font-bold mb-3 pb-2 border-b-2`}
+                className={`${headingSize} mb-3 border-b-2 pb-2 font-bold`}
                 style={{ color: colors.primary, borderColor: colors.accent }}
               >
                 EDUCATION
@@ -107,7 +116,10 @@ export const CreativeModernTemplate: React.FC<CreativeModernTemplateProps> = ({
               {resume.education.map((edu, idx) => (
                 <div key={idx} className="mb-4">
                   <h3 className={`${textSize} font-bold`}>{edu.degree}</h3>
-                  <div className={`${textSize}`} style={{ color: colors.secondary }}>
+                  <div
+                    className={`${textSize}`}
+                    style={{ color: colors.secondary }}
+                  >
                     {edu.institution}
                   </div>
                   <div className="text-xs">
@@ -123,7 +135,7 @@ export const CreativeModernTemplate: React.FC<CreativeModernTemplateProps> = ({
           {resume.certifications && resume.certifications.length > 0 && (
             <section>
               <h2
-                className={`${headingSize} font-bold mb-3 pb-2 border-b-2`}
+                className={`${headingSize} mb-3 border-b-2 pb-2 font-bold`}
                 style={{ color: colors.primary, borderColor: colors.accent }}
               >
                 CERTIFICATIONS
@@ -142,30 +154,30 @@ export const CreativeModernTemplate: React.FC<CreativeModernTemplateProps> = ({
         </div>
 
         {/* Right Column - 60% */}
-        <div className="w-[60%] p-6 space-y-6">
+        <div className="w-[60%] space-y-6 p-6">
           {/* Experience */}
           {resume.experience && resume.experience.length > 0 && (
             <section>
               <h2
-                className={`${headingSize} font-bold mb-4 pb-2 border-b-2`}
+                className={`${headingSize} mb-4 border-b-2 pb-2 font-bold`}
                 style={{ color: colors.primary, borderColor: colors.accent }}
               >
                 EXPERIENCE
               </h2>
               {resume.experience.map((exp, idx) => (
-                <div key={idx} className="mb-5 relative pl-6">
+                <div key={idx} className="relative mb-5 pl-6">
                   <div
-                    className="absolute left-0 top-1 w-3 h-3 rounded-full"
+                    className="absolute top-1 left-0 h-3 w-3 rounded-full"
                     style={{ backgroundColor: colors.accent }}
                   />
-                  <div className="flex justify-between items-start mb-1">
+                  <div className="mb-1 flex items-start justify-between">
                     <h3 className={`${textSize} font-bold`}>{exp.role}</h3>
-                    <span className="text-xs whitespace-nowrap ml-2">
+                    <span className="ml-2 text-xs whitespace-nowrap">
                       {exp.startDate} - {exp.endDate || "Present"}
                     </span>
                   </div>
                   <div
-                    className={`${textSize} font-semibold mb-2`}
+                    className={`${textSize} mb-2 font-semibold`}
                     style={{ color: colors.secondary }}
                   >
                     {exp.company}
@@ -177,7 +189,8 @@ export const CreativeModernTemplate: React.FC<CreativeModernTemplateProps> = ({
                     <ul className="space-y-1">
                       {exp.achievements.map((achievement, achIdx) => (
                         <li key={achIdx} className={`${textSize} ml-4`}>
-                          <span style={{ color: colors.accent }}>▸</span> {achievement}
+                          <span style={{ color: colors.accent }}>▸</span>{" "}
+                          {achievement}
                         </li>
                       ))}
                     </ul>
@@ -191,25 +204,27 @@ export const CreativeModernTemplate: React.FC<CreativeModernTemplateProps> = ({
           {resume.projects && resume.projects.length > 0 && (
             <section>
               <h2
-                className={`${headingSize} font-bold mb-4 pb-2 border-b-2`}
+                className={`${headingSize} mb-4 border-b-2 pb-2 font-bold`}
                 style={{ color: colors.primary, borderColor: colors.accent }}
               >
                 PROJECTS
               </h2>
               {resume.projects.map((project, idx) => (
-                <div key={idx} className="mb-4 relative pl-6">
+                <div key={idx} className="relative mb-4 pl-6">
                   <div
-                    className="absolute left-0 top-1 w-3 h-3 rounded-full"
+                    className="absolute top-1 left-0 h-3 w-3 rounded-full"
                     style={{ backgroundColor: colors.accent }}
                   />
                   <h3 className={`${textSize} font-bold`}>{project.name}</h3>
-                  <p className={`${textSize} mt-1 mb-2`}>{project.description}</p>
+                  <p className={`${textSize} mt-1 mb-2`}>
+                    {project.description}
+                  </p>
                   {project.technologies && project.technologies.length > 0 && (
                     <div className="flex flex-wrap gap-1">
                       {project.technologies.map((tech, techIdx) => (
                         <span
                           key={techIdx}
-                          className="px-2 py-0.5 text-xs rounded-full font-medium"
+                          className="rounded-full px-2 py-0.5 text-xs font-medium"
                           style={{
                             backgroundColor: colors.accent,
                             color: colors.background,

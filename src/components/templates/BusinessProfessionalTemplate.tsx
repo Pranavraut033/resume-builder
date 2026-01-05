@@ -3,11 +3,12 @@
 // Licensed under MIT License
 
 import React from "react";
-import { ResumeJSON, ResumeColors } from "@/types/resume";
+
+import { ResumeJSON, ThemeColors } from "@/types/resume";
 
 interface BusinessProfessionalTemplateProps {
   resume: ResumeJSON;
-  colors: ResumeColors;
+  colors: ThemeColors;
   fontSize: "small" | "medium" | "large";
   fontFamily: string;
 }
@@ -32,7 +33,7 @@ export const BusinessProfessionalTemplate: React.FC<
 
   return (
     <div
-      className="resume-content bg-white min-h-[11in] w-[8.5in] mx-auto p-16 shadow-lg"
+      className="resume-content mx-auto min-h-[11in] w-[8.5in] bg-white p-16 shadow-lg"
       style={{
         fontFamily: fontFamily,
         color: colors.text,
@@ -40,14 +41,20 @@ export const BusinessProfessionalTemplate: React.FC<
       }}
     >
       {/* Header - Centered */}
-      <header className="text-center mb-8 pb-6 border-b" style={{ borderColor: colors.secondary }}>
+      <header
+        className="mb-8 border-b pb-6 text-center"
+        style={{ borderColor: colors.secondary }}
+      >
         <h1
-          className="text-3xl font-serif font-bold mb-2"
+          className="mb-2 font-serif text-3xl font-bold"
           style={{ color: colors.primary }}
         >
           {resume.header.name}
         </h1>
-        <div className={`${textSize} space-y-1`} style={{ color: colors.secondary }}>
+        <div
+          className={`${textSize} space-y-1`}
+          style={{ color: colors.secondary }}
+        >
           <div className="flex justify-center gap-3">
             {resume.header.email && <span>{resume.header.email}</span>}
             {resume.header.phone && <span>•</span>}
@@ -65,12 +72,12 @@ export const BusinessProfessionalTemplate: React.FC<
       {resume.summary && (
         <section className="mb-6">
           <h2
-            className={`${headingSize} font-serif font-bold mb-2 uppercase`}
+            className={`${headingSize} mb-2 font-serif font-bold uppercase`}
             style={{ color: colors.primary }}
           >
             Professional Summary
           </h2>
-          <p className={`${textSize} leading-relaxed text-justify`}>
+          <p className={`${textSize} text-justify leading-relaxed`}>
             {resume.summary}
           </p>
         </section>
@@ -80,21 +87,21 @@ export const BusinessProfessionalTemplate: React.FC<
       {resume.experience && resume.experience.length > 0 && (
         <section className="mb-6">
           <h2
-            className={`${headingSize} font-serif font-bold mb-3 uppercase`}
+            className={`${headingSize} mb-3 font-serif font-bold uppercase`}
             style={{ color: colors.primary }}
           >
             Professional Experience
           </h2>
           {resume.experience.map((exp, idx) => (
             <div key={idx} className="mb-4">
-              <div className="flex justify-between items-baseline mb-1">
+              <div className="mb-1 flex items-baseline justify-between">
                 <h3 className={`${textSize} font-bold`}>{exp.role}</h3>
                 <span className="text-xs" style={{ color: colors.secondary }}>
                   {exp.startDate} - {exp.endDate || "Present"}
                 </span>
               </div>
               <div
-                className={`${textSize} font-semibold mb-2`}
+                className={`${textSize} mb-2 font-semibold`}
                 style={{ color: colors.secondary }}
               >
                 {exp.company}
@@ -120,26 +127,27 @@ export const BusinessProfessionalTemplate: React.FC<
       {resume.education && resume.education.length > 0 && (
         <section className="mb-6">
           <h2
-            className={`${headingSize} font-serif font-bold mb-3 uppercase`}
+            className={`${headingSize} mb-3 font-serif font-bold uppercase`}
             style={{ color: colors.primary }}
           >
             Education
           </h2>
           {resume.education.map((edu, idx) => (
             <div key={idx} className="mb-3">
-              <div className="flex justify-between items-baseline">
+              <div className="flex items-baseline justify-between">
                 <h3 className={`${textSize} font-bold`}>{edu.degree}</h3>
                 <span className="text-xs" style={{ color: colors.secondary }}>
                   {edu.startDate} - {edu.endDate || "Present"}
                 </span>
               </div>
-              <div className={`${textSize}`} style={{ color: colors.secondary }}>
+              <div
+                className={`${textSize}`}
+                style={{ color: colors.secondary }}
+              >
                 {edu.institution}
                 {edu.field && ` • ${edu.field}`}
               </div>
-              {edu.gpa && (
-                <div className="text-xs">GPA: {edu.gpa}</div>
-              )}
+              {edu.gpa && <div className="text-xs">GPA: {edu.gpa}</div>}
             </div>
           ))}
         </section>
@@ -149,7 +157,7 @@ export const BusinessProfessionalTemplate: React.FC<
       {resume.skills && resume.skills.length > 0 && (
         <section className="mb-6">
           <h2
-            className={`${headingSize} font-serif font-bold mb-3 uppercase`}
+            className={`${headingSize} mb-3 font-serif font-bold uppercase`}
             style={{ color: colors.primary }}
           >
             Core Competencies
@@ -168,7 +176,7 @@ export const BusinessProfessionalTemplate: React.FC<
       {resume.projects && resume.projects.length > 0 && (
         <section className="mb-6">
           <h2
-            className={`${headingSize} font-serif font-bold mb-3 uppercase`}
+            className={`${headingSize} mb-3 font-serif font-bold uppercase`}
             style={{ color: colors.primary }}
           >
             Key Projects
@@ -178,7 +186,10 @@ export const BusinessProfessionalTemplate: React.FC<
               <h3 className={`${textSize} font-bold`}>{project.name}</h3>
               <p className={`${textSize} mt-1`}>{project.description}</p>
               {project.technologies && project.technologies.length > 0 && (
-                <div className="text-xs mt-1" style={{ color: colors.secondary }}>
+                <div
+                  className="mt-1 text-xs"
+                  style={{ color: colors.secondary }}
+                >
                   Technologies: {project.technologies.join(", ")}
                 </div>
               )}
@@ -191,7 +202,7 @@ export const BusinessProfessionalTemplate: React.FC<
       {resume.certifications && resume.certifications.length > 0 && (
         <section>
           <h2
-            className={`${headingSize} font-serif font-bold mb-3 uppercase`}
+            className={`${headingSize} mb-3 font-serif font-bold uppercase`}
             style={{ color: colors.primary }}
           >
             Certifications
@@ -199,7 +210,7 @@ export const BusinessProfessionalTemplate: React.FC<
           {resume.certifications.map((cert, idx) => (
             <div key={idx} className="mb-2">
               <span className={`${textSize} font-semibold`}>{cert.name}</span>
-              <span className="text-xs mx-2">•</span>
+              <span className="mx-2 text-xs">•</span>
               <span className="text-xs" style={{ color: colors.secondary }}>
                 {cert.issuer} • {cert.date}
               </span>

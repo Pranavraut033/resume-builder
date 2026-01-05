@@ -3,18 +3,20 @@
 // Licensed under MIT License
 
 import React from "react";
-import { ResumeJSON, TemplateType, ResumeColors } from "@/types/resume";
+
+import { ResumeJSON, TemplateType, ThemeColors } from "@/types/resume";
+
+import { BJetProfessionalTemplate } from "./BJetProfessionalTemplate";
+import { BusinessProfessionalTemplate } from "./BusinessProfessionalTemplate";
+import { CreativeModernTemplate } from "./CreativeModernTemplate";
+import { ElegantTimelineTemplate } from "./ElegantTimelineTemplate";
 import { ModernMinimalTemplate } from "./ModernMinimalTemplate";
 import { TechSidebarTemplate } from "./TechSidebarTemplate";
-import { BusinessProfessionalTemplate } from "./BusinessProfessionalTemplate";
-import { ElegantTimelineTemplate } from "./ElegantTimelineTemplate";
-import { CreativeModernTemplate } from "./CreativeModernTemplate";
-import { BJetProfessionalTemplate } from "./BJetProfessionalTemplate";
 
 interface TemplateRendererProps {
   template: TemplateType;
   resume: ResumeJSON;
-  colors: ResumeColors;
+  colors: ThemeColors;
   fontSize: "small" | "medium" | "large";
   fontFamily: string;
 }

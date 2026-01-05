@@ -3,11 +3,12 @@
 // Licensed under MIT License
 
 import React from "react";
-import { ResumeJSON, ResumeColors } from "@/types/resume";
+
+import { ResumeJSON, ThemeColors } from "@/types/resume";
 
 interface BJetProfessionalTemplateProps {
   resume: ResumeJSON;
-  colors: ResumeColors;
+  colors: ThemeColors;
   fontSize: "small" | "medium" | "large";
   fontFamily: string;
 }
@@ -18,7 +19,7 @@ const fontSizeMap = {
   large: "text-base",
 };
 
-const headingSizeMap = {
+const _headingSizeMap = {
   small: "text-sm",
   medium: "text-base",
   large: "text-lg",
@@ -28,11 +29,10 @@ export const BJetProfessionalTemplate: React.FC<
   BJetProfessionalTemplateProps
 > = ({ resume, colors, fontSize, fontFamily }) => {
   const textSize = fontSizeMap[fontSize];
-  const headingSize = headingSizeMap[fontSize];
 
   return (
     <div
-      className="resume-content bg-white min-h-[11in] w-[8.5in] mx-auto p-10 shadow-lg"
+      className="resume-content mx-auto min-h-264 w-204 bg-white p-10 shadow-lg"
       style={{
         fontFamily: fontFamily,
         color: colors.text,
@@ -40,7 +40,10 @@ export const BJetProfessionalTemplate: React.FC<
       }}
     >
       {/* Header Table */}
-      <table className="w-full mb-6 border-2" style={{ borderColor: colors.primary }}>
+      <table
+        className="mb-6 w-full border-2"
+        style={{ borderColor: colors.primary }}
+      >
         <tbody>
           <tr>
             <td className="p-4" style={{ backgroundColor: colors.primary }}>
@@ -50,7 +53,10 @@ export const BJetProfessionalTemplate: React.FC<
             </td>
           </tr>
           <tr>
-            <td className="p-3 border-t" style={{ borderColor: colors.secondary }}>
+            <td
+              className="border-t p-3"
+              style={{ borderColor: colors.secondary }}
+            >
               <div className={`${textSize} space-y-1`}>
                 {resume.header.email && (
                   <div className="flex items-center gap-2">
@@ -72,17 +78,29 @@ export const BJetProfessionalTemplate: React.FC<
                 )}
                 <div className="flex gap-4">
                   {resume.header.linkedin && (
-                    <a href={resume.header.linkedin} className="hover:underline" style={{ color: colors.accent }}>
+                    <a
+                      href={resume.header.linkedin}
+                      className="hover:underline"
+                      style={{ color: colors.accent }}
+                    >
                       LinkedIn
                     </a>
                   )}
                   {resume.header.github && (
-                    <a href={resume.header.github} className="hover:underline" style={{ color: colors.accent }}>
+                    <a
+                      href={resume.header.github}
+                      className="hover:underline"
+                      style={{ color: colors.accent }}
+                    >
                       GitHub
                     </a>
                   )}
                   {resume.header.website && (
-                    <a href={resume.header.website} className="hover:underline" style={{ color: colors.accent }}>
+                    <a
+                      href={resume.header.website}
+                      className="hover:underline"
+                      style={{ color: colors.accent }}
+                    >
                       Website
                     </a>
                   )}
@@ -95,16 +113,30 @@ export const BJetProfessionalTemplate: React.FC<
 
       {/* Professional Summary Table */}
       {resume.summary && (
-        <table className="w-full mb-4 border-2" style={{ borderColor: colors.primary }}>
+        <table
+          className="mb-4 w-full border-2"
+          style={{ borderColor: colors.primary }}
+        >
           <tbody>
             <tr>
-              <td className="p-2 font-bold" style={{ backgroundColor: colors.secondary + "30", color: colors.primary }}>
+              <td
+                className="p-2 font-bold"
+                style={{
+                  backgroundColor: colors.secondary + "30",
+                  color: colors.primary,
+                }}
+              >
                 PROFESSIONAL SUMMARY
               </td>
             </tr>
             <tr>
-              <td className="p-3 border-t" style={{ borderColor: colors.secondary }}>
-                <p className={`${textSize} leading-relaxed`}>{resume.summary}</p>
+              <td
+                className="border-t p-3"
+                style={{ borderColor: colors.secondary }}
+              >
+                <p className={`${textSize} leading-relaxed`}>
+                  {resume.summary}
+                </p>
               </td>
             </tr>
           </tbody>
@@ -113,21 +145,38 @@ export const BJetProfessionalTemplate: React.FC<
 
       {/* Experience Table */}
       {resume.experience && resume.experience.length > 0 && (
-        <table className="w-full mb-4 border-2" style={{ borderColor: colors.primary }}>
+        <table
+          className="mb-4 w-full border-2"
+          style={{ borderColor: colors.primary }}
+        >
           <tbody>
             <tr>
-              <td className="p-2 font-bold" style={{ backgroundColor: colors.secondary + "30", color: colors.primary }}>
+              <td
+                className="p-2 font-bold"
+                style={{
+                  backgroundColor: colors.secondary + "30",
+                  color: colors.primary,
+                }}
+              >
                 PROFESSIONAL EXPERIENCE
               </td>
             </tr>
             {resume.experience.map((exp, idx) => (
               <tr key={idx}>
-                <td className="p-3 border-t" style={{ borderColor: colors.secondary }}>
-                  <div className="flex justify-between mb-1">
+                <td
+                  className="border-t p-3"
+                  style={{ borderColor: colors.secondary }}
+                >
+                  <div className="mb-1 flex justify-between">
                     <div>
-                      <span className={`${textSize} font-bold`}>{exp.role}</span>
+                      <span className={`${textSize} font-bold`}>
+                        {exp.role}
+                      </span>
                       <span className="mx-2">•</span>
-                      <span className={`${textSize} font-semibold`} style={{ color: colors.secondary }}>
+                      <span
+                        className={`${textSize} font-semibold`}
+                        style={{ color: colors.secondary }}
+                      >
                         {exp.company}
                       </span>
                     </div>
@@ -141,7 +190,10 @@ export const BJetProfessionalTemplate: React.FC<
                   {exp.achievements && exp.achievements.length > 0 && (
                     <ul className="space-y-1">
                       {exp.achievements.map((achievement, achIdx) => (
-                        <li key={achIdx} className={`${textSize} ml-5 list-disc`}>
+                        <li
+                          key={achIdx}
+                          className={`${textSize} ml-5 list-disc`}
+                        >
                           {achievement}
                         </li>
                       ))}
@@ -156,20 +208,37 @@ export const BJetProfessionalTemplate: React.FC<
 
       {/* Education Table */}
       {resume.education && resume.education.length > 0 && (
-        <table className="w-full mb-4 border-2" style={{ borderColor: colors.primary }}>
+        <table
+          className="mb-4 w-full border-2"
+          style={{ borderColor: colors.primary }}
+        >
           <tbody>
             <tr>
-              <td className="p-2 font-bold" style={{ backgroundColor: colors.secondary + "30", color: colors.primary }}>
+              <td
+                className="p-2 font-bold"
+                style={{
+                  backgroundColor: colors.secondary + "30",
+                  color: colors.primary,
+                }}
+              >
                 EDUCATION
               </td>
             </tr>
             {resume.education.map((edu, idx) => (
               <tr key={idx}>
-                <td className="p-3 border-t" style={{ borderColor: colors.secondary }}>
+                <td
+                  className="border-t p-3"
+                  style={{ borderColor: colors.secondary }}
+                >
                   <div className="flex justify-between">
                     <div>
-                      <div className={`${textSize} font-bold`}>{edu.degree}</div>
-                      <div className={`${textSize}`} style={{ color: colors.secondary }}>
+                      <div className={`${textSize} font-bold`}>
+                        {edu.degree}
+                      </div>
+                      <div
+                        className={`${textSize}`}
+                        style={{ color: colors.secondary }}
+                      >
                         {edu.institution}
                         {edu.field && ` • ${edu.field}`}
                       </div>
@@ -188,15 +257,27 @@ export const BJetProfessionalTemplate: React.FC<
 
       {/* Skills Table */}
       {resume.skills && resume.skills.length > 0 && (
-        <table className="w-full mb-4 border-2" style={{ borderColor: colors.primary }}>
+        <table
+          className="mb-4 w-full border-2"
+          style={{ borderColor: colors.primary }}
+        >
           <tbody>
             <tr>
-              <td className="p-2 font-bold" style={{ backgroundColor: colors.secondary + "30", color: colors.primary }}>
+              <td
+                className="p-2 font-bold"
+                style={{
+                  backgroundColor: colors.secondary + "30",
+                  color: colors.primary,
+                }}
+              >
                 CORE COMPETENCIES
               </td>
             </tr>
             <tr>
-              <td className="p-3 border-t" style={{ borderColor: colors.secondary }}>
+              <td
+                className="border-t p-3"
+                style={{ borderColor: colors.secondary }}
+              >
                 <div className="grid grid-cols-3 gap-2">
                   {resume.skills.map((skill, idx) => (
                     <div key={idx} className={`${textSize}`}>
@@ -212,21 +293,39 @@ export const BJetProfessionalTemplate: React.FC<
 
       {/* Projects Table */}
       {resume.projects && resume.projects.length > 0 && (
-        <table className="w-full mb-4 border-2" style={{ borderColor: colors.primary }}>
+        <table
+          className="mb-4 w-full border-2"
+          style={{ borderColor: colors.primary }}
+        >
           <tbody>
             <tr>
-              <td className="p-2 font-bold" style={{ backgroundColor: colors.secondary + "30", color: colors.primary }}>
+              <td
+                className="p-2 font-bold"
+                style={{
+                  backgroundColor: colors.secondary + "30",
+                  color: colors.primary,
+                }}
+              >
                 KEY PROJECTS
               </td>
             </tr>
             {resume.projects.map((project, idx) => (
               <tr key={idx}>
-                <td className="p-3 border-t" style={{ borderColor: colors.secondary }}>
-                  <div className={`${textSize} font-bold mb-1`}>{project.name}</div>
+                <td
+                  className="border-t p-3"
+                  style={{ borderColor: colors.secondary }}
+                >
+                  <div className={`${textSize} mb-1 font-bold`}>
+                    {project.name}
+                  </div>
                   <p className={`${textSize} mb-1`}>{project.description}</p>
                   {project.technologies && project.technologies.length > 0 && (
-                    <div className="text-xs" style={{ color: colors.secondary }}>
-                      <span className="font-semibold">Technologies:</span> {project.technologies.join(", ")}
+                    <div
+                      className="text-xs"
+                      style={{ color: colors.secondary }}
+                    >
+                      <span className="font-semibold">Technologies:</span>{" "}
+                      {project.technologies.join(", ")}
                     </div>
                   )}
                 </td>
@@ -238,19 +337,36 @@ export const BJetProfessionalTemplate: React.FC<
 
       {/* Certifications Table */}
       {resume.certifications && resume.certifications.length > 0 && (
-        <table className="w-full border-2" style={{ borderColor: colors.primary }}>
+        <table
+          className="w-full border-2"
+          style={{ borderColor: colors.primary }}
+        >
           <tbody>
             <tr>
-              <td className="p-2 font-bold" style={{ backgroundColor: colors.secondary + "30", color: colors.primary }}>
+              <td
+                className="p-2 font-bold"
+                style={{
+                  backgroundColor: colors.secondary + "30",
+                  color: colors.primary,
+                }}
+              >
                 CERTIFICATIONS
               </td>
             </tr>
             {resume.certifications.map((cert, idx) => (
               <tr key={idx}>
-                <td className="p-3 border-t" style={{ borderColor: colors.secondary }}>
+                <td
+                  className="border-t p-3"
+                  style={{ borderColor: colors.secondary }}
+                >
                   <div className="flex justify-between">
-                    <span className={`${textSize} font-semibold`}>{cert.name}</span>
-                    <span className="text-xs" style={{ color: colors.secondary }}>
+                    <span className={`${textSize} font-semibold`}>
+                      {cert.name}
+                    </span>
+                    <span
+                      className="text-xs"
+                      style={{ color: colors.secondary }}
+                    >
                       {cert.issuer} • {cert.date}
                     </span>
                   </div>

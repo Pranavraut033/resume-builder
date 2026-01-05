@@ -3,11 +3,12 @@
 // Licensed under MIT License
 
 import React from "react";
-import { ResumeJSON, ResumeColors } from "@/types/resume";
+
+import { ResumeJSON, ThemeColors } from "@/types/resume";
 
 interface ModernMinimalTemplateProps {
   resume: ResumeJSON;
-  colors: ResumeColors;
+  colors: ThemeColors;
   fontSize: "small" | "medium" | "large";
   fontFamily: string;
 }
@@ -35,7 +36,7 @@ export const ModernMinimalTemplate: React.FC<ModernMinimalTemplateProps> = ({
 
   return (
     <div
-      className="resume-content bg-white min-h-[11in] w-[8.5in] mx-auto p-12 shadow-lg"
+      className="resume-content mx-auto min-h-[11in] w-[8.5in] bg-white p-12 shadow-lg"
       style={{
         fontFamily: fontFamily,
         color: colors.text,
@@ -48,12 +49,12 @@ export const ModernMinimalTemplate: React.FC<ModernMinimalTemplateProps> = ({
         style={{ borderColor: colors.primary }}
       >
         <h1
-          className="text-4xl font-bold mb-2"
+          className="mb-2 text-4xl font-bold"
           style={{ color: colors.primary }}
         >
           {resume.header.name}
         </h1>
-        <div className={`${textSize} text-gray-600 space-y-1`}>
+        <div className={`${textSize} space-y-1 text-gray-600`}>
           <div className="flex flex-wrap gap-4">
             {resume.header.email && <span>✉ {resume.header.email}</span>}
             {resume.header.phone && <span>📞 {resume.header.phone}</span>}
@@ -95,12 +96,12 @@ export const ModernMinimalTemplate: React.FC<ModernMinimalTemplateProps> = ({
       {resume.summary && (
         <section className="mb-6">
           <h2
-            className={`${headingSize} font-semibold mb-3 pb-1 border-b`}
+            className={`${headingSize} mb-3 border-b pb-1 font-semibold`}
             style={{ color: colors.primary, borderColor: colors.secondary }}
           >
             Professional Summary
           </h2>
-          <p className={`${textSize} text-gray-700 leading-relaxed`}>
+          <p className={`${textSize} leading-relaxed text-gray-700`}>
             {resume.summary}
           </p>
         </section>
@@ -110,7 +111,7 @@ export const ModernMinimalTemplate: React.FC<ModernMinimalTemplateProps> = ({
       {resume.experience.length > 0 && (
         <section className="mb-6">
           <h2
-            className={`${headingSize} font-semibold mb-3 pb-1 border-b`}
+            className={`${headingSize} mb-3 border-b pb-1 font-semibold`}
             style={{ color: colors.primary, borderColor: colors.secondary }}
           >
             Work Experience
@@ -118,7 +119,7 @@ export const ModernMinimalTemplate: React.FC<ModernMinimalTemplateProps> = ({
           <div className="space-y-4">
             {resume.experience.map((exp, index) => (
               <div key={index}>
-                <div className="flex justify-between items-start mb-1">
+                <div className="mb-1 flex items-start justify-between">
                   <div>
                     <h3
                       className="font-semibold"
@@ -132,12 +133,12 @@ export const ModernMinimalTemplate: React.FC<ModernMinimalTemplateProps> = ({
                     {exp.startDate} - {exp.endDate || "Present"}
                   </span>
                 </div>
-                <p className={`${textSize} text-gray-700 mb-2`}>
+                <p className={`${textSize} mb-2 text-gray-700`}>
                   {exp.description}
                 </p>
                 {exp.achievements.length > 0 && (
                   <ul
-                    className={`${textSize} text-gray-700 list-disc list-inside space-y-1`}
+                    className={`${textSize} list-inside list-disc space-y-1 text-gray-700`}
                   >
                     {exp.achievements.map((achievement, i) => (
                       <li key={i}>{achievement}</li>
@@ -154,7 +155,7 @@ export const ModernMinimalTemplate: React.FC<ModernMinimalTemplateProps> = ({
       {resume.projects.length > 0 && (
         <section className="mb-6">
           <h2
-            className={`${headingSize} font-semibold mb-3 pb-1 border-b`}
+            className={`${headingSize} mb-3 border-b pb-1 font-semibold`}
             style={{ color: colors.primary, borderColor: colors.secondary }}
           >
             Projects
@@ -174,7 +175,7 @@ export const ModernMinimalTemplate: React.FC<ModernMinimalTemplateProps> = ({
                     </a>
                   )}
                 </h3>
-                <p className={`${textSize} text-gray-700 mb-1`}>
+                <p className={`${textSize} mb-1 text-gray-700`}>
                   {project.description}
                 </p>
                 <div className={`${textSize} text-gray-600`}>
@@ -191,7 +192,7 @@ export const ModernMinimalTemplate: React.FC<ModernMinimalTemplateProps> = ({
       {resume.skills.length > 0 && (
         <section className="mb-6">
           <h2
-            className={`${headingSize} font-semibold mb-3 pb-1 border-b`}
+            className={`${headingSize} mb-3 border-b pb-1 font-semibold`}
             style={{ color: colors.primary, borderColor: colors.secondary }}
           >
             Skills
@@ -206,7 +207,7 @@ export const ModernMinimalTemplate: React.FC<ModernMinimalTemplateProps> = ({
       {resume.education.length > 0 && (
         <section className="mb-6">
           <h2
-            className={`${headingSize} font-semibold mb-3 pb-1 border-b`}
+            className={`${headingSize} mb-3 border-b pb-1 font-semibold`}
             style={{ color: colors.primary, borderColor: colors.secondary }}
           >
             Education
@@ -214,7 +215,7 @@ export const ModernMinimalTemplate: React.FC<ModernMinimalTemplateProps> = ({
           <div className="space-y-3">
             {resume.education.map((edu, index) => (
               <div key={index}>
-                <div className="flex justify-between items-start">
+                <div className="flex items-start justify-between">
                   <div>
                     <h3
                       className="font-semibold"
@@ -243,7 +244,7 @@ export const ModernMinimalTemplate: React.FC<ModernMinimalTemplateProps> = ({
       {resume.certifications.length > 0 && (
         <section>
           <h2
-            className={`${headingSize} font-semibold mb-3 pb-1 border-b`}
+            className={`${headingSize} mb-3 border-b pb-1 font-semibold`}
             style={{ color: colors.primary, borderColor: colors.secondary }}
           >
             Certifications

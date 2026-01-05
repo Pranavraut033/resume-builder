@@ -3,11 +3,12 @@
 // Licensed under MIT License
 
 import React from "react";
-import { ResumeJSON, ResumeColors } from "@/types/resume";
+
+import { ResumeJSON, ThemeColors } from "@/types/resume";
 
 interface TechSidebarTemplateProps {
   resume: ResumeJSON;
-  colors: ResumeColors;
+  colors: ThemeColors;
   fontSize: "small" | "medium" | "large";
   fontFamily: string;
 }
@@ -35,7 +36,7 @@ export const TechSidebarTemplate: React.FC<TechSidebarTemplateProps> = ({
 
   return (
     <div
-      className="resume-content bg-white min-h-[11in] w-[8.5in] mx-auto shadow-lg"
+      className="resume-content mx-auto min-h-[11in] w-[8.5in] bg-white shadow-lg"
       style={{
         fontFamily: fontFamily,
         color: colors.text,
@@ -44,10 +45,10 @@ export const TechSidebarTemplate: React.FC<TechSidebarTemplateProps> = ({
     >
       {/* Header */}
       <div className="p-8 pb-4" style={{ backgroundColor: colors.primary }}>
-        <h1 className="text-3xl font-bold text-white mb-1">
+        <h1 className="mb-1 text-3xl font-bold text-white">
           {resume.header.name}
         </h1>
-        <div className="flex flex-wrap gap-3 text-white text-xs opacity-90">
+        <div className="flex flex-wrap gap-3 text-xs text-white opacity-90">
           {resume.header.email && <span>✉ {resume.header.email}</span>}
           {resume.header.phone && <span>📞 {resume.header.phone}</span>}
           {resume.header.location && <span>📍 {resume.header.location}</span>}
@@ -60,14 +61,14 @@ export const TechSidebarTemplate: React.FC<TechSidebarTemplateProps> = ({
       <div className="flex">
         {/* Left Sidebar - 35% */}
         <div
-          className="w-[35%] p-6 space-y-6"
+          className="w-[35%] space-y-6 p-6"
           style={{ backgroundColor: colors.secondary + "10" }}
         >
           {/* Skills */}
           {resume.skills && resume.skills.length > 0 && (
             <section>
               <h2
-                className={`${headingSize} font-bold mb-3`}
+                className={`${headingSize} mb-3 font-bold`}
                 style={{ color: colors.primary }}
               >
                 TECHNICAL SKILLS
@@ -75,10 +76,7 @@ export const TechSidebarTemplate: React.FC<TechSidebarTemplateProps> = ({
               <div className="space-y-1">
                 {resume.skills.map((skill, idx) => (
                   <div key={idx} className={`${textSize} flex items-center`}>
-                    <span
-                      className="mr-2"
-                      style={{ color: colors.accent }}
-                    >
+                    <span className="mr-2" style={{ color: colors.accent }}>
                       ▸
                     </span>
                     {skill}
@@ -92,7 +90,7 @@ export const TechSidebarTemplate: React.FC<TechSidebarTemplateProps> = ({
           {resume.education && resume.education.length > 0 && (
             <section>
               <h2
-                className={`${headingSize} font-bold mb-3`}
+                className={`${headingSize} mb-3 font-bold`}
                 style={{ color: colors.primary }}
               >
                 EDUCATION
@@ -111,9 +109,7 @@ export const TechSidebarTemplate: React.FC<TechSidebarTemplateProps> = ({
                   <div className="text-xs">
                     {edu.startDate} - {edu.endDate || "Present"}
                   </div>
-                  {edu.gpa && (
-                    <div className="text-xs">GPA: {edu.gpa}</div>
-                  )}
+                  {edu.gpa && <div className="text-xs">GPA: {edu.gpa}</div>}
                 </div>
               ))}
             </section>
@@ -123,7 +119,7 @@ export const TechSidebarTemplate: React.FC<TechSidebarTemplateProps> = ({
           {resume.certifications && resume.certifications.length > 0 && (
             <section>
               <h2
-                className={`${headingSize} font-bold mb-3`}
+                className={`${headingSize} mb-3 font-bold`}
                 style={{ color: colors.primary }}
               >
                 CERTIFICATIONS
@@ -141,12 +137,12 @@ export const TechSidebarTemplate: React.FC<TechSidebarTemplateProps> = ({
         </div>
 
         {/* Right Main Content - 65% */}
-        <div className="w-[65%] p-6 space-y-6">
+        <div className="w-[65%] space-y-6 p-6">
           {/* Professional Summary */}
           {resume.summary && (
             <section>
               <h2
-                className={`${headingSize} font-bold mb-2 pb-1 border-b-2`}
+                className={`${headingSize} mb-2 border-b-2 pb-1 font-bold`}
                 style={{ color: colors.primary, borderColor: colors.primary }}
               >
                 PROFESSIONAL SUMMARY
@@ -159,14 +155,14 @@ export const TechSidebarTemplate: React.FC<TechSidebarTemplateProps> = ({
           {resume.experience && resume.experience.length > 0 && (
             <section>
               <h2
-                className={`${headingSize} font-bold mb-3 pb-1 border-b-2`}
+                className={`${headingSize} mb-3 border-b-2 pb-1 font-bold`}
                 style={{ color: colors.primary, borderColor: colors.primary }}
               >
                 PROFESSIONAL EXPERIENCE
               </h2>
               {resume.experience.map((exp, idx) => (
                 <div key={idx} className="mb-4">
-                  <div className="flex justify-between items-start">
+                  <div className="flex items-start justify-between">
                     <div>
                       <h3 className={`${textSize} font-bold`}>{exp.role}</h3>
                       <div
@@ -202,7 +198,7 @@ export const TechSidebarTemplate: React.FC<TechSidebarTemplateProps> = ({
           {resume.projects && resume.projects.length > 0 && (
             <section>
               <h2
-                className={`${headingSize} font-bold mb-3 pb-1 border-b-2`}
+                className={`${headingSize} mb-3 border-b-2 pb-1 font-bold`}
                 style={{ color: colors.primary, borderColor: colors.primary }}
               >
                 KEY PROJECTS
@@ -212,11 +208,11 @@ export const TechSidebarTemplate: React.FC<TechSidebarTemplateProps> = ({
                   <h3 className={`${textSize} font-bold`}>{project.name}</h3>
                   <p className={`${textSize} mt-1`}>{project.description}</p>
                   {project.technologies && project.technologies.length > 0 && (
-                    <div className="flex flex-wrap gap-1 mt-2">
+                    <div className="mt-2 flex flex-wrap gap-1">
                       {project.technologies.map((tech, techIdx) => (
                         <span
                           key={techIdx}
-                          className="px-2 py-0.5 text-xs rounded"
+                          className="rounded px-2 py-0.5 text-xs"
                           style={{
                             backgroundColor: colors.accent + "20",
                             color: colors.accent,
