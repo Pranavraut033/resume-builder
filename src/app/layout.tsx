@@ -1,8 +1,12 @@
-import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+
 import "./globals.css";
+
+import { CacheInitializer } from "@/components/CacheInitializer";
 import Nav from "@/components/Nav";
 import { ToastProvider } from "@/components/ui/ToastProvider";
+
+import type { Metadata } from "next";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -30,6 +34,7 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <ToastProvider>
+          <CacheInitializer />
           <Nav />
           <main className="container mx-auto p-4">{children}</main>
         </ToastProvider>

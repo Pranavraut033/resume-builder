@@ -1,7 +1,9 @@
 import Link from "next/link";
-import { prisma } from "@/lib/prisma";
-import JobTableClient from "./components/JobTableClient";
+
 import { Button } from "@/components/ui/Button";
+import { prisma } from "@/lib/prisma";
+
+import JobTableClient from "./components/JobTableClient";
 
 export default async function Home() {
   const jobList = await prisma.job.findMany({
@@ -14,7 +16,7 @@ export default async function Home() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold font-blocky text-blocky-900">
+        <h1 className="font-blocky text-blocky-900 text-2xl font-bold">
           Job Dashboard
         </h1>
         <Link href="/job/new" aria-label="Add new job">

@@ -1,7 +1,5 @@
 "use client";
 
-import Link from "next/link";
-import { useRouter } from "next/navigation";
 import {
   ColumnDef,
   FilterFn,
@@ -12,16 +10,20 @@ import {
   getSortedRowModel,
   useReactTable,
 } from "@tanstack/react-table";
-import type { Table as ReactTableType } from "@tanstack/react-table";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState, ReactNode } from "react";
+
 import { deleteJob, updateJobStatus } from "@/actions/job";
+import CompanyAvatar from "@/components/CompanyAvatar";
 import { Icon } from "@/components/ui/Icon";
 import { Modal } from "@/components/ui/Modal";
 import { useToast } from "@/components/ui/ToastProvider";
-import CompanyAvatar from "@/components/CompanyAvatar";
+import { cn } from "@/lib/cn";
 import { JOB_STATUSES, JobStatus, isJobStatus } from "@/types/job";
 import { JobDetails } from "@/types/resume";
-import { cn } from "@/lib/cn";
+
+import type { Table as ReactTableType } from "@tanstack/react-table";
 
 type JobInput = {
   id: number;
@@ -83,7 +85,7 @@ function parseJobDetails(raw: string | null): JobDetails | null {
   if (!raw) return null;
   try {
     return JSON.parse(raw) as JobDetails;
-  } catch (error) {
+  } catch (_error) {
     return null;
   }
 }
@@ -105,7 +107,7 @@ export default function JobTableClient({ jobs }: { jobs: JobInput[] }) {
     jobs.map((job) => ({
       ...job,
       status: isJobStatus(job.status) ? job.status : "DRAFT",
-    })),
+    }))
   );
 
   useEffect(() => {
@@ -113,7 +115,7 @@ export default function JobTableClient({ jobs }: { jobs: JobInput[] }) {
       jobs.map((job) => ({
         ...job,
         status: isJobStatus(job.status) ? job.status : "DRAFT",
-      })),
+      }))
     );
   }, [jobs]);
 
@@ -126,8 +128,8 @@ export default function JobTableClient({ jobs }: { jobs: JobInput[] }) {
       setStatusLoadingId(jobId);
       setJobItems((prev) =>
         prev.map((job) =>
-          job.id === jobId ? { ...job, status: nextStatus } : job,
-        ),
+          job.id === jobId ? { ...job, status: nextStatus } : job
+        )
       );
 
       try {
@@ -137,8 +139,8 @@ export default function JobTableClient({ jobs }: { jobs: JobInput[] }) {
       } catch (error) {
         setJobItems((prev) =>
           prev.map((job) =>
-            job.id === jobId ? { ...job, status: previousStatus } : job,
-          ),
+            job.id === jobId ? { ...job, status: previousStatus } : job
+          )
         );
         pushToast({
           title: "Unable to update status",
@@ -150,13 +152,13 @@ export default function JobTableClient({ jobs }: { jobs: JobInput[] }) {
         setStatusLoadingId(null);
       }
     },
-    [jobItems, pushToast, router],
+    [jobItems, pushToast, router]
   );
 
   const handleDeleteJob = useCallback(
     async (jobId: number) => {
       const confirmed = window.confirm(
-        "Delete this job? This will remove the resume and cover letter.",
+        "Delete this job? This will remove the resume and cover letter."
       );
       if (!confirmed) return;
 
@@ -180,7 +182,7 @@ export default function JobTableClient({ jobs }: { jobs: JobInput[] }) {
         setDeleteLoadingId(null);
       }
     },
-    [jobItems, pushToast, router],
+    [jobItems, pushToast, router]
   );
 
   const openPeek = useCallback((job: JobRecord) => {
@@ -208,7 +210,7 @@ export default function JobTableClient({ jobs }: { jobs: JobInput[] }) {
         header: "Role",
         cell: ({ row }) => (
           <div className="flex flex-col">
-            <span className="font-medium text-sm text-gray-100">
+            <span className="text-sm font-medium text-gray-100">
               {row.original.role}
             </span>
             <span className="text-xs text-gray-400">
@@ -255,7 +257,7 @@ export default function JobTableClient({ jobs }: { jobs: JobInput[] }) {
             onClick={(event) => event.stopPropagation()}
           >
             <IconButton label="Peek job" onClick={() => openPeek(row.original)}>
-              <Icon name="EyeIcon" size={18} />
+              <Icon name="eye" size={18} />
             </IconButton>
             <IconLink href={`/job/${row.original.id}`} label="Edit job">
               <Icon name="edit" size={18} />
@@ -290,7 +292,7 @@ export default function JobTableClient({ jobs }: { jobs: JobInput[] }) {
       handleStatusChange,
       openPeek,
       statusLoadingId,
-    ],
+    ]
   );
 
   const table = useReactTable({
@@ -357,7 +359,7 @@ function SearchInput({
   onChange: (value: string) => void;
 }) {
   return (
-    <label className="flex items-center gap-3 rounded-3xl border border-gray-700 bg-gray-800 px-4 py-2.5 shadow-sm focus-within:ring-2 focus-within:ring-blocky-500 transition-all">
+    <label className="focus-within:ring-blocky-500 flex items-center gap-3 rounded-3xl border border-gray-700 bg-gray-800 px-4 py-2.5 shadow-sm transition-all focus-within:ring-2">
       <Icon name="search" size={18} className="text-gray-400" />
       <span className="sr-only">Search jobs</span>
       <input
@@ -398,7 +400,7 @@ function ViewToggle({
             "flex items-center gap-2 rounded-2xl px-4 py-2 text-sm font-medium transition-all",
             value === option.value
               ? "bg-blocky-500 text-blocky-900 shadow-block"
-              : "text-gray-300 hover:bg-gray-700",
+              : "text-gray-300 hover:bg-gray-700"
           )}
           aria-pressed={value === option.value}
         >
@@ -431,7 +433,7 @@ function CardGrid({
         <article
           key={job.id}
           onClick={() => onPeek(job)}
-          className="rounded-3xl border border-gray-700 bg-gray-800 p-4 shadow-block/30 transition-all hover:-translate-y-1 hover:shadow-block cursor-pointer"
+          className="shadow-block/30 hover:shadow-block cursor-pointer rounded-3xl border border-gray-700 bg-gray-800 p-4 transition-all hover:-translate-y-1"
         >
           <div className="flex items-start gap-3">
             <CompanyAvatar name={job.company?.name} size={48} />
@@ -464,7 +466,7 @@ function CardGrid({
             onClick={(event) => event.stopPropagation()}
           >
             <IconButton label="Peek job" onClick={() => onPeek(job)}>
-              <Icon name="EyeIcon" size={18} />
+              <Icon name="eye" size={18} />
             </IconButton>
             <IconLink href={`/job/${job.id}`} label="Edit job">
               <Icon name="edit" size={18} />
@@ -504,9 +506,9 @@ function JobsTable({
   onRowClick: (job: JobRecord) => void;
 }) {
   return (
-    <div className="overflow-x-auto rounded-3xl border border-gray-700 bg-gray-800 shadow-block">
+    <div className="shadow-block overflow-x-auto rounded-3xl border border-gray-700 bg-gray-800">
       <table className="w-full text-left text-sm">
-        <thead className="text-xs uppercase text-gray-500">
+        <thead className="text-xs text-gray-500 uppercase">
           {table.getHeaderGroups().map((hg) => (
             <tr key={hg.id}>
               {hg.headers.map((header) => (
@@ -519,7 +521,7 @@ function JobsTable({
                     >
                       {flexRender(
                         header.column.columnDef.header,
-                        header.getContext(),
+                        header.getContext()
                       )}
                       {{
                         asc: "↑",
@@ -537,7 +539,7 @@ function JobsTable({
             <tr
               key={row.id}
               onClick={() => onRowClick(row.original)}
-              className="border-t border-gray-700 transition-colors hover:bg-gray-700/50 cursor-pointer"
+              className="cursor-pointer border-t border-gray-700 transition-colors hover:bg-gray-700/50"
             >
               {row.getVisibleCells().map((cell) => (
                 <td key={cell.id} className="px-4 py-3 align-top">
@@ -572,8 +574,8 @@ function StatusBadge({ status }: { status: JobStatus }) {
   return (
     <span
       className={cn(
-        "rounded-2xl border px-3 py-1 text-xs font-semibold uppercase tracking-wide",
-        STATUS_BADGES[status],
+        "rounded-2xl border px-3 py-1 text-xs font-semibold tracking-wide uppercase",
+        STATUS_BADGES[status]
       )}
     >
       {formatStatus(status)}
@@ -595,7 +597,7 @@ function StatusSelector({
       value={value}
       disabled={disabled}
       onChange={(event) => void onChange(event.target.value as JobStatus)}
-      className="rounded-2xl border border-gray-600 bg-gray-700 px-3 py-1.5 text-xs font-semibold uppercase tracking-wide text-gray-100 focus:border-blocky-500 focus:outline-none focus:ring-2 focus:ring-blocky-500"
+      className="focus:border-blocky-500 focus:ring-blocky-500 rounded-2xl border border-gray-600 bg-gray-700 px-3 py-1.5 text-xs font-semibold tracking-wide text-gray-100 uppercase focus:ring-2 focus:outline-none"
       aria-label="Update job status"
       onClick={(event) => event.stopPropagation()}
     >
@@ -683,21 +685,21 @@ function PeekContent({
         <div className="flex flex-wrap gap-2">
           <Link
             href={`/job/${job.id}`}
-            className="text-sm text-blocky-400 underline hover:text-blocky-300"
+            className="text-blocky-400 hover:text-blocky-300 text-sm underline"
             onClick={() => onClose()}
           >
             Edit details
           </Link>
           <Link
             href={`/resume/${job.id}`}
-            className="text-sm text-blocky-400 underline hover:text-blocky-300"
+            className="text-blocky-400 hover:text-blocky-300 text-sm underline"
             onClick={() => onClose()}
           >
             Open resume
           </Link>
           <Link
             href={`/cover-letter/${job.id}`}
-            className="text-sm text-blocky-400 underline hover:text-blocky-300"
+            className="text-blocky-400 hover:text-blocky-300 text-sm underline"
             onClick={() => onClose()}
           >
             Open cover letter
@@ -706,10 +708,10 @@ function PeekContent({
       </header>
 
       <section>
-        <h3 className="text-sm font-semibold uppercase text-gray-400">
+        <h3 className="text-sm font-semibold text-gray-400 uppercase">
           Description
         </h3>
-        <p className="mt-2 whitespace-pre-line text-sm text-gray-200">
+        <p className="mt-2 text-sm whitespace-pre-line text-gray-200">
           {job.description}
         </p>
       </section>
@@ -749,7 +751,7 @@ function PeekList({
   if (!items || items.length === 0) return null;
   return (
     <div>
-      <h4 className="text-xs font-semibold uppercase tracking-wide text-gray-400">
+      <h4 className="text-xs font-semibold tracking-wide text-gray-400 uppercase">
         {title}
       </h4>
       <ul className="mt-2 space-y-1 text-sm text-gray-200">
@@ -774,7 +776,7 @@ function EmptyState() {
       </p>
       <Link
         href="/job/new"
-        className="mt-4 inline-flex items-center justify-center gap-2 rounded-2xl bg-blocky-500 px-6 py-2 font-blocky text-blocky-900 shadow-block transition hover:bg-blocky-500/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blocky-500 focus-visible:ring-offset-2"
+        className="bg-blocky-500 font-blocky text-blocky-900 shadow-block hover:bg-blocky-500/90 focus-visible:ring-blocky-500 mt-4 inline-flex items-center justify-center gap-2 rounded-2xl px-6 py-2 transition focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none"
       >
         Create your first job
       </Link>

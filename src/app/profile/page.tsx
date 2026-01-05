@@ -1,6 +1,18 @@
 "use client";
 
 import { useState, useEffect } from "react";
+
+import { getProfile, saveProfile } from "@/actions/profile";
+import { ModelSelector } from "@/components/ModelSelector";
+import { ProfileActionButtons } from "@/components/ProfileActionButtons";
+import { Button } from "@/components/ui/Button";
+import { Card } from "@/components/ui/Card";
+import { FormField } from "@/components/ui/FormField";
+import { Modal } from "@/components/ui/Modal";
+import { Section } from "@/components/ui/Section";
+import { parseResume } from "@/lib/clientLLM";
+import { createLogger } from "@/lib/logger";
+import { useModelStore } from "@/store/modelStore";
 import {
   ResumeJSON,
   Experience,
@@ -12,16 +24,6 @@ import {
   Volunteer,
   Award,
 } from "@/types/resume";
-import { Card } from "@/components/ui/Card";
-import { FormField } from "@/components/ui/FormField";
-import { Button } from "@/components/ui/Button";
-import { Section } from "@/components/ui/Section";
-import { Modal } from "@/components/ui/Modal";
-import { Select } from "@/components/ui/Select";
-import { createLogger } from "@/lib/logger";
-import { getProfile, saveProfile } from "@/actions/profile";
-import { parseResume } from "@/lib/clientLLM";
-import { useModelStore } from "@/store/modelStore";
 
 const logger = createLogger("ProfilePage");
 
@@ -44,20 +46,16 @@ export default function ProfilePage() {
   const [showImportModal, setShowImportModal] = useState(false);
   const [resumeText, setResumeText] = useState("");
   const [importing, setImporting] = useState(false);
-  const [selectedModel, setSelectedModel] = useState("");
+  const [showImportJsonModal, setShowImportJsonModal] = useState(false);
+  const [jsonText, setJsonText] = useState("");
+  const [importingJson, setImportingJson] = useState(false);
 
-  const { getAllSelectedModels, loadModels } = useModelStore();
+  const { loadModels, selectedModelsByProvider, selectedProvider } =
+    useModelStore();
 
   useEffect(() => {
     loadModels();
   }, [loadModels]);
-
-  useEffect(() => {
-    const allSelected = getAllSelectedModels();
-    if (allSelected.length > 0 && !selectedModel) {
-      setSelectedModel(allSelected[0]);
-    }
-  }, [getAllSelectedModels, selectedModel]);
 
   useEffect(() => {
     const loadProfile = async () => {
@@ -92,6 +90,12 @@ export default function ProfilePage() {
       return;
     }
 
+    const selectedModel = selectedModelsByProvider[selectedProvider]?.[0];
+    if (!selectedModel) {
+      alert("Please select a model first");
+      return;
+    }
+
     setImporting(true);
     try {
       const parsed = await parseResume(resumeText, selectedModel, "openai");
@@ -101,9 +105,56 @@ export default function ProfilePage() {
       alert("Resume imported successfully! Review and save your profile.");
     } catch (error) {
       logger.error("Error parsing resume", { error });
-      alert("Error parsing resume. Please make sure you have OpenAI API key configured.");
+      alert(
+        "Error parsing resume. Please make sure you have OpenAI API key configured."
+      );
     } finally {
       setImporting(false);
+    }
+  };
+
+  const handleExportJSON = () => {
+    try {
+      const jsonString = JSON.stringify(profile, null, 2);
+      const element = document.createElement("a");
+      element.setAttribute(
+        "href",
+        "data:text/plain;charset=utf-8," + encodeURIComponent(jsonString)
+      );
+      element.setAttribute(
+        "download",
+        `profile-${new Date().toISOString().split("T")[0]}.json`
+      );
+      element.style.display = "none";
+      document.body.appendChild(element);
+      element.click();
+      document.body.removeChild(element);
+    } catch (error) {
+      logger.error("Error exporting profile", { error });
+      alert("Error exporting profile");
+    }
+  };
+
+  const handleImportJSON = async () => {
+    if (!jsonText.trim()) {
+      alert("Please paste your profile JSON");
+      return;
+    }
+
+    setImportingJson(true);
+    try {
+      const parsed = JSON.parse(jsonText) as ResumeJSON;
+      setProfile(parsed);
+      setShowImportJsonModal(false);
+      setJsonText("");
+      alert("Profile imported successfully! Review and save your profile.");
+    } catch (error) {
+      logger.error("Error parsing JSON", { error });
+      alert(
+        "Error parsing JSON. Please make sure the format is valid profile JSON."
+      );
+    } finally {
+      setImportingJson(false);
     }
   };
 
@@ -287,10 +338,7 @@ export default function ProfilePage() {
   const addAward = () => {
     setProfile({
       ...profile,
-      awards: [
-        ...(profile.awards || []),
-        { title: "", issuer: "", date: "" },
-      ],
+      awards: [...(profile.awards || []), { title: "", issuer: "", date: "" }],
     });
   };
 
@@ -311,17 +359,13 @@ export default function ProfilePage() {
     <div className="space-y-6 pb-12">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">Base Profile</h1>
-        <div className="flex gap-2">
-          <Button
-            onClick={() => setShowImportModal(true)}
-            variant="secondary"
-          >
-            Import from Resume
-          </Button>
-          <Button onClick={handleSave} disabled={saving}>
-            {saving ? "Saving..." : "Save Profile"}
-          </Button>
-        </div>
+        <ProfileActionButtons
+          onImportResume={() => setShowImportModal(true)}
+          onImportJSON={() => setShowImportJsonModal(true)}
+          onExportJSON={handleExportJSON}
+          onSave={handleSave}
+          isSaving={saving}
+        />
       </div>
 
       {loading ? (
@@ -331,7 +375,7 @@ export default function ProfilePage() {
           {/* Header / Contact Information */}
           <Card>
             <Section title="Contact Information">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                 <FormField
                   label="Full Name"
                   value={profile.header.name}
@@ -442,7 +486,10 @@ export default function ProfilePage() {
                 onChange={(v) =>
                   setProfile({
                     ...profile,
-                    skills: v.split(",").map((s) => s.trim()).filter(Boolean),
+                    skills: v
+                      .split(",")
+                      .map((s) => s.trim())
+                      .filter(Boolean),
                   })
                 }
                 rows={3}
@@ -472,12 +519,10 @@ export default function ProfilePage() {
                   {profile.experience.map((exp, index) => (
                     <div
                       key={index}
-                      className="p-4 border border-gray-200 rounded-lg space-y-3"
+                      className="space-y-3 rounded-lg border border-gray-200 p-4"
                     >
-                      <div className="flex justify-between items-start">
-                        <h4 className="font-medium">
-                          Experience {index + 1}
-                        </h4>
+                      <div className="flex items-start justify-between">
+                        <h4 className="font-medium">Experience {index + 1}</h4>
                         <Button
                           variant="secondary"
                           size="sm"
@@ -486,7 +531,7 @@ export default function ProfilePage() {
                           Remove
                         </Button>
                       </div>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
                         <FormField
                           label="Company"
                           value={exp.company}
@@ -567,12 +612,10 @@ export default function ProfilePage() {
                   {profile.projects.map((proj, index) => (
                     <div
                       key={index}
-                      className="p-4 border border-gray-200 rounded-lg space-y-3"
+                      className="space-y-3 rounded-lg border border-gray-200 p-4"
                     >
-                      <div className="flex justify-between items-start">
-                        <h4 className="font-medium">
-                          Project {index + 1}
-                        </h4>
+                      <div className="flex items-start justify-between">
+                        <h4 className="font-medium">Project {index + 1}</h4>
                         <Button
                           variant="secondary"
                           size="sm"
@@ -611,7 +654,7 @@ export default function ProfilePage() {
                         }
                         helpText="Comma-separated list"
                       />
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
                         <FormField
                           label="URL"
                           value={proj.url || ""}
@@ -648,20 +691,18 @@ export default function ProfilePage() {
             >
               {profile.education.length === 0 ? (
                 <p className="text-sm text-gray-500">
-                  No education added yet. Click &quot;Add Education&quot; to
-                  get started.
+                  No education added yet. Click &quot;Add Education&quot; to get
+                  started.
                 </p>
               ) : (
                 <div className="space-y-6">
                   {profile.education.map((edu, index) => (
                     <div
                       key={index}
-                      className="p-4 border border-gray-200 rounded-lg space-y-3"
+                      className="space-y-3 rounded-lg border border-gray-200 p-4"
                     >
-                      <div className="flex justify-between items-start">
-                        <h4 className="font-medium">
-                          Education {index + 1}
-                        </h4>
+                      <div className="flex items-start justify-between">
+                        <h4 className="font-medium">Education {index + 1}</h4>
                         <Button
                           variant="secondary"
                           size="sm"
@@ -677,7 +718,7 @@ export default function ProfilePage() {
                           updateEducation(index, { ...edu, institution: v })
                         }
                       />
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
                         <FormField
                           label="Degree"
                           value={edu.degree}
@@ -695,7 +736,7 @@ export default function ProfilePage() {
                           placeholder="Computer Science"
                         />
                       </div>
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                      <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
                         <FormField
                           label="Start Date"
                           value={edu.startDate}
@@ -751,9 +792,9 @@ export default function ProfilePage() {
                   {profile.certifications.map((cert, index) => (
                     <div
                       key={index}
-                      className="p-4 border border-gray-200 rounded-lg space-y-3"
+                      className="space-y-3 rounded-lg border border-gray-200 p-4"
                     >
-                      <div className="flex justify-between items-start">
+                      <div className="flex items-start justify-between">
                         <h4 className="font-medium">
                           Certification {index + 1}
                         </h4>
@@ -772,7 +813,7 @@ export default function ProfilePage() {
                           updateCertification(index, { ...cert, name: v })
                         }
                       />
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
                         <FormField
                           label="Issuer"
                           value={cert.issuer}
@@ -823,12 +864,10 @@ export default function ProfilePage() {
                   {(profile.publications || []).map((pub, index) => (
                     <div
                       key={index}
-                      className="p-4 border border-gray-200 rounded-lg space-y-3"
+                      className="space-y-3 rounded-lg border border-gray-200 p-4"
                     >
-                      <div className="flex justify-between items-start">
-                        <h4 className="font-medium">
-                          Publication {index + 1}
-                        </h4>
+                      <div className="flex items-start justify-between">
+                        <h4 className="font-medium">Publication {index + 1}</h4>
                         <Button
                           variant="secondary"
                           size="sm"
@@ -858,7 +897,7 @@ export default function ProfilePage() {
                         }
                         helpText="Comma-separated list"
                       />
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
                         <FormField
                           label="Venue"
                           value={pub.venue}
@@ -876,7 +915,7 @@ export default function ProfilePage() {
                           placeholder="2023"
                         />
                       </div>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
                         <FormField
                           label="URL"
                           value={pub.url || ""}
@@ -917,9 +956,9 @@ export default function ProfilePage() {
                   {(profile.languages || []).map((lang, index) => (
                     <div
                       key={index}
-                      className="p-4 border border-gray-200 rounded-lg space-y-3"
+                      className="space-y-3 rounded-lg border border-gray-200 p-4"
                     >
-                      <div className="flex justify-between items-start">
+                      <div className="flex items-start justify-between">
                         <h4 className="font-medium">Language {index + 1}</h4>
                         <Button
                           variant="secondary"
@@ -929,7 +968,7 @@ export default function ProfilePage() {
                           Remove
                         </Button>
                       </div>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
                         <FormField
                           label="Language"
                           value={lang.name}
@@ -973,12 +1012,10 @@ export default function ProfilePage() {
                   {(profile.volunteer || []).map((vol, index) => (
                     <div
                       key={index}
-                      className="p-4 border border-gray-200 rounded-lg space-y-3"
+                      className="space-y-3 rounded-lg border border-gray-200 p-4"
                     >
-                      <div className="flex justify-between items-start">
-                        <h4 className="font-medium">
-                          Volunteer {index + 1}
-                        </h4>
+                      <div className="flex items-start justify-between">
+                        <h4 className="font-medium">Volunteer {index + 1}</h4>
                         <Button
                           variant="secondary"
                           size="sm"
@@ -1001,7 +1038,7 @@ export default function ProfilePage() {
                           updateVolunteer(index, { ...vol, role: v })
                         }
                       />
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
                         <FormField
                           label="Start Date"
                           value={vol.startDate}
@@ -1050,9 +1087,9 @@ export default function ProfilePage() {
                   {(profile.awards || []).map((award, index) => (
                     <div
                       key={index}
-                      className="p-4 border border-gray-200 rounded-lg space-y-3"
+                      className="space-y-3 rounded-lg border border-gray-200 p-4"
                     >
-                      <div className="flex justify-between items-start">
+                      <div className="flex items-start justify-between">
                         <h4 className="font-medium">Award {index + 1}</h4>
                         <Button
                           variant="secondary"
@@ -1069,7 +1106,7 @@ export default function ProfilePage() {
                           updateAward(index, { ...award, title: v })
                         }
                       />
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
                         <FormField
                           label="Issuer"
                           value={award.issuer}
@@ -1126,34 +1163,28 @@ export default function ProfilePage() {
       >
         <div className="space-y-4">
           <p className="text-sm text-gray-600">
-            Paste your resume text below. The AI will extract structured information
-            to populate your profile.
+            Paste your resume text below. The AI will extract structured
+            information to populate your profile.
+          </p>
+
+          <ModelSelector compact showLabel={false} className="mb-4" />
+
+          <p className="mt-2 text-xs text-gray-500">
+            Note: Resume parsing is currently only supported with OpenAI models.
           </p>
 
           <div>
-            <label htmlFor="model" className="block text-sm font-medium mb-2">
-              AI Model
-            </label>
-            <Select
-              value={selectedModel}
-              onChange={setSelectedModel}
-              options={getAllSelectedModels()}
-              placeholder="Select a model"
-            />
-            <p className="text-xs text-gray-500 mt-1">
-              Note: Resume parsing is currently only supported with OpenAI models.
-            </p>
-          </div>
-
-          <div>
-            <label htmlFor="resumeText" className="block text-sm font-medium mb-2">
+            <label
+              htmlFor="resumeText"
+              className="mb-2 block text-sm font-medium"
+            >
               Resume Text
             </label>
             <textarea
               id="resumeText"
               value={resumeText}
               onChange={(e) => setResumeText(e.target.value)}
-              className="w-full border rounded p-3 h-96 font-mono text-sm"
+              className="h-96 w-full rounded border p-3 font-mono text-sm"
               placeholder="Paste your resume text here..."
             />
           </div>
@@ -1172,6 +1203,53 @@ export default function ProfilePage() {
               disabled={importing || !resumeText.trim()}
             >
               {importing ? "Importing..." : "Import"}
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Import JSON Modal */}
+      <Modal
+        isOpen={showImportJsonModal}
+        onClose={() => setShowImportJsonModal(false)}
+        title="Import Profile from JSON"
+      >
+        <div className="space-y-4">
+          <p className="text-sm text-gray-600">
+            Paste your profile JSON below to import it. This will replace your
+            current profile.
+          </p>
+
+          <div>
+            <label
+              htmlFor="jsonText"
+              className="mb-2 block text-sm font-medium"
+            >
+              Profile JSON
+            </label>
+            <textarea
+              id="jsonText"
+              value={jsonText}
+              onChange={(e) => setJsonText(e.target.value)}
+              className="h-96 w-full rounded border p-3 font-mono text-sm"
+              placeholder="Paste your profile JSON here..."
+            />
+          </div>
+
+          <div className="flex justify-end gap-2">
+            <Button
+              variant="secondary"
+              onClick={() => setShowImportJsonModal(false)}
+              disabled={importingJson}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="primary"
+              onClick={handleImportJSON}
+              disabled={importingJson || !jsonText.trim()}
+            >
+              {importingJson ? "Importing..." : "Import"}
             </Button>
           </div>
         </div>

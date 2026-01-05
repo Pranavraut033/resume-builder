@@ -1,11 +1,13 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { setApiKey, getApiKey } from "@/lib/keyStorage";
-import { MultiSelect } from "@/components/ui/MultiSelect";
+
+import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { FormField } from "@/components/ui/FormField";
-import { Button } from "@/components/ui/Button";
+import { MultiSelect } from "@/components/ui/MultiSelect";
+import { setApiKey, getApiKey } from "@/lib/keyStorage";
+import { getAvailableProviders } from "@/lib/llm/providers";
 import { createLogger } from "@/lib/logger";
 import { useModelStore } from "@/store/modelStore";
 
@@ -34,12 +36,12 @@ export default function SettingsPage() {
         // Load models from store
         await loadModels();
 
-        // Load API keys
-        const providers = ["openai", "gemini", "grok", "perplexity"];
+        // Load API keys from available providers
+        const providers = getAvailableProviders();
         const loadedKeys: Record<string, string> = {};
         for (const provider of providers) {
-          const key = await getApiKey(provider);
-          if (key) loadedKeys[provider] = key;
+          const key = await getApiKey(provider.type);
+          if (key) loadedKeys[provider.type] = key;
         }
         setKeys(loadedKeys);
       } catch (error) {
@@ -53,7 +55,7 @@ export default function SettingsPage() {
     setIsSaving(true);
     try {
       await Promise.all(
-        Object.entries(keys).map(([provider, key]) => setApiKey(provider, key)),
+        Object.entries(keys).map(([provider, key]) => setApiKey(provider, key))
       );
 
       // Refresh models after saving API keys using store
@@ -83,18 +85,20 @@ export default function SettingsPage() {
 
       <div className="grid grid-cols-1 gap-6">
         <Card>
-          <h2 className="text-lg font-semibold mb-3">API Key Management</h2>
+          <h2 className="mb-3 text-lg font-semibold">API Key Management</h2>
           <div className="grid grid-cols-1 gap-4">
-            {["openai", "gemini", "grok", "perplexity"].map((provider) => (
-              <FormField
-                key={provider}
-                label={`${provider} API Key`}
-                type="password"
-                value={keys[provider] || ""}
-                onChange={(v) => setKeys({ ...keys, [provider]: v })}
-                placeholder={`Enter ${provider} API key`}
-              />
-            ))}
+            {getAvailableProviders()
+              .filter((p) => p.requiresAuth)
+              .map((provider) => (
+                <FormField
+                  key={provider.type}
+                  label={`${provider.name} API Key`}
+                  type="password"
+                  value={keys[provider.type] || ""}
+                  onChange={(v) => setKeys({ ...keys, [provider.type]: v })}
+                  placeholder={`Enter ${provider.name} API key`}
+                />
+              ))}
             <div className="flex justify-end">
               <Button
                 variant="primary"
@@ -108,14 +112,14 @@ export default function SettingsPage() {
         </Card>
 
         <Card>
-          <h2 className="text-lg font-semibold mb-3">Model Selection</h2>
-          <p className="text-sm mb-3 text-muted">
+          <h2 className="mb-3 text-lg font-semibold">Model Selection</h2>
+          <p className="text-muted mb-3 text-sm">
             Select models from each provider. Your selections will be used for
             resume and cover letter generation.
           </p>
 
           {error && (
-            <div className="mb-3 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded text-sm text-red-800 dark:text-red-200">
+            <div className="mb-3 rounded border border-red-200 bg-red-50 p-3 text-sm text-red-800 dark:border-red-800 dark:bg-red-900/20 dark:text-red-200">
               Error loading models: {error}
               <button
                 onClick={clearError}
@@ -130,7 +134,7 @@ export default function SettingsPage() {
             {/* OpenAI Models */}
             {modelsByProvider.openai && modelsByProvider.openai.length > 0 && (
               <div>
-                <label className="block text-sm font-medium mb-2">
+                <label className="mb-2 block text-sm font-medium">
                   OpenAI Models
                   {selectedProvider === "openai" && (
                     <span className="ml-2 text-xs text-blue-600 dark:text-blue-400">
@@ -153,7 +157,7 @@ export default function SettingsPage() {
             {/* Gemini Models */}
             {modelsByProvider.gemini && modelsByProvider.gemini.length > 0 && (
               <div>
-                <label className="block text-sm font-medium mb-2">
+                <label className="mb-2 block text-sm font-medium">
                   Gemini Models
                   {selectedProvider === "gemini" && (
                     <span className="ml-2 text-xs text-blue-600 dark:text-blue-400">
@@ -176,7 +180,7 @@ export default function SettingsPage() {
             {/* Grok Models */}
             {modelsByProvider.grok && modelsByProvider.grok.length > 0 && (
               <div>
-                <label className="block text-sm font-medium mb-2">
+                <label className="mb-2 block text-sm font-medium">
                   Grok Models
                   {selectedProvider === "grok" && (
                     <span className="ml-2 text-xs text-blue-600 dark:text-blue-400">
@@ -198,7 +202,7 @@ export default function SettingsPage() {
             {modelsByProvider.perplexity &&
               modelsByProvider.perplexity.length > 0 && (
                 <div>
-                  <label className="block text-sm font-medium mb-2">
+                  <label className="mb-2 block text-sm font-medium">
                     Perplexity Models
                     {selectedProvider === "perplexity" && (
                       <span className="ml-2 text-xs text-blue-600 dark:text-blue-400">
@@ -223,7 +227,7 @@ export default function SettingsPage() {
             {/* Ollama Models */}
             {modelsByProvider.ollama && modelsByProvider.ollama.length > 0 && (
               <div>
-                <label className="block text-sm font-medium mb-2">
+                <label className="mb-2 block text-sm font-medium">
                   Ollama Models (Local)
                   {selectedProvider === "ollama" && (
                     <span className="ml-2 text-xs text-blue-600 dark:text-blue-400">
@@ -245,8 +249,8 @@ export default function SettingsPage() {
           </div>
 
           {Object.values(selectedModelsByProvider).flat().length > 0 && (
-            <div className="mt-4 p-3 bg-gray-50 dark:bg-gray-800 rounded text-sm">
-              <p className="font-medium mb-1">Selected Models Summary:</p>
+            <div className="mt-4 rounded bg-gray-50 p-3 text-sm dark:bg-gray-800">
+              <p className="mb-1 font-medium">Selected Models Summary:</p>
               <p className="text-muted">
                 Total: {Object.values(selectedModelsByProvider).flat().length}{" "}
                 model(s) selected
@@ -264,7 +268,7 @@ export default function SettingsPage() {
       </div>
 
       <Card>
-        <h2 className="text-lg font-semibold mb-3">Backup Settings</h2>
+        <h2 className="mb-3 text-lg font-semibold">Backup Settings</h2>
         <p>
           Google Drive backup is optional. Configure API key above for Google
           services.
