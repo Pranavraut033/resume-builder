@@ -1,10 +1,10 @@
 import { vi } from "vitest";
+
 import { LLMProvider } from "@/types/llm";
 import { ResumeJSON, JobDetails } from "@/types/resume";
+
 import {
-  TEST_CONFIG,
   getTestApiKey,
-  getTestModel,
 } from "../config/test.config";
 
 /**
@@ -23,7 +23,18 @@ export class MockLLMProvider implements LLMProvider {
 
   generateCoverLetter = vi.fn().mockResolvedValue("Mock cover letter content");
 
+  generateText = vi.fn().mockResolvedValue("Mock generated text");
+
   fetchModels = vi.fn().mockResolvedValue(["mock-model-1", "mock-model-2"]);
+
+  runPrompt = vi.fn().mockResolvedValue({
+    content: JSON.stringify({ message: "Mock prompt response" }),
+    usage: {
+      prompt_tokens: 10,
+      completion_tokens: 20,
+      total_tokens: 30,
+    },
+  });
 
   parseJobDetails = vi.fn().mockResolvedValue({
     job: {
@@ -112,9 +123,9 @@ export class MockLLMProvider implements LLMProvider {
  */
 export const mockGetApiKey = vi.fn(
   (provider: string): Promise<string | null> => {
-    const key = getTestApiKey(provider as any);
+    const key = getTestApiKey(provider as unknown as string);
     return Promise.resolve(key || "mock-api-key");
-  },
+  }
 );
 export const mockSetApiKey = vi.fn().mockResolvedValue(undefined);
 export const mockDeleteApiKey = vi.fn().mockResolvedValue(undefined);

@@ -1,18 +1,20 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
+
 // Import mocks FIRST before importing the module under test
-import { mockGetApiKey } from "../mocks/llm";
 import {
   parseJobDescription,
   generateResume,
   generateCoverLetter,
   ProviderFactory,
 } from "@/lib/clientLLM";
+
+import { shouldUseRealLLMs } from "../config/test.config";
 import {
   sampleBaseProfile,
   sampleJobDetails,
   sampleTailoredResume,
 } from "../fixtures/data";
-import { getTestModel, shouldUseRealLLMs } from "../config/test.config";
+import { mockGetApiKey } from "../mocks/llm";
 
 // Create mock implementations before mocking
 const mockParseJobDetails = vi.fn();
@@ -23,7 +25,7 @@ const mockGenerateCoverLetter = vi.fn();
 if (!shouldUseRealLLMs()) {
   vi.mock("@/lib/llm/providers/openai", () => ({
     OpenAIProvider: class {
-      constructor(apiKey: string) {}
+      constructor(_apiKey: string) { }
       parseJobDetails = mockParseJobDetails;
       generateResume = mockGenerateResume;
       generateCoverLetter = mockGenerateCoverLetter;
@@ -32,7 +34,7 @@ if (!shouldUseRealLLMs()) {
 
   vi.mock("@/lib/llm/providers/gemini", () => ({
     GeminiProvider: class {
-      constructor(apiKey: string, model?: string) {}
+      constructor(_apiKey: string, _model?: string) { }
       generateResume = mockGenerateResume;
       generateCoverLetter = mockGenerateCoverLetter;
     },
@@ -40,7 +42,7 @@ if (!shouldUseRealLLMs()) {
 
   vi.mock("@/lib/llm/providers/grok", () => ({
     GrokProvider: class {
-      constructor(apiKey: string) {}
+      constructor(_apiKey: string) { }
       generateResume = mockGenerateResume;
       generateCoverLetter = mockGenerateCoverLetter;
     },
@@ -48,7 +50,7 @@ if (!shouldUseRealLLMs()) {
 
   vi.mock("@/lib/llm/providers/ollama", () => ({
     OllamaProvider: class {
-      constructor() {}
+      constructor() { }
       generateResume = mockGenerateResume;
       generateCoverLetter = mockGenerateCoverLetter;
     },
@@ -77,7 +79,7 @@ describe("Client LLM Functions", () => {
       const result = await parseJobDescription(
         "Job description text",
         "gpt-4o",
-        "openai",
+        "openai"
       );
 
       expect(result).toEqual({
@@ -86,7 +88,7 @@ describe("Client LLM Functions", () => {
       });
       expect(mockParseJobDetails).toHaveBeenCalledWith(
         "Job description text",
-        "gpt-4o",
+        "gpt-4o"
       );
     });
 
@@ -94,7 +96,7 @@ describe("Client LLM Functions", () => {
       const result = await parseJobDescription(
         "Software Engineer at Google Inc",
         "llama3",
-        "ollama",
+        "ollama"
       );
 
       expect(result.job.job_title).toBeTruthy();
@@ -106,7 +108,7 @@ describe("Client LLM Functions", () => {
       const result = await parseJobDescription(
         "We are looking for a Backend Developer at Microsoft to join our team",
         "llama3",
-        "ollama",
+        "ollama"
       );
 
       expect(result.company.company_name).toContain("Microsoft");
@@ -116,7 +118,7 @@ describe("Client LLM Functions", () => {
       const result = await parseJobDescription(
         "Senior Frontend Engineer position at Acme Corp",
         "llama3",
-        "ollama",
+        "ollama"
       );
 
       expect(result.job.job_title).toBeTruthy();
@@ -126,7 +128,7 @@ describe("Client LLM Functions", () => {
       mockGetApiKey.mockResolvedValue(null);
 
       await expect(
-        parseJobDescription("Job description", "model", "openai"),
+        parseJobDescription("Job description", "model", "openai")
       ).rejects.toThrow("No provider available for parsing");
     });
 
@@ -137,7 +139,7 @@ describe("Client LLM Functions", () => {
       const result = await parseJobDescription(
         "Software Engineer at TechCorp",
         "gpt-4o",
-        "openai",
+        "openai"
       );
 
       expect(result.raw_description).toBe("Software Engineer at TechCorp");
@@ -155,7 +157,7 @@ describe("Client LLM Functions", () => {
         sampleJobDetails.job.job_title,
         sampleJobDetails.company.company_name,
         "gpt-4o",
-        "openai",
+        "openai"
       );
 
       expect(result).toEqual(sampleTailoredResume);
@@ -171,7 +173,7 @@ describe("Client LLM Functions", () => {
         sampleJobDetails.job.job_title,
         sampleJobDetails.company.company_name,
         "llama3",
-        "ollama",
+        "ollama"
       );
 
       expect(result).toEqual(sampleTailoredResume);
@@ -187,8 +189,8 @@ describe("Client LLM Functions", () => {
           sampleJobDetails.job.job_title,
           sampleJobDetails.company.company_name,
           "model",
-          "openai",
-        ),
+          "openai"
+        )
       ).rejects.toThrow("Provider not available");
     });
 
@@ -202,8 +204,8 @@ describe("Client LLM Functions", () => {
           sampleJobDetails.job.job_title,
           sampleJobDetails.company.company_name,
           "gpt-4o",
-          "openai",
-        ),
+          "openai"
+        )
       ).rejects.toThrow("API Error");
     });
   });
@@ -219,7 +221,7 @@ describe("Client LLM Functions", () => {
         sampleJobDetails.job.job_title,
         sampleJobDetails.company.company_name,
         "gemini-pro",
-        "gemini",
+        "gemini"
       );
 
       expect(result).toBe("Dear Hiring Manager...");
@@ -236,7 +238,7 @@ describe("Client LLM Functions", () => {
         sampleJobDetails.job.job_title,
         sampleJobDetails.company.company_name,
         "grok-4-1-fast-reasoning",
-        "grok",
+        "grok"
       );
 
       expect(result).toBe("Cover letter text");
@@ -253,8 +255,8 @@ describe("Client LLM Functions", () => {
           sampleJobDetails.job.job_title,
           sampleJobDetails.company.company_name,
           "model",
-          "openai",
-        ),
+          "openai"
+        )
       ).rejects.toThrow("Provider not available");
     });
   });
@@ -269,7 +271,7 @@ describe("Client LLM Functions", () => {
         sampleJobDetails.job.job_title,
         sampleJobDetails.company.company_name,
         "gpt-4o",
-        "openai",
+        "openai"
       );
       await generateResume(
         sampleBaseProfile,
@@ -277,7 +279,7 @@ describe("Client LLM Functions", () => {
         sampleJobDetails.job.job_title,
         sampleJobDetails.company.company_name,
         "gpt-4o",
-        "openai",
+        "openai"
       );
 
       // Both calls should succeed

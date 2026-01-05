@@ -1,11 +1,13 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
+
 import { GrokProvider } from "@/lib/llm/providers/grok";
-import { sampleBaseProfile, sampleJobDetails } from "../../../fixtures/data";
+
 import {
   getTestApiKey,
   getTestModel,
   shouldUseRealLLMs,
 } from "../../../config/test.config";
+import { sampleBaseProfile, sampleJobDetails } from "../../../fixtures/data";
 
 // Mock OpenAI SDK (Grok uses OpenAI SDK) (skip if testing with real APIs)
 const mockChatCompletionsCreate = vi.fn();
@@ -14,13 +16,14 @@ const mockModelsList = vi.fn();
 if (!shouldUseRealLLMs()) {
   vi.mock("openai", () => {
     return {
-      default: vi.fn().mockImplementation(function (this: any) {
-        this.chat = {
+      default: vi.fn().mockImplementation(function (this: unknown) {
+        const self = this as unknown as { chat: unknown; models: unknown };
+        self.chat = {
           completions: {
             create: mockChatCompletionsCreate,
           },
         };
-        this.models = {
+        self.models = {
           list: mockModelsList,
         };
         return this;
@@ -32,7 +35,7 @@ if (!shouldUseRealLLMs()) {
 describe("GrokProvider", () => {
   let provider: GrokProvider;
   const TEST_API_KEY = getTestApiKey("grok") || "test-api-key";
-  const TEST_MODEL = getTestModel("grok");
+  const _TEST_MODEL = getTestModel("grok");
   const useRealAPIs =
     shouldUseRealLLMs() && TEST_API_KEY && TEST_API_KEY !== "test-api-key";
 
@@ -91,13 +94,13 @@ describe("GrokProvider", () => {
       expect(mockChatCompletionsCreate).toHaveBeenCalledWith(
         expect.objectContaining({
           model: "grok-4-1-fast-reasoning",
-        }),
+        })
       );
     });
 
     it("should throw error on API failure", async () => {
       mockChatCompletionsCreate.mockRejectedValue(
-        new Error("Rate limit exceeded"),
+        new Error("Rate limit exceeded")
       );
 
       await expect(
@@ -106,7 +109,7 @@ describe("GrokProvider", () => {
           jobDescription: sampleJobDetails.raw_description,
           jobRole: sampleJobDetails.job.job_title,
           company: sampleJobDetails.company.company_name,
-        }),
+        })
       ).rejects.toThrow("Grok generateResume failed");
     });
 
@@ -121,7 +124,7 @@ describe("GrokProvider", () => {
           jobDescription: sampleJobDetails.raw_description,
           jobRole: sampleJobDetails.job.job_title,
           company: sampleJobDetails.company.company_name,
-        }),
+        })
       ).rejects.toThrow("Invalid JSON");
     });
   });

@@ -1,11 +1,13 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
+
 import { GeminiProvider } from "@/lib/llm/providers/gemini";
-import { sampleBaseProfile, sampleJobDetails } from "../../../fixtures/data";
+
 import {
   getTestApiKey,
   getTestModel,
   shouldUseRealLLMs,
 } from "../../../config/test.config";
+import { sampleBaseProfile, sampleJobDetails } from "../../../fixtures/data";
 
 // Mock @google/genai (skip if testing with real APIs)
 if (!shouldUseRealLLMs()) {
@@ -14,7 +16,7 @@ if (!shouldUseRealLLMs()) {
 
     return {
       GoogleGenAI: class MockGoogleGenAI {
-        constructor(config: any) {}
+        constructor(_config: unknown) { }
         models = {
           generateContent: mockGenerateContent,
         };
@@ -25,17 +27,17 @@ if (!shouldUseRealLLMs()) {
 
 describe("GeminiProvider", () => {
   let provider: GeminiProvider;
-  let mockGenerateContent: any;
+  let mockGenerateContent: unknown;
   const TEST_API_KEY = getTestApiKey("gemini") || "test-api-key";
-  const TEST_MODEL = getTestModel("gemini");
+  const _TEST_MODEL = getTestModel("gemini");
   const useRealAPIs =
     shouldUseRealLLMs() && TEST_API_KEY && TEST_API_KEY !== "test-api-key";
 
   beforeEach(() => {
     provider = new GeminiProvider(TEST_API_KEY);
     if (!useRealAPIs) {
-      const geminiClient = (provider as any).client;
-      mockGenerateContent = geminiClient.models.generateContent;
+      const geminiClient = (provider as unknown as { client: unknown }).client;
+      mockGenerateContent = (geminiClient as unknown as { models: { generateContent: unknown } }).models.generateContent;
     }
   });
 
@@ -90,7 +92,7 @@ describe("GeminiProvider", () => {
           jobDescription: sampleJobDetails.raw_description,
           jobRole: sampleJobDetails.job.job_title,
           company: sampleJobDetails.company.company_name,
-        }),
+        })
       ).rejects.toThrow("Gemini generateResume failed");
     });
 
@@ -105,7 +107,7 @@ describe("GeminiProvider", () => {
           jobDescription: sampleJobDetails.raw_description,
           jobRole: sampleJobDetails.job.job_title,
           company: sampleJobDetails.company.company_name,
-        }),
+        })
       ).rejects.toThrow("Invalid JSON");
     });
   });
@@ -148,7 +150,7 @@ describe("GeminiProvider", () => {
 
   describe("fetchModels", () => {
     it("should return hardcoded Gemini models", async () => {
-      (global.fetch as any) = vi
+      (global.fetch as unknown as MockedFunction<typeof fetch>) = vi
         .fn()
         .mockRejectedValue(new Error("Network error"));
 

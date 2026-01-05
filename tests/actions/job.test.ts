@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
-import { prismaMock, resetPrismaMock } from "../mocks/prisma";
+
 import { sampleJobDetails, sampleTailoredResume } from "../fixtures/data";
+import { prismaMock, resetPrismaMock } from "../mocks/prisma";
 
 // Mock revalidatePath
 vi.mock("next/cache", () => ({
@@ -108,19 +109,26 @@ describe("Job Actions", () => {
         pageFormat: "letter",
         fontSize: "medium",
         fontFamily: "Inter",
-        colorsJson: JSON.stringify({
-          primary: "#3b82f6",
-          secondary: "#64748b",
-          accent: "#8b5cf6",
-          text: "#1f2937",
-          background: "#ffffff",
-        }),
+        themeId: "Default Blue",
+        colors: "#3b82f6,#64748b,#8b5cf6,#1f2937,#ffffff",
       };
 
       const mockCoverLetter = {
         id: 1,
         jobId: 2,
         contentText: "Cover letter text",
+        template: "professional-block",
+        fontSize: "medium",
+        fontFamily: "Inter",
+        lineHeight: "normal",
+        colors: "#3b82f6,#64748b,#8b5cf6,#1f2937,#ffffff",
+        provider: null,
+        model: null,
+        customPrompt: null,
+        generatedAt: null,
+        version: 1,
+        lastEdited: new Date().toISOString(),
+        pageFormat: "a4",
       };
 
       prismaMock.company.create.mockResolvedValue(mockCompany);
@@ -296,13 +304,8 @@ describe("Job Actions", () => {
         pageFormat: "letter",
         fontSize: "medium",
         fontFamily: "Inter",
-        colorsJson: JSON.stringify({
-          primary: "#3b82f6",
-          secondary: "#64748b",
-          accent: "#8b5cf6",
-          text: "#1f2937",
-          background: "#ffffff",
-        }),
+        themeId: "Default Blue",
+        colors: "#3b82f6,#64748b,#8b5cf6,#1f2937,#ffffff",
       };
 
       prismaMock.resume.findFirst.mockResolvedValue(mockResume);
@@ -357,6 +360,18 @@ describe("Job Actions", () => {
         id: 1,
         jobId: 1,
         contentText: "Cover letter text",
+        template: "professional-block",
+        fontSize: "medium",
+        fontFamily: "Inter",
+        lineHeight: "normal",
+        colors: "#3b82f6,#64748b,#8b5cf6,#1f2937,#ffffff",
+        provider: null,
+        model: null,
+        customPrompt: null,
+        generatedAt: null,
+        version: 1,
+        lastEdited: new Date().toISOString(),
+        pageFormat: "a4",
       };
 
       prismaMock.coverLetter.findFirst.mockResolvedValue(mockCoverLetter);

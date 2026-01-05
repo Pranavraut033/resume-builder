@@ -3,7 +3,7 @@ import { beforeAll, afterAll, vi } from "vitest";
 // Mock Tauri APIs
 beforeAll(() => {
   // Mock Tauri store API
-  global.window = global.window || ({} as any);
+  global.window = global.window || ({} as unknown);
 
   vi.mock("@tauri-apps/plugin-store", () => ({
     Store: vi.fn().mockImplementation(() => ({

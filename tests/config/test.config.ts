@@ -110,7 +110,7 @@ export function shouldUseRealLLMs(): boolean {
  * Helper to get API key for a provider
  */
 export function getTestApiKey(
-  provider: "openai" | "gemini" | "grok" | "perplexity" | "ollama",
+  provider: "openai" | "gemini" | "grok" | "perplexity" | "ollama"
 ): string | null {
   return TEST_CONFIG.apiKeys[provider];
 }
@@ -119,7 +119,7 @@ export function getTestApiKey(
  * Helper to get model for a provider
  */
 export function getTestModel(
-  provider: "openai" | "gemini" | "grok" | "perplexity" | "ollama",
+  provider: "openai" | "gemini" | "grok" | "perplexity" | "ollama"
 ): string {
   return TEST_CONFIG.models[provider];
 }

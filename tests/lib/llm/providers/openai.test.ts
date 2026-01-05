@@ -1,11 +1,13 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
+
 import { OpenAIProvider } from "@/lib/llm/providers/openai";
-import { sampleBaseProfile, sampleJobDetails } from "../../../fixtures/data";
+
 import {
   getTestApiKey,
   getTestModel,
   shouldUseRealLLMs,
 } from "../../../config/test.config";
+import { sampleBaseProfile, sampleJobDetails } from "../../../fixtures/data";
 
 // Mock OpenAI SDK (skip if testing with real APIs)
 if (!shouldUseRealLLMs()) {
@@ -32,16 +34,16 @@ if (!shouldUseRealLLMs()) {
 
 describe("OpenAIProvider", () => {
   let provider: OpenAIProvider;
-  let mockClient: any;
+  let mockClient: unknown;
   const TEST_API_KEY = getTestApiKey("openai") || "test-api-key";
-  const TEST_MODEL = getTestModel("openai");
+  const _TEST_MODEL = getTestModel("openai");
   const useRealAPIs =
     shouldUseRealLLMs() && TEST_API_KEY && TEST_API_KEY !== "test-api-key";
 
   beforeEach(() => {
     provider = new OpenAIProvider(TEST_API_KEY);
     if (!useRealAPIs) {
-      mockClient = (provider as any).client;
+      mockClient = (provider as unknown as { client: unknown }).client;
     }
   });
 
@@ -80,7 +82,7 @@ describe("OpenAIProvider", () => {
         expect.objectContaining({
           model: "gpt-4o",
           temperature: 0.7, // gpt-4o supports custom temperature
-        }),
+        })
       );
     });
 
@@ -105,7 +107,7 @@ describe("OpenAIProvider", () => {
       expect(mockClient.chat.completions.create).toHaveBeenCalledWith(
         expect.objectContaining({
           model: "gpt-4o",
-        }),
+        })
       );
     });
 
@@ -138,7 +140,9 @@ describe("OpenAIProvider", () => {
         model: "o1-preview",
       });
 
-      const mockFn = mockClient.chat.completions.create as ReturnType<typeof vi.fn>;
+      const mockFn = mockClient.chat.completions.create as ReturnType<
+        typeof vi.fn
+      >;
       const lastCallIndex = mockFn.mock.calls.length - 1;
       const callArgs = mockFn.mock.calls[lastCallIndex][0];
       expect(callArgs.model).toBe("o1-preview");
@@ -147,7 +151,7 @@ describe("OpenAIProvider", () => {
 
     it("should throw error on API failure", async () => {
       mockClient.chat.completions.create.mockRejectedValue(
-        new Error("API Error"),
+        new Error("API Error")
       );
 
       await expect(
@@ -156,7 +160,7 @@ describe("OpenAIProvider", () => {
           jobDescription: sampleJobDetails.raw_description,
           jobRole: sampleJobDetails.job.job_title,
           company: sampleJobDetails.company.company_name,
-        }),
+        })
       ).rejects.toThrow("OpenAI generateResume failed");
     });
 
@@ -171,7 +175,7 @@ describe("OpenAIProvider", () => {
           jobDescription: sampleJobDetails.raw_description,
           jobRole: sampleJobDetails.job.job_title,
           company: sampleJobDetails.company.company_name,
-        }),
+        })
       ).rejects.toThrow("No response from OpenAI");
     });
 
@@ -186,7 +190,7 @@ describe("OpenAIProvider", () => {
           jobDescription: sampleJobDetails.raw_description,
           jobRole: sampleJobDetails.job.job_title,
           company: sampleJobDetails.company.company_name,
-        }),
+        })
       ).rejects.toThrow("Invalid JSON response from OpenAI");
     });
   });
@@ -235,7 +239,7 @@ describe("OpenAIProvider", () => {
 
     it("should handle API errors", async () => {
       mockClient.chat.completions.create.mockRejectedValue(
-        new Error("Rate limit exceeded"),
+        new Error("Rate limit exceeded")
       );
 
       await expect(
@@ -245,7 +249,7 @@ describe("OpenAIProvider", () => {
           jobRole: sampleJobDetails.job.job_title,
           company: sampleJobDetails.company.company_name,
           resume: sampleBaseProfile,
-        }),
+        })
       ).rejects.toThrow("OpenAI generateCoverLetter failed");
     });
   });
@@ -297,14 +301,14 @@ describe("OpenAIProvider", () => {
 
       const result = await provider.parseJobDetails(
         "Job description text",
-        "gpt-4o",
+        "gpt-4o"
       );
 
       expect(result).toEqual(sampleJobDetails);
       expect(mockClient.chat.completions.parse).toHaveBeenCalledWith(
         expect.objectContaining({
           model: "gpt-4o",
-        }),
+        })
       );
     });
 
@@ -318,7 +322,7 @@ describe("OpenAIProvider", () => {
       expect(mockClient.chat.completions.parse).toHaveBeenCalledWith(
         expect.objectContaining({
           model: "gpt-4o",
-        }),
+        })
       );
     });
 
@@ -328,7 +332,7 @@ describe("OpenAIProvider", () => {
       });
 
       await expect(provider.parseJobDetails("Job description")).rejects.toThrow(
-        "Failed to parse job details",
+        "Failed to parse job details"
       );
     });
   });

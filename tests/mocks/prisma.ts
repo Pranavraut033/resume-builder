@@ -1,5 +1,5 @@
-import { vi } from "vitest";
 import { PrismaClient } from "@prisma/client";
+import { vi } from "vitest";
 import { mockDeep, mockReset, DeepMockProxy } from "vitest-mock-extended";
 
 // Create a deep mock of PrismaClient

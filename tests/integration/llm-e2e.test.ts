@@ -12,15 +12,17 @@
  */
 
 import { describe, it, expect, beforeEach } from "vitest";
+
+import { GeminiProvider } from "@/lib/llm/providers/gemini";
+import { GrokProvider } from "@/lib/llm/providers/grok";
+import { OllamaProvider } from "@/lib/llm/providers/ollama";
+import { OpenAIProvider } from "@/lib/llm/providers/openai";
+
 import {
   shouldUseRealLLMs,
   getTestApiKey,
   getTestModel,
 } from "../config/test.config";
-import { OpenAIProvider } from "@/lib/llm/providers/openai";
-import { GeminiProvider } from "@/lib/llm/providers/gemini";
-import { GrokProvider } from "@/lib/llm/providers/grok";
-import { OllamaProvider } from "@/lib/llm/providers/ollama";
 import { sampleBaseProfile, sampleJobDetails } from "../fixtures/data";
 
 /**
@@ -77,7 +79,7 @@ describeIfRealLLM("Real LLM API Integration Tests", () => {
       it("should parse job details with real OpenAI API", async () => {
         const result = await provider.parseJobDetails(
           sampleJobDetails.raw_description,
-          TEST_MODEL,
+          TEST_MODEL
         );
 
         expect(result).toBeDefined();
@@ -244,10 +246,10 @@ describe("Real LLM Test Configuration", () => {
 
   it("should report whether real LLMs are enabled", () => {
     const enabled = shouldUseRealLLMs();
-    console.log(`\nReal LLM API testing: ${enabled ? "ENABLED" : "DISABLED"}`);
-    console.log("To enable, set: USE_REAL_LLM_APIS=true");
-    console.log(
-      "With optional API keys: TEST_OPENAI_API_KEY, TEST_GEMINI_API_KEY, TEST_GROK_API_KEY",
+    console.warn(`\nReal LLM API testing: ${enabled ? "ENABLED" : "DISABLED"}`);
+    console.warn("To enable, set: USE_REAL_LLM_APIS=true");
+    console.warn(
+      "With optional API keys: TEST_OPENAI_API_KEY, TEST_GEMINI_API_KEY, TEST_GROK_API_KEY"
     );
     expect(typeof enabled).toBe("boolean");
   });

@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
-import { prismaMock, resetPrismaMock } from "../mocks/prisma";
+
 import { sampleBaseProfile } from "../fixtures/data";
+import { prismaMock, resetPrismaMock } from "../mocks/prisma";
 
 // Mock revalidatePath
 vi.mock("next/cache", () => ({
@@ -119,7 +120,7 @@ describe("Profile Actions", () => {
         github: null,
         website: null,
         summary: "Old summary",
-        skillsJson: '[]',
+        skillsJson: "[]",
         experienceJson: "[]",
         projectsJson: "[]",
         educationJson: "[]",
@@ -182,7 +183,9 @@ describe("Profile Actions", () => {
         experienceJson: JSON.stringify(profileWithComplexData.experience),
         projectsJson: JSON.stringify(profileWithComplexData.projects),
         educationJson: JSON.stringify(profileWithComplexData.education),
-        certificationsJson: JSON.stringify(profileWithComplexData.certifications),
+        certificationsJson: JSON.stringify(
+          profileWithComplexData.certifications
+        ),
         publicationsJson: null,
         languagesJson: null,
         volunteerJson: null,
@@ -197,7 +200,9 @@ describe("Profile Actions", () => {
       expect(result).toEqual({ success: true });
 
       const callArg = prismaMock.profile.create.mock.calls[0][0];
-      expect(callArg.data.experienceJson).toBe(JSON.stringify(profileWithComplexData.experience));
+      expect(callArg.data.experienceJson).toBe(
+        JSON.stringify(profileWithComplexData.experience)
+      );
     });
   });
 });

@@ -1,18 +1,32 @@
-import { describe, it, expect, beforeEach, vi } from "vitest";
+import { PrismaBetterSqlite3 } from "@prisma/adapter-better-sqlite3";
 import { PrismaClient } from "@prisma/client";
+import Database from "better-sqlite3";
+import { describe, it, expect, vi } from "vitest";
+
+// Helper function to create test adapter
+function createTestAdapter() {
+  const _db = new Database(":memory:");
+  return new PrismaBetterSqlite3(
+    { url: "file::memory:" },
+    { timestampFormat: "unixepoch-ms" }
+  );
+}
 
 describe("Prisma Initialization", () => {
   it("should create a PrismaClient instance", () => {
-    const prisma = new PrismaClient();
+    const adapter = createTestAdapter();
+    const prisma = new PrismaClient({ adapter });
     expect(prisma).toBeDefined();
     expect(prisma).toBeInstanceOf(PrismaClient);
   });
 
   it("should use correct log levels in development", () => {
-    const originalEnv = process.env.NODE_ENV;
+    const _originalEnv = process.env.NODE_ENV;
     vi.stubEnv("NODE_ENV", "development");
 
+    const adapter = createTestAdapter();
     const prisma = new PrismaClient({
+      adapter,
       log: ["query", "error", "warn"],
     });
 
@@ -22,10 +36,12 @@ describe("Prisma Initialization", () => {
   });
 
   it("should use error-only logs in production", () => {
-    const originalEnv = process.env.NODE_ENV;
+    const _originalEnv = process.env.NODE_ENV;
     vi.stubEnv("NODE_ENV", "production");
 
+    const adapter = createTestAdapter();
     const prisma = new PrismaClient({
+      adapter,
       log: ["error"],
     });
 

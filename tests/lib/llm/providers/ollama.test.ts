@@ -1,7 +1,9 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, Mock } from "vitest";
+
 import { OllamaProvider } from "@/lib/llm/providers/ollama";
-import { sampleBaseProfile, sampleJobDetails } from "../../../fixtures/data";
+
 import { getTestModel, shouldUseRealLLMs } from "../../../config/test.config";
+import { sampleBaseProfile, sampleJobDetails } from "../../../fixtures/data";
 
 // Mock fetch globally (skip if testing with real APIs)
 if (!shouldUseRealLLMs()) {
@@ -10,7 +12,7 @@ if (!shouldUseRealLLMs()) {
 
 describe("OllamaProvider", () => {
   let provider: OllamaProvider;
-  const TEST_MODEL = getTestModel("ollama");
+  const _TEST_MODEL = getTestModel("ollama");
   const useRealAPIs = shouldUseRealLLMs();
 
   beforeEach(() => {
@@ -32,12 +34,12 @@ describe("OllamaProvider", () => {
         certifications: [],
       };
 
-      (global.fetch as any).mockResolvedValue({
+      (global.fetch as unknown as MockedFunction<typeof fetch>).mockResolvedValue({
         ok: true,
         json: async () => ({
           response: JSON.stringify(mockResume),
         }),
-      });
+      } as Response);
 
       const result = await provider.generateResume({
         baseProfile: sampleBaseProfile,
@@ -52,12 +54,12 @@ describe("OllamaProvider", () => {
         "http://localhost:11434/api/generate",
         expect.objectContaining({
           method: "POST",
-        }),
+        })
       );
     });
 
     it("should use default model when not specified", async () => {
-      (global.fetch as any).mockResolvedValue({
+      (global.fetch as unknown as Mock).mockResolvedValue({
         ok: true,
         json: async () => ({
           response: JSON.stringify({}),
@@ -71,12 +73,12 @@ describe("OllamaProvider", () => {
         company: sampleJobDetails.company.company_name,
       });
 
-      const callBody = JSON.parse((global.fetch as any).mock.calls[0][1].body);
+      const callBody = JSON.parse(((global.fetch as unknown as Mock).mock.calls[0]?.[1] as unknown as Record<string, string>).body);
       expect(callBody.model).toBe("llama2");
     });
 
     it("should throw error on API failure", async () => {
-      (global.fetch as any).mockResolvedValue({
+      (global.fetch as unknown as Mock).mockResolvedValue({
         ok: false,
         status: 500,
         statusText: "Internal Server Error",
@@ -88,12 +90,12 @@ describe("OllamaProvider", () => {
           jobDescription: sampleJobDetails.raw_description,
           jobRole: sampleJobDetails.job.job_title,
           company: sampleJobDetails.company.company_name,
-        }),
+        })
       ).rejects.toThrow("Ollama API error");
     });
 
     it("should throw error on invalid JSON response", async () => {
-      (global.fetch as any).mockResolvedValue({
+      (global.fetch as unknown as Mock).mockResolvedValue({
         ok: true,
         json: async () => ({
           response: "invalid json",
@@ -106,12 +108,12 @@ describe("OllamaProvider", () => {
           jobDescription: sampleJobDetails.raw_description,
           jobRole: sampleJobDetails.job.job_title,
           company: sampleJobDetails.company.company_name,
-        }),
+        })
       ).rejects.toThrow("Invalid JSON");
     });
 
     it("should throw error on network failure", async () => {
-      (global.fetch as any).mockRejectedValue(new Error("Network error"));
+      (global.fetch as unknown as Mock).mockRejectedValue(new Error("Network error"));
 
       await expect(
         provider.generateResume({
@@ -119,7 +121,7 @@ describe("OllamaProvider", () => {
           jobDescription: sampleJobDetails.raw_description,
           jobRole: sampleJobDetails.job.job_title,
           company: sampleJobDetails.company.company_name,
-        }),
+        })
       ).rejects.toThrow("Network error");
     });
   });
@@ -128,7 +130,7 @@ describe("OllamaProvider", () => {
     it("should generate cover letter using Ollama API", async () => {
       const mockCoverLetter = "Dear Hiring Manager, ...";
 
-      (global.fetch as any).mockResolvedValue({
+      (global.fetch as unknown as Mock).mockResolvedValue({
         ok: true,
         json: async () => ({
           response: mockCoverLetter,
@@ -148,7 +150,7 @@ describe("OllamaProvider", () => {
     });
 
     it("should handle empty response", async () => {
-      (global.fetch as any).mockResolvedValue({
+      (global.fetch as unknown as Mock).mockResolvedValue({
         ok: true,
         json: async () => ({
           response: "",
@@ -169,7 +171,7 @@ describe("OllamaProvider", () => {
 
   describe("fetchModels", () => {
     it("should fetch available models from Ollama", async () => {
-      (global.fetch as any).mockResolvedValue({
+      (global.fetch as unknown as Mock).mockResolvedValue({
         ok: true,
         json: async () => ({
           models: [
@@ -188,12 +190,12 @@ describe("OllamaProvider", () => {
         "mistral:latest",
       ]);
       expect(global.fetch).toHaveBeenCalledWith(
-        "http://localhost:11434/api/tags",
+        "http://localhost:11434/api/tags"
       );
     });
 
     it("should return fallback message on error", async () => {
-      (global.fetch as any).mockRejectedValue(new Error("Connection refused"));
+      (global.fetch as unknown as Mock).mockRejectedValue(new Error("Connection refused"));
 
       const result = await provider.fetchModels();
 
@@ -201,7 +203,7 @@ describe("OllamaProvider", () => {
     });
 
     it("should handle empty model list", async () => {
-      (global.fetch as any).mockResolvedValue({
+      (global.fetch as unknown as Mock).mockResolvedValue({
         ok: true,
         json: async () => ({
           models: [],
