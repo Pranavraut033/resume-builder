@@ -7,7 +7,6 @@
  * Keys are encrypted with a master password before being written to disk.
  */
 
-import { createLogger } from "@/lib/logger";
 import {
   exists,
   readTextFile,
@@ -15,10 +14,12 @@ import {
   BaseDirectory,
 } from "@tauri-apps/plugin-fs";
 
+import { createLogger } from "@/lib/logger";
+
 const logger = createLogger("KeyStorage");
 
 // Encryption configuration
-const KEY_LENGTH = 32;
+const _KEY_LENGTH = 32;
 const IV_LENGTH = 16;
 const SALT_LENGTH = 32;
 
@@ -53,7 +54,7 @@ function isTauriContext(): boolean {
  */
 async function deriveKey(
   password: string,
-  salt: Uint8Array,
+  salt: Uint8Array
 ): Promise<CryptoKey> {
   const enc = new TextEncoder();
   const keyMaterial = await crypto.subtle.importKey(
@@ -61,7 +62,7 @@ async function deriveKey(
     enc.encode(password),
     "PBKDF2",
     false,
-    ["deriveBits", "deriveKey"],
+    ["deriveBits", "deriveKey"]
   );
 
   return crypto.subtle.deriveKey(
@@ -74,7 +75,7 @@ async function deriveKey(
     keyMaterial,
     { name: "AES-GCM", length: 256 },
     false,
-    ["encrypt", "decrypt"],
+    ["encrypt", "decrypt"]
   );
 }
 
@@ -152,7 +153,7 @@ async function encrypt(text: string, password: string): Promise<EncryptedData> {
   const encryptedBuffer = await crypto.subtle.encrypt(
     { name: "AES-GCM", iv },
     key,
-    enc.encode(text),
+    enc.encode(text)
   );
 
   // Convert to hex strings for JSON storage
@@ -177,7 +178,7 @@ async function encrypt(text: string, password: string): Promise<EncryptedData> {
  */
 async function decrypt(
   encryptedData: EncryptedData,
-  password: string,
+  password: string
 ): Promise<string> {
   const hexToBytes = (hex: string) => {
     const bytes = new Uint8Array(hex.length / 2);
@@ -195,7 +196,7 @@ async function decrypt(
   const decryptedBuffer = await crypto.subtle.decrypt(
     { name: "AES-GCM", iv },
     key,
-    encrypted,
+    encrypted
   );
 
   const dec = new TextDecoder();
@@ -208,7 +209,7 @@ async function decrypt(
  */
 export async function setApiKey(
   provider: string,
-  apiKey: string,
+  apiKey: string
 ): Promise<void> {
   if (!isTauriContext()) {
     logger.warn("Not in Tauri context, using localStorage fallback", {
@@ -225,7 +226,7 @@ export async function setApiKey(
         provider,
       });
       throw new Error(
-        `Failed to store API key: ${error instanceof Error ? error.message : "Unknown error"}`,
+        `Failed to store API key: ${error instanceof Error ? error.message : "Unknown error"}`
       );
     }
   }
@@ -243,7 +244,7 @@ export async function setApiKey(
       provider,
     });
     throw new Error(
-      `Failed to store API key: ${error instanceof Error ? error.message : "Unknown error"}`,
+      `Failed to store API key: ${error instanceof Error ? error.message : "Unknown error"}`
     );
   }
 }
@@ -261,7 +262,7 @@ export async function getApiKey(provider: string): Promise<string | null> {
         key
           ? "API key retrieved from localStorage (web mode)"
           : "API key not found in localStorage",
-        { provider },
+        { provider }
       );
       return key;
     } catch (error) {
@@ -305,10 +306,10 @@ export async function deleteApiKey(provider: string): Promise<void> {
     } catch (error) {
       logger.error(
         `Failed to delete API key from localStorage for ${provider}`,
-        { error, provider },
+        { error, provider }
       );
       throw new Error(
-        `Failed to delete API key: ${error instanceof Error ? error.message : "Unknown error"}`,
+        `Failed to delete API key: ${error instanceof Error ? error.message : "Unknown error"}`
       );
     }
   }
@@ -325,7 +326,7 @@ export async function deleteApiKey(provider: string): Promise<void> {
       provider,
     });
     throw new Error(
-      `Failed to delete API key: ${error instanceof Error ? error.message : "Unknown error"}`,
+      `Failed to delete API key: ${error instanceof Error ? error.message : "Unknown error"}`
     );
   }
 }

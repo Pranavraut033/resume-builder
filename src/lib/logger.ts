@@ -125,7 +125,7 @@ export class Logger {
     level: LogLevel,
     tag: string,
     message: string,
-    data?: unknown,
+    data?: unknown
   ): void {
     if (!this.shouldLog(level)) {
       return;
@@ -146,10 +146,10 @@ export class Logger {
 
       switch (level) {
         case "debug":
-          console.debug(formatted);
+          console.warn(formatted);
           break;
         case "info":
-          console.info(formatted);
+          console.warn(formatted);
           break;
         case "warn":
           console.warn(formatted);
@@ -216,8 +216,8 @@ export class Logger {
 export class ScopedLogger {
   constructor(
     private logger: Logger,
-    private tag: string,
-  ) {}
+    private tag: string
+  ) { }
 
   debug(message: string, data?: unknown): void {
     this.logger.debug(this.tag, message, data);

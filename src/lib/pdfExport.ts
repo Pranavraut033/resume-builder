@@ -1,12 +1,13 @@
 import { PDFDocument, rgb } from "pdf-lib";
+
 import { ResumeJSON } from "@/types/resume";
 
 export async function generateResumePDF(
-  resume: ResumeJSON,
+  resume: ResumeJSON
 ): Promise<Uint8Array> {
   const pdfDoc = await PDFDocument.create();
   const page = pdfDoc.addPage();
-  const { width, height } = page.getSize();
+  const { height } = page.getSize();
 
   let y = height - 50;
   const fontSize = 12;
@@ -31,7 +32,7 @@ export async function generateResumePDF(
   drawText("Experience:");
   resume.experience.forEach((exp) => {
     drawText(
-      `${exp.role} at ${exp.company} (${exp.startDate} - ${exp.endDate || "Present"})`,
+      `${exp.role} at ${exp.company} (${exp.startDate} - ${exp.endDate || "Present"})`
     );
     drawText(exp.description);
     y -= 5;
@@ -55,7 +56,7 @@ export async function generateResumePDF(
   drawText("Education:");
   resume.education.forEach((edu) => {
     drawText(
-      `${edu.degree} from ${edu.institution} (${edu.startDate} - ${edu.endDate || "Present"})`,
+      `${edu.degree} from ${edu.institution} (${edu.startDate} - ${edu.endDate || "Present"})`
     );
     y -= 5;
   });
