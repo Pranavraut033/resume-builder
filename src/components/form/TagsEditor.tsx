@@ -2,13 +2,15 @@
  * TagsEditor Component
  * Reusable component for managing tags/arrays of short strings (skills, technologies, etc.)
  * Similar to BulletListEditor but optimized for short items displayed as chips.
+ * AI generation happens at the panel level, not field level.
  */
 
 "use client";
 
-import { Button } from "@/components/ui";
-import { Icon } from "@/components/ui/Icon";
 import { useState } from "react";
+
+import { Icon } from "@/components/ui/Icon";
+
 
 interface TagsEditorProps {
   label: string;
@@ -16,7 +18,6 @@ interface TagsEditorProps {
   onTagsChange: (tags: string[]) => void;
   placeholder?: string;
   helpText?: string;
-  onAIGenerate?: () => Promise<string[]>;
 }
 
 export function TagsEditor({
@@ -25,10 +26,8 @@ export function TagsEditor({
   onTagsChange,
   placeholder = "Add a tag and press Enter",
   helpText,
-  onAIGenerate,
 }: TagsEditorProps) {
   const [newTag, setNewTag] = useState("");
-  const [isGenerating, setIsGenerating] = useState(false);
 
   const handleAddTag = () => {
     const trimmed = newTag.trim();
@@ -40,21 +39,6 @@ export function TagsEditor({
 
   const handleRemoveTag = (index: number) => {
     onTagsChange(tags.filter((_, i) => i !== index));
-  };
-
-  const handleAIGenerate = async () => {
-    if (!onAIGenerate) return;
-
-    try {
-      setIsGenerating(true);
-      const generated = await onAIGenerate();
-      const newTags = generated.filter((tag) => !tags.includes(tag));
-      onTagsChange([...tags, ...newTags]);
-    } catch (error) {
-      console.error("AI generation failed:", error);
-    } finally {
-      setIsGenerating(false);
-    }
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -71,23 +55,9 @@ export function TagsEditor({
 
   return (
     <div className="space-y-3">
-      <div className="flex items-center justify-between">
-        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-          {label}
-        </label>
-        {onAIGenerate && (
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={handleAIGenerate}
-            disabled={isGenerating}
-            title="Generate suggestions with AI"
-          >
-            <Icon name="SparklesIcon" className="w-4 h-4" />
-            <span className="ml-1 text-xs">{isGenerating ? "Generating..." : "AI Generate"}</span>
-          </Button>
-        )}
-      </div>
+      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+        {label}
+      </label>
 
       {/* Input for new tag */}
       <input
@@ -96,7 +66,7 @@ export function TagsEditor({
         onChange={(e) => setNewTag(e.target.value)}
         onKeyDown={handleKeyDown}
         placeholder={placeholder}
-        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400"
+        className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-gray-900 placeholder-gray-500 transition-colors focus:border-transparent focus:ring-2 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:placeholder-gray-400"
       />
 
       {/* Tags display */}
@@ -105,15 +75,15 @@ export function TagsEditor({
           {tags.map((tag, index) => (
             <div
               key={index}
-              className="inline-flex items-center gap-2 px-3 py-1 bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 rounded-full text-sm font-medium"
+              className="inline-flex items-center gap-2 rounded-full bg-blue-100 px-3 py-1 text-sm font-medium text-blue-700 dark:bg-blue-900 dark:text-blue-300"
             >
               <span>{tag}</span>
               <button
                 onClick={() => handleRemoveTag(index)}
-                className="hover:text-blue-900 dark:hover:text-blue-100 transition-colors"
+                className="transition-colors hover:text-blue-900 dark:hover:text-blue-100"
                 title="Remove"
               >
-                <Icon name="XMarkIcon" className="w-4 h-4" />
+                <Icon name="x" className="h-4 w-4" />
               </button>
             </div>
           ))}
