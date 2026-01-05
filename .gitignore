@@ -52,4 +52,4 @@ drizzle/meta/_journal.json
 .resume-builder/
 keys.enc
 .env
-/docs-raw
+/session-docs/
