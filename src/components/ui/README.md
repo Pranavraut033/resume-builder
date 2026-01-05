@@ -17,7 +17,7 @@ Button (primary):
 // className can be extended by the caller
 const PrimaryButton = ({ children, className = "", ...props }) => (
   <button
-    className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary-500 text-white shadow ${className}`}
+    className={`bg-primary-500 inline-flex items-center gap-2 rounded-lg px-4 py-2 text-white shadow ${className}`}
     {...props}
   >
     {children}
@@ -29,7 +29,7 @@ Card:
 
 ```tsx
 const Card = ({ children, className = "" }) => (
-  <div className={`p-6 bg-white rounded-xl shadow-subtle ${className}`}>
+  <div className={`shadow-subtle rounded-xl bg-white p-6 ${className}`}>
     {children}
   </div>
 );
@@ -42,7 +42,7 @@ const FormField = ({ label, children, hint }) => (
   <label className="block">
     <div className="text-sm font-medium">{label}</div>
     <div className="mt-2">{children}</div>
-    {hint && <p className="mt-2 text-xs text-muted">{hint}</p>}
+    {hint && <p className="text-muted mt-2 text-xs">{hint}</p>}
   </label>
 );
 ```

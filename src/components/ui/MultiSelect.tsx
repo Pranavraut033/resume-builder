@@ -1,7 +1,8 @@
 "use client";
 
-import { Fragment, useState } from "react";
 import { Combobox, Transition } from "@headlessui/react";
+import { Fragment, useState } from "react";
+
 import { Icon } from "./Icon";
 
 interface MultiSelectProps {
@@ -30,7 +31,7 @@ export function MultiSelect({
           option
             .toLowerCase()
             .replace(/\s+/g, "")
-            .includes(query.toLowerCase().replace(/\s+/g, "")),
+            .includes(query.toLowerCase().replace(/\s+/g, ""))
         );
 
   const toggleOption = (opt: string) => {
@@ -49,19 +50,19 @@ export function MultiSelect({
       >
         <div className="relative">
           <div
-            className={`w-full border border-gray-300 dark:border-gray-600 rounded-lg px-2 py-1 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-transparent ${disabled ? "opacity-50 cursor-not-allowed" : ""}`}
+            className={`w-full rounded-lg border border-gray-300 bg-white px-2 py-1 text-gray-900 focus-within:border-transparent focus-within:ring-2 focus-within:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white ${disabled ? "cursor-not-allowed opacity-50" : ""}`}
           >
-            <div className="flex flex-wrap gap-1 items-center">
+            <div className="flex flex-wrap items-center gap-1">
               {value.map((v) => (
                 <span
                   key={v}
-                  className="flex items-center bg-gray-100 dark:bg-gray-600 text-sm rounded-full px-2 py-0.5"
+                  className="flex items-center rounded-full bg-gray-100 px-2 py-0.5 text-sm dark:bg-gray-600"
                 >
-                  <span className="truncate max-w-xs">{v}</span>
+                  <span className="max-w-xs truncate">{v}</span>
                   <button
                     type="button"
                     onClick={() => !disabled && removeTag(v)}
-                    className="ml-2 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 disabled:cursor-not-allowed"
+                    className="ml-2 text-gray-500 hover:text-gray-700 disabled:cursor-not-allowed dark:hover:text-gray-300"
                     disabled={disabled}
                   >
                     <Icon name="x" size={14} />
@@ -69,7 +70,7 @@ export function MultiSelect({
                 </span>
               ))}
               <Combobox.Input
-                className="flex-1 min-w-[160px] py-1 px-2 bg-transparent outline-none disabled:cursor-not-allowed"
+                className="min-w-[160px] flex-1 bg-transparent px-2 py-1 outline-none disabled:cursor-not-allowed"
                 displayValue={() => ""}
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder={value.length === 0 ? placeholder : ""}
@@ -89,9 +90,9 @@ export function MultiSelect({
           leaveTo="opacity-0"
           afterLeave={() => setQuery("")}
         >
-          <Combobox.Options className="absolute z-10 mt-1 max-h-60 w-full overflow-auto rounded-md bg-white dark:bg-gray-700 py-1 text-base shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none sm:text-sm">
+          <Combobox.Options className="ring-opacity-5 absolute z-10 mt-1 max-h-60 w-full overflow-auto rounded-md bg-white py-1 text-base shadow-lg ring-1 ring-black focus:outline-none sm:text-sm dark:bg-gray-700">
             {filteredOptions.length === 0 && query !== "" ? (
-              <div className="relative cursor-default select-none py-2 px-4 text-gray-700 dark:text-gray-300">
+              <div className="relative cursor-default px-4 py-2 text-gray-700 select-none dark:text-gray-300">
                 Nothing found.
               </div>
             ) : (
@@ -99,7 +100,7 @@ export function MultiSelect({
                 <Combobox.Option
                   key={option}
                   className={({ active }) =>
-                    `relative cursor-default select-none py-2 pl-10 pr-4 ${active ? "bg-primary-600 text-white" : "text-gray-900 dark:text-white"}`
+                    `relative cursor-default py-2 pr-4 pl-10 select-none ${active ? "bg-primary-600 text-white" : "text-gray-900 dark:text-white"}`
                   }
                   value={option}
                 >

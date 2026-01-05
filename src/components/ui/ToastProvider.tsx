@@ -8,6 +8,7 @@ import {
   useState,
   ReactNode,
 } from "react";
+
 import { Icon } from "./Icon";
 
 // Lightweight toast system for inline success/error messaging
@@ -62,18 +63,18 @@ export function ToastProvider({ children }: { children: ReactNode }) {
       setToasts((prev) => [...prev, { ...toast, id, variant }]);
       setTimeout(() => dismissToast(id), 4000);
     },
-    [dismissToast],
+    [dismissToast]
   );
 
   const contextValue = useMemo(
     () => ({ pushToast, dismissToast }),
-    [pushToast, dismissToast],
+    [pushToast, dismissToast]
   );
 
   return (
     <ToastContext.Provider value={contextValue}>
       {children}
-      <div className="fixed top-4 right-4 z-50 flex flex-col gap-3 min-w-[280px]">
+      <div className="fixed top-4 right-4 z-50 flex min-w-[280px] flex-col gap-3">
         {toasts.map((toast) => {
           const variant = toast.variant ?? "info";
           const styles = VARIANT_STYLES[variant];
@@ -81,7 +82,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
             <div
               key={toast.id}
               role="status"
-              className={`flex items-start gap-3 rounded-2xl border shadow-block px-4 py-3 ${styles.container}`}
+              className={`shadow-block flex items-start gap-3 rounded-2xl border px-4 py-3 ${styles.container}`}
             >
               <Icon
                 name={
@@ -95,11 +96,11 @@ export function ToastProvider({ children }: { children: ReactNode }) {
                 className={styles.icon}
               />
               <div className="flex-1">
-                <p className="text-sm font-semibold leading-tight">
+                <p className="text-sm leading-tight font-semibold">
                   {toast.title}
                 </p>
                 {toast.description && (
-                  <p className="text-xs mt-1 leading-snug opacity-80">
+                  <p className="mt-1 text-xs leading-snug opacity-80">
                     {toast.description}
                   </p>
                 )}
@@ -107,7 +108,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
               <button
                 type="button"
                 onClick={() => dismissToast(toast.id)}
-                className="text-gray-500 hover:text-gray-800 transition-colors"
+                className="text-gray-500 transition-colors hover:text-gray-800"
                 aria-label="Dismiss notification"
               >
                 <Icon name="x" size={16} />

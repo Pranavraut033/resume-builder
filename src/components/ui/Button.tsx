@@ -1,4 +1,5 @@
 import { ReactNode, forwardRef, ButtonHTMLAttributes } from "react";
+
 import { cn } from "@/lib/cn";
 
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
@@ -41,13 +42,13 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
       type = "button",
       ...props
     },
-    ref,
+    ref
   ) {
     const mergedClassName = cn(
       baseStyles,
       variants[variant],
       sizes[size],
-      className,
+      className
     );
 
     return (
@@ -56,7 +57,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         {children}
       </button>
     );
-  },
+  }
 );
 
 Button.displayName = "Button";

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+
 import { Icon } from "./Icon";
 
 interface FormFieldProps {
@@ -38,7 +39,7 @@ export function FormField({
       {label && (
         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
           {label}
-          {required && <span className="text-red-500 ml-1">*</span>}
+          {required && <span className="ml-1 text-red-500">*</span>}
         </label>
       )}
       {type === "textarea" ? (
@@ -51,7 +52,7 @@ export function FormField({
           required={required}
         />
       ) : (
-        <div className="relative ">
+        <div className="relative">
           <input
             type={inputType}
             value={value}
@@ -64,19 +65,19 @@ export function FormField({
             <button
               type="button"
               onClick={() => setShowPassword(!showPassword)}
-              className="absolute inset-y-0 right-0 flex items-center mr-3 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors"
+              className="absolute inset-y-0 right-0 mr-3 flex items-center text-gray-500 transition-colors hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
               aria-label={showPassword ? "Hide password" : "Show password"}
             >
               <Icon
                 name={showPassword ? "EyeSlashIcon" : "EyeIcon"}
-                className="w-5 h-5"
+                className="h-5 w-5"
               />
             </button>
           )}
         </div>
       )}
       {helpText && (
-        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+        <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
           {helpText}
         </p>
       )}

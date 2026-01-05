@@ -1,8 +1,9 @@
 "use client";
 
-import { ReactNode } from "react";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
+import { ReactNode } from "react";
+
 import { Icon } from "./Icon";
 
 interface SortableSectionProps {
@@ -27,11 +28,11 @@ export function SortableSection({ id, children }: SortableSectionProps) {
   };
 
   return (
-    <div ref={setNodeRef} style={style} className="relative group">
+    <div ref={setNodeRef} style={style} className="group relative">
       <div
         {...attributes}
         {...listeners}
-        className="absolute -left-8 top-4 opacity-0 group-hover:opacity-100 cursor-grab active:cursor-grabbing transition-opacity p-1 hover:bg-gray-100 rounded"
+        className="absolute top-4 -left-8 cursor-grab rounded p-1 opacity-0 transition-opacity group-hover:opacity-100 hover:bg-gray-100 active:cursor-grabbing"
         title="Drag to reorder"
       >
         <Icon name="gripVertical" size={16} className="text-gray-400" />

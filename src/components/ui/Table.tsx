@@ -1,12 +1,14 @@
+/* eslint-disable react-hooks/incompatible-library */
+
 "use client";
 
-import React from "react";
 import {
   ColumnDef,
   flexRender,
   getCoreRowModel,
   useReactTable,
 } from "@tanstack/react-table";
+import React from "react";
 
 interface TableProps<T> {
   data: T[];
@@ -34,13 +36,13 @@ export function Table<T>({ data, columns, className = "" }: TableProps<T>) {
               {hg.headers.map((header: any) => (
                 <th
                   key={header.id}
-                  className="text-left text-sm font-medium text-blocky-900 px-3 py-2"
+                  className="text-blocky-900 px-3 py-2 text-left text-sm font-medium"
                 >
                   {header.isPlaceholder ? null : (
                     <div>
                       {flexRender(
                         header.column.columnDef.header,
-                        header.getContext(),
+                        header.getContext()
                       )}
                     </div>
                   )}
@@ -57,7 +59,7 @@ export function Table<T>({ data, columns, className = "" }: TableProps<T>) {
               {row.getVisibleCells().map((cell: any) => (
                 <td
                   key={cell.id}
-                  className="px-3 py-2 text-sm align-top text-blocky-900"
+                  className="text-blocky-900 px-3 py-2 align-top text-sm"
                 >
                   {flexRender(cell.column.columnDef.cell, cell.getContext())}
                 </td>

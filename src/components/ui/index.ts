@@ -7,3 +7,5 @@ export { Select } from "./Select";
 export { MultiSelect } from "./MultiSelect";
 export { SortableSection } from "./SortableSection";
 export { Card } from "./Card";
+export { Autocomplete } from "./Autocomplete";
+export type { AutocompleteOption, AutocompleteProps } from "./Autocomplete";

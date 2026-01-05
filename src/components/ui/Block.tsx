@@ -14,7 +14,7 @@ export function Block({ children, className = "", as = "div" }: BlockProps) {
     {
       className: `bg-blocky-100 border border-blocky-500 rounded-block-lg shadow-block p-block font-blocky ${className}`,
     },
-    children,
+    children
   );
 }
 

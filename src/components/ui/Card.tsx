@@ -25,7 +25,7 @@ export function Card({
 
   return (
     <div
-      className={`bg-blocky-100 dark:bg-gray-800 rounded-block-lg ${shadowClass} border-blocky-500 dark:border-gray-700 ${paddings[padding]} font-blocky ${className}`}
+      className={`bg-blocky-100 rounded-block-lg dark:bg-gray-800 ${shadowClass} border-blocky-500 dark:border-gray-700 ${paddings[padding]} font-blocky ${className}`}
     >
       {children}
     </div>
