@@ -3,16 +3,16 @@
 
 generator client {
   provider = "prisma-client-js"
+  output   = "../node_modules/.prisma/client"
 }
 
 datasource db {
   provider = "sqlite"
-  url      = env("DATABASE_URL")
 }
 
 model Profile {
   id         Int      @id @default(autoincrement())
-  
+
   // Header / Contact Info
   name       String
   email      String
@@ -21,31 +21,31 @@ model Profile {
   linkedin   String?
   github     String?
   website    String?
-  
+
   // Professional Summary
   summary    String?
-  
+
   // Skills (stored as JSON array)
   skillsJson String   @default("[]") @map("skills_json")
-  
+
   // Experience, Projects, Education, Certifications stored as JSON arrays
   experienceJson     String @default("[]") @map("experience_json")
   projectsJson       String @default("[]") @map("projects_json")
   educationJson      String @default("[]") @map("education_json")
   certificationsJson String @default("[]") @map("certifications_json")
-  
+
   // Publications (optional)
   publicationsJson   String? @map("publications_json")
-  
+
   // Languages (optional)
   languagesJson      String? @map("languages_json")
-  
+
   // Volunteer work (optional)
   volunteerJson      String? @map("volunteer_json")
-  
+
   // Awards/Honors (optional)
   awardsJson         String? @map("awards_json")
-  
+
   createdAt  String   @map("created_at")
   updatedAt  String   @map("updated_at")
 
@@ -61,7 +61,7 @@ model Company {
   locationCity        String? @map("location_city")
   locationCountry     String? @map("location_country")
   officeLocationDetails String? @map("office_location_details")
-  
+
   jobs Job[]
 
   @@map("companies")
@@ -74,7 +74,7 @@ model Contact {
   contactEmail         String? @map("contact_email")
   contactPhone         String? @map("contact_phone")
   contactWhatsappAvailable Boolean? @map("contact_whatsapp_available")
-  
+
   jobs Job[]
 
   @@map("contacts")
@@ -89,7 +89,7 @@ model Job {
   status          String @default("DRAFT") // constrained at application level
   jobDetailsJson  String? // JSON string containing parsed JobDetails structure with company info, contact, and requirements
   createdAt       String         @map("created_at")
-  
+
   company Company? @relation(fields: [companyId], references: [id], onDelete: SetNull)
   contact Contact? @relation(fields: [contactId], references: [id], onDelete: SetNull)
   resumes       Resume[]
@@ -103,16 +103,16 @@ model Resume {
   jobId       Int    @map("job_id")
   contentJson String @map("content_json") // JSON string containing ResumeJSON structure
   lastEdited  String @map("last_edited")
-  
+
   // Resumify integration: template customization options
   template    String @default("modern-minimal") // tech-sidebar, business-professional, modern-minimal, elegant-timeline, creative-modern, bjet-professional
   pageFormat  String @default("letter") @map("page_format") // letter or a4
   fontSize    String @default("medium") @map("font_size") // small, medium, large
   fontFamily  String @default("Inter") @map("font_family") // Inter, Georgia, Poppins, etc.
-  
-  // Color theme (stored as JSON: {primary, secondary, accent, text, background})
-  colorsJson  String? @default("{\"primary\":\"#3b82f6\",\"secondary\":\"#64748b\",\"accent\":\"#8b5cf6\",\"text\":\"#1f2937\",\"background\":\"#ffffff\"}") @map("colors_json")
-  
+
+  // Color theme (stored as CSV: primary,secondary,accent,text,background)
+  colors  String @default("#3b82f6,#64748b,#8b5cf6,#1f2937,#ffffff")
+
   job Job @relation(fields: [jobId], references: [id], onDelete: Cascade)
 
   @@map("resumes")
@@ -122,8 +122,42 @@ model CoverLetter {
   id          Int    @id @default(autoincrement())
   jobId       Int    @map("job_id")
   contentText String @map("content_text")
-  
+
+  // Template customization options
+  template    String @default("professional-block") // professional-block, modern-minimal, executive-formal, creative-modern, tech-clean
+  fontSize    String @default("medium") @map("font_size") // small, medium, large
+  fontFamily  String @default("Inter") @map("font_family")
+  lineHeight  String @default("normal") @map("line_height") // tight, normal, relaxed
+
+  // Color theme (stored as CSV: primary,secondary,accent,text,background)
+  colors  String @default("#3b82f6,#64748b,#8b5cf6,#1f2937,#ffffff")
+
+  // Generation metadata
+  provider    String? // openai, gemini, grok, perplexity, ollama
+  model       String? // model name used for generation
+  customPrompt String? @map("custom_prompt") // user's custom instructions
+  generatedAt String? @map("generated_at") // timestamp of generation
+  version     Int @default(1) // version number for history tracking
+  lastEdited  String @map("last_edited") @default("1970-01-01T00:00:00Z")
+  pageFormat  String @default("a4") @map("page_format") // letter or a4
   job Job @relation(fields: [jobId], references: [id], onDelete: Cascade)
 
   @@map("cover_letters")
+}
+
+model TokenUsage {
+  id             String   @id @default(uuid())
+  model          String
+  provider       String   // openai, gemini, grok, perplexity, ollama, anthropic
+  inputTokens    Int      @map("input_tokens")
+  outputTokens   Int      @map("output_tokens")
+  purpose        String   // NEW_JOB, RESUME_FIELD_IMPROVEMENT, RESUME_GENERATION, COVER_LETTER_GENERATION, RESUME_PARSING, JOB_PARSING
+  requestId      String?  @map("request_id") // Optional UUID for grouping related requests
+  createdAt      String   @map("created_at")
+
+  @@index([provider])
+  @@index([model])
+  @@index([createdAt])
+  @@index([purpose])
+  @@map("token_usage")
 }
