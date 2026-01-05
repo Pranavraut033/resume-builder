@@ -127,13 +127,49 @@ The application must run without mandatory cloud dependencies, support multiple 
 
 ### 4.4 Cover Letter Editor (`/cover-letter/[jobId]`)
 
-**Purpose:** Edit AI-generated cover letter
+**Purpose:** AI-powered cover letter creation and editing with professional templates
 
 **Features:**
 
-- Rich text editor
-- Regenerate with prompt tweaks
-- Export as PDF or TXT
+- **Unified Editor Experience:**
+  - Identical layout structure to Resume Editor for consistency
+  - Left panel: Editable textarea for cover letter content
+  - Right panel: Live preview with template rendering
+  - Edit/Preview toggle for mobile responsiveness
+- **AI Generation:**
+  - Generate cover letter from job description and resume
+  - Uses selected LLM model from settings
+  - Customizable generation with job context awareness
+  - Regenerate with preserved customization
+- **Professional Templates:**
+  - Modern Minimal: Clean design with header and border
+  - Professional: Colored header bar matching resume styles
+  - All templates use shared theming system
+  - Auto-formatted date and signature
+- **Customization Panel:**
+  - Template selection (matches resume templates)
+  - Theme picker (8 presets: Blue, Gray, Green, Purple, Navy, Rose, Teal, Orange)
+  - Custom color editor (primary, secondary, accent, text)
+  - Font selection (20+ Google Fonts and system fonts)
+  - Font size adjustment (small, medium, large)
+- **Export Options:**
+  - PDF export (coming soon)
+  - Plain text (.txt) download
+  - Future: Word document export
+- **Technical Architecture:**
+  - Shared EditorContext for state management
+  - Reusable EditorLayout and EditorSidePanel components
+  - Server Actions for database operations (save, load, customize)
+  - Client-side LLM integration via clientLLM.ts
+  - Token usage tracking for all generations
+  - Job context integration for context-aware generation
+
+**DRY Implementation:**
+
+- Shares components with Resume Editor: EditorLayout, EditorSidePanel, TemplateSelector, ColorCustomizer, FontSelector
+- Uses unified EditorContext supporting both content types
+- Consistent export patterns across editors
+- Shared template theming system
 
 ---
 
@@ -174,6 +210,36 @@ The application must run without mandatory cloud dependencies, support multiple 
 - Default resume template
 - Language
 - PDF formatting options
+
+---
+
+### 4.7 Token Analytics Page (`/analytics/tokens`)
+
+**Purpose:** Monitor and analyze LLM token usage
+
+**Features:**
+
+- Summary metrics:
+  - Total tokens consumed (input + output)
+  - Total API requests made
+  - Estimated costs based on provider pricing
+- Visualizations:
+  - Time-series chart showing daily token usage trends
+  - Bar charts for usage breakdown by provider
+  - Bar charts for usage breakdown by model
+- Data table:
+  - Sortable list of all token usage records
+  - Columns: Date, Provider, Model, Purpose, Input Tokens, Output Tokens, Total
+  - Pagination support (50 records per page)
+- Filtering:
+  - Date range selector
+  - Provider filter
+  - Model filter
+  - Purpose filter (job parsing, resume generation, cover letter generation, etc.)
+- Integration:
+  - Automatic tracking of all LLM API calls
+  - Client-side tracking with server-side storage
+  - No performance impact on generation workflows
 
 ---
 
