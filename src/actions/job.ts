@@ -1,14 +1,20 @@
 "use server";
 
+import { CoverLetter, Resume } from "@prisma/client";
+import { revalidatePath } from "next/cache";
+
+import { colorsToCSV, colorsFromCSV } from "@/lib/colorUtils";
 import { prisma } from "@/lib/prisma";
+import { JobStatus, JOB_STATUSES } from "@/types/job";
 import {
   ResumeJSON,
   JobDetails,
-  ResumeCustomization,
+  ThemeCustomization,
   DEFAULT_CUSTOMIZATION,
+  applyCustomization,
+  validateCustomization,
 } from "@/types/resume";
-import { JobStatus, JOB_STATUSES } from "@/types/job";
-import { revalidatePath } from "next/cache";
+
 
 /**
  * Create a new job with parsed details, resume, and cover letter
@@ -52,13 +58,14 @@ export async function createJob(input: {
   // Create job
   const job = await prisma.job.create({
     data: {
+      createdAt: new Date().toISOString(),
       companyId: company.id,
       contactId,
       role: jobDetails.job.job_title,
       description: jobDetails.raw_description,
-      status: "DRAFT",
+      // Use human-friendly Title Case default status expected by tests
+      status: "Draft",
       jobDetailsJson: JSON.stringify(jobDetails),
-      createdAt: new Date().toISOString(),
     },
   });
 
@@ -93,9 +100,6 @@ export async function createJob(input: {
 export async function getAllJobs() {
   const jobs = await prisma.job.findMany({
     orderBy: { createdAt: "desc" },
-    include: {
-      company: true,
-    },
   });
   return jobs;
 }
@@ -108,6 +112,38 @@ export async function getJobById(id: number) {
     where: { id },
   });
   return job;
+}
+
+/**
+ * Get full job context with all details for resume editing
+ * Includes parsed job details for LLM-assisted generation
+ */
+export async function getJobContext(jobId: number) {
+  const job = await prisma.job.findUnique({
+    where: { id: jobId },
+    include: {
+      company: true,
+      contact: true,
+    },
+  });
+
+  if (!job) {
+    return null;
+  }
+
+  let jobDetails: JobDetails | null = null;
+  if (job.jobDetailsJson) {
+    try {
+      jobDetails = JSON.parse(job.jobDetailsJson) as JobDetails;
+    } catch {
+      console.error("Failed to parse jobDetailsJson for job", jobId);
+    }
+  }
+
+  return {
+    ...job,
+    details: jobDetails,
+  };
 }
 
 /**
@@ -142,54 +178,115 @@ export async function deleteJob(id: number) {
  * Get resume for a job
  */
 export async function getResumeByJobId(
-  jobId: number,
-): Promise<ResumeJSON | null> {
-  if (typeof jobId !== 'number' || isNaN(jobId)) {
-    throw new Error('Invalid or missing jobId argument');
+  jobId: number
+): Promise<(Omit<Resume, 'contentJson'> & { contentJson: ResumeJSON } | null)> {
+  if (typeof jobId !== "number" || isNaN(jobId)) {
+    throw new Error("Invalid or missing jobId argument");
   }
+
   const resume = await prisma.resume.findFirst({
     where: { jobId },
   });
 
   if (!resume) return null;
-  return JSON.parse(resume.contentJson) as ResumeJSON;
+
+  return {
+    ...resume,
+    contentJson: JSON.parse(resume.contentJson) as ResumeJSON,
+  };
 }
 
 /**
  * Update resume for a job
  */
-export async function updateResume(jobId: number, contentJson: ResumeJSON) {
+export async function updateResume(
+  jobId: number,
+  contentJson: ResumeJSON,
+  customization?: ThemeCustomization
+) {
+  const data: Partial<Resume> = {
+    contentJson: JSON.stringify(contentJson),
+    lastEdited: new Date().toISOString(),
+  };
+
+  applyCustomization(customization, data);
+
   await prisma.resume.updateMany({
     where: { jobId },
-    data: {
-      contentJson: JSON.stringify(contentJson),
-      lastEdited: new Date().toISOString(),
-    },
+    data,
   });
   revalidatePath(`/resume/${jobId}`);
   return { success: true };
 }
 
+
+
 /**
  * Get cover letter for a job
  */
 export async function getCoverLetterByJobId(
-  jobId: number,
-): Promise<string | null> {
+  jobId: number
+): Promise<CoverLetter | null> {
   const coverLetter = await prisma.coverLetter.findFirst({
     where: { jobId },
   });
-  return coverLetter?.contentText || null;
+
+  return coverLetter
 }
 
 /**
  * Update cover letter for a job
  */
-export async function updateCoverLetter(jobId: number, contentText: string) {
+export async function updateCoverLetter(
+  jobId: number,
+  contentText: string,
+  customization?: ThemeCustomization,
+  metadata?: {
+    provider?: string;
+    model?: string;
+    customPrompt?: string;
+  }
+) {
+  const data: Partial<CoverLetter> = {
+    contentText,
+    lastEdited: new Date().toISOString(),
+  };
+
+  if (metadata) {
+    if (metadata.provider) data.provider = metadata.provider;
+    if (metadata.model) data.model = metadata.model;
+    if (metadata.customPrompt) data.customPrompt = metadata.customPrompt;
+    data.generatedAt = new Date().toISOString();
+  }
+
+  applyCustomization(customization, data);
+
   await prisma.coverLetter.updateMany({
     where: { jobId },
-    data: { contentText },
+    data,
   });
+  revalidatePath(`/cover-letter/${jobId}`);
+  return { success: true };
+}
+
+/**
+ * Update cover letter customization (template, colors, fonts, etc.)
+ */
+export async function updateCoverLetterCustomization(
+  jobId: number,
+  customization: Partial<ThemeCustomization>
+) {
+  const data: Partial<CoverLetter> = {};
+
+  applyCustomization(customization, data);
+
+  data.lastEdited = new Date().toISOString();
+
+  await prisma.coverLetter.updateMany({
+    where: { jobId },
+    data,
+  });
+
   revalidatePath(`/cover-letter/${jobId}`);
   return { success: true };
 }
@@ -200,8 +297,10 @@ export async function updateCoverLetter(jobId: number, contentText: string) {
  */
 export async function updateResumeCustomization(
   jobId: number,
-  customization: Partial<ResumeCustomization>,
+  customization: Partial<ThemeCustomization>
 ) {
+  validateCustomization(customization);
+
   const data: Record<string, unknown> = {};
 
   if (customization.template) {
@@ -217,7 +316,7 @@ export async function updateResumeCustomization(
     data.fontFamily = customization.fontFamily;
   }
   if (customization.colors) {
-    data.colorsJson = JSON.stringify(customization.colors);
+    data.colors = colorsToCSV(customization.colors);
   }
 
   await prisma.resume.updateMany({
@@ -229,14 +328,15 @@ export async function updateResumeCustomization(
   return { success: true };
 }
 
+
 /**
  * Get resume customization for a job
  */
 export async function getResumeCustomization(
-  jobId: number,
-): Promise<ResumeCustomization> {
-  if (typeof jobId !== 'number' || isNaN(jobId)) {
-    throw new Error('Invalid or missing jobId argument');
+  jobId: number
+): Promise<ThemeCustomization> {
+  if (typeof jobId !== "number" || isNaN(jobId)) {
+    throw new Error("Invalid or missing jobId argument");
   }
   const resume = await prisma.resume.findFirst({
     where: { jobId },
@@ -245,7 +345,7 @@ export async function getResumeCustomization(
       pageFormat: true,
       fontSize: true,
       fontFamily: true,
-      colorsJson: true,
+      colors: true,
     },
   });
 
@@ -254,12 +354,13 @@ export async function getResumeCustomization(
   }
 
   return {
-    template: resume.template as ResumeCustomization["template"],
-    pageFormat: resume.pageFormat as ResumeCustomization["pageFormat"],
-    fontSize: resume.fontSize as ResumeCustomization["fontSize"],
+    template: resume.template as ThemeCustomization["template"],
+    pageFormat: resume.pageFormat as ThemeCustomization["pageFormat"],
+    fontSize: resume.fontSize as ThemeCustomization["fontSize"],
     fontFamily: resume.fontFamily,
-    colors: resume.colorsJson
-      ? JSON.parse(resume.colorsJson)
-      : DEFAULT_CUSTOMIZATION.colors,
+    colors: colorsFromCSV(resume.colors),
   };
 }
+
+// types
+export type JobContext = Awaited<ReturnType<typeof getJobContext>>;

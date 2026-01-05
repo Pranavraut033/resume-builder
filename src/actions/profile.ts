@@ -1,8 +1,9 @@
 "use server";
 
+import { revalidatePath } from "next/cache";
+
 import { prisma } from "@/lib/prisma";
 import { ResumeJSON } from "@/types/resume";
-import { revalidatePath } from "next/cache";
 
 /**
  * Check if a base profile exists
@@ -63,7 +64,7 @@ export async function getProfile(): Promise<ResumeJSON> {
  * Save or update the base profile
  */
 export async function saveProfile(
-  resumeJson: ResumeJSON,
+  resumeJson: ResumeJSON
 ): Promise<{ success: boolean }> {
   const now = new Date().toISOString();
   const existing = await prisma.profile.findFirst();
