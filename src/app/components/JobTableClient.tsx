@@ -32,6 +32,7 @@ type JobInput = {
   createdAt: string;
   description: string;
   jobDetailsJson: string | null;
+  url?: string | null;
   company: {
     name: string;
     industry?: string | null;
@@ -442,6 +443,20 @@ function CardGrid({
                 {job.company?.name ?? "Unknown"}
               </p>
               <p className="text-xs text-gray-400">{job.role}</p>
+              {job.url && (
+                <a
+                  href={job.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={(e) => e.stopPropagation()}
+                  className="mt-1 flex items-center gap-1 text-xs text-blue-400 hover:text-blue-300 hover:underline"
+                >
+                  <Icon name="link" size={12} />
+                  <span className="line-clamp-1">
+                    {new URL(job.url).hostname}
+                  </span>
+                </a>
+              )}
             </div>
             <StatusBadge status={job.status} />
           </div>
@@ -677,6 +692,17 @@ function PeekContent({
             <p className="text-sm text-gray-300">
               {job.company?.name ?? "Unknown company"}
             </p>
+            {job.url && (
+              <a
+                href={job.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mt-1 flex items-center gap-1 text-xs text-blue-400 hover:text-blue-300 hover:underline"
+              >
+                <Icon name="link" size={14} />
+                <span>{job.url}</span>
+              </a>
+            )}
           </div>
           <div className="ml-auto">
             <StatusBadge status={job.status} />

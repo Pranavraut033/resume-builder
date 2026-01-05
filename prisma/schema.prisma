@@ -88,6 +88,7 @@ model Job {
   description     String
   status          String @default("DRAFT") // constrained at application level
   jobDetailsJson  String? // JSON string containing parsed JobDetails structure with company info, contact, and requirements
+  url             String? // Optional URL source for the job posting
   createdAt       String         @map("created_at")
 
   company Company? @relation(fields: [companyId], references: [id], onDelete: SetNull)

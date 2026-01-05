@@ -6,6 +6,7 @@ import { useState, useEffect } from "react";
 
 import { createJob } from "@/actions/job";
 import { getProfile, hasProfile } from "@/actions/profile";
+import { fetchJobDescriptionFromUrl } from "@/actions/urlFetcher";
 import BackButton from "@/components/BackButton";
 import { ModelSelector } from "@/components/ModelSelector";
 import {
@@ -20,7 +21,10 @@ const logger = createLogger("NewJobPage");
 
 export default function NewJobPage() {
   const [description, setDescription] = useState("");
+  const [url, setUrl] = useState("");
+  const [inputMode, setInputMode] = useState<"text" | "url">("text");
   const [loading, setLoading] = useState(false);
+  const [fetchingUrl, setFetchingUrl] = useState(false);
   const [profileExists, setProfileExists] = useState<boolean | null>(null);
   const router = useRouter();
 
@@ -38,6 +42,30 @@ export default function NewJobPage() {
     };
     checkProfile();
   }, []);
+
+  const handleFetchFromUrl = async () => {
+    if (!url.trim()) {
+      alert("Please enter a URL");
+      return;
+    }
+
+    setFetchingUrl(true);
+    try {
+      const result = await fetchJobDescriptionFromUrl(url);
+
+      if (result.success && result.content) {
+        setDescription(result.content);
+        // Keep the URL stored for later use
+      } else {
+        alert(result.error || "Failed to fetch content from URL");
+      }
+    } catch (error) {
+      logger.error("Error fetching URL", { error });
+      alert("Error fetching URL content");
+    } finally {
+      setFetchingUrl(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -81,7 +109,10 @@ export default function NewJobPage() {
       );
 
       // Step 5: Save to database (server action)
-      await createJob({ jobDetails });
+      await createJob({
+        jobDetails,
+        url: inputMode === "url" && url.trim() ? url : undefined,
+      });
 
       router.push("/");
     } catch (error) {
@@ -121,16 +152,74 @@ export default function NewJobPage() {
       ) : (
         <>
           <p className="mb-4">
-            Paste the job description below. The system will auto-parse company
-            and role, and generate a tailored resume and cover letter.
+            Paste the job description below or fetch it from a URL. The system
+            will auto-parse company and role, and generate a tailored resume and
+            cover letter.
           </p>
+
+          {/* Input Mode Toggle */}
+          <div className="mb-4 flex gap-2">
+            <button
+              type="button"
+              onClick={() => setInputMode("text")}
+              className={`rounded px-4 py-2 font-medium transition-colors ${
+                inputMode === "text"
+                  ? "bg-blue-500 text-white"
+                  : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+              }`}
+            >
+              Paste Text
+            </button>
+            <button
+              type="button"
+              onClick={() => setInputMode("url")}
+              className={`rounded px-4 py-2 font-medium transition-colors ${
+                inputMode === "url"
+                  ? "bg-blue-500 text-white"
+                  : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+              }`}
+            >
+              Fetch from URL
+            </button>
+          </div>
+
           <form onSubmit={handleSubmit} className="space-y-4">
+            {inputMode === "url" && (
+              <div>
+                <label htmlFor="url" className="mb-2 block text-sm font-medium">
+                  Job Posting URL
+                </label>
+                <div className="flex gap-2">
+                  <input
+                    type="url"
+                    id="url"
+                    value={url}
+                    onChange={(e) => setUrl(e.target.value)}
+                    className="flex-1 rounded border p-2"
+                    placeholder="https://example.com/job-posting"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleFetchFromUrl}
+                    disabled={fetchingUrl}
+                    className="rounded bg-green-500 px-4 py-2 text-white transition-colors hover:bg-green-600 disabled:opacity-50"
+                  >
+                    {fetchingUrl ? "Fetching..." : "Fetch"}
+                  </button>
+                </div>
+                <p className="mt-1 text-sm text-gray-600">
+                  Enter a URL to automatically fetch the job description
+                </p>
+              </div>
+            )}
+
             <div>
               <label
                 htmlFor="description"
                 className="block text-sm font-medium"
               >
-                Job Description
+                Job Description{" "}
+                {inputMode === "url" && "(fetched content will appear here)"}
               </label>
               <textarea
                 id="description"
@@ -141,7 +230,7 @@ export default function NewJobPage() {
                 placeholder="Paste the full job description here..."
               />
             </div>
-            <ModelSelector />
+            <ModelSelector compact />
             <button
               type="submit"
               disabled={loading}

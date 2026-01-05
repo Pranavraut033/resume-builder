@@ -24,8 +24,9 @@ export async function createJob(input: {
   jobDetails: JobDetails;
   tailoredResume?: ResumeJSON;
   coverLetterText?: string;
+  url?: string;
 }): Promise<{ jobId: number }> {
-  const { jobDetails, tailoredResume, coverLetterText } = input;
+  const { jobDetails, tailoredResume, coverLetterText, url } = input;
 
   // Create or get company
   const company = await prisma.company.create({
@@ -66,6 +67,7 @@ export async function createJob(input: {
       // Use human-friendly Title Case default status expected by tests
       status: "Draft",
       jobDetailsJson: JSON.stringify(jobDetails),
+      url: url || null,
     },
   });
 
