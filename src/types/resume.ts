@@ -2,6 +2,8 @@
 
 import { z } from "zod";
 
+import { colorsFromCSV, colorsToCSV } from "@/lib/colorUtils";
+
 // Job Identification
 const JobIdentificationSchema = z.object({
   job_title: z.string(),
@@ -198,6 +200,21 @@ export const ResumeParsingSchema = z.object({
 
 export type ParsedResume = z.infer<typeof ResumeParsingSchema>;
 
+// Schema for resume generation (same structure as parsing, used for structured output)
+export const ResumeGenerationSchema = z.object({
+  header: ContactInfoSchema,
+  summary: z.string(),
+  experience: z.array(ExperienceSchema),
+  projects: z.array(ProjectSchema),
+  skills: z.array(z.string()),
+  education: z.array(EducationSchema),
+  certifications: z.array(CertificationSchema),
+  publications: z.array(PublicationSchema).nullable(),
+  languages: z.array(LanguageSchema).nullable(),
+  volunteer: z.array(VolunteerSchema).nullable(),
+  awards: z.array(AwardSchema).nullable(),
+});
+
 export interface ContactInfo {
   name: string;
   email: string;
@@ -285,10 +302,11 @@ export interface ResumeJSON {
   awards?: Award[];
 }
 
-// Adapted from Resumify (https://github.com/Afif718/Resumify)
-// Copyright (c) 2025 M. H. A. Afif
-// Licensed under MIT License
-
+/**
+ * Adapted from Resumify (https://github.com/Afif718/Resumify)
+ * Copyright (c) 2025 M. H. A. Afif
+ * Licensed under MIT License
+ */
 export type TemplateType =
   | "tech-sidebar"
   | "business-professional"
@@ -300,7 +318,7 @@ export type TemplateType =
 export type PageFormat = "letter" | "a4";
 export type FontSize = "small" | "medium" | "large";
 
-export interface ResumeColors {
+export interface ThemeColors {
   primary: string;
   secondary: string;
   accent: string;
@@ -308,15 +326,15 @@ export interface ResumeColors {
   background: string;
 }
 
-export interface ResumeCustomization {
+export interface ThemeCustomization {
   template: TemplateType;
   pageFormat: PageFormat;
   fontSize: FontSize;
   fontFamily: string;
-  colors: ResumeColors;
+  colors: ThemeColors;
 }
 
-export const DEFAULT_COLORS: ResumeColors = {
+export const DEFAULT_COLORS: ThemeColors = {
   primary: "#3b82f6",
   secondary: "#64748b",
   accent: "#8b5cf6",
@@ -324,7 +342,7 @@ export const DEFAULT_COLORS: ResumeColors = {
   background: "#ffffff",
 };
 
-export const DEFAULT_CUSTOMIZATION: ResumeCustomization = {
+export const DEFAULT_CUSTOMIZATION: ThemeCustomization = {
   template: "modern-minimal",
   pageFormat: "letter",
   fontSize: "medium",
@@ -405,4 +423,149 @@ export const AVAILABLE_FONTS = [
   "Open Sans",
   "Arial",
   "Times New Roman",
+  "Helvetica",
+  "Verdana",
+  "Trebuchet MS",
+  "Garamond",
+  "Courier New",
+  "Source Sans Pro",
+  "Merriweather",
+  "Raleway",
+  "Ubuntu",
+  "Nunito",
 ];
+
+// Cover Letter Types - Use same templates as Resume for consistency
+export type CoverLetterTemplate = TemplateType;
+
+export interface CoverLetterCustomization {
+  template: CoverLetterTemplate;
+  fontSize: FontSize;
+  fontFamily: string;
+  colors: ThemeColors;
+  lineHeight?: "tight" | "normal" | "relaxed";
+}
+
+export const DEFAULT_COVER_LETTER_CUSTOMIZATION: CoverLetterCustomization = {
+  template: "modern-minimal",
+  fontSize: "medium",
+  fontFamily: "Inter",
+  colors: DEFAULT_COLORS,
+  lineHeight: "normal",
+};
+
+export interface CoverLetterMetadata {
+  provider: string;
+  model: string;
+  customPrompt?: string;
+  generatedAt: string;
+  version: number;
+}
+
+const VALID_TEMPLATE_IDS = new Set(
+  AVAILABLE_TEMPLATES.map((template) => template.id)
+);
+const VALID_FONT_FAMILIES = new Set(AVAILABLE_FONTS);
+const VALID_PAGE_FORMATS: PageFormat[] = ["letter", "a4"];
+const VALID_FONT_SIZES: FontSize[] = ["small", "medium", "large"];
+const REQUIRED_COLOR_KEYS: Array<keyof ThemeColors> = [
+  "primary",
+  "secondary",
+  "accent",
+  "text",
+  "background",
+];
+const HEX_COLOR_REGEX = /^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/;
+
+type CustomizationTarget = {
+  template?: string;
+  fontSize?: string;
+  pageFormat?: string;
+  fontFamily?: string;
+  colors?: string;
+};
+
+function validateColors(colors: ThemeColors) {
+  const missingKeys = REQUIRED_COLOR_KEYS.filter((key) => !colors[key]);
+  if (missingKeys.length > 0) {
+    throw new Error(`Missing color values for: ${missingKeys.join(", ")}`);
+  }
+
+  const invalidKeys = REQUIRED_COLOR_KEYS.filter((key) => {
+    const value = colors[key];
+    return typeof value !== "string" || !HEX_COLOR_REGEX.test(value);
+  });
+
+  if (invalidKeys.length > 0) {
+    throw new Error(
+      `Invalid color format for: ${invalidKeys.join(", ")}. Expected hex values like #3b82f6.`
+    );
+  }
+}
+
+export function validateCustomization(
+  customization?: Partial<ThemeCustomization>
+) {
+  if (!customization) return;
+
+  const { template, fontSize, pageFormat, fontFamily, colors } = customization;
+
+  if (template && !VALID_TEMPLATE_IDS.has(template)) {
+    throw new Error("Invalid template selected.");
+  }
+
+  if (fontSize && !VALID_FONT_SIZES.includes(fontSize)) {
+    throw new Error("Invalid font size selected.");
+  }
+
+  if (pageFormat && !VALID_PAGE_FORMATS.includes(pageFormat)) {
+    throw new Error("Invalid page format selected.");
+  }
+
+  if (fontFamily && !VALID_FONT_FAMILIES.has(fontFamily)) {
+    throw new Error("Invalid font family selected.");
+  }
+
+  if (colors) {
+    validateColors(colors);
+  }
+}
+
+export function applyCustomization(
+  customization: Partial<ThemeCustomization> | undefined,
+  data: CustomizationTarget
+) {
+  validateCustomization(customization);
+
+  if (!customization) return;
+
+  const { template, fontSize, pageFormat, fontFamily, colors } = customization;
+
+  if (template) data.template = template;
+  if (fontSize) data.fontSize = fontSize;
+  if (pageFormat) data.pageFormat = pageFormat;
+  if (fontFamily) data.fontFamily = fontFamily;
+  if (colors) {
+    data.colors = colorsToCSV(colors);
+  }
+}
+
+export function extractCustomization(
+  source?: CustomizationTarget
+): ThemeCustomization {
+  const customization = {
+    ...DEFAULT_CUSTOMIZATION,
+    ...source,
+    colors: source?.colors
+      ? colorsFromCSV(source.colors)
+      : DEFAULT_CUSTOMIZATION.colors,
+  };
+
+  return {
+    template: customization.template as TemplateType,
+    pageFormat: customization.pageFormat as PageFormat,
+    fontSize: customization.fontSize as FontSize,
+    fontFamily: customization.fontFamily,
+    colors: customization.colors,
+  };
+}
