@@ -12,6 +12,12 @@
       },
       "isBackground": true,
       "problemMatcher": []
+    },
+    {
+      "label": "Build Test",
+      "type": "shell",
+      "command": "npm",
+      "args": ["run", "build"]
     }
   ]
 }
