@@ -6,6 +6,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+
 import { Button } from "@/components/ui";
 import { Icon } from "@/components/ui/Icon";
 
@@ -88,17 +89,17 @@ export function ExportDropdown({
 
       {/* Dropdown menu */}
       {isOpen && options.length > 1 && (
-        <div className="absolute top-full mt-1 right-0 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg z-50 min-w-56">
+        <div className="absolute top-full right-0 z-50 mt-1 min-w-56 rounded-lg border border-gray-200 bg-white shadow-lg dark:border-gray-700 dark:bg-gray-800">
           <div className="py-1">
             {options.map((option, index) => (
               <button
                 key={index}
                 onClick={() => handleExport(option.onExport)}
                 disabled={option.disabled}
-                className="w-full px-4 py-2 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-3"
+                className="flex w-full items-center gap-3 px-4 py-2 text-left text-sm text-gray-700 transition-colors hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-50 dark:text-gray-300 dark:hover:bg-gray-700"
                 title={option.description}
               >
-                <Icon name={option.icon} className="w-4 h-4 flex-shrink-0" />
+                <Icon name={option.icon} className="h-4 w-4 flex-shrink-0" />
                 <div className="flex-1">
                   <div className="font-medium">{option.label}</div>
                   <div className="text-xs text-gray-500 dark:text-gray-400">

@@ -1,6 +1,8 @@
 "use client";
 
+import Image from "next/image";
 import { useMemo, useState } from "react";
+
 import { cn } from "@/lib/cn";
 
 // Displays a company logo (fetched via Clearbit) with graceful fallbacks
@@ -50,22 +52,24 @@ export function CompanyAvatar({ name, size = 48 }: CompanyAvatarProps) {
   return (
     <div
       className={cn(
-        "flex items-center justify-center rounded-2xl font-semibold uppercase shadow-sm border border-black/10 overflow-hidden",
-        colorClass,
+        "flex items-center justify-center overflow-hidden rounded-2xl border border-black/10 font-semibold uppercase shadow-sm",
+        colorClass
       )}
       style={{ width: size, height: size }}
       aria-hidden="true"
     >
       {logoUrl && !failed ? (
-        <img
+        <Image
           src={logoUrl}
           alt={`${name ?? "Company"} logo`}
-          className="w-full h-full object-contain bg-white p-1.5"
+          width={size}
+          height={size}
+          className="bg-white object-contain p-1.5"
           onError={() => setFailed(true)}
           draggable={false}
         />
       ) : (
-        <span className="text-sm tracking-wider font-bold">{initials}</span>
+        <span className="text-sm font-bold tracking-wider">{initials}</span>
       )}
     </div>
   );

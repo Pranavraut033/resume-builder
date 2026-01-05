@@ -4,35 +4,35 @@
 
 "use client";
 
-import React, { useState, useEffect } from "react";
-import { Settings, Eye, Download } from "lucide-react";
+import { Settings } from "lucide-react";
+import React, { useState } from "react";
+
 import {
-  ResumeCustomization,
-  DEFAULT_CUSTOMIZATION,
+  ThemeCustomization,
   TemplateType,
   PageFormat,
   FontSize,
   AVAILABLE_FONTS,
 } from "@/types/resume";
+
+import { ColorCustomizer } from "./ColorCustomizer";
+import { TemplateSelector } from "./TemplateSelector";
 import { Button } from "./ui/Button";
 import { Card } from "./ui/Card";
-import { FormField } from "./ui/FormField";
 import { Modal } from "./ui/Modal";
-import { TemplateSelector } from "./TemplateSelector";
-import { ColorCustomizer } from "./ColorCustomizer";
 
 interface ResumeCustomizationPanelProps {
   jobId: number;
-  customization: ResumeCustomization;
-  onCustomizationChange: (customization: Partial<ResumeCustomization>) => void;
+  customization: ThemeCustomization;
+  onCustomizationChange: (customization: Partial<ThemeCustomization>) => void;
 }
 
 export const ResumeCustomizationPanel: React.FC<
   ResumeCustomizationPanelProps
-> = ({ jobId, customization, onCustomizationChange }) => {
+> = ({ _jobId, customization, onCustomizationChange }) => {
   const [showSettings, setShowSettings] = useState(false);
   const [activeTab, setActiveTab] = useState<"template" | "colors" | "format">(
-    "template",
+    "template"
   );
 
   const handleTemplateChange = (template: TemplateType) => {
@@ -54,13 +54,13 @@ export const ResumeCustomizationPanel: React.FC<
   return (
     <>
       {/* Floating Action Button */}
-      <div className="fixed bottom-8 right-8 flex gap-2 z-10">
+      <div className="fixed right-8 bottom-8 z-10 flex gap-2">
         <Button
           onClick={() => setShowSettings(true)}
-          className="rounded-full w-12 h-12 shadow-lg"
+          className="h-12 w-12 rounded-full shadow-lg"
           title="Customize Resume"
         >
-          <Settings className="w-5 h-5" />
+          <Settings className="h-5 w-5" />
         </Button>
       </div>
 
@@ -72,10 +72,10 @@ export const ResumeCustomizationPanel: React.FC<
       >
         <div className="space-y-block">
           {/* Tabs */}
-          <div className="flex gap-2 border-b border-blocky-300 pb-2">
+          <div className="border-blocky-300 flex gap-2 border-b pb-2">
             <button
               onClick={() => setActiveTab("template")}
-              className={`px-4 py-2 rounded-block font-medium transition-all ${
+              className={`rounded-block px-4 py-2 font-medium transition-all ${
                 activeTab === "template"
                   ? "bg-blocky-500 text-white"
                   : "bg-blocky-100 text-blocky-700 hover:bg-blocky-200"
@@ -85,7 +85,7 @@ export const ResumeCustomizationPanel: React.FC<
             </button>
             <button
               onClick={() => setActiveTab("colors")}
-              className={`px-4 py-2 rounded-block font-medium transition-all ${
+              className={`rounded-block px-4 py-2 font-medium transition-all ${
                 activeTab === "colors"
                   ? "bg-blocky-500 text-white"
                   : "bg-blocky-100 text-blocky-700 hover:bg-blocky-200"
@@ -95,7 +95,7 @@ export const ResumeCustomizationPanel: React.FC<
             </button>
             <button
               onClick={() => setActiveTab("format")}
-              className={`px-4 py-2 rounded-block font-medium transition-all ${
+              className={`rounded-block px-4 py-2 font-medium transition-all ${
                 activeTab === "format"
                   ? "bg-blocky-500 text-white"
                   : "bg-blocky-100 text-blocky-700 hover:bg-blocky-200"
@@ -125,43 +125,43 @@ export const ResumeCustomizationPanel: React.FC<
               <Card>
                 <div className="p-block space-y-block">
                   <div>
-                    <h3 className="text-lg font-blocky font-semibold text-blocky-900 mb-2">
+                    <h3 className="font-blocky text-blocky-900 mb-2 text-lg font-semibold">
                       Page Format
                     </h3>
-                    <p className="text-sm text-blocky-700 mb-block">
+                    <p className="text-blocky-700 mb-block text-sm">
                       Configure page size, font, and layout
                     </p>
                   </div>
 
                   {/* Page Size */}
                   <div>
-                    <label className="block text-sm font-medium text-blocky-900 mb-2">
+                    <label className="text-blocky-900 mb-2 block text-sm font-medium">
                       Page Size
                     </label>
                     <div className="flex gap-2">
                       <button
                         onClick={() => handlePageFormatChange("letter")}
-                        className={`flex-1 px-4 py-3 rounded-block border-2 transition-all ${
+                        className={`rounded-block flex-1 border-2 px-4 py-3 transition-all ${
                           customization.pageFormat === "letter"
                             ? "border-blocky-500 bg-blocky-50"
                             : "border-blocky-300 hover:border-blocky-400"
                         }`}
                       >
                         <div className="font-medium">US Letter</div>
-                        <div className="text-xs text-blocky-600">
+                        <div className="text-blocky-600 text-xs">
                           8.5" × 11"
                         </div>
                       </button>
                       <button
                         onClick={() => handlePageFormatChange("a4")}
-                        className={`flex-1 px-4 py-3 rounded-block border-2 transition-all ${
+                        className={`rounded-block flex-1 border-2 px-4 py-3 transition-all ${
                           customization.pageFormat === "a4"
                             ? "border-blocky-500 bg-blocky-50"
                             : "border-blocky-300 hover:border-blocky-400"
                         }`}
                       >
                         <div className="font-medium">A4</div>
-                        <div className="text-xs text-blocky-600">
+                        <div className="text-blocky-600 text-xs">
                           210 × 297 mm
                         </div>
                       </button>
@@ -170,7 +170,7 @@ export const ResumeCustomizationPanel: React.FC<
 
                   {/* Font Size */}
                   <div>
-                    <label className="block text-sm font-medium text-blocky-900 mb-2">
+                    <label className="text-blocky-900 mb-2 block text-sm font-medium">
                       Font Size
                     </label>
                     <div className="flex gap-2">
@@ -179,7 +179,7 @@ export const ResumeCustomizationPanel: React.FC<
                           <button
                             key={size}
                             onClick={() => handleFontSizeChange(size)}
-                            className={`flex-1 px-4 py-2 rounded-block border-2 transition-all capitalize ${
+                            className={`rounded-block flex-1 border-2 px-4 py-2 capitalize transition-all ${
                               customization.fontSize === size
                                 ? "border-blocky-500 bg-blocky-50"
                                 : "border-blocky-300 hover:border-blocky-400"
@@ -187,20 +187,20 @@ export const ResumeCustomizationPanel: React.FC<
                           >
                             {size}
                           </button>
-                        ),
+                        )
                       )}
                     </div>
                   </div>
 
                   {/* Font Family */}
                   <div>
-                    <label className="block text-sm font-medium text-blocky-900 mb-2">
+                    <label className="text-blocky-900 mb-2 block text-sm font-medium">
                       Font Family
                     </label>
                     <select
                       value={customization.fontFamily}
                       onChange={(e) => handleFontFamilyChange(e.target.value)}
-                      className="w-full px-4 py-2 rounded-block border border-blocky-300 bg-white focus:border-blocky-500 focus:ring-2 focus:ring-blocky-500 focus:ring-opacity-20"
+                      className="rounded-block border-blocky-300 focus:border-blocky-500 focus:ring-blocky-500 focus:ring-opacity-20 w-full border bg-white px-4 py-2 focus:ring-2"
                     >
                       {AVAILABLE_FONTS.map((font) => (
                         <option
@@ -219,7 +219,7 @@ export const ResumeCustomizationPanel: React.FC<
           </div>
 
           {/* Actions */}
-          <div className="flex justify-end gap-2 pt-block border-t border-blocky-300">
+          <div className="pt-block border-blocky-300 flex justify-end gap-2 border-t">
             <Button onClick={() => setShowSettings(false)} variant="secondary">
               Close
             </Button>

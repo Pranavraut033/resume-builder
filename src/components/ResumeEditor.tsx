@@ -1,6 +1,5 @@
 "use client";
 
-import { useState, useEffect } from "react";
 import {
   DndContext,
   closestCenter,
@@ -16,18 +15,27 @@ import {
   sortableKeyboardCoordinates,
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
+import { useState, useEffect } from "react";
+
+import { useResumeEditContext } from "@/contexts/ResumeEditContext";
+import { backupToGoogleDrive } from "@/lib/backup";
+import {
+  extractSummaryContext,
+  extractExperienceContext,
+  extractAchievementsContext,
+} from "@/lib/contextExtractor";
 import { generateResumePDF } from "@/lib/pdfExport";
 import { generateResumeTXT } from "@/lib/txtExport";
-import { backupToGoogleDrive } from "@/lib/backup";
-import { ResumeJSON, ContactInfo, Experience, Education, Project, Certification } from "@/types/resume";
 import {
-  Button,
-  Modal,
-  Section,
-  SortableSection,
-  Card,
-  Icon,
-} from "./ui";
+  ResumeJSON,
+  ContactInfo,
+  Experience,
+  Education,
+  Project,
+  Certification,
+} from "@/types/resume";
+
+import { FieldAIHelper } from "./FieldAIHelper";
 import {
   TextField,
   TextAreaField,
@@ -35,6 +43,7 @@ import {
   BulletListEditor,
   TagsEditor,
 } from "./form";
+import { Button, Modal, Section, SortableSection, Card, Icon } from "./ui";
 
 const defaultResume: ResumeJSON = {
   header: {
@@ -107,8 +116,13 @@ interface ResumeEditorProps {
   initialResume?: ResumeJSON;
 }
 
-export default function ResumeEditor({ jobId, initialResume }: ResumeEditorProps) {
-  const [resume, setResume] = useState<ResumeJSON>(initialResume || defaultResume);
+export default function ResumeEditor({
+  jobId,
+  initialResume,
+}: ResumeEditorProps) {
+  const [resume, setResume] = useState<ResumeJSON>(
+    initialResume || defaultResume
+  );
   const [sectionOrder, setSectionOrder] = useState<string[]>([
     "header",
     "summary",
@@ -121,11 +135,14 @@ export default function ResumeEditor({ jobId, initialResume }: ResumeEditorProps
   const [editingSection, setEditingSection] = useState<string | null>(null);
   const [editingData, setEditingData] = useState<unknown>(null);
 
+  // Access resume context for job details and generation
+  const { job } = useResumeEditContext();
+
   const sensors = useSensors(
     useSensor(PointerSensor),
     useSensor(KeyboardSensor, {
       coordinateGetter: sortableKeyboardCoordinates,
-    }),
+    })
   );
 
   // Update resume when initialResume prop changes
@@ -166,11 +183,12 @@ export default function ResumeEditor({ jobId, initialResume }: ResumeEditorProps
     if (!resume) return;
     const newResume = { ...resume, ...updates };
     setResume(newResume);
-    
+
     // Save to database
     const saveResume = async () => {
       try {
-        const { updateResume: saveResumeAction } = await import("@/actions/job");
+        const { updateResume: saveResumeAction } =
+          await import("@/actions/job");
         await saveResumeAction(parseInt(jobId), newResume);
       } catch (error) {
         console.error("Error saving resume:", error);
@@ -186,11 +204,12 @@ export default function ResumeEditor({ jobId, initialResume }: ResumeEditorProps
       header: { ...resume.header, ...updates },
     };
     setResume(newResume);
-    
+
     // Save to database
     const saveResume = async () => {
       try {
-        const { updateResume: saveResumeAction } = await import("@/actions/job");
+        const { updateResume: saveResumeAction } =
+          await import("@/actions/job");
         await saveResumeAction(parseInt(jobId), newResume);
       } catch (error) {
         console.error("Error saving resume:", error);
@@ -227,9 +246,12 @@ export default function ResumeEditor({ jobId, initialResume }: ResumeEditorProps
         break;
       }
       case "experience.edit": {
-        const expIndex = (editingData as any).index;
+        const expIndex = (editingData as unknown as { index: number }).index;
         const updated = [...resume.experience];
-        updated[expIndex] = { ...updated[expIndex], ...(editingData as Partial<Experience>) };
+        updated[expIndex] = {
+          ...updated[expIndex],
+          ...(editingData as Partial<Experience>),
+        };
         updateResume({ experience: updated });
         break;
       }
@@ -241,9 +263,12 @@ export default function ResumeEditor({ jobId, initialResume }: ResumeEditorProps
         break;
       }
       case "education.edit": {
-        const eduIndex = (editingData as any).index;
+        const eduIndex = (editingData as unknown as { index: number }).index;
         const updated = [...resume.education];
-        updated[eduIndex] = { ...updated[eduIndex], ...(editingData as Partial<Education>) };
+        updated[eduIndex] = {
+          ...updated[eduIndex],
+          ...(editingData as Partial<Education>),
+        };
         updateResume({ education: updated });
         break;
       }
@@ -255,9 +280,12 @@ export default function ResumeEditor({ jobId, initialResume }: ResumeEditorProps
         break;
       }
       case "projects.edit": {
-        const projIndex = (editingData as any).index;
+        const projIndex = (editingData as unknown as { index: number }).index;
         const updated = [...resume.projects];
-        updated[projIndex] = { ...updated[projIndex], ...(editingData as Partial<Project>) };
+        updated[projIndex] = {
+          ...updated[projIndex],
+          ...(editingData as Partial<Project>),
+        };
         updateResume({ projects: updated });
         break;
       }
@@ -269,9 +297,12 @@ export default function ResumeEditor({ jobId, initialResume }: ResumeEditorProps
         break;
       }
       case "certifications.edit": {
-        const certIndex = (editingData as any).index;
+        const certIndex = (editingData as unknown as { index: number }).index;
         const updated = [...resume.certifications];
-        updated[certIndex] = { ...updated[certIndex], ...(editingData as Partial<Certification>) };
+        updated[certIndex] = {
+          ...updated[certIndex],
+          ...(editingData as Partial<Certification>),
+        };
         updateResume({ certifications: updated });
         break;
       }
@@ -286,9 +317,9 @@ export default function ResumeEditor({ jobId, initialResume }: ResumeEditorProps
 
   if (!resume)
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="flex min-h-screen items-center justify-center bg-gray-50">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <div className="mx-auto mb-4 h-12 w-12 animate-spin rounded-full border-b-2 border-blue-600"></div>
           <p className="text-gray-600">Loading resume...</p>
         </div>
       </div>
@@ -303,7 +334,7 @@ export default function ResumeEditor({ jobId, initialResume }: ResumeEditorProps
             onEdit={() => startEditing("header", resume.header)}
           >
             <Card>
-              <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-3">
+              <h1 className="mb-3 text-3xl font-bold text-gray-900 dark:text-white">
                 {resume.header.name}
               </h1>
               <div className="space-y-2 text-gray-700 dark:text-gray-300">
@@ -325,7 +356,7 @@ export default function ResumeEditor({ jobId, initialResume }: ResumeEditorProps
             onEdit={() => startEditing("summary", resume.summary)}
           >
             <Card>
-              <p className="text-gray-700 dark:text-gray-300 leading-relaxed">
+              <p className="leading-relaxed text-gray-700 dark:text-gray-300">
                 {resume.summary}
               </p>
             </Card>
@@ -338,12 +369,12 @@ export default function ResumeEditor({ jobId, initialResume }: ResumeEditorProps
             <div className="space-y-4">
               {resume.experience.map((exp, index) => (
                 <Card key={index}>
-                  <div className="flex justify-between items-start mb-2">
+                  <div className="mb-2 flex items-start justify-between">
                     <div className="flex-1">
                       <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
                         {exp.role}
                       </h3>
-                      <p className="text-blue-600 dark:text-blue-400 font-medium">
+                      <p className="font-medium text-blue-600 dark:text-blue-400">
                         {exp.company}
                       </p>
                       <p className="text-sm text-gray-600 dark:text-gray-400">
@@ -353,14 +384,18 @@ export default function ResumeEditor({ jobId, initialResume }: ResumeEditorProps
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={() => startEditing(`experience.edit`, { ...exp, index })}
+                      onClick={() =>
+                        startEditing(`experience.edit`, { ...exp, index })
+                      }
                     >
-                      <Icon name="PencilIcon" className="w-4 h-4" />
+                      <Icon name="pencil" className="h-4 w-4" />
                     </Button>
                   </div>
-                  <p className="text-gray-700 dark:text-gray-300 mb-2">{exp.description}</p>
+                  <p className="mb-2 text-gray-700 dark:text-gray-300">
+                    {exp.description}
+                  </p>
                   {exp.achievements.length > 0 && (
-                    <ul className="list-disc list-inside space-y-1 text-gray-700 dark:text-gray-300 text-sm">
+                    <ul className="list-inside list-disc space-y-1 text-sm text-gray-700 dark:text-gray-300">
                       {exp.achievements.map((achievement, i) => (
                         <li key={i}>{achievement}</li>
                       ))}
@@ -381,7 +416,7 @@ export default function ResumeEditor({ jobId, initialResume }: ResumeEditorProps
                   })
                 }
               >
-                <Icon name="PlusIcon" className="w-4 h-4" />
+                <Icon name="plus" className="h-4 w-4" />
                 Add Experience
               </Button>
             </div>
@@ -394,7 +429,7 @@ export default function ResumeEditor({ jobId, initialResume }: ResumeEditorProps
             <div className="space-y-4">
               {resume.projects.map((project, index) => (
                 <Card key={index}>
-                  <div className="flex justify-between items-start mb-2">
+                  <div className="mb-2 flex items-start justify-between">
                     <div className="flex-1">
                       <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
                         {project.name}
@@ -406,18 +441,22 @@ export default function ResumeEditor({ jobId, initialResume }: ResumeEditorProps
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={() => startEditing(`projects.edit`, { ...project, index })}
+                      onClick={() =>
+                        startEditing(`projects.edit`, { ...project, index })
+                      }
                     >
-                      <Icon name="PencilIcon" className="w-4 h-4" />
+                      <Icon name="pencil" className="h-4 w-4" />
                     </Button>
                   </div>
-                  <p className="text-gray-700 dark:text-gray-300 mb-2">{project.description}</p>
+                  <p className="mb-2 text-gray-700 dark:text-gray-300">
+                    {project.description}
+                  </p>
                   {project.technologies.length > 0 && (
-                    <div className="flex flex-wrap gap-2 mb-2">
+                    <div className="mb-2 flex flex-wrap gap-2">
                       {project.technologies.map((tech, i) => (
                         <span
                           key={i}
-                          className="px-2 py-1 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded text-xs"
+                          className="rounded bg-gray-100 px-2 py-1 text-xs text-gray-700 dark:bg-gray-700 dark:text-gray-300"
                         >
                           {tech}
                         </span>
@@ -429,7 +468,7 @@ export default function ResumeEditor({ jobId, initialResume }: ResumeEditorProps
                       href={project.url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-blue-600 dark:text-blue-400 hover:underline text-sm"
+                      className="text-sm text-blue-600 hover:underline dark:text-blue-400"
                     >
                       View Project →
                     </a>
@@ -449,7 +488,7 @@ export default function ResumeEditor({ jobId, initialResume }: ResumeEditorProps
                   })
                 }
               >
-                <Icon name="PlusIcon" className="w-4 h-4" />
+                <Icon name="plus" className="h-4 w-4" />
                 Add Project
               </Button>
             </div>
@@ -467,7 +506,7 @@ export default function ResumeEditor({ jobId, initialResume }: ResumeEditorProps
                 {resume.skills.map((skill, index) => (
                   <span
                     key={index}
-                    className="px-3 py-1 bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 rounded-full text-sm font-medium"
+                    className="rounded-full bg-blue-100 px-3 py-1 text-sm font-medium text-blue-800 dark:bg-blue-900 dark:text-blue-200"
                   >
                     {skill}
                   </span>
@@ -483,12 +522,12 @@ export default function ResumeEditor({ jobId, initialResume }: ResumeEditorProps
             <div className="space-y-4">
               {resume.education.map((edu, index) => (
                 <Card key={index}>
-                  <div className="flex justify-between items-start mb-2">
+                  <div className="mb-2 flex items-start justify-between">
                     <div className="flex-1">
                       <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
                         {edu.degree} in {edu.field}
                       </h3>
-                      <p className="text-blue-600 dark:text-blue-400 font-medium">
+                      <p className="font-medium text-blue-600 dark:text-blue-400">
                         {edu.institution}
                       </p>
                       <p className="text-sm text-gray-600 dark:text-gray-400">
@@ -499,9 +538,11 @@ export default function ResumeEditor({ jobId, initialResume }: ResumeEditorProps
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={() => startEditing(`education.edit`, { ...edu, index })}
+                      onClick={() =>
+                        startEditing(`education.edit`, { ...edu, index })
+                      }
                     >
-                      <Icon name="PencilIcon" className="w-4 h-4" />
+                      <Icon name="pencil" className="h-4 w-4" />
                     </Button>
                   </div>
                 </Card>
@@ -519,7 +560,7 @@ export default function ResumeEditor({ jobId, initialResume }: ResumeEditorProps
                   })
                 }
               >
-                <Icon name="PlusIcon" className="w-4 h-4" />
+                <Icon name="plus" className="h-4 w-4" />
                 Add Education
               </Button>
             </div>
@@ -532,13 +573,19 @@ export default function ResumeEditor({ jobId, initialResume }: ResumeEditorProps
             <div className="space-y-4">
               {resume.certifications.map((cert, index) => (
                 <Card key={index}>
-                  <div className="flex justify-between items-start">
+                  <div className="flex items-start justify-between">
                     <div className="flex-1">
                       <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
                         {cert.name}
                       </h3>
-                      <p className="text-blue-600 dark:text-blue-400">{cert.issuer}</p>
-                      {cert.date && <p className="text-sm text-gray-600 dark:text-gray-400">{cert.date}</p>}
+                      <p className="text-blue-600 dark:text-blue-400">
+                        {cert.issuer}
+                      </p>
+                      {cert.date && (
+                        <p className="text-sm text-gray-600 dark:text-gray-400">
+                          {cert.date}
+                        </p>
+                      )}
                     </div>
                     <div className="flex gap-2">
                       {cert.url && (
@@ -546,7 +593,7 @@ export default function ResumeEditor({ jobId, initialResume }: ResumeEditorProps
                           href={cert.url}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="text-blue-600 dark:text-blue-400 hover:underline text-sm whitespace-nowrap"
+                          className="text-sm whitespace-nowrap text-blue-600 hover:underline dark:text-blue-400"
                         >
                           View
                         </a>
@@ -554,9 +601,14 @@ export default function ResumeEditor({ jobId, initialResume }: ResumeEditorProps
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => startEditing(`certifications.edit`, { ...cert, index })}
+                        onClick={() =>
+                          startEditing(`certifications.edit`, {
+                            ...cert,
+                            index,
+                          })
+                        }
                       >
-                        <Icon name="PencilIcon" className="w-4 h-4" />
+                        <Icon name="pencil" className="h-4 w-4" />
                       </Button>
                     </div>
                   </div>
@@ -573,7 +625,7 @@ export default function ResumeEditor({ jobId, initialResume }: ResumeEditorProps
                   })
                 }
               >
-                <Icon name="PlusIcon" className="w-4 h-4" />
+                <Icon name="plus" className="h-4 w-4" />
                 Add Certification
               </Button>
             </div>
@@ -588,9 +640,11 @@ export default function ResumeEditor({ jobId, initialResume }: ResumeEditorProps
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       {/* Header */}
-      <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-6 py-4">
-        <div className="max-w-4xl mx-auto flex justify-between items-center">
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Resume Editor</h1>
+      <div className="border-b border-gray-200 bg-white px-6 py-4 dark:border-gray-700 dark:bg-gray-800">
+        <div className="mx-auto flex max-w-4xl items-center justify-between">
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+            Resume Editor
+          </h1>
           <div className="flex gap-2">
             <Button
               onClick={handleExportPDF}
@@ -618,8 +672,8 @@ export default function ResumeEditor({ jobId, initialResume }: ResumeEditorProps
       </div>
 
       {/* Resume Preview */}
-      <div className="max-w-4xl mx-auto px-6 py-8">
-        <div className="bg-white dark:bg-gray-800 shadow-lg rounded-lg p-8 min-h-[29.7cm]">
+      <div className="mx-auto max-w-4xl px-6 py-8">
+        <div className="min-h-[29.7cm] rounded-lg bg-white p-8 shadow-lg dark:bg-gray-800">
           <DndContext
             sensors={sensors}
             collisionDetection={closestCenter}
@@ -654,7 +708,6 @@ export default function ResumeEditor({ jobId, initialResume }: ResumeEditorProps
               onChange={(value) =>
                 setEditingData({ ...(editingData as ContactInfo), name: value })
               }
-              onAIGenerate={async () => ""}
               required
             />
             <TextField
@@ -666,7 +719,6 @@ export default function ResumeEditor({ jobId, initialResume }: ResumeEditorProps
                   email: value,
                 })
               }
-              onAIGenerate={async () => ""}
               required
             />
             <TextField
@@ -723,14 +775,33 @@ export default function ResumeEditor({ jobId, initialResume }: ResumeEditorProps
         )}
 
         {editingSection === "summary" && (
-          <TextAreaField
-            label="Professional Summary"
-            value={(editingData as string) || ""}
-            onChange={setEditingData}
-            placeholder="Write a compelling summary of your professional background..."
-            rows={6}
-            onAIGenerate={async () => ""}
-          />
+          <div className="space-y-3">
+            <TextAreaField
+              label="Professional Summary"
+              value={(editingData as string) || ""}
+              onChange={setEditingData}
+              placeholder="Write a compelling summary of your professional background..."
+              rows={6}
+            />
+            {resume && (
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-gray-600 dark:text-gray-400">
+                  AI Generate:
+                </span>
+                <FieldAIHelper
+                  field="summary"
+                  context={extractSummaryContext(
+                    resume,
+                    job?.details || undefined
+                  )}
+                  onGenerate={(content) => setEditingData(content)}
+                  onError={(error) =>
+                    console.error("AI generation error:", error)
+                  }
+                />
+              </div>
+            )}
+          </div>
         )}
 
         {editingSection === "skills" && Array.isArray(editingData) && (
@@ -740,199 +811,315 @@ export default function ResumeEditor({ jobId, initialResume }: ResumeEditorProps
             onTagsChange={setEditingData}
             placeholder="Add a skill and press Enter"
             helpText="Add technologies, languages, and competencies"
-            onAIGenerate={async () => []}
           />
         )}
 
-        {(editingSection === "experience.add" || editingSection === "experience.edit") && editingData !== null && (
-          <div className="space-y-4">
-            <TextField
-              label="Company"
-              value={(editingData as Experience).company || ""}
-              onChange={(value) =>
-                setEditingData({ ...(editingData as Experience), company: value })
-              }
-              required
-            />
-            <TextField
-              label="Job Title"
-              value={(editingData as Experience).role || ""}
-              onChange={(value) =>
-                setEditingData({ ...(editingData as Experience), role: value })
-              }
-              required
-            />
-            <DateRangeField
-              label="Employment Period"
-              startDate={(editingData as Experience).startDate || ""}
-              endDate={(editingData as Experience).endDate || ""}
-              onStartDateChange={(date) =>
-                setEditingData({ ...(editingData as Experience), startDate: date })
-              }
-              onEndDateChange={(date) =>
-                setEditingData({ ...(editingData as Experience), endDate: date })
-              }
-              showPresentOption
-            />
-            <TextAreaField
-              label="Description"
-              value={(editingData as Experience).description || ""}
-              onChange={(value) =>
-                setEditingData({ ...(editingData as Experience), description: value })
-              }
-              placeholder="Describe your main responsibilities and achievements..."
-              rows={4}
-              onAIGenerate={async () => ""}
-            />
-            <BulletListEditor
-              label="Key Achievements"
-              items={(editingData as Experience).achievements || []}
-              onItemsChange={(items) =>
-                setEditingData({ ...(editingData as Experience), achievements: items })
-              }
-              placeholder="Add an achievement"
-              helpText="Use bullet points to highlight measurable accomplishments"
-              onAIGenerate={async () => []}
-            />
-          </div>
-        )}
+        {(editingSection === "experience.add" ||
+          editingSection === "experience.edit") &&
+          editingData !== null && (
+            <div className="space-y-4">
+              <TextField
+                label="Company"
+                value={(editingData as Experience).company || ""}
+                onChange={(value) =>
+                  setEditingData({
+                    ...(editingData as Experience),
+                    company: value,
+                  })
+                }
+                required
+              />
+              <TextField
+                label="Job Title"
+                value={(editingData as Experience).role || ""}
+                onChange={(value) =>
+                  setEditingData({
+                    ...(editingData as Experience),
+                    role: value,
+                  })
+                }
+                required
+              />
+              <DateRangeField
+                label="Employment Period"
+                startDate={(editingData as Experience).startDate || ""}
+                endDate={(editingData as Experience).endDate || ""}
+                onStartDateChange={(date) =>
+                  setEditingData({
+                    ...(editingData as Experience),
+                    startDate: date,
+                  })
+                }
+                onEndDateChange={(date) =>
+                  setEditingData({
+                    ...(editingData as Experience),
+                    endDate: date,
+                  })
+                }
+                showPresentOption
+              />
+              <TextAreaField
+                label="Description"
+                value={(editingData as Experience).description || ""}
+                onChange={(value) =>
+                  setEditingData({
+                    ...(editingData as Experience),
+                    description: value,
+                  })
+                }
+                placeholder="Describe your main responsibilities and achievements..."
+                rows={4}
+              />
+              {resume &&
+                (editingData as unknown as { index?: number })?.index !==
+                  undefined && (
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-gray-600 dark:text-gray-400">
+                      AI Generate:
+                    </span>
+                    <FieldAIHelper
+                      field="experience_description"
+                      context={extractExperienceContext(
+                        resume.experience,
+                        (editingData as unknown as { index: number }).index,
+                        job?.details || undefined,
+                        resume
+                      )}
+                      onGenerate={(content) =>
+                        setEditingData({
+                          ...(editingData as Experience),
+                          description: content,
+                        })
+                      }
+                      onError={(_error) =>
+                        console.error("AI generation error:", _error)
+                      }
+                    />
+                  </div>
+                )}
+              <BulletListEditor
+                label="Key Achievements"
+                items={(editingData as Experience).achievements || []}
+                onItemsChange={(items) =>
+                  setEditingData({
+                    ...(editingData as Experience),
+                    achievements: items,
+                  })
+                }
+                placeholder="Add an achievement"
+                helpText="Use bullet points to highlight measurable accomplishments"
+              />
+              {resume &&
+                (editingData as unknown as { index?: number })?.index !==
+                  undefined && (
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-gray-600 dark:text-gray-400">
+                      AI Generate:
+                    </span>
+                    <FieldAIHelper
+                      field="achievements"
+                      context={extractAchievementsContext(
+                        resume.experience,
+                        (editingData as unknown as { index: number }).index,
+                        job?.details || undefined
+                      )}
+                      onGenerate={(content) => {
+                        // Generate achievements returns concatenated string, convert back to array
+                        const achievements = content
+                          .split("\n")
+                          .filter((line) => line.trim());
+                        setEditingData({
+                          ...(editingData as Experience),
+                          achievements,
+                        });
+                      }}
+                      onError={(error) =>
+                        console.error("AI generation error:", error)
+                      }
+                    />
+                  </div>
+                )}
+            </div>
+          )}
 
-        {(editingSection === "education.add" || editingSection === "education.edit") && editingData !== null && (
-          <div className="space-y-4">
-            <TextField
-              label="Institution"
-              value={(editingData as Education).institution || ""}
-              onChange={(value) =>
-                setEditingData({ ...(editingData as Education), institution: value })
-              }
-              required
-            />
-            <TextField
-              label="Degree"
-              value={(editingData as Education).degree || ""}
-              onChange={(value) =>
-                setEditingData({ ...(editingData as Education), degree: value })
-              }
-              placeholder="Bachelor of Science, Master of Arts, etc."
-              required
-            />
-            <TextField
-              label="Field of Study"
-              value={(editingData as Education).field || ""}
-              onChange={(value) =>
-                setEditingData({ ...(editingData as Education), field: value })
-              }
-              required
-            />
-            <DateRangeField
-              label="Study Period"
-              startDate={(editingData as Education).startDate || ""}
-              endDate={(editingData as Education).endDate || ""}
-              onStartDateChange={(date) =>
-                setEditingData({ ...(editingData as Education), startDate: date })
-              }
-              onEndDateChange={(date) =>
-                setEditingData({ ...(editingData as Education), endDate: date })
-              }
-              showPresentOption={false}
-            />
-            <TextField
-              label="GPA (Optional)"
-              value={(editingData as Education).gpa || ""}
-              onChange={(value) =>
-                setEditingData({ ...(editingData as Education), gpa: value })
-              }
-              placeholder="3.8"
-            />
-          </div>
-        )}
+        {(editingSection === "education.add" ||
+          editingSection === "education.edit") &&
+          editingData !== null && (
+            <div className="space-y-4">
+              <TextField
+                label="Institution"
+                value={(editingData as Education).institution || ""}
+                onChange={(value) =>
+                  setEditingData({
+                    ...(editingData as Education),
+                    institution: value,
+                  })
+                }
+                required
+              />
+              <TextField
+                label="Degree"
+                value={(editingData as Education).degree || ""}
+                onChange={(value) =>
+                  setEditingData({
+                    ...(editingData as Education),
+                    degree: value,
+                  })
+                }
+                placeholder="Bachelor of Science, Master of Arts, etc."
+                required
+              />
+              <TextField
+                label="Field of Study"
+                value={(editingData as Education).field || ""}
+                onChange={(value) =>
+                  setEditingData({
+                    ...(editingData as Education),
+                    field: value,
+                  })
+                }
+                required
+              />
+              <DateRangeField
+                label="Study Period"
+                startDate={(editingData as Education).startDate || ""}
+                endDate={(editingData as Education).endDate || ""}
+                onStartDateChange={(date) =>
+                  setEditingData({
+                    ...(editingData as Education),
+                    startDate: date,
+                  })
+                }
+                onEndDateChange={(date) =>
+                  setEditingData({
+                    ...(editingData as Education),
+                    endDate: date,
+                  })
+                }
+                showPresentOption={false}
+              />
+              <TextField
+                label="GPA (Optional)"
+                value={(editingData as Education).gpa || ""}
+                onChange={(value) =>
+                  setEditingData({ ...(editingData as Education), gpa: value })
+                }
+                placeholder="3.8"
+              />
+            </div>
+          )}
 
-        {(editingSection === "projects.add" || editingSection === "projects.edit") && editingData !== null && (
-          <div className="space-y-4">
-            <TextField
-              label="Project Name"
-              value={(editingData as Project).name || ""}
-              onChange={(value) =>
-                setEditingData({ ...(editingData as Project), name: value })
-              }
-              required
-            />
-            <TextAreaField
-              label="Description"
-              value={(editingData as Project).description || ""}
-              onChange={(value) =>
-                setEditingData({ ...(editingData as Project), description: value })
-              }
-              placeholder="Describe the project, your role, and impact..."
-              rows={4}
-            />
-            <DateRangeField
-              label="Project Duration"
-              startDate={(editingData as Project).startDate || ""}
-              endDate={(editingData as Project).endDate || ""}
-              onStartDateChange={(date) =>
-                setEditingData({ ...(editingData as Project), startDate: date })
-              }
-              onEndDateChange={(date) =>
-                setEditingData({ ...(editingData as Project), endDate: date })
-              }
-              showPresentOption={false}
-            />
-            <TagsEditor
-              label="Technologies Used"
-              tags={(editingData as Project).technologies || []}
-              onTagsChange={(items) =>
-                setEditingData({ ...(editingData as Project), technologies: items })
-              }
-              placeholder="Add a technology"
-              helpText="List programming languages, frameworks, tools, etc."
-            />
-            <TextField
-              label="Project URL"
-              value={(editingData as Project).url || ""}
-              onChange={(value) =>
-                setEditingData({ ...(editingData as Project), url: value })
-              }
-              placeholder="https://github.com/yourname/project"
-            />
-          </div>
-        )}
+        {(editingSection === "projects.add" ||
+          editingSection === "projects.edit") &&
+          editingData !== null && (
+            <div className="space-y-4">
+              <TextField
+                label="Project Name"
+                value={(editingData as Project).name || ""}
+                onChange={(value) =>
+                  setEditingData({ ...(editingData as Project), name: value })
+                }
+                required
+              />
+              <TextAreaField
+                label="Description"
+                value={(editingData as Project).description || ""}
+                onChange={(value) =>
+                  setEditingData({
+                    ...(editingData as Project),
+                    description: value,
+                  })
+                }
+                placeholder="Describe the project, your role, and impact..."
+                rows={4}
+              />
+              <DateRangeField
+                label="Project Duration"
+                startDate={(editingData as Project).startDate || ""}
+                endDate={(editingData as Project).endDate || ""}
+                onStartDateChange={(date) =>
+                  setEditingData({
+                    ...(editingData as Project),
+                    startDate: date,
+                  })
+                }
+                onEndDateChange={(date) =>
+                  setEditingData({ ...(editingData as Project), endDate: date })
+                }
+                showPresentOption={false}
+              />
+              <TagsEditor
+                label="Technologies Used"
+                tags={(editingData as Project).technologies || []}
+                onTagsChange={(items) =>
+                  setEditingData({
+                    ...(editingData as Project),
+                    technologies: items,
+                  })
+                }
+                placeholder="Add a technology"
+                helpText="List programming languages, frameworks, tools, etc."
+              />
+              <TextField
+                label="Project URL"
+                value={(editingData as Project).url || ""}
+                onChange={(value) =>
+                  setEditingData({ ...(editingData as Project), url: value })
+                }
+                placeholder="https://github.com/yourname/project"
+              />
+            </div>
+          )}
 
-        {(editingSection === "certifications.add" || editingSection === "certifications.edit") && editingData !== null && (
-          <div className="space-y-4">
-            <TextField
-              label="Certification Name"
-              value={(editingData as Certification).name || ""}
-              onChange={(value) =>
-                setEditingData({ ...(editingData as Certification), name: value })
-              }
-              required
-            />
-            <TextField
-              label="Issuing Organization"
-              value={(editingData as Certification).issuer || ""}
-              onChange={(value) =>
-                setEditingData({ ...(editingData as Certification), issuer: value })
-              }
-              required
-            />
-            <TextField
-              label="Date Issued"
-              value={(editingData as Certification).date || ""}
-              onChange={(value) =>
-                setEditingData({ ...(editingData as Certification), date: value })
-              }
-            />
-            <TextField
-              label="Credential URL"
-              value={(editingData as Certification).url || ""}
-              onChange={(value) =>
-                setEditingData({ ...(editingData as Certification), url: value })
-              }
-              placeholder="https://..."
-            />
-          </div>
-        )}
+        {(editingSection === "certifications.add" ||
+          editingSection === "certifications.edit") &&
+          editingData !== null && (
+            <div className="space-y-4">
+              <TextField
+                label="Certification Name"
+                value={(editingData as Certification).name || ""}
+                onChange={(value) =>
+                  setEditingData({
+                    ...(editingData as Certification),
+                    name: value,
+                  })
+                }
+                required
+              />
+              <TextField
+                label="Issuing Organization"
+                value={(editingData as Certification).issuer || ""}
+                onChange={(value) =>
+                  setEditingData({
+                    ...(editingData as Certification),
+                    issuer: value,
+                  })
+                }
+                required
+              />
+              <TextField
+                label="Date Issued"
+                value={(editingData as Certification).date || ""}
+                onChange={(value) =>
+                  setEditingData({
+                    ...(editingData as Certification),
+                    date: value,
+                  })
+                }
+              />
+              <TextField
+                label="Credential URL"
+                value={(editingData as Certification).url || ""}
+                onChange={(value) =>
+                  setEditingData({
+                    ...(editingData as Certification),
+                    url: value,
+                  })
+                }
+                placeholder="https://..."
+              />
+            </div>
+          )}
       </Modal>
     </div>
   );
