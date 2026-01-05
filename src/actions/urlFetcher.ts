@@ -58,7 +58,7 @@ export async function fetchJobDescriptionFromUrl(
 
     // Get the content type
     const contentType = response.headers.get('content-type') || '';
-    
+
     // Check if it's HTML
     if (!contentType.includes('text/html')) {
       return {
@@ -104,7 +104,7 @@ export async function fetchJobDescriptionFromUrl(
     };
   } catch (error) {
     console.error('Error fetching URL:', error);
-    
+
     if (error instanceof Error) {
       if (error.name === 'TimeoutError') {
         return {
