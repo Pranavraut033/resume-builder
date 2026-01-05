@@ -5,53 +5,71 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import {
-  ResumeJSON,
-  ResumeCustomization,
-  DEFAULT_CUSTOMIZATION,
-} from "@/types/resume";
-import { ResumeSidePanel } from "./ResumeSidePanel";
-import { ResumePreviewModal } from "./ResumePreviewModal";
-import { ExportDropdown } from "./ExportDropdown";
-import ResumeEditor from "./ResumeEditor";
+
 import {
   getResumeByJobId,
   getResumeCustomization,
   updateResumeCustomization,
+  getJobContext,
 } from "@/actions/job";
 import { getProfile } from "@/actions/profile";
-import { generateResumePDF } from "@/lib/pdfExport";
+import { AIProvider } from "@/contexts/AIContext";
+import {
+  ResumeEditProvider,
+  useResumeEditContext,
+} from "@/contexts/ResumeEditContext";
+import { loadGoogleFont } from "@/lib/fontLoader";
+import {
+  ThemeCustomization,
+  DEFAULT_CUSTOMIZATION,
+  DEFAULT_COLORS,
+} from "@/types/resume";
+
+import BackButton from "./BackButton";
+import ResumeEditor from "./ResumeEditor";
+import { ResumeSidePanel } from "./ResumeSidePanel";
+import { TemplateRenderer } from "./templates/TemplateRenderer";
 import { Button } from "./ui";
 import { Icon } from "./ui/Icon";
-
-type IconName = React.ComponentProps<typeof Icon>["name"];
 
 interface EnhancedResumeEditorProps {
   jobId: string;
 }
 
-export default function EnhancedResumeEditor({
-  jobId,
-}: EnhancedResumeEditorProps) {
-  const [resume, setResume] = useState<ResumeJSON | null>(null);
-  const [customization, setCustomization] = useState<ResumeCustomization>(
-    DEFAULT_CUSTOMIZATION,
-  );
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [showPreviewModal, setShowPreviewModal] = useState(false);
+/**
+ * Inner editor component that uses the ResumeEditContext
+ * Separated to allow context provider to wrap the component
+ */
+function ResumeEditorContent({ _jobId }: { jobId: string }) {
+  const {
+    resume,
+    setResume,
+    _job,
+    setJob,
+    isLoading,
+    setIsLoading,
+    error,
+    setError,
+  } = useResumeEditContext();
 
+  const [customization, setCustomization] = useState<ThemeCustomization>(
+    DEFAULT_CUSTOMIZATION
+  );
+  const [isPreviewMode, setIsPreviewMode] = useState(false);
+
+  // Load initial data on mount
   useEffect(() => {
     const loadData = async () => {
       try {
-        setLoading(true);
+        setIsLoading(true);
         setError(null);
         const jobIdNum = parseInt(jobId);
 
-        // Load resume data and customization in parallel
-        const [resumeData, customizationData] = await Promise.all([
+        // Load resume data, customization, and job context in parallel
+        const [resumeData, customizationData, jobData] = await Promise.all([
           getResumeByJobId(jobIdNum),
           getResumeCustomization(jobIdNum),
+          getJobContext(jobIdNum),
         ]);
 
         if (resumeData) {
@@ -63,19 +81,38 @@ export default function EnhancedResumeEditor({
         }
 
         setCustomization(customizationData);
-      } catch (error) {
-        console.error("Failed to load resume data:", error);
+
+        // Set job context if available
+        if (jobData) {
+          setJob({
+            id: jobData.id,
+            details: jobData.jobDetails,
+            description: jobData.description,
+            rawData: jobData,
+          });
+        }
+      } catch (err) {
+        console.error("Failed to load resume data:", err);
         setError("Failed to load resume data. Please try again.");
       } finally {
-        setLoading(false);
+        setIsLoading(false);
       }
     };
 
     loadData();
+    // jobId is a primitive from route params, safe to depend on
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [jobId]);
 
+  // Load font whenever customization changes
+  useEffect(() => {
+    if (customization.fontFamily) {
+      loadGoogleFont(customization.fontFamily);
+    }
+  }, [customization.fontFamily]);
+
   const handleCustomizationChange = async (
-    updates: Partial<ResumeCustomization>,
+    updates: Partial<ThemeCustomization>
   ) => {
     const newCustomization = {
       ...customization,
@@ -87,36 +124,19 @@ export default function EnhancedResumeEditor({
     // Save to database
     try {
       await updateResumeCustomization(parseInt(jobId), updates);
-    } catch (error) {
-      console.error("Failed to save customization:", error);
+    } catch (err) {
+      console.error("Failed to save customization:", err);
     }
   };
 
-  const handleExportPDF = () => {
-    if (!resume) return;
-    generateResumePDF(resume);
-  };
-
-  const handleExportJSON = () => {
-    if (!resume) return;
-    const dataStr = JSON.stringify(resume, null, 2);
-    const dataBlob = new Blob([dataStr], { type: "application/json" });
-    const url = URL.createObjectURL(dataBlob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = `resume-${Date.now()}.json`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
-  };
-
-  if (loading) {
+  if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
+      <div className="flex min-h-screen items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600 dark:text-gray-400">Loading resume...</p>
+          <div className="mx-auto h-12 w-12 animate-spin rounded-full border-b-2 border-blue-600"></div>
+          <p className="mt-4 text-gray-600 dark:text-gray-400">
+            Loading resume...
+          </p>
         </div>
       </div>
     );
@@ -124,19 +144,19 @@ export default function EnhancedResumeEditor({
 
   if (error || !resume) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center max-w-md">
-          <Icon name="alert" className="w-16 h-16 text-yellow-500 mx-auto mb-4" />
-          <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
+      <div className="flex min-h-screen items-center justify-center">
+        <div className="max-w-md text-center">
+          <Icon
+            name="alert"
+            className="mx-auto mb-4 h-16 w-16 text-yellow-500"
+          />
+          <h2 className="mb-2 text-xl font-semibold text-gray-900 dark:text-white">
             {error || "Resume Not Found"}
           </h2>
-          <p className="text-gray-600 dark:text-gray-400 mb-6">
+          <p className="mb-6 text-gray-600 dark:text-gray-400">
             {error || "No resume data available for this job."}
           </p>
-          <Button
-            variant="primary"
-            onClick={() => window.history.back()}
-          >
+          <Button variant="primary" onClick={() => window.history.back()}>
             Go Back
           </Button>
         </div>
@@ -144,50 +164,62 @@ export default function EnhancedResumeEditor({
     );
   }
 
-  const exportOptions: Array<{
-    label: string;
-    icon: IconName;
-    description: string;
-    onExport: () => void;
-  }> = [
-    {
-      label: "PDF",
-      icon: "download",
-      description: "Download as PDF",
-      onExport: handleExportPDF,
-    },
-    {
-      label: "JSON",
-      icon: "fileText",
-      description: "Export as JSON",
-      onExport: handleExportJSON,
-    },
-  ];
-
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex flex-col lg:flex-row">
+    <div className="flex min-h-screen flex-col bg-gray-50 lg:flex-row dark:bg-gray-900">
       {/* Main Editor Content */}
-      <div className="flex-1 overflow-y-auto">
-        <div className="sticky top-0 z-10 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-6 py-4">
-          <div className="max-w-4xl mx-auto flex justify-between items-center">
+      <div className="flex-1">
+        <div className="sticky top-14 z-10 border-b border-gray-200 bg-white px-6 py-4 dark:border-gray-700 dark:bg-gray-800">
+          <div className="mx-auto flex max-w-4xl items-center space-x-6">
+            <BackButton />
+
             <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
               Resume Editor
             </h1>
-            <div className="flex gap-2">
-              <Button
-                variant="secondary"
-                onClick={() => setShowPreviewModal(true)}
-                icon={<Icon name="grid" />}
-              >
-                Preview
-              </Button>
-              <ExportDropdown options={exportOptions} defaultLabel="Export" />
+            <div
+              onClick={() => setIsPreviewMode((s) => !s)}
+              className="relative ml-auto h-10 w-20 cursor-pointer space-x-4 overflow-hidden rounded-full border border-gray-300 bg-gray-200 dark:border-gray-600 dark:bg-gray-700"
+            >
+              <div className="flex size-full items-center justify-around space-x-2 px-2">
+                <Icon
+                  name={"pencil"}
+                  className={
+                    "z-10 size-5 transition " +
+                    (isPreviewMode ? "text-gray-400" : "text-primary-500")
+                  }
+                />
+                <Icon
+                  name={"EyeIcon"}
+                  className={
+                    "z-10 size-5 transition " +
+                    (isPreviewMode ? "text-primary-500" : "text-gray-400")
+                  }
+                />
+              </div>
+              <div
+                className={
+                  "absolute inset-y-0 w-10 bg-white " +
+                  (isPreviewMode ? "translate-x-10" : "translate-x-0") +
+                  " transition-transform duration-300 ease-in-out"
+                }
+              />
             </div>
           </div>
         </div>
-
-        {/* Resume Editor */}
-        {resume && <ResumeEditor jobId={jobId} initialResume={resume} />}
+        <div className="flex-1 overflow-auto">
+          {/* Resume Editor */}
+          {resume &&
+            (isPreviewMode ? (
+              <TemplateRenderer
+                template={customization.template || "modern-minimal"}
+                resume={resume}
+                colors={customization.colors || DEFAULT_COLORS}
+                fontSize={customization.fontSize || "medium"}
+                fontFamily={customization.fontFamily || "Inter"}
+              />
+            ) : (
+              <ResumeEditor jobId={jobId} initialResume={resume} />
+            ))}
+        </div>
       </div>
 
       {/* Side Panel */}
@@ -196,20 +228,24 @@ export default function EnhancedResumeEditor({
           resume={resume}
           customization={customization}
           onCustomizationChange={handleCustomizationChange}
-          onPreview={() => setShowPreviewModal(true)}
-          onExport={handleExportPDF}
-        />
-      )}
-
-      {/* Preview Modal */}
-      {resume && (
-        <ResumePreviewModal
-          isOpen={showPreviewModal}
-          onClose={() => setShowPreviewModal(false)}
-          resume={resume}
-          customization={customization}
+          jobId={jobId}
         />
       )}
     </div>
+  );
+}
+
+/**
+ * Outer component that provides context to inner editor
+ */
+export default function EnhancedResumeEditor({
+  jobId,
+}: EnhancedResumeEditorProps) {
+  return (
+    <AIProvider>
+      <ResumeEditProvider>
+        <ResumeEditorContent jobId={jobId} />
+      </ResumeEditProvider>
+    </AIProvider>
   );
 }
