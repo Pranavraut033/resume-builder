@@ -1,11 +1,13 @@
+import { createLogger } from "@/lib/logger";
 import {
   LLMProvider,
   ResumePromptInput,
   CoverLetterPromptInput,
+  ProviderType,
 } from "@/types/llm";
 import { ResumeJSON } from "@/types/resume";
+
 import { BaseLLMProvider } from "./baseProvider";
-import { createLogger } from "@/lib/logger";
 
 const logger = createLogger("Ollama");
 
@@ -24,7 +26,7 @@ export class OllamaProvider extends BaseLLMProvider implements LLMProvider {
 
   constructor(
     baseUrl: string = "http://localhost:11434",
-    model: string = "llama2",
+    model: string = "llama2"
   ) {
     super();
     this.baseUrl = baseUrl;
@@ -55,7 +57,7 @@ export class OllamaProvider extends BaseLLMProvider implements LLMProvider {
 
     try {
       return JSON.parse(content) as ResumeJSON;
-    } catch (e) {
+    } catch (_e) {
       throw new Error("Invalid JSON response from Ollama");
     }
   }
@@ -79,4 +81,40 @@ export class OllamaProvider extends BaseLLMProvider implements LLMProvider {
       return ["llama2", "llama3"];
     }
   }
+
+  async runPrompt(
+    messages: Array<{ role: "system" | "user" | "assistant"; content: string }>,
+    _model?: string,
+    _maxTokens?: number
+  ): Promise<{
+    content: string;
+    usage?: {
+      prompt_tokens?: number;
+      completion_tokens?: number;
+      total_tokens?: number;
+    };
+  }> {
+    // Ollama doesn't support system messages in the same way, combine them
+    const prompt = messages.map((m) => m.content).join("\n\n");
+    const content = await this.callOllama(prompt, _model);
+
+    return {
+      content,
+    };
+  }
 }
+/**
+ * Register Ollama provider
+ */
+BaseLLMProvider.register(
+  ProviderType.OLLAMA,
+  {
+    name: "Ollama",
+    requiresAuth: false,
+    isLocal: true,
+    icon: "ollama",
+    description: "Local Ollama models",
+    defaultModels: ["llama2", "llama3", "mistral", "neural-chat"],
+  },
+  () => new OllamaProvider()
+);

@@ -1,9 +1,12 @@
 import OpenAI from "openai";
 import { zodResponseFormat } from "openai/helpers/zod";
+
+import { createLogger } from "@/lib/logger";
 import {
   LLMProvider,
   ResumePromptInput,
   CoverLetterPromptInput,
+  ProviderType,
 } from "@/types/llm";
 import {
   ResumeJSON,
@@ -11,9 +14,10 @@ import {
   JobDetailsSchema,
   ParsedResume,
   ResumeParsingSchema,
+  ResumeGenerationSchema,
 } from "@/types/resume";
+
 import { BaseLLMProvider } from "./baseProvider";
-import { createLogger } from "@/lib/logger";
 
 const logger = createLogger("OpenAI");
 
@@ -33,27 +37,26 @@ export class OpenAIProvider extends BaseLLMProvider implements LLMProvider {
 
     let response;
     try {
-      response = await this.client.chat.completions.create({
+      response = await this.client.chat.completions.parse({
         model: input.model || "gpt-4o",
         messages: [{ role: "user", content: prompt }],
+        response_format: zodResponseFormat(ResumeGenerationSchema, "resume_json"),
         ...this.getTemperatureConfig(input.model),
       });
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const error = err as Record<string, unknown>;
       logger.error("generateResume failed", {
         error: err,
-        message: err?.message,
+        message: error?.message,
       });
-      throw new Error(`OpenAI generateResume failed: ${err?.message || err}`);
+      throw new Error(`OpenAI generateResume failed: ${String(error?.message) || err}`);
     }
 
-    const content = response.choices[0]?.message?.content;
-    if (!content) throw new Error("No response from OpenAI");
-
-    try {
-      return JSON.parse(content) as ResumeJSON;
-    } catch (e) {
-      throw new Error("Invalid JSON response from OpenAI");
+    if (!response.choices[0]?.message?.parsed) {
+      throw new Error("Failed to parse resume from OpenAI structured output");
     }
+
+    return response.choices[0].message.parsed as ResumeJSON;
   }
 
   async generateCoverLetter(input: CoverLetterPromptInput): Promise<string> {
@@ -64,15 +67,15 @@ export class OpenAIProvider extends BaseLLMProvider implements LLMProvider {
       response = await this.client.chat.completions.create({
         model: input.model || "gpt-4o",
         messages: [{ role: "user", content: prompt }],
-        ...this.getTemperatureConfig(input.model),
       });
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const error = err as Record<string, unknown>;
       logger.error("generateCoverLetter failed", {
         error: err,
-        message: err?.message,
+        message: error?.message,
       });
       throw new Error(
-        `OpenAI generateCoverLetter failed: ${err?.message || err}`,
+        `OpenAI generateCoverLetter failed: ${err?.message || err}`
       );
     }
 
@@ -95,7 +98,7 @@ export class OpenAIProvider extends BaseLLMProvider implements LLMProvider {
 
   async parseJobDetails(
     description: string,
-    model?: string,
+    model?: string
   ): Promise<JobDetails> {
     const systemPrompt = this.generateJobParsingSystemPrompt();
 
@@ -118,10 +121,7 @@ export class OpenAIProvider extends BaseLLMProvider implements LLMProvider {
   /**
    * Parse resume text into structured data using OpenAI structured outputs
    */
-  async parseResume(
-    resumeText: string,
-    model?: string,
-  ): Promise<ParsedResume> {
+  async parseResume(resumeText: string, model?: string): Promise<ParsedResume> {
     const systemPrompt = this.generateResumeParsingSystemPrompt();
 
     const completion = await this.client.chat.completions.parse({
@@ -139,4 +139,51 @@ export class OpenAIProvider extends BaseLLMProvider implements LLMProvider {
 
     return completion.choices[0].message.parsed;
   }
+
+  async runPrompt(
+    messages: Array<{ role: "system" | "user" | "assistant"; content: string }>,
+    model?: string,
+    maxTokens?: number
+  ): Promise<{
+    content: string;
+    usage?: {
+      prompt_tokens?: number;
+      completion_tokens?: number;
+      total_tokens?: number;
+    };
+  }> {
+    const response = await this.client.chat.completions.create({
+      model: model || "gpt-4o",
+      messages,
+      max_tokens: maxTokens,
+    });
+
+    return {
+      content: response.choices[0]?.message?.content || "",
+      usage: {
+        prompt_tokens: response.usage?.prompt_tokens,
+        completion_tokens: response.usage?.completion_tokens,
+        total_tokens: response.usage?.total_tokens,
+      },
+    };
+  }
 }
+/**
+ * Register OpenAI provider
+ */
+BaseLLMProvider.register(
+  ProviderType.OPENAI,
+  {
+    name: "OpenAI",
+    requiresAuth: true,
+    icon: "openai",
+    description: "OpenAI GPT models",
+    defaultModels: ["gpt-4o", "gpt-4-turbo", "gpt-3.5-turbo"],
+  },
+  (apiKey?: string) => {
+    if (!apiKey) {
+      throw new Error("OpenAI API key is required");
+    }
+    return new OpenAIProvider(apiKey);
+  }
+);

@@ -1,12 +1,15 @@
 import OpenAI from "openai";
+
+import { createLogger } from "@/lib/logger";
 import {
   LLMProvider,
   ResumePromptInput,
   CoverLetterPromptInput,
+  ProviderType,
 } from "@/types/llm";
 import { ResumeJSON, JobDetails, JobDetailsSchema } from "@/types/resume";
+
 import { BaseLLMProvider } from "./baseProvider";
-import { createLogger } from "@/lib/logger";
 
 const logger = createLogger("Perplexity");
 
@@ -32,13 +35,14 @@ export class PerplexityProvider extends BaseLLMProvider implements LLMProvider {
         messages: [{ role: "user", content: prompt }],
         ...this.getTemperatureConfig(input.model),
       });
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const error = err as Record<string, unknown>;
       logger.error("generateResume failed", {
         error: err,
-        message: err?.message,
+        message: error?.message,
       });
       throw new Error(
-        `Perplexity generateResume failed: ${err?.message || err}`,
+        `Perplexity generateResume failed: ${String(error?.message) || err}`
       );
     }
 
@@ -47,7 +51,7 @@ export class PerplexityProvider extends BaseLLMProvider implements LLMProvider {
 
     try {
       return JSON.parse(content) as ResumeJSON;
-    } catch (e) {
+    } catch (_e) {
       throw new Error("Invalid JSON response from Perplexity");
     }
   }
@@ -62,13 +66,14 @@ export class PerplexityProvider extends BaseLLMProvider implements LLMProvider {
         messages: [{ role: "user", content: prompt }],
         ...this.getTemperatureConfig(input.model),
       });
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const error = err as Record<string, unknown>;
       logger.error("generateCoverLetter failed", {
         error: err,
-        message: err?.message,
+        message: error?.message,
       });
       throw new Error(
-        `Perplexity generateCoverLetter failed: ${err?.message || err}`,
+        `Perplexity generateCoverLetter failed: ${String(error?.message) || err}`
       );
     }
 
@@ -92,9 +97,37 @@ export class PerplexityProvider extends BaseLLMProvider implements LLMProvider {
     }
   }
 
+  async runPrompt(
+    messages: Array<{ role: "system" | "user" | "assistant"; content: string }>,
+    model?: string,
+    maxTokens?: number
+  ): Promise<{
+    content: string;
+    usage?: {
+      prompt_tokens?: number;
+      completion_tokens?: number;
+      total_tokens?: number;
+    };
+  }> {
+    const response = await this.client.chat.completions.create({
+      model: model || "sonar-pro",
+      messages,
+      max_tokens: maxTokens,
+    });
+
+    return {
+      content: response.choices[0]?.message?.content || "",
+      usage: {
+        prompt_tokens: response.usage?.prompt_tokens,
+        completion_tokens: response.usage?.completion_tokens,
+        total_tokens: response.usage?.total_tokens,
+      },
+    };
+  }
+
   async parseJobDetails(
     description: string,
-    model?: string,
+    model?: string
   ): Promise<JobDetails> {
     const systemPrompt = this.generateJobParsingSystemPrompt();
 
@@ -111,13 +144,14 @@ export class PerplexityProvider extends BaseLLMProvider implements LLMProvider {
         ],
         temperature: 0.3,
       });
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const error = err as Record<string, unknown>;
       logger.error("parseJobDetails failed", {
         error: err,
-        message: err?.message,
+        message: error?.message,
       });
       throw new Error(
-        `Perplexity parseJobDetails failed: ${err?.message || err}`,
+        `Perplexity parseJobDetails failed: ${String(error?.message) || err}`
       );
     }
 
@@ -127,11 +161,31 @@ export class PerplexityProvider extends BaseLLMProvider implements LLMProvider {
     try {
       const parsed = JSON.parse(content);
       return JobDetailsSchema.parse(parsed);
-    } catch (e: any) {
+    } catch (e: unknown) {
+      const error = e as Record<string, unknown>;
       logger.warn("Failed to parse job details from Perplexity response", {
-        error: e?.message,
+        error: error?.message,
       });
       throw new Error("Failed to parse job details from Perplexity");
     }
   }
 }
+/**
+ * Register Perplexity provider
+ */
+BaseLLMProvider.register(
+  ProviderType.PERPLEXITY,
+  {
+    name: "Perplexity",
+    requiresAuth: true,
+    icon: "perplexity",
+    description: "Perplexity AI models",
+    defaultModels: ["sonar-pro", "sonar-reasoning-pro", "sonar"],
+  },
+  (apiKey?: string) => {
+    if (!apiKey) {
+      throw new Error("Perplexity API key is required");
+    }
+    return new PerplexityProvider(apiKey);
+  }
+);

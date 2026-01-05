@@ -1,132 +1,173 @@
 /**
  * Base LLM Provider with shared prompt generation utilities.
  * This eliminates prompt duplication across different LLM providers.
+ *
+ * Providers should register themselves using the static register() method
+ * to allow dynamic provider discovery and instantiation.
  */
 
-import { ResumePromptInput, CoverLetterPromptInput } from "@/types/llm";
+import { templateRegistry } from "@/lib/prompts/registry";
+import { resolveTemplate } from "@/lib/prompts/resolver";
+import {
+  ResumePromptInput,
+  CoverLetterPromptInput,
+  LLMGenerationOptions,
+  ProviderType,
+  LLMProvider,
+} from "@/types/llm";
+import { ResumeJSON } from "@/types/resume";
+
+import { ProviderRegistry, ProviderMetadata } from "./registry";
 
 export abstract class BaseLLMProvider {
   /**
    * Get temperature settings based on model compatibility.
    * Some models (like OpenAI o1) don't support custom temperature.
    */
-  protected getTemperatureConfig(model?: string): { temperature?: number } {
-    // OpenAI o1 models don't support custom temperature
+  protected getTemperatureConfig(
+    model?: string,
+    temperature?: number
+  ): { temperature?: number } {
+    // OpenAI o1/o3 models don't support custom temperature
     if (model && (model.includes("o1") || model.includes("o3"))) {
       return {}; // Omit temperature parameter
     }
-    return {};
+
+    // Use provided temperature or default
+    return { temperature: temperature };
   }
+
   /**
-   * Generate a resume tailoring prompt
+   * Generate text from system and user prompts
+   * Default implementation uses runPrompt - override for custom behavior
+   */
+  async generateText(
+    systemPrompt: string,
+    userPrompt: string,
+    options?: LLMGenerationOptions
+  ): Promise<string> {
+    // Default implementation using runPrompt - providers can override
+    const response = await this.runPrompt(
+      [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: userPrompt },
+      ],
+      options?.model,
+      options?.maxTokens
+    );
+    return response.content;
+  }
+
+  /**
+   * Parse job details from description
+   * Must be implemented by subclasses or use parseJobDescription if available
+   */
+  async parseJobDetails(_description: string, _model?: string): Promise<Record<string, unknown>> {
+    throw new Error("parseJobDetails not implemented for this provider");
+  }
+
+  /**
+   * Parse resume text
+   * Optional method - not all providers support this
+   */
+  async parseResume?(resumeText: string, model?: string): Promise<ResumeJSON>;
+
+  /**
+   * Run a prompt and get response
+   * Must be implemented by subclasses
+   */
+  abstract runPrompt(
+    messages: Array<{ role: "system" | "user" | "assistant"; content: string }>,
+    model?: string,
+    maxTokens?: number
+  ): Promise<{
+    content: string;
+    usage?: { prompt_tokens?: number; completion_tokens?: number };
+  }>;
+  /**
+   * Generate a resume tailoring prompt using template system
    */
   protected generateResumePrompt(input: ResumePromptInput): string {
-    return `
-You are a professional resume writer. Tailor the following base profile to the job description.
+    const template = templateRegistry.get("tailor_resume");
+    if (!template) {
+      throw new Error("Resume tailoring template not found");
+    }
 
-Base Profile:
-${JSON.stringify(input.baseProfile, null, 2)}
+    const resolved = resolveTemplate(template, {
+      baseProfile: input.baseProfile,
+      jobDescription: input.jobDescription,
+      jobRole: input.jobRole,
+      company: input.company,
+    });
 
-Job Description:
-${input.jobDescription}
-
-Job Role: ${input.jobRole}
-Company: ${input.company}
-
-Instructions:
-- Tailor the resume to highlight relevant experience, skills, and projects for this job.
-- Keep the structure: header, summary, experience, projects, skills, education, certifications.
-- Make it ATS-friendly: use keywords from the job description.
-- Output only valid JSON matching the ResumeJSON structure.
-- Do not include any text outside the JSON.
-`;
+    // Return combined prompt (providers typically expect single prompt string)
+    return `${resolved.systemPrompt}\n\n${resolved.userPrompt}`;
   }
 
   /**
-   * Generate a cover letter writing prompt
+   * Generate a cover letter writing prompt using template system
    */
   protected generateCoverLetterPrompt(input: CoverLetterPromptInput): string {
-    return `
-You are a professional cover letter writer. Write a compelling cover letter based on the following.
+    const template = templateRegistry.get("generate_cover_letter");
+    if (!template) {
+      throw new Error("Cover letter template not found");
+    }
 
-Base Profile:
-${JSON.stringify(input.baseProfile, null, 2)}
+    const resolved = resolveTemplate(template, {
+      baseProfile: input.baseProfile,
+      jobDescription: input.jobDescription,
+      jobRole: input.jobRole,
+      company: input.company,
+      resume: input.resume,
+    });
 
-Job Description:
-${input.jobDescription}
-
-Job Role: ${input.jobRole}
-Company: ${input.company}
-
-Tailored Resume:
-${JSON.stringify(input.resume, null, 2)}
-
-Instructions:
-- Write a professional cover letter introducing the candidate and highlighting key qualifications.
-- Keep it concise, 3-4 paragraphs.
-- Tailor to the job and company.
-- Output only the cover letter text, no additional formatting.
-`;
+    // Return combined prompt (providers typically expect single prompt string)
+    return `${resolved.systemPrompt}\n\n${resolved.userPrompt}`;
   }
 
   /**
    * Generate a job details extraction prompt (for structured parsing)
+   * Returns only system prompt - user prompt is the job description itself
    */
   protected generateJobParsingSystemPrompt(): string {
-    return `You are an information extraction system for job descriptions.
+    const template = templateRegistry.get("parse_job");
+    if (!template) {
+      throw new Error("Job parsing template not found");
+    }
 
-Extract structured data from the following job description.
-Follow these rules strictly:
-- Do not infer facts that are not explicitly stated.
-- If a field is missing, return null.
-- Normalize values where possible (e.g., "Full-time", "On-site").
-- Return valid JSON only.
-- Do not include explanations.
-
-Extract comprehensive job information including:
-- Job identification (title, category, seniority, type, workplace type)
-- Company details (name, industry, description, market position, location)
-- Job location (city, region, country, onsite requirement)
-- Responsibilities (core, technical, collaboration, architecture, quality)
-- Required skills (years, technologies, languages, frameworks, APIs, tools, soft skills, languages)
-- Nice-to-have skills (CI/CD, testing, cloud, domain interests)
-- Tech stack (frontend, backend, database, cloud, devops)
-- Benefits (compensation, environment, growth, flexibility, perks, culture, events)
-- Contact information (recruiter name, role, email, phone, WhatsApp availability)
-
-Ensure all arrays and nested objects follow the schema exactly.`;
+    // For parsing operations, we only need the system prompt
+    // The actual job description is passed as user message by the provider
+    return template.systemPrompt;
   }
 
   /**
    * Generate a resume parsing prompt (for structured output)
+   * Returns only system prompt - user prompt is the resume text itself
    */
   protected generateResumeParsingSystemPrompt(): string {
-    return `You are an information extraction system for resumes and CVs.
+    const template = templateRegistry.get("parse_resume");
+    if (!template) {
+      throw new Error("Resume parsing template not found");
+    }
 
-Extract structured data from the provided resume/CV text.
-Follow these rules strictly:
-- Extract all information present in the resume
-- Do not infer facts that are not explicitly stated
-- If a field is missing, return null or empty array as appropriate
-- Normalize dates to YYYY-MM format where possible
-- Return valid JSON only
-- Do not include explanations
+    // For parsing operations, we only need the system prompt
+    // The actual resume text is passed as user message by the provider
+    return template.systemPrompt;
+  }
 
-Extract comprehensive resume information including:
-- Contact information (name, email, phone, location, LinkedIn, GitHub, website)
-- Professional summary
-- Work experience (company, role, dates, description, key achievements)
-- Projects (name, description, technologies used, URL, dates)
-- Skills (technical skills, tools, languages, frameworks)
-- Education (institution, degree, field of study, dates, GPA if mentioned)
-- Certifications (name, issuer, date, credential URL)
-- Publications (title, authors, venue, date, URL, DOI)
-- Languages (name, proficiency level)
-- Volunteer experience (organization, role, dates, description)
-- Awards and honors (title, issuer, date, description)
-
-Ensure all arrays and nested objects follow the schema exactly.
-For achievements, extract bullet points as separate items in the array.`;
+  /**
+   * Register this provider with the registry
+   * Should be called at module load time from provider implementations
+   *
+   * @param type - Provider type enum
+   * @param metadata - Provider metadata (name, auth requirement, etc.)
+   * @param constructor - Constructor function that returns provider instance
+   */
+  static register(
+    type: ProviderType,
+    metadata: Omit<ProviderMetadata, "type">,
+    constructor: (apiKey?: string) => LLMProvider
+  ): void {
+    ProviderRegistry.getInstance().register(type, metadata, constructor);
   }
 }
-
