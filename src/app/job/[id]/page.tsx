@@ -1,7 +1,8 @@
-import { redirect, notFound } from "next/navigation";
-import { prisma } from "@/lib/prisma";
-import BackButton from "@/components/BackButton";
 import { revalidatePath } from "next/cache";
+import { redirect, notFound } from "next/navigation";
+
+import BackButton from "@/components/BackButton";
+import { prisma } from "@/lib/prisma";
 
 async function updateJob(id: number, formData: FormData) {
   "use server";
@@ -84,7 +85,7 @@ export default async function JobPage({ params }: { params: { id: string } }) {
   return (
     <div>
       <BackButton />
-      <h1 className="text-2xl font-bold mb-4">Edit Job</h1>
+      <h1 className="mb-4 text-2xl font-bold">Edit Job</h1>
       <form action={updateJob.bind(null, id)} className="space-y-4">
         <div>
           <label htmlFor="companyName" className="block text-sm font-medium">
@@ -159,7 +160,7 @@ export default async function JobPage({ params }: { params: { id: string } }) {
             name="description"
             defaultValue={job.description}
             required
-            className="w-full border p-2 h-32"
+            className="h-32 w-full border p-2"
           ></textarea>
         </div>
         <div>
@@ -188,20 +189,20 @@ export default async function JobPage({ params }: { params: { id: string } }) {
             id="jobDetailsJson"
             name="jobDetailsJson"
             defaultValue={job.jobDetailsJson || ""}
-            className="w-full border p-2 h-24"
+            className="h-24 w-full border p-2"
           ></textarea>
         </div>
         <div className="flex gap-2">
           <button
             type="submit"
-            className="px-4 py-2 bg-blue-500 text-white rounded"
+            className="rounded bg-blue-500 px-4 py-2 text-white"
           >
             Update Job
           </button>
           <form action={deleteJob.bind(null, id)}>
             <button
               type="submit"
-              className="px-4 py-2 bg-red-500 text-white rounded"
+              className="rounded bg-red-500 px-4 py-2 text-white"
             >
               Delete Job
             </button>
