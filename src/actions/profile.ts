@@ -21,7 +21,15 @@ export async function getProfile(): Promise<ResumeJSON> {
 
   if (!profile) {
     return {
-      header: { name: "", email: "" },
+      header: {
+        name: "",
+        email: "",
+        phone: null,
+        location: null,
+        linkedin: null,
+        github: null,
+        website: null,
+      },
       summary: "",
       experience: [],
       projects: [],
@@ -39,11 +47,11 @@ export async function getProfile(): Promise<ResumeJSON> {
     header: {
       name: profile.name,
       email: profile.email,
-      phone: profile.phone || undefined,
-      location: profile.location || undefined,
-      linkedin: profile.linkedin || undefined,
-      github: profile.github || undefined,
-      website: profile.website || undefined,
+      phone: profile.phone || null,
+      location: profile.location || null,
+      linkedin: profile.linkedin || null,
+      github: profile.github || null,
+      website: profile.website || null,
     },
     summary: profile.summary || "",
     experience: JSON.parse(profile.experienceJson),
