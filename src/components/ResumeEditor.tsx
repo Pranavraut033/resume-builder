@@ -109,6 +109,10 @@ const defaultResume: ResumeJSON = {
       url: "https://aws.amazon.com/certification/",
     },
   ],
+  publications: null,
+  languages: null,
+  volunteer: null,
+  awards: null,
 };
 
 interface ResumeEditorProps {

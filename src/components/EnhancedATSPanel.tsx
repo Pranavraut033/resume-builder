@@ -18,7 +18,7 @@ import { ModelSelector } from "@/components/ModelSelector";
 import { Button } from "@/components/ui";
 import { Card } from "@/components/ui/Card";
 import { Icon } from "@/components/ui/Icon";
-import LLMService from "@/lib/llmService";
+import LLMService from "@/lib/llm/llmService";
 import { useModelStore } from "@/store/modelStore";
 
 interface EnhancedATSPanelProps {
@@ -35,7 +35,7 @@ export function EnhancedATSPanel({
   jobDescription,
 }: EnhancedATSPanelProps) {
   const store = useModelStore();
-  const selectedProvider = store.selectedProvider as unknown;
+  const selectedProvider = store.selectedProvider;
   const selectedModel =
     store.selectedModelsByProvider[store.selectedProvider]?.[0];
 
@@ -59,7 +59,6 @@ export function EnhancedATSPanel({
         provider: selectedProvider,
         model: selectedModel,
         temperature: 0.5, // Lower temp for more focused recommendations
-        purpose: "analyze_ats",
       });
 
       setLLMSuggestions(result.result);
@@ -244,11 +243,7 @@ export function EnhancedATSPanel({
                   Get detailed AI-powered recommendations to improve your ATS
                   score.
                 </p>
-                <ModelSelector
-                  compact
-                  showLabel={false}
-                  showTemperature={true}
-                />
+                <ModelSelector onModelSelected={() => {}} />
 
                 <div className="flex gap-2">
                   <Button

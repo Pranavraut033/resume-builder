@@ -15,8 +15,8 @@ import {
   generateFieldPrompt,
   formatPromptForTooltip,
 } from "@/lib/fieldPromptSystem";
+import LLMService from "@/lib/llm/llmService";
 import { getAvailableProviders } from "@/lib/llm/providers";
-import LLMService from "@/lib/llmService";
 import { createLogger } from "@/lib/logger";
 import { useModelStore } from "@/store/modelStore";
 import { Providers } from "@/types/llm";
@@ -74,7 +74,6 @@ export function FieldAIHelper({
           provider,
           model: currentModel,
           temperature,
-          purpose: "generate_summary",
         }
       );
 

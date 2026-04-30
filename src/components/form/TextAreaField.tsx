@@ -6,8 +6,6 @@
 
 "use client";
 
-
-
 interface TextAreaFieldProps {
   label: string;
   value: string;
@@ -29,9 +27,16 @@ export function TextAreaField({
 }: TextAreaFieldProps) {
   return (
     <div className="space-y-2">
-      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+      <label
+        className="block text-sm font-medium"
+        style={{ color: "var(--color-agent-on-surface)" }}
+      >
         {label}
-        {required && <span className="ml-1 text-red-500">*</span>}
+        {required && (
+          <span className="ml-1" style={{ color: "var(--color-agent-error)" }}>
+            *
+          </span>
+        )}
       </label>
 
       <div className="relative rounded-lg">
@@ -41,11 +46,22 @@ export function TextAreaField({
           placeholder={placeholder}
           rows={rows}
           required={required}
-          className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-gray-900 placeholder-gray-500 transition-colors focus:border-transparent focus:ring-2 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:placeholder-gray-400"
+          className="w-full rounded-lg border px-3 py-2 transition-colors focus:ring-2 focus:outline-none"
+          style={{
+            borderColor: "var(--color-agent-outline-variant)",
+            background: "var(--color-agent-surface-lowest)",
+            color: "var(--color-agent-on-surface)",
+            caretColor: "var(--color-agent-primary)",
+          }}
         />
       </div>
       {helpText && (
-        <p className="text-xs text-gray-500 dark:text-gray-400">{helpText}</p>
+        <p
+          className="text-xs"
+          style={{ color: "var(--color-agent-on-surface-variant)" }}
+        >
+          {helpText}
+        </p>
       )}
     </div>
   );

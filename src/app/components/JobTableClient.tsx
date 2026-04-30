@@ -12,14 +12,19 @@ import {
 } from "@tanstack/react-table";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useMemo, useState, ReactNode } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+  ReactNode,
+} from "react";
 
 import { deleteJob, updateJobStatus } from "@/actions/job";
 import CompanyAvatar from "@/components/CompanyAvatar";
 import { Icon } from "@/components/ui/Icon";
 import { Modal } from "@/components/ui/Modal";
 import { useToast } from "@/components/ui/ToastProvider";
-import { cn } from "@/lib/cn";
 import { JOB_STATUSES, JobStatus, isJobStatus } from "@/types/job";
 import { JobDetails } from "@/types/resume";
 
@@ -46,12 +51,28 @@ type JobRecord = Omit<JobInput, "status"> & { status: JobStatus };
 
 type ViewMode = "card" | "table";
 
-const STATUS_BADGES: Record<JobStatus, string> = {
-  DRAFT: "bg-slate-100 text-slate-800 border-slate-200",
-  APPLIED: "bg-sky-100 text-sky-800 border-sky-200",
-  INTERVIEW: "bg-amber-100 text-amber-900 border-amber-200",
-  REJECTED: "bg-red-100 text-red-900 border-red-200",
-  OFFER: "bg-emerald-100 text-emerald-900 border-emerald-200",
+const STATUS_BADGE_STYLES: Record<JobStatus, React.CSSProperties> = {
+  DRAFT: { background: "#f1f5f9", color: "#475569", borderColor: "#cbd5e1" },
+  APPLIED: {
+    background: "var(--color-agent-secondary-container)",
+    color: "var(--color-agent-on-secondary-container)",
+    borderColor: "var(--color-agent-outline-variant)",
+  },
+  INTERVIEW: {
+    background: "#fef3c7",
+    color: "#92400e",
+    borderColor: "#fcd34d",
+  },
+  REJECTED: {
+    background: "var(--color-agent-error-container)",
+    color: "var(--color-agent-on-error-container)",
+    borderColor: "#fca5a5",
+  },
+  OFFER: {
+    background: "var(--color-agent-tertiary-fixed)",
+    color: "var(--color-agent-on-tertiary-fixed)",
+    borderColor: "var(--color-agent-tertiary-fixed-dim)",
+  },
 };
 
 const globalJobFilter: FilterFn<JobRecord> = (row, _columnId, filterValue) => {
@@ -211,10 +232,16 @@ export default function JobTableClient({ jobs }: { jobs: JobInput[] }) {
         header: "Role",
         cell: ({ row }) => (
           <div className="flex flex-col">
-            <span className="text-sm font-medium text-gray-100">
+            <span
+              className="text-sm font-medium"
+              style={{ color: "var(--color-agent-on-surface)" }}
+            >
               {row.original.role}
             </span>
-            <span className="text-xs text-gray-400">
+            <span
+              className="text-xs"
+              style={{ color: "var(--color-agent-on-surface-variant)" }}
+            >
               {row.original.company?.industry ?? "—"}
             </span>
           </div>
@@ -243,7 +270,10 @@ export default function JobTableClient({ jobs }: { jobs: JobInput[] }) {
         accessorKey: "createdAt",
         header: "Updated",
         cell: ({ row }) => (
-          <span className="text-sm text-gray-300">
+          <span
+            className="text-sm"
+            style={{ color: "var(--color-agent-on-surface-variant)" }}
+          >
             {formatTimestamp(row.original.createdAt)}
           </span>
         ),
@@ -360,15 +390,29 @@ function SearchInput({
   onChange: (value: string) => void;
 }) {
   return (
-    <label className="focus-within:ring-blocky-500 flex items-center gap-3 rounded-3xl border border-gray-700 bg-gray-800 px-4 py-2.5 shadow-sm transition-all focus-within:ring-2">
-      <Icon name="search" size={18} className="text-gray-400" />
+    <label
+      className="flex items-center gap-3 rounded-2xl px-4 py-2.5 shadow-sm transition-all focus-within:ring-2"
+      style={{
+        background: "var(--color-agent-surface-low)",
+        border: "1px solid var(--color-agent-outline-variant)",
+      }}
+    >
+      <Icon
+        name="search"
+        size={18}
+        className="shrink-0"
+        color="var(--color-agent-on-surface-variant)"
+      />
       <span className="sr-only">Search jobs</span>
       <input
         type="text"
         value={value}
         onChange={(event) => onChange(event.target.value)}
         placeholder="Search company, role, or status"
-        className="flex-1 border-none bg-transparent text-sm text-gray-100 placeholder:text-gray-400 focus:outline-none"
+        className="flex-1 border-none bg-transparent text-sm focus:outline-none"
+        style={{
+          color: "var(--color-agent-on-surface)",
+        }}
       />
     </label>
   );
@@ -391,18 +435,30 @@ function ViewToggle({
   ];
 
   return (
-    <div className="inline-flex rounded-2xl border border-gray-700 bg-gray-800 p-1 shadow-sm">
+    <div
+      className="inline-flex rounded-2xl p-1 shadow-sm"
+      style={{
+        background: "var(--color-agent-surface-low)",
+        border: "1px solid var(--color-agent-outline-variant)",
+      }}
+    >
       {options.map((option) => (
         <button
           key={option.value}
           type="button"
           onClick={() => onChange(option.value)}
-          className={cn(
-            "flex items-center gap-2 rounded-2xl px-4 py-2 text-sm font-medium transition-all",
+          className="flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium transition-all"
+          style={
             value === option.value
-              ? "bg-blocky-500 text-blocky-900 shadow-block"
-              : "text-gray-300 hover:bg-gray-700"
-          )}
+              ? {
+                  background:
+                    "linear-gradient(135deg, var(--color-agent-primary), var(--color-agent-primary-container))",
+                  color: "var(--color-agent-on-primary)",
+                }
+              : {
+                  color: "var(--color-agent-on-surface-variant)",
+                }
+          }
           aria-pressed={value === option.value}
         >
           <Icon name={option.icon} size={16} />
@@ -434,22 +490,36 @@ function CardGrid({
         <article
           key={job.id}
           onClick={() => onPeek(job)}
-          className="shadow-block/30 hover:shadow-block cursor-pointer rounded-3xl border border-gray-700 bg-gray-800 p-4 transition-all hover:-translate-y-1"
+          className="cursor-pointer rounded-2xl p-4 transition-all hover:-translate-y-0.5"
+          style={{
+            background: "var(--color-agent-surface-lowest)",
+            boxShadow: "var(--shadow-agent-card)",
+            border: "1px solid var(--color-agent-outline-variant)",
+          }}
         >
           <div className="flex items-start gap-3">
             <CompanyAvatar name={job.company?.name} size={48} />
             <div className="flex-1">
-              <p className="text-sm font-semibold text-gray-100">
+              <p
+                className="text-sm font-semibold"
+                style={{ color: "var(--color-agent-on-surface)" }}
+              >
                 {job.company?.name ?? "Unknown"}
               </p>
-              <p className="text-xs text-gray-400">{job.role}</p>
+              <p
+                className="text-xs"
+                style={{ color: "var(--color-agent-on-surface-variant)" }}
+              >
+                {job.role}
+              </p>
               {job.url && (
                 <a
                   href={job.url}
                   target="_blank"
                   rel="noopener noreferrer"
                   onClick={(e) => e.stopPropagation()}
-                  className="mt-1 flex items-center gap-1 text-xs text-blue-400 hover:text-blue-300 hover:underline"
+                  className="mt-1 flex items-center gap-1 text-xs hover:underline"
+                  style={{ color: "var(--color-agent-primary)" }}
                 >
                   <Icon name="link" size={12} />
                   <span className="line-clamp-1">
@@ -460,7 +530,10 @@ function CardGrid({
             </div>
             <StatusBadge status={job.status} />
           </div>
-          <p className="mt-4 line-clamp-3 text-sm text-gray-300">
+          <p
+            className="mt-4 line-clamp-3 text-sm"
+            style={{ color: "var(--color-agent-on-surface-variant)" }}
+          >
             {job.description}
           </p>
           <div
@@ -472,7 +545,10 @@ function CardGrid({
               disabled={statusLoadingId === job.id}
               onChange={(nextStatus) => onStatusChange(job.id, nextStatus)}
             />
-            <span className="text-xs text-gray-500">
+            <span
+              className="text-xs"
+              style={{ color: "var(--color-agent-outline)" }}
+            >
               Updated {formatTimestamp(job.createdAt)}
             </span>
           </div>
@@ -521,17 +597,33 @@ function JobsTable({
   onRowClick: (job: JobRecord) => void;
 }) {
   return (
-    <div className="shadow-block overflow-x-auto rounded-3xl border border-gray-700 bg-gray-800">
+    <div
+      className="overflow-x-auto rounded-2xl"
+      style={{
+        background: "var(--color-agent-surface-lowest)",
+        boxShadow: "var(--shadow-agent-card)",
+        border: "1px solid var(--color-agent-outline-variant)",
+      }}
+    >
       <table className="w-full text-left text-sm">
-        <thead className="text-xs text-gray-500 uppercase">
+        <thead>
           {table.getHeaderGroups().map((hg) => (
-            <tr key={hg.id}>
+            <tr
+              key={hg.id}
+              style={{
+                borderBottom: "1px solid var(--color-agent-outline-variant)",
+              }}
+            >
               {hg.headers.map((header) => (
-                <th key={header.id} className="px-4 py-3 font-medium">
+                <th
+                  key={header.id}
+                  className="px-4 py-3 text-xs font-semibold tracking-wide uppercase"
+                  style={{ color: "var(--color-agent-on-surface-variant)" }}
+                >
                   {header.isPlaceholder ? null : (
                     <button
                       type="button"
-                      className="inline-flex items-center gap-1 text-gray-400 hover:text-gray-100"
+                      className="inline-flex items-center gap-1 transition-opacity hover:opacity-70"
                       onClick={header.column.getToggleSortingHandler()}
                     >
                       {flexRender(
@@ -554,7 +646,17 @@ function JobsTable({
             <tr
               key={row.id}
               onClick={() => onRowClick(row.original)}
-              className="cursor-pointer border-t border-gray-700 transition-colors hover:bg-gray-700/50"
+              className="cursor-pointer transition-colors"
+              style={{
+                borderTop: "1px solid var(--color-agent-outline-variant)",
+              }}
+              onMouseEnter={(e) =>
+                (e.currentTarget.style.background =
+                  "var(--color-agent-surface-low)")
+              }
+              onMouseLeave={(e) =>
+                (e.currentTarget.style.background = "transparent")
+              }
             >
               {row.getVisibleCells().map((cell) => (
                 <td key={cell.id} className="px-4 py-3 align-top">
@@ -574,10 +676,16 @@ function CompanyCell({ job }: { job: JobRecord }) {
     <div className="flex items-center gap-3">
       <CompanyAvatar name={job.company?.name} size={40} />
       <div>
-        <p className="text-sm font-semibold text-gray-100">
+        <p
+          className="text-sm font-semibold"
+          style={{ color: "var(--color-agent-on-surface)" }}
+        >
           {job.company?.name ?? "Unknown"}
         </p>
-        <p className="text-xs text-gray-400">
+        <p
+          className="text-xs"
+          style={{ color: "var(--color-agent-on-surface-variant)" }}
+        >
           {job.company?.locationCity ?? "—"}
         </p>
       </div>
@@ -588,10 +696,8 @@ function CompanyCell({ job }: { job: JobRecord }) {
 function StatusBadge({ status }: { status: JobStatus }) {
   return (
     <span
-      className={cn(
-        "rounded-2xl border px-3 py-1 text-xs font-semibold tracking-wide uppercase",
-        STATUS_BADGES[status]
-      )}
+      className="rounded-full border px-3 py-1 text-xs font-semibold tracking-wide uppercase"
+      style={STATUS_BADGE_STYLES[status]}
     >
       {formatStatus(status)}
     </span>
@@ -612,7 +718,12 @@ function StatusSelector({
       value={value}
       disabled={disabled}
       onChange={(event) => void onChange(event.target.value as JobStatus)}
-      className="focus:border-blocky-500 focus:ring-blocky-500 rounded-2xl border border-gray-600 bg-gray-700 px-3 py-1.5 text-xs font-semibold tracking-wide text-gray-100 uppercase focus:ring-2 focus:outline-none"
+      className="rounded-xl px-3 py-1.5 text-xs font-semibold tracking-wide uppercase focus:ring-2 focus:outline-none"
+      style={{
+        background: "var(--color-agent-surface-container)",
+        color: "var(--color-agent-on-surface)",
+        border: "1px solid var(--color-agent-outline-variant)",
+      }}
       aria-label="Update job status"
       onClick={(event) => event.stopPropagation()}
     >
@@ -643,7 +754,11 @@ function IconButton({
         event.stopPropagation();
         onClick?.();
       }}
-      className="rounded-2xl border border-transparent bg-gray-700/60 p-2 text-gray-300 transition-colors hover:border-gray-600 hover:bg-gray-600 disabled:cursor-not-allowed disabled:opacity-60"
+      className="rounded-xl p-2 transition-colors disabled:cursor-not-allowed disabled:opacity-60"
+      style={{
+        background: "var(--color-agent-surface-container)",
+        color: "var(--color-agent-on-surface-variant)",
+      }}
       aria-label={label}
       disabled={disabled}
     >
@@ -666,7 +781,11 @@ function IconLink({
       href={href}
       aria-label={label}
       onClick={(event) => event.stopPropagation()}
-      className="rounded-2xl border border-transparent bg-gray-700/60 p-2 text-gray-300 transition-colors hover:border-gray-600 hover:bg-gray-600"
+      className="rounded-xl p-2 transition-colors"
+      style={{
+        background: "var(--color-agent-surface-container)",
+        color: "var(--color-agent-on-surface-variant)",
+      }}
     >
       {children}
     </Link>
@@ -684,12 +803,23 @@ function PeekContent({
 }) {
   return (
     <div className="space-y-4">
-      <header className="flex flex-col gap-3 rounded-2xl bg-gray-700/80 p-4">
+      <header
+        className="flex flex-col gap-3 rounded-2xl p-4"
+        style={{ background: "var(--color-agent-surface-container)" }}
+      >
         <div className="flex items-center gap-4">
           <CompanyAvatar name={job.company?.name} size={56} />
           <div>
-            <p className="text-lg font-semibold text-gray-100">{job.role}</p>
-            <p className="text-sm text-gray-300">
+            <p
+              className="text-lg font-semibold"
+              style={{ color: "var(--color-agent-on-surface)" }}
+            >
+              {job.role}
+            </p>
+            <p
+              className="text-sm"
+              style={{ color: "var(--color-agent-on-surface-variant)" }}
+            >
               {job.company?.name ?? "Unknown company"}
             </p>
             {job.url && (
@@ -697,7 +827,8 @@ function PeekContent({
                 href={job.url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="mt-1 flex items-center gap-1 text-xs text-blue-400 hover:text-blue-300 hover:underline"
+                className="mt-1 flex items-center gap-1 text-xs hover:underline"
+                style={{ color: "var(--color-agent-primary)" }}
               >
                 <Icon name="link" size={14} />
                 <span>{job.url}</span>
@@ -711,21 +842,24 @@ function PeekContent({
         <div className="flex flex-wrap gap-2">
           <Link
             href={`/job/${job.id}`}
-            className="text-blocky-400 hover:text-blocky-300 text-sm underline"
+            className="text-sm underline transition-opacity hover:opacity-70"
+            style={{ color: "var(--color-agent-primary)" }}
             onClick={() => onClose()}
           >
             Edit details
           </Link>
           <Link
             href={`/resume/${job.id}`}
-            className="text-blocky-400 hover:text-blocky-300 text-sm underline"
+            className="text-sm underline transition-opacity hover:opacity-70"
+            style={{ color: "var(--color-agent-primary)" }}
             onClick={() => onClose()}
           >
             Open resume
           </Link>
           <Link
             href={`/cover-letter/${job.id}`}
-            className="text-blocky-400 hover:text-blocky-300 text-sm underline"
+            className="text-sm underline transition-opacity hover:opacity-70"
+            style={{ color: "var(--color-agent-primary)" }}
             onClick={() => onClose()}
           >
             Open cover letter
@@ -734,10 +868,16 @@ function PeekContent({
       </header>
 
       <section>
-        <h3 className="text-sm font-semibold text-gray-400 uppercase">
+        <h3
+          className="text-xs font-semibold tracking-wide uppercase"
+          style={{ color: "var(--color-agent-on-surface-variant)" }}
+        >
           Description
         </h3>
-        <p className="mt-2 text-sm whitespace-pre-line text-gray-200">
+        <p
+          className="mt-2 text-sm whitespace-pre-line"
+          style={{ color: "var(--color-agent-on-surface)" }}
+        >
           {job.description}
         </p>
       </section>
@@ -759,7 +899,10 @@ function PeekContent({
           <PeekList title="Benefits" items={details.benefits.flexibility} />
         </div>
       ) : (
-        <p className="text-sm text-gray-400">
+        <p
+          className="text-sm"
+          style={{ color: "var(--color-agent-on-surface-variant)" }}
+        >
           Structured job details are not available for this entry.
         </p>
       )}
@@ -777,13 +920,22 @@ function PeekList({
   if (!items || items.length === 0) return null;
   return (
     <div>
-      <h4 className="text-xs font-semibold tracking-wide text-gray-400 uppercase">
+      <h4
+        className="text-xs font-semibold tracking-wide uppercase"
+        style={{ color: "var(--color-agent-on-surface-variant)" }}
+      >
         {title}
       </h4>
-      <ul className="mt-2 space-y-1 text-sm text-gray-200">
+      <ul
+        className="mt-2 space-y-1 text-sm"
+        style={{ color: "var(--color-agent-on-surface)" }}
+      >
         {items.slice(0, 4).map((item) => (
           <li key={item} className="flex items-start gap-2">
-            <span className="mt-1 h-1.5 w-1.5 rounded-full bg-gray-400" />
+            <span
+              className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full"
+              style={{ background: "var(--color-agent-primary-fixed-dim)" }}
+            />
             <span>{item}</span>
           </li>
         ))}
@@ -794,10 +946,29 @@ function PeekList({
 
 function EmptyState() {
   return (
-    <div className="rounded-3xl border border-dashed border-gray-700 bg-gray-800 p-10 text-center">
-      <Icon name="fileText" size={32} className="mx-auto text-gray-600" />
-      <p className="mt-4 text-lg font-semibold text-gray-200">No jobs yet</p>
-      <p className="mt-1 text-sm text-gray-400">
+    <div
+      className="rounded-2xl border-2 border-dashed p-10 text-center"
+      style={{
+        borderColor: "var(--color-agent-outline-variant)",
+        background: "var(--color-agent-surface-low)",
+      }}
+    >
+      <Icon
+        name="fileText"
+        size={32}
+        className="mx-auto"
+        color="var(--color-agent-outline)"
+      />
+      <p
+        className="mt-4 text-lg font-semibold"
+        style={{ color: "var(--color-agent-on-surface)" }}
+      >
+        Your journey starts here
+      </p>
+      <p
+        className="mt-1 text-sm"
+        style={{ color: "var(--color-agent-on-surface-variant)" }}
+      >
         Add a job to start generating tailored resumes and cover letters.
       </p>
       <Link

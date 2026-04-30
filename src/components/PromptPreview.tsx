@@ -17,7 +17,7 @@ import { useState } from "react";
 
 import { Card } from "@/components/ui/Card";
 import { Icon } from "@/components/ui/Icon";
-import { Prompt } from "@/lib/promptSystem";
+import { ResolvedPrompt as Prompt } from "@/lib/llm/prompts";
 
 interface PromptPreviewProps {
   prompt: Prompt | null;
@@ -109,7 +109,7 @@ export function PromptPreview({
               </button>
             </div>
             <div className="max-h-48 overflow-y-auto rounded-lg border border-gray-200 bg-white p-3 dark:border-gray-700 dark:bg-gray-900">
-              <pre className="font-mono text-xs break-words whitespace-pre-wrap text-gray-700 dark:text-gray-300">
+              <pre className="font-mono text-xs wrap-break-word whitespace-pre-wrap text-gray-700 dark:text-gray-300">
                 {prompt.systemPrompt}
               </pre>
             </div>
@@ -130,54 +130,11 @@ export function PromptPreview({
               </button>
             </div>
             <div className="max-h-48 overflow-y-auto rounded-lg border border-gray-200 bg-white p-3 dark:border-gray-700 dark:bg-gray-900">
-              <pre className="font-mono text-xs break-words whitespace-pre-wrap text-gray-700 dark:text-gray-300">
+              <pre className="font-mono text-xs wrap-break-word whitespace-pre-wrap text-gray-700 dark:text-gray-300">
                 {prompt.userPrompt}
               </pre>
             </div>
           </div>
-
-          {/* Context Summary */}
-          {(prompt.context.resume ||
-            prompt.context.jobData ||
-            prompt.context.jobDescription) && (
-            <div className="border-t border-gray-200 pt-3 dark:border-gray-700">
-              <h4 className="mb-2 text-xs font-semibold tracking-wider text-gray-600 uppercase dark:text-gray-400">
-                Context Provided
-              </h4>
-              <div className="space-y-1 text-xs text-gray-700 dark:text-gray-300">
-                {prompt.context.resume && (
-                  <div className="flex items-center gap-2">
-                    <Icon name="check" className="h-3 w-3 text-green-600" />
-                    <span>Resume data</span>
-                  </div>
-                )}
-                {prompt.context.jobData && (
-                  <div className="flex items-center gap-2">
-                    <Icon name="check" className="h-3 w-3 text-green-600" />
-                    <span>Job data</span>
-                  </div>
-                )}
-                {prompt.context.jobDescription && (
-                  <div className="flex items-center gap-2">
-                    <Icon name="check" className="h-3 w-3 text-green-600" />
-                    <span>Job description</span>
-                  </div>
-                )}
-                {prompt.context.field && (
-                  <div className="flex items-center gap-2">
-                    <Icon name="check" className="h-3 w-3 text-green-600" />
-                    <span>Field context: {prompt.context.field}</span>
-                  </div>
-                )}
-                {prompt.context.additionalInstructions && (
-                  <div className="flex items-center gap-2">
-                    <Icon name="check" className="h-3 w-3 text-green-600" />
-                    <span>Additional instructions</span>
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
 
           {/* Footer Info */}
           <div className="border-t border-gray-200 pt-3 dark:border-gray-700">

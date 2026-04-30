@@ -20,8 +20,8 @@ import { Card } from "@/components/ui/Card";
 import { Icon } from "@/components/ui/Icon";
 import { useAIContext } from "@/contexts/AIContext";
 import { useResumeEditContext } from "@/contexts/ResumeEditContext";
-import LLMService from "@/lib/llmService";
-import PromptSystem, { PromptPurpose } from "@/lib/promptSystem";
+import LLMService from "@/lib/llm/llmService";
+import { PromptSystem, PromptPurpose, ResolvedPrompt } from "@/lib/llm/prompts";
 
 const FIELD_LABELS: Record<
   string,
@@ -92,10 +92,10 @@ export function AIAssistPanel({ onFieldInsert }: AISuggestionsPanelProps) {
   const [flowState, setFlowState] = useState<FlowState>("idle");
   const [selectedField, setSelectedField] = useState<string>("summary");
   const [generatedContent, setGeneratedContent] = useState<string | null>(null);
-  const [promptPreview, setPromptPreview] = useState<Record<
-    string,
-    unknown
-  > | null>(null);
+  const [promptPreview, setPromptPreview] = useState<ResolvedPrompt | null>(
+    null
+  );
+  const [showPromptPreview, setShowPromptPreview] = useState(false);
 
   // Reset flow when field changes
   useEffect(() => {
@@ -136,7 +136,6 @@ export function AIAssistPanel({ onFieldInsert }: AISuggestionsPanelProps) {
     resetGenerationState();
 
     try {
-      const purpose = FIELD_LABELS[selectedField].purpose;
       const result = await LLMService.generateFieldText(
         selectedField,
         resume,
@@ -146,7 +145,6 @@ export function AIAssistPanel({ onFieldInsert }: AISuggestionsPanelProps) {
           provider: selectedProvider,
           model: selectedModel,
           temperature,
-          purpose,
         }
       );
 
@@ -260,7 +258,7 @@ export function AIAssistPanel({ onFieldInsert }: AISuggestionsPanelProps) {
             <label className="mb-2 block text-xs font-medium text-gray-700 dark:text-gray-300">
               2. Configure AI Settings
             </label>
-            <ModelSelector compact showLabel={false} />
+            <ModelSelector onModelSelected={() => {}} />
           </div>
 
           <div className="flex gap-2">

@@ -76,7 +76,10 @@ export function BulletListEditor({
 
   return (
     <div className="space-y-3">
-      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+      <label
+        className="block text-sm font-medium"
+        style={{ color: "var(--color-agent-on-surface)" }}
+      >
         {label}
       </label>
 
@@ -88,7 +91,13 @@ export function BulletListEditor({
           onChange={(e) => setNewItem(e.target.value)}
           onKeyDown={handleKeyDown}
           placeholder={placeholder}
-          className="flex-1 rounded-lg border border-gray-300 bg-white px-3 py-2 text-gray-900 placeholder-gray-500 transition-colors focus:border-transparent focus:ring-2 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:placeholder-gray-400"
+          className="flex-1 rounded-lg border px-3 py-2 transition-colors focus:ring-2 focus:outline-none"
+          style={{
+            borderColor: "var(--color-agent-outline-variant)",
+            background: "var(--color-agent-surface-lowest)",
+            color: "var(--color-agent-on-surface)",
+            caretColor: "var(--color-agent-primary)",
+          }}
         />
         <Button
           variant="primary"
@@ -106,11 +115,16 @@ export function BulletListEditor({
           {items.map((item, index) => (
             <li
               key={index}
-              className="group flex items-start gap-2 rounded-lg border border-gray-200 bg-gray-50 p-2 dark:border-gray-700 dark:bg-gray-800"
+              className="group flex items-start gap-2 rounded-lg border p-2"
+              style={{
+                borderColor: "var(--color-agent-outline-variant)",
+                background: "var(--color-agent-surface-low)",
+              }}
             >
               <Icon
                 name="checkCircle"
-                className="mt-0.5 h-5 w-5 flex-shrink-0 text-green-600 dark:text-green-400"
+                className="mt-0.5 h-5 w-5 shrink-0"
+                color="var(--color-agent-tertiary)"
               />
               {editingIndex === index ? (
                 <input
@@ -119,10 +133,18 @@ export function BulletListEditor({
                   onChange={(e) => setEditingValue(e.target.value)}
                   onKeyDown={handleKeyDownEdit}
                   autoFocus
-                  className="flex-1 rounded border border-blue-500 bg-white px-2 py-1 text-gray-900 dark:bg-gray-700 dark:text-white"
+                  className="flex-1 rounded border px-2 py-1"
+                  style={{
+                    borderColor: "var(--color-agent-primary)",
+                    background: "var(--color-agent-surface-lowest)",
+                    color: "var(--color-agent-on-surface)",
+                  }}
                 />
               ) : (
-                <span className="flex-1 break-words text-gray-700 dark:text-gray-300">
+                <span
+                  className="flex-1 wrap-break-word"
+                  style={{ color: "var(--color-agent-on-surface)" }}
+                >
                   {item}
                 </span>
               )}
@@ -136,7 +158,8 @@ export function BulletListEditor({
                   >
                     <Icon
                       name="check"
-                      className="h-4 w-4 text-green-600 dark:text-green-400"
+                      className="h-4 w-4"
+                      color="var(--color-agent-tertiary)"
                     />
                   </Button>
                 ) : (
@@ -148,7 +171,8 @@ export function BulletListEditor({
                   >
                     <Icon
                       name="pencil"
-                      className="h-4 w-4 text-gray-500 dark:text-gray-400"
+                      className="h-4 w-4"
+                      color="var(--color-agent-on-surface-variant)"
                     />
                   </Button>
                 )}
@@ -160,7 +184,8 @@ export function BulletListEditor({
                 >
                   <Icon
                     name="trash"
-                    className="h-4 w-4 text-red-500 dark:text-red-400"
+                    className="h-4 w-4"
+                    color="var(--color-agent-error)"
                   />
                 </Button>
               </div>
@@ -170,7 +195,12 @@ export function BulletListEditor({
       )}
 
       {helpText && (
-        <p className="text-xs text-gray-500 dark:text-gray-400">{helpText}</p>
+        <p
+          className="text-xs"
+          style={{ color: "var(--color-agent-on-surface-variant)" }}
+        >
+          {helpText}
+        </p>
       )}
     </div>
   );

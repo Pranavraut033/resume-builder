@@ -91,8 +91,8 @@ export default function TokenBreakdownCharts({
             boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1)",
           }}
           labelStyle={{ color: "#111827", fontWeight: 600 }}
-          formatter={(value: number | undefined) =>
-            value?.toLocaleString() || "0"
+          formatter={(value: any) =>
+            typeof value === "number" ? value.toLocaleString() : "0"
           }
           labelFormatter={(label) => {
             const item = displayData.find((d) => d.name === label);

@@ -19,7 +19,7 @@ export default function CoverLetterEditor({ jobId }: { jobId: string }) {
       try {
         const data = await getCoverLetterByJobId(parseInt(jobId));
         if (data) {
-          setCoverLetter(data);
+          setCoverLetter(data.contentText);
         }
       } catch (error) {
         logger.error("Error loading cover letter", { error });

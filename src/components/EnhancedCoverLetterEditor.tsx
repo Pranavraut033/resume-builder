@@ -193,7 +193,7 @@ export default function CoverLetterEditorContent() {
           customization={customization}
           additionalContent={
             <div>
-              <ModelSelector compact />
+              <ModelSelector onModelSelected={() => {}} />
             </div>
           }
           onCustomizationChange={handleCustomizationChange}

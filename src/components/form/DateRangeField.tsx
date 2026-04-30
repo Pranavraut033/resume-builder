@@ -47,7 +47,10 @@ export function DateRangeField({
 
   return (
     <div className="space-y-2">
-      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+      <label
+        className="block text-sm font-medium"
+        style={{ color: "var(--color-agent-on-surface)" }}
+      >
         {label}
       </label>
 
@@ -59,7 +62,13 @@ export function DateRangeField({
             value={startDate}
             onChange={(e) => onStartDateChange(e.target.value)}
             placeholder="Start Date"
-            className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 transition-colors focus:border-transparent focus:ring-2 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+            className="w-full rounded-lg border px-3 py-2 text-sm transition-colors focus:ring-2 focus:outline-none"
+            style={{
+              borderColor: "var(--color-agent-outline-variant)",
+              background: "var(--color-agent-surface-lowest)",
+              color: "var(--color-agent-on-surface)",
+              caretColor: "var(--color-agent-primary)",
+            }}
           />
         </div>
 
@@ -71,7 +80,13 @@ export function DateRangeField({
               value={endDate}
               onChange={(e) => handleEndDateChange(e.target.value)}
               placeholder="End Date"
-              className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 transition-colors focus:border-transparent focus:ring-2 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+              className="w-full rounded-lg border px-3 py-2 text-sm transition-colors focus:ring-2 focus:outline-none"
+              style={{
+                borderColor: "var(--color-agent-outline-variant)",
+                background: "var(--color-agent-surface-lowest)",
+                color: "var(--color-agent-on-surface)",
+                caretColor: "var(--color-agent-primary)",
+              }}
             />
           )}
 
@@ -81,9 +96,13 @@ export function DateRangeField({
                 type="checkbox"
                 checked={isPresent}
                 onChange={(e) => handlePresentToggle(e.target.checked)}
-                className="h-4 w-4 rounded text-blue-600 focus:ring-2 focus:ring-blue-500"
+                className="h-4 w-4 rounded"
+                style={{ accentColor: "var(--color-agent-primary)" }}
               />
-              <span className="text-sm text-gray-700 dark:text-gray-300">
+              <span
+                className="text-sm"
+                style={{ color: "var(--color-agent-on-surface)" }}
+              >
                 Currently working here
               </span>
             </label>
@@ -92,7 +111,12 @@ export function DateRangeField({
       </div>
 
       {helpText && (
-        <p className="text-xs text-gray-500 dark:text-gray-400">{helpText}</p>
+        <p
+          className="text-xs"
+          style={{ color: "var(--color-agent-on-surface-variant)" }}
+        >
+          {helpText}
+        </p>
       )}
     </div>
   );

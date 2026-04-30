@@ -16,16 +16,17 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui";
 import { Card } from "@/components/ui/Card";
 import { Icon } from "@/components/ui/Icon";
-import { createLLMClient } from "@/lib/atsLLMClient";
 import { loadGoogleFont } from "@/lib/fontLoader";
+import { createLLMClient } from "@/lib/llm/atsLLMClient";
+import { generateRequestId } from "@/lib/llm/tokenTracker";
 import { generateResumePDF } from "@/lib/pdfExport";
-import { generateRequestId } from "@/lib/tokenTracker";
 import { useModelStore } from "@/store/modelStore";
 import { ResumeJSON } from "@/types/resume";
 import {
   ThemeCustomization,
   ThemeColors,
   DEFAULT_COLORS,
+  TemplateType,
 } from "@/types/resume";
 
 import { ATSScorePanel } from "./ATSScorePanel";
@@ -369,7 +370,7 @@ export function ResumeSidePanel({
                 onChange={(e) =>
                   onCustomizationChange({
                     ...customization,
-                    template: e.target.value as unknown as string,
+                    template: e.target.value as TemplateType,
                   })
                 }
                 className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 dark:border-gray-600 dark:bg-gray-700 dark:text-white"

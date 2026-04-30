@@ -29,7 +29,7 @@ interface ResumeCustomizationPanelProps {
 
 export const ResumeCustomizationPanel: React.FC<
   ResumeCustomizationPanelProps
-> = ({ _jobId, customization, onCustomizationChange }) => {
+> = ({ jobId: _jobId, customization, onCustomizationChange }) => {
   const [showSettings, setShowSettings] = useState(false);
   const [activeTab, setActiveTab] = useState<"template" | "colors" | "format">(
     "template"

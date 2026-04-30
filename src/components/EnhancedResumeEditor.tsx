@@ -4,7 +4,7 @@
 
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 
 import {
   getResumeByJobId,
@@ -26,8 +26,10 @@ import {
 } from "@/types/resume";
 
 import BackButton from "./BackButton";
-import ResumeEditor from "./ResumeEditor";
-import { ResumeSidePanel } from "./ResumeSidePanel";
+import { FinalReviewExport } from "./resume/FinalReviewExport";
+import { ResumeChatAssistant } from "./resume/ResumeChatAssistant";
+import { ResumeSectionNav, SectionId } from "./resume/ResumeSectionNav";
+import { SectionEditor } from "./resume/SectionEditor";
 import { TemplateRenderer } from "./templates/TemplateRenderer";
 import { Button } from "./ui";
 import { Icon } from "./ui/Icon";
@@ -36,15 +38,19 @@ interface EnhancedResumeEditorProps {
   jobId: string;
 }
 
+type EditorTab = "edit" | "export";
+
+const PREVIEW_MIN_WIDTH = 360;
+const PREVIEW_MAX_WIDTH = 720;
+
 /**
  * Inner editor component that uses the ResumeEditContext
  * Separated to allow context provider to wrap the component
  */
-function ResumeEditorContent({ _jobId }: { jobId: string }) {
+function ResumeEditorContent({ jobId }: { jobId: string }) {
   const {
     resume,
     setResume,
-    _job,
     setJob,
     isLoading,
     setIsLoading,
@@ -55,7 +61,39 @@ function ResumeEditorContent({ _jobId }: { jobId: string }) {
   const [customization, setCustomization] = useState<ThemeCustomization>(
     DEFAULT_CUSTOMIZATION
   );
-  const [isPreviewMode, setIsPreviewMode] = useState(false);
+  const [activeSection, setActiveSection] = useState<SectionId>("personal");
+  const [activeTab, setActiveTab] = useState<EditorTab>("edit");
+  const [lastSaved, setLastSaved] = useState<string | undefined>(undefined);
+  const [previewWidth, setPreviewWidth] = useState<number>(416);
+  const [isResizingPreview, setIsResizingPreview] = useState(false);
+  const resizeStartRef = useRef<{ x: number; width: number } | null>(null);
+
+  useEffect(() => {
+    if (!isResizingPreview) return;
+
+    const handleMouseMove = (event: MouseEvent) => {
+      if (!resizeStartRef.current) return;
+      const delta = resizeStartRef.current.x - event.clientX;
+      const nextWidth = Math.min(
+        PREVIEW_MAX_WIDTH,
+        Math.max(PREVIEW_MIN_WIDTH, resizeStartRef.current.width + delta)
+      );
+      setPreviewWidth(nextWidth);
+    };
+
+    const handleMouseUp = () => {
+      setIsResizingPreview(false);
+      resizeStartRef.current = null;
+    };
+
+    window.addEventListener("mousemove", handleMouseMove);
+    window.addEventListener("mouseup", handleMouseUp);
+
+    return () => {
+      window.removeEventListener("mousemove", handleMouseMove);
+      window.removeEventListener("mouseup", handleMouseUp);
+    };
+  }, [isResizingPreview]);
 
   // Load initial data on mount
   useEffect(() => {
@@ -65,7 +103,6 @@ function ResumeEditorContent({ _jobId }: { jobId: string }) {
         setError(null);
         const jobIdNum = parseInt(jobId);
 
-        // Load resume data, customization, and job context in parallel
         const [resumeData, customizationData, jobData] = await Promise.all([
           getResumeByJobId(jobIdNum),
           getResumeCustomization(jobIdNum),
@@ -73,20 +110,18 @@ function ResumeEditorContent({ _jobId }: { jobId: string }) {
         ]);
 
         if (resumeData) {
-          setResume(resumeData);
+          setResume(resumeData.contentJson);
         } else {
-          // No resume exists for this job, load profile as starting point
           const profileData = await getProfile();
           setResume(profileData);
         }
 
         setCustomization(customizationData);
 
-        // Set job context if available
         if (jobData) {
           setJob({
             id: jobData.id,
-            details: jobData.jobDetails,
+            details: jobData.details,
             description: jobData.description,
             rawData: jobData,
           });
@@ -100,11 +135,9 @@ function ResumeEditorContent({ _jobId }: { jobId: string }) {
     };
 
     loadData();
-    // jobId is a primitive from route params, safe to depend on
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [jobId]);
 
-  // Load font whenever customization changes
   useEffect(() => {
     if (customization.fontFamily) {
       loadGoogleFont(customization.fontFamily);
@@ -114,14 +147,8 @@ function ResumeEditorContent({ _jobId }: { jobId: string }) {
   const handleCustomizationChange = async (
     updates: Partial<ThemeCustomization>
   ) => {
-    const newCustomization = {
-      ...customization,
-      ...updates,
-    };
-
+    const newCustomization = { ...customization, ...updates };
     setCustomization(newCustomization);
-
-    // Save to database
     try {
       await updateResumeCustomization(parseInt(jobId), updates);
     } catch (err) {
@@ -129,13 +156,31 @@ function ResumeEditorContent({ _jobId }: { jobId: string }) {
     }
   };
 
+  const handleResumeChange = async (updatedResume: typeof resume) => {
+    if (!updatedResume) return;
+    setResume(updatedResume);
+    setLastSaved(new Date().toLocaleTimeString());
+    try {
+      const { updateResume } = await import("@/actions/job");
+      await updateResume(parseInt(jobId), updatedResume);
+    } catch (err) {
+      console.error("Failed to save resume:", err);
+    }
+  };
+
   if (isLoading) {
     return (
-      <div className="flex min-h-screen items-center justify-center">
+      <div className="flex h-full items-center justify-center">
         <div className="text-center">
-          <div className="mx-auto h-12 w-12 animate-spin rounded-full border-b-2 border-blue-600"></div>
-          <p className="mt-4 text-gray-600 dark:text-gray-400">
-            Loading resume...
+          <div
+            className="mx-auto h-10 w-10 animate-spin rounded-full border-2 border-transparent border-t-current"
+            style={{ color: "var(--color-agent-primary)" }}
+          />
+          <p
+            className="mt-4 text-sm"
+            style={{ color: "var(--color-agent-on-surface-variant)" }}
+          >
+            Loading resume…
           </p>
         </div>
       </div>
@@ -144,16 +189,22 @@ function ResumeEditorContent({ _jobId }: { jobId: string }) {
 
   if (error || !resume) {
     return (
-      <div className="flex min-h-screen items-center justify-center">
-        <div className="max-w-md text-center">
+      <div className="flex h-full items-center justify-center">
+        <div className="max-w-sm text-center">
           <Icon
-            name="alert"
-            className="mx-auto mb-4 h-16 w-16 text-yellow-500"
+            name="AlertCircle"
+            className="mx-auto mb-4 h-12 w-12 text-yellow-500"
           />
-          <h2 className="mb-2 text-xl font-semibold text-gray-900 dark:text-white">
+          <h2
+            className="mb-2 text-lg font-semibold"
+            style={{ color: "var(--color-agent-on-surface)" }}
+          >
             {error || "Resume Not Found"}
           </h2>
-          <p className="mb-6 text-gray-600 dark:text-gray-400">
+          <p
+            className="mb-6 text-sm"
+            style={{ color: "var(--color-agent-on-surface-variant)" }}
+          >
             {error || "No resume data available for this job."}
           </p>
           <Button variant="primary" onClick={() => window.history.back()}>
@@ -164,71 +215,166 @@ function ResumeEditorContent({ _jobId }: { jobId: string }) {
     );
   }
 
-  return (
-    <div className="flex min-h-screen flex-col bg-gray-50 lg:flex-row dark:bg-gray-900">
-      {/* Main Editor Content */}
-      <div className="flex-1">
-        <div className="sticky top-14 z-10 border-b border-gray-200 bg-white px-6 py-4 dark:border-gray-700 dark:bg-gray-800">
-          <div className="mx-auto flex max-w-4xl items-center space-x-6">
-            <BackButton />
+  const templateName =
+    customization.template
+      ?.replace(/-/g, " ")
+      .replace(/\b\w/g, (c) => c.toUpperCase()) ?? "Modern Minimal";
 
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-              Resume Editor
-            </h1>
-            <div
-              onClick={() => setIsPreviewMode((s) => !s)}
-              className="relative ml-auto h-10 w-20 cursor-pointer space-x-4 overflow-hidden rounded-full border border-gray-300 bg-gray-200 dark:border-gray-600 dark:bg-gray-700"
+  return (
+    <div
+      className="flex h-full flex-col overflow-hidden"
+      style={{ background: "var(--color-agent-surface-lowest)" }}
+    >
+      {/* Top bar */}
+      <header
+        className="flex shrink-0 items-center gap-3 border-b px-4 py-3"
+        style={{
+          background: "var(--color-agent-surface)",
+          borderColor: "var(--color-agent-outline-variant)",
+        }}
+      >
+        <BackButton />
+        <div className="min-w-0">
+          <h1
+            className="truncate text-base font-semibold"
+            style={{ color: "var(--color-agent-on-surface)" }}
+          >
+            Interactive AI Editor
+          </h1>
+          <p
+            className="truncate text-xs"
+            style={{ color: "var(--color-agent-on-surface-variant)" }}
+          >
+            Edit each section in the side panel with live A4 preview.
+          </p>
+        </div>
+
+        {/* Tab switcher */}
+        <div
+          className="ml-auto flex rounded-lg p-0.5"
+          style={{ background: "var(--color-agent-surface-container)" }}
+        >
+          {(["edit", "export"] as EditorTab[]).map((tab) => (
+            <button
+              key={tab}
+              onClick={() => setActiveTab(tab)}
+              className="rounded-md px-4 py-1.5 text-sm font-medium capitalize transition-all"
+              style={
+                activeTab === tab
+                  ? {
+                      background: "var(--color-agent-primary-container)",
+                      color: "var(--color-agent-on-primary-container)",
+                    }
+                  : { color: "var(--color-agent-on-surface-variant)" }
+              }
             >
-              <div className="flex size-full items-center justify-around space-x-2 px-2">
-                <Icon
-                  name={"pencil"}
-                  className={
-                    "z-10 size-5 transition " +
-                    (isPreviewMode ? "text-gray-400" : "text-primary-500")
-                  }
-                />
-                <Icon
-                  name={"EyeIcon"}
-                  className={
-                    "z-10 size-5 transition " +
-                    (isPreviewMode ? "text-primary-500" : "text-gray-400")
-                  }
+              {tab === "edit" ? "Editor" : "Final Review & Export"}
+            </button>
+          ))}
+        </div>
+      </header>
+
+      {/* Body */}
+      {activeTab === "edit" ? (
+        <div
+          className="flex min-h-0 flex-1"
+          style={
+            isResizingPreview
+              ? { userSelect: "none", cursor: "col-resize" }
+              : undefined
+          }
+        >
+          {/* Left: Section nav */}
+          <ResumeSectionNav
+            activeSection={activeSection}
+            onSectionChange={setActiveSection}
+            templateName={templateName}
+            lastSaved={lastSaved}
+          />
+
+          {/* Center: Section editor */}
+          <main
+            className="flex min-w-0 flex-1 flex-col overflow-y-auto"
+            style={{ background: "var(--color-agent-surface-low)" }}
+          >
+            <div className="min-h-full px-4 py-4 md:px-6 md:py-5 lg:px-8 lg:py-6">
+              <div className="mx-auto w-full max-w-4xl">
+                <SectionEditor
+                  section={activeSection}
+                  resume={resume}
+                  jobId={jobId}
+                  onResumeChange={handleResumeChange}
                 />
               </div>
-              <div
-                className={
-                  "absolute inset-y-0 w-10 bg-white " +
-                  (isPreviewMode ? "translate-x-10" : "translate-x-0") +
-                  " transition-transform duration-300 ease-in-out"
-                }
-              />
             </div>
+          </main>
+
+          {/* Right: Draggable live preview */}
+          <div className="hidden shrink-0 xl:flex">
+            <button
+              type="button"
+              aria-label="Resize preview panel"
+              onMouseDown={(event) => {
+                event.preventDefault();
+                resizeStartRef.current = {
+                  x: event.clientX,
+                  width: previewWidth,
+                };
+                setIsResizingPreview(true);
+              }}
+              className="hover:bg-agent-primary-container/30 w-1.5 cursor-col-resize transition-colors"
+              style={{ background: "var(--color-agent-outline-variant)" }}
+            />
+
+            <aside
+              className="overflow-y-auto border-l"
+              style={{
+                width: `${previewWidth}px`,
+                background: "var(--color-agent-surface-lowest)",
+                borderColor: "var(--color-agent-outline-variant)",
+              }}
+            >
+              <div className="p-4">
+                <p
+                  className="mb-2 text-xs font-medium tracking-wide uppercase"
+                  style={{ color: "var(--color-agent-on-surface-variant)" }}
+                >
+                  Live Preview
+                </p>
+                <div
+                  className="overflow-hidden rounded-lg border shadow-sm"
+                  style={{ borderColor: "var(--color-agent-outline-variant)" }}
+                >
+                  <div
+                    className="origin-top-left scale-[0.52]"
+                    style={{ width: "192%", height: "192%" }}
+                  >
+                    <TemplateRenderer
+                      template={customization.template ?? "modern-minimal"}
+                      resume={resume}
+                      colors={customization.colors ?? DEFAULT_COLORS}
+                      fontSize={customization.fontSize ?? "medium"}
+                      fontFamily={customization.fontFamily ?? "Inter"}
+                    />
+                  </div>
+                </div>
+              </div>
+            </aside>
           </div>
         </div>
-        <div className="flex-1 overflow-auto">
-          {/* Resume Editor */}
-          {resume &&
-            (isPreviewMode ? (
-              <TemplateRenderer
-                template={customization.template || "modern-minimal"}
-                resume={resume}
-                colors={customization.colors || DEFAULT_COLORS}
-                fontSize={customization.fontSize || "medium"}
-                fontFamily={customization.fontFamily || "Inter"}
-              />
-            ) : (
-              <ResumeEditor jobId={jobId} initialResume={resume} />
-            ))}
-        </div>
-      </div>
-
-      {/* Side Panel */}
-      {resume && (
-        <ResumeSidePanel
+      ) : (
+        <FinalReviewExport
           resume={resume}
           customization={customization}
           onCustomizationChange={handleCustomizationChange}
           jobId={jobId}
+        />
+      )}
+
+      {activeTab === "edit" && (
+        <ResumeChatAssistant
+          resume={resume}
+          onApplyResume={handleResumeChange}
         />
       )}
     </div>
