@@ -6,10 +6,24 @@
 import { zodResponseFormat } from "openai/helpers/zod";
 
 import { createLogger } from "@/lib/logger";
-import { resolveTemplate } from "@/lib/prompts/resolver";
-import { PromptTemplate } from "@/lib/prompts/types";
-import { validateTemplateResponse, getValidationSummary } from "@/lib/prompts/validation";
-import { LLMProvider, ResumePromptInput, CoverLetterPromptInput } from "@/types/llm";
+import { resolveTemplate } from "@/lib/llm/prompts/resolver";
+import { PromptTemplate } from "@/lib/llm/prompts/types";
+import {
+  validateTemplateResponse,
+  getValidationSummary,
+} from "@/lib/llm/prompts/validation";
+import {
+  LLMProvider,
+  ResumePromptInput,
+  CoverLetterPromptInput,
+  ResumeGenerationResult,
+  CoverLetterGenerationResult,
+  JobParsingResult,
+  ResumeParsingResult,
+  TextGenerationResult,
+  PromptMessage,
+  PromptResponse,
+} from "@/types/llm";
 import { ResumeJSON } from "@/types/resume";
 
 /**
@@ -35,27 +49,53 @@ export interface TemplateAwareLLMProvider extends LLMProvider {
  * Adds schema validation and structured output support to any LLM provider
  */
 export class TemplateAwareProviderWrapper implements TemplateAwareLLMProvider {
-  constructor(private baseProvider: LLMProvider) { }
+  constructor(private baseProvider: LLMProvider) {}
 
   // Delegate to base provider
-  async generateResume(input: ResumePromptInput): Promise<ResumeJSON> {
+  async generateResume(
+    input: ResumePromptInput
+  ): Promise<ResumeGenerationResult> {
     return this.baseProvider.generateResume(input);
   }
 
-  async generateCoverLetter(input: CoverLetterPromptInput): Promise<string> {
+  async generateCoverLetter(
+    input: CoverLetterPromptInput
+  ): Promise<CoverLetterGenerationResult> {
     return this.baseProvider.generateCoverLetter(input);
   }
 
-  async parseJobDetails(description: string, model?: string): Promise<unknown> {
+  async parseJobDetails(
+    description: string,
+    model?: string
+  ): Promise<JobParsingResult> {
     return this.baseProvider.parseJobDetails(description, model);
   }
 
-  async parseResume(resumeText: string, model?: string): Promise<unknown> {
+  async parseResume(
+    resumeText: string,
+    model?: string
+  ): Promise<ResumeParsingResult> {
     return this.baseProvider.parseResume(resumeText, model);
   }
 
-  async listAvailableModels(): Promise<string[]> {
-    return this.baseProvider.listAvailableModels();
+  async fetchModels(): Promise<string[]> {
+    return this.baseProvider.fetchModels();
+  }
+
+  async generateText(
+    systemPrompt: string,
+    userPrompt: string,
+    options?: { model?: string; temperature?: number; maxTokens?: number }
+  ): Promise<TextGenerationResult> {
+    return this.baseProvider.generateText(systemPrompt, userPrompt, options);
+  }
+
+  async runPrompt(
+    messages: PromptMessage[],
+    model?: string,
+    maxTokens?: number
+  ): Promise<PromptResponse> {
+    return this.baseProvider.runPrompt(messages, model, maxTokens);
   }
 
   /**
@@ -83,12 +123,15 @@ export class TemplateAwareProviderWrapper implements TemplateAwareLLMProvider {
     // For now, return resolved for manual provider handling
     // In the future, this would call provider.generateWithResolvedPrompt()
     logger.warn(`[Template] Resolved prompt for template "${template.id}"`);
-    logger.warn(`[Template] System: ${resolved.systemPrompt.substring(0, 100)}...`);
+    logger.warn(
+      `[Template] System: ${resolved.systemPrompt.substring(0, 100)}...`
+    );
     logger.warn(`[Template] User: ${resolved.userPrompt.substring(0, 100)}...`);
 
     if (resolved.outputSchema) {
-      const schemaType = (resolved.outputSchema as unknown as Record<string, unknown>)._def
-        ?.typeName as string | undefined;
+      const schemaType = (
+        resolved.outputSchema as unknown as Record<string, unknown>
+      )._def?.typeName as string | undefined;
       logger.warn(`[Template] Schema available: ${schemaType}`);
     }
 
@@ -105,9 +148,11 @@ export class TemplateAwareProviderWrapper implements TemplateAwareLLMProvider {
  */
 export function createStructuredOutputConfig(
   resolvedPrompt: Record<string, unknown>
-): {
-  response_format: ReturnType<typeof zodResponseFormat>;
-} | undefined {
+):
+  | {
+      response_format: ReturnType<typeof zodResponseFormat>;
+    }
+  | undefined {
   if (!resolvedPrompt.outputSchema) {
     return undefined;
   }

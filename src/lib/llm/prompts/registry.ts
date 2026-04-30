@@ -3,9 +3,7 @@
  * Centralized registry for all prompt templates
  */
 
-import { PromptPurpose } from "@/lib/llm/prompts";
-
-import { PromptTemplate } from "./types";
+import { PromptTemplate, PromptPurpose } from "./types";
 
 /**
  * Centralized template registry
@@ -83,6 +81,7 @@ class TemplateRegistry {
       "generate_skills",
       "generate_projects",
       "generate_education",
+      "edit_resume_chat",
       "parse_job",
       "parse_resume",
       "analyze_ats",

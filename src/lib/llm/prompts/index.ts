@@ -1,0 +1,90 @@
+/**
+ * Prompt Template System Entry Point
+ * Centralized template library with Handlebars-based templates
+ */
+
+// Import types
+export * from "./types";
+export * from "./resolver";
+export * from "./registry";
+export * from "./validation";
+export * from "./documentation";
+export * from "./provider";
+
+// Import all templates to trigger registration
+import "./templates/field-summary";
+import "./templates/field-experience";
+import "./templates/field-skills";
+import "./templates/field-projects";
+import "./templates/education";
+import "./templates/parsing";
+import "./templates/ats";
+import "./templates/resume-tailoring";
+import "./templates/cover-letter";
+import "./templates/chat-resume-edit";
+
+// Re-export registry instance
+export { templateRegistry } from "./registry";
+
+// Convenience functions
+
+import { templateRegistry } from "./registry";
+import { resolveTemplate } from "./resolver";
+import { PromptContext, PromptPurpose, ResolvedPrompt } from "./types";
+
+/**
+ * Get and resolve template by purpose
+ */
+export function getPromptByPurpose(
+  purpose: PromptPurpose,
+  context: PromptContext
+): ResolvedPrompt {
+  const template = templateRegistry.getByPurpose(purpose);
+
+  if (!template) {
+    throw new Error(`No template found for purpose: ${purpose}`);
+  }
+
+  return resolveTemplate(template, context);
+}
+
+export class PromptSystem {
+  private static labels: Record<PromptPurpose, string> = {
+    analyze_ats: "ATS Analysis",
+    generate_cover_letter: "Cover Letter Generation",
+    generate_education: "Education Summary Generation",
+    generate_experience: "Experience Description Generation",
+    generate_projects: "Project Description Generation",
+    edit_resume_chat: "Resume Chat Edit",
+    generate_skills: "Skills Generation",
+    generate_summary: "Professional Summary Generation",
+    generate_tailored_resume: "Tailored Resume Generation",
+    parse_job: "Job Description Parsing",
+    parse_resume: "Resume Parsing",
+  };
+
+  /**
+   * Generate a unified prompt for a given purpose
+   * Now uses the Handlebars template system under the hood
+   */
+  static generatePrompt(
+    purpose: PromptPurpose,
+    context: PromptContext
+  ): ResolvedPrompt {
+    return getPromptByPurpose(purpose, context);
+  }
+
+  /**
+   * Format prompt for display to user
+   */
+  static formatPromptForDisplay(prompt: ResolvedPrompt): string {
+    return `System Prompt:\n${prompt.systemPrompt}\n\nUser Prompt:\n${prompt.userPrompt}`;
+  }
+
+  /**
+   * Get purpose label for display
+   */
+  static getPurposeLabel(purpose: PromptPurpose): string {
+    return this.labels[purpose];
+  }
+}

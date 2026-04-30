@@ -5,7 +5,13 @@
 
 import * as Handlebars from "handlebars";
 
-import { ContextPath, ShapedContext, ResolvedPrompt, PromptTemplate } from "./types";
+import {
+  ContextPath,
+  PromptContext,
+  PromptTemplate,
+  ResolvedPrompt,
+  ShapedContext,
+} from "./types";
 
 // Register Handlebars helpers
 Handlebars.registerHelper("json", function (context) {
@@ -65,7 +71,7 @@ function setByPath(obj: unknown, path: ContextPath, value: unknown): void {
  * This is the TOKEN OPTIMIZATION core
  */
 export function shapeContext(
-  fullContext: Record<string, unknown>,
+  fullContext: PromptContext,
   requiredPaths: ContextPath[]
 ): ShapedContext {
   const shaped: Record<string, unknown> = {};
@@ -99,10 +105,11 @@ export function estimateTokens(text: string): number {
 
 /**
  * Resolve template with context
+ * For field templates (with fieldType), wraps prompts with intent and guidelines
  */
 export function resolveTemplate(
   template: PromptTemplate,
-  fullContext: Record<string, unknown>,
+  fullContext: PromptContext,
   options?: {
     warnUnused?: boolean; // Warn about unused context paths
     warnLarge?: boolean; // Warn about large prompts
@@ -132,7 +139,18 @@ export function resolveTemplate(
   const userTemplate = Handlebars.compile(template.userPrompt);
 
   const systemPrompt = systemTemplate(shaped.data);
-  const userPrompt = userTemplate(shaped.data);
+  let userPrompt = userTemplate(shaped.data);
+
+  // For field templates, wrap userPrompt with intent and guidelines
+  if (template.fieldType && template.intent && template.guidelines) {
+    userPrompt = `**Intent:** ${template.intent}
+
+**Guidelines:**
+${template.guidelines.map((g) => `- ${g}`).join("\n")}
+
+**Your content:**
+${userPrompt}`;
+  }
 
   const combined = systemPrompt + "\n\n" + userPrompt;
   const tokens = estimateTokens(combined);
@@ -176,20 +194,28 @@ export function validateTemplate(template: PromptTemplate): {
 
   // Extract Handlebars variables (simple regex, not perfect)
   const varRegex = /\{\{([^}]+)\}\}/g;
-  const systemVars = [...template.systemPrompt.matchAll(varRegex)].map(m => m[1].trim());
-  const userVars = [...template.userPrompt.matchAll(varRegex)].map(m => m[1].trim());
+  const systemVars = [...template.systemPrompt.matchAll(varRegex)].map((m) =>
+    m[1].trim()
+  );
+  const userVars = [...template.userPrompt.matchAll(varRegex)].map((m) =>
+    m[1].trim()
+  );
   const allVars = new Set([...systemVars, ...userVars]);
 
   // Check if requiredContext covers all variables
   for (const varPath of allVars) {
     // Skip Handlebars helpers (if, each, etc.)
-    if (varPath.startsWith("#") || varPath.startsWith("/") || varPath.startsWith("@")) {
+    if (
+      varPath.startsWith("#") ||
+      varPath.startsWith("/") ||
+      varPath.startsWith("@")
+    ) {
       continue;
     }
 
     // Check if this variable path is covered by requiredContext
-    const isCovered = template.requiredContext.some(path =>
-      varPath.startsWith(path) || path.startsWith(varPath)
+    const isCovered = template.requiredContext.some(
+      (path) => varPath.startsWith(path) || path.startsWith(varPath)
     );
 
     if (!isCovered) {

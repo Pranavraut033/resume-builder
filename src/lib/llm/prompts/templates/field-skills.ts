@@ -10,6 +10,19 @@ const skillsTemplate: PromptTemplate = {
   id: "generate_skills",
   purpose: "generate_skills",
   description: "Generate and organize skills list for a resume",
+  // Field configuration
+  fieldType: "skills",
+  intent:
+    "Improve skills list - prioritize required skills first, then relevant technical skills and nice-to-haves.",
+  guidelines: [
+    "Required skills first",
+    "Then role-relevant technical skills",
+    "Nice-to-have skills next",
+    "Group by category if possible",
+    "ATS-optimized formatting",
+    "Remove duplicates",
+    "Avoid soft skills unless exceptional",
+  ],
 
   requiredContext: [
     "resume.skills",

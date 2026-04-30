@@ -1,6 +1,7 @@
 /**
  * Experience Generation Template
  * Creates achievement-focused work experience descriptions
+ * Field-specific template with intent and guidelines
  */
 
 import { templateRegistry } from "../registry";
@@ -10,6 +11,18 @@ const experienceTemplate: PromptTemplate = {
   id: "generate_experience",
   purpose: "generate_experience",
   description: "Generate work experience descriptions with achievements",
+
+  // Field configuration
+  fieldType: "experience_description",
+  intent:
+    "Improve work experience - 3-4 bullets with action verbs, metrics, and relevant skills.",
+  guidelines: [
+    "3-4 bullets, different action verbs each",
+    "Include quantifiable results (X%, Y hours, $Z)",
+    "Achievements > responsibilities",
+    "Highlight target-role skills",
+    "1-2 lines per bullet",
+  ],
 
   requiredContext: [
     "resume.experience",

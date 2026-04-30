@@ -19,20 +19,38 @@ const CoverLetterGenerationSchema = z.object({
 
 const coverLetterTemplate: PromptTemplate = {
   id: "generate_cover_letter",
-  purpose: "generate_summary", // Using existing purpose enum - this might need a new purpose type
-  description: "Generate a professional cover letter based on profile, job, and tailored resume",
-
+  purpose: "generate_cover_letter", // Using existing purpose enum - this might need a new purpose type
+  description:
+    "Generate a professional cover letter based on profile, job, and tailored resume",
   requiredContext: [
     "baseProfile",
     "jobDescription",
-    "jobRole",
-    "company",
+    "jobData.job.job_title",
+    "jobData.company.company_name",
     "resume", // The tailored resume
   ],
 
-  systemPrompt: `Write compelling, personalized cover letters. Showcase strengths with value proposition and cultural fit. Use professional yet personable tone. No clichés.`,
+  systemPrompt: `Write concise, tailored cover letters.
+Focus on role fit, measurable impact, and cultural alignment.
+Professional, natural tone. No clichés, no generic statements.
+Do not invent experience.`,
 
-  userPrompt: `Write a cover letter for {{jobRole}} @ {{company}}\n\nProfile:\n{{{json baseProfile}}}\n\nJob:\n{{jobDescription}}\n\nResume:\n{{{json resume}}}\n\nOutput: 3-4 paragraphs. Include specific achievements matching job requirements. No clichés or generic statements.`,
+  userPrompt: `Write a cover letter for {{jobData.job.job_title}} at {{jobData.company.company_name}}.
+
+Profile:
+{{{json baseProfile}}}
+
+Job:
+{{jobDescription}}
+
+Resume:
+{{{json resume}}}
+
+Rules:
+- 3–4 short paragraphs
+- Match achievements to job requirements
+- Quantify impact when possible
+- Do not repeat the resume verbatim`,
 
   outputSchema: CoverLetterGenerationSchema,
 };

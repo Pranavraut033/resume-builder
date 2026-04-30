@@ -3,12 +3,21 @@
  * Defines core interfaces for the Handlebars-based prompt template system
  */
 
-import { PromptPurpose } from "@/lib/promptSystem";
+import { FieldType, PromptPurpose } from "@/lib/llm/prompts";
 
 import type { ZodSchema } from "zod";
 
 // Note: We reuse all existing data types (ResumeJSON, JobDetails, etc.)
 // Only creating NEW types for the template system infrastructure below:
+export type PromptPurpose =
+  | "generate_summary"
+  | "generate_experience"
+  | "generate_skills"
+  | "generate_projects"
+  | "generate_education"
+  | "parse_job"
+  | "parse_resume"
+  | "analyze_ats";
 
 /**
  * Context path in dot notation
@@ -27,21 +36,13 @@ export interface PromptTemplate {
   requiredContext: ContextPath[]; // Dot-notation paths
   description?: string;
   outputSchema?: ZodSchema; // Optional Zod schema for structured JSON output validation
+  // Optional field configuration for field-specific templates
+  fieldType?: FieldType;
+  intent?: string; // Field-specific intent
+  guidelines?: string[]; // Field-specific guidelines
 }
 
-/**
- * Field-specific prompt variant with optional schema
- */
-export interface FieldPromptTemplate {
-  id: string;
-  fieldType: "summary" | "education_description" | "experience_description" | "achievements";
-  intent: string;
-  guidelines: string[];
-  systemPrompt: string; // Handlebars template
-  userPrompt: string; // Handlebars template
-  requiredContext: ContextPath[];
-  outputSchema?: ZodSchema; // Optional Zod schema for field-specific output validation
-}
+// FieldPromptTemplate is no longer needed - use PromptTemplate with fieldType instead
 
 /**
  * Resolved prompt ready for execution
