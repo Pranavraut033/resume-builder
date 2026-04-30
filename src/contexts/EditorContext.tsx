@@ -120,3 +120,7 @@ export function useEditorContext() {
   }
   return context;
 }
+
+export function useOptionalEditorContext() {
+  return useContext(EditorContext);
+}

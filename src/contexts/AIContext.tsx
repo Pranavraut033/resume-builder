@@ -21,13 +21,13 @@ import {
   ReactNode,
 } from "react";
 
-import { generateResumeFieldText } from "@/lib/clientLLM";
+import { generateResumeFieldText } from "@/lib/llm/clientLLM";
 import { useModelStore } from "@/store/modelStore";
 import { Providers } from "@/types/llm";
 import { ResumeJSON } from "@/types/resume";
 
-import { useEditorContext } from "./EditorContext";
-
+import { useOptionalEditorContext } from "./EditorContext";
+import { useOptionalResumeEditContext } from "./ResumeEditContext";
 
 export interface AIGenerationState {
   isLoading: boolean;
@@ -85,7 +85,13 @@ interface AIProviderProps {
 }
 
 export function AIProvider({ children, defaultTemperature }: AIProviderProps) {
-  const { resume, job } = useEditorContext();
+  const editorContext = useOptionalEditorContext();
+  const resumeEditContext = useOptionalResumeEditContext();
+
+  // AIProvider is used across different editor flows.
+  // Prefer unified EditorContext when available, otherwise fall back to ResumeEditContext.
+  const resume = editorContext?.resume ?? resumeEditContext?.resume ?? null;
+  const job = editorContext?.job ?? resumeEditContext?.job ?? null;
 
   // Use model store for provider and model selection
   const selectedProvider = useModelStore((s) =>
@@ -171,7 +177,7 @@ export function AIProvider({ children, defaultTemperature }: AIProviderProps) {
         setGenerationState({ isLoading: true, error: null, result: null });
 
         const { generateResume: generateResumeImpl } =
-          await import("@/lib/clientLLM");
+          await import("@/lib/llm/clientLLM");
 
         const result = await generateResumeImpl(
           baseProfile,
@@ -211,7 +217,7 @@ export function AIProvider({ children, defaultTemperature }: AIProviderProps) {
         setGenerationState({ isLoading: true, error: null, result: null });
 
         const { generateCoverLetter: generateCoverLetterImpl } =
-          await import("@/lib/clientLLM");
+          await import("@/lib/llm/clientLLM");
 
         const result = await generateCoverLetterImpl(
           baseProfile,

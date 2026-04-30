@@ -112,7 +112,7 @@ export function ResumeEditProvider({ children }: ResumeEditProviderProps) {
         });
 
         // Import client LLM at runtime to avoid circular dependencies
-        const { generateResumeFieldText } = await import("@/lib/clientLLM");
+        const { generateResumeFieldText } = await import("@/lib/llm/clientLLM");
 
         const result = await generateResumeFieldText(field, {
           resumeData: resume,
@@ -175,4 +175,8 @@ export function useResumeEditContext() {
     );
   }
   return context;
+}
+
+export function useOptionalResumeEditContext() {
+  return useContext(ResumeEditContext);
 }
