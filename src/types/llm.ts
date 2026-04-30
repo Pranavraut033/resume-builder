@@ -1,5 +1,7 @@
 // Types for LLM inputs and outputs
 
+import { ResolvedPrompt } from "@/lib/llm/prompts";
+
 import { JobDetails, ResumeJSON } from "./resume";
 
 /**
@@ -22,20 +24,13 @@ export type Providers = "openai" | "gemini" | "grok" | "perplexity" | "ollama";
 
 export interface ResumePromptInput {
   baseProfile: ResumeJSON;
-  jobDescription: string;
-  jobRole: string;
-  company: string;
-  model?: string;
+  jobDetails: JobDetails;
 }
-
 
 export interface CoverLetterPromptInput {
   baseProfile: ResumeJSON;
-  jobDescription: string;
-  jobRole: string;
-  company: string;
+  jobDetails: JobDetails;
   resume: ResumeJSON; // the tailored resume
-  model?: string;
 }
 
 export interface PromptMessage {
@@ -43,57 +38,66 @@ export interface PromptMessage {
   content: string;
 }
 
-export interface PromptResponse {
-  content: string;
-  usage?: {
-    prompt_tokens?: number;
-    completion_tokens?: number;
-    total_tokens?: number;
-  };
-}
-
 export interface LLMUsageInfo {
   inputTokens: number;
   outputTokens: number;
 }
 
-export interface ResumeGenerationResult {
-  resume: ResumeJSON;
+export interface LLMResult<T = string> {
+  result: T;
+  prompt?: ResolvedPrompt;
   usage?: LLMUsageInfo;
 }
 
-export interface CoverLetterGenerationResult {
-  coverLetter: string;
-  usage?: LLMUsageInfo;
-}
+export type TextGenerationResult = LLMResult<string>;
+export type ResumeGenerationResult = LLMResult<ResumeJSON>;
+export type CoverLetterGenerationResult = LLMResult<string>;
+export type JobParsingResult = LLMResult<JobDetails>;
+export type ResumeParsingResult = LLMResult<ResumeJSON>;
 
 export interface LLMGenerationOptions {
-  model?: string;
+  model: string;
   temperature?: number;
   maxTokens?: number;
 }
 
 export interface LLMProvider {
   // Core generation methods
-  generateResume(input: ResumePromptInput): Promise<ResumeJSON>;
-  generateCoverLetter(input: CoverLetterPromptInput): Promise<string>;
+  generateResume(
+    input: ResumePromptInput,
+    options: LLMGenerationOptions
+  ): Promise<ResumeGenerationResult>;
+  generateCoverLetter(
+    input: CoverLetterPromptInput,
+    options: LLMGenerationOptions
+  ): Promise<CoverLetterGenerationResult>;
+
+  // Parsing methods
+  parseJobDetails(
+    description: string,
+    options: LLMGenerationOptions
+  ): Promise<JobParsingResult>;
+  parseResume(
+    resumeText: string,
+    options: LLMGenerationOptions
+  ): Promise<ResumeParsingResult>;
+
+  // Model and capabilities
+  fetchModels(): Promise<string[]>;
+
+  // Validation
+  validateConnection(): Promise<{ success: boolean; message: string }>;
 
   // Text generation (for unified prompt system)
   generateText(
     systemPrompt: string,
     userPrompt: string,
-    options?: LLMGenerationOptions
-  ): Promise<string>;
+    options: LLMGenerationOptions
+  ): Promise<TextGenerationResult>;
 
-  // Parsing methods (optional - not all providers support these)
-  parseJobDetails?(description: string, model?: string): Promise<JobDetails>;
-  parseResume?(resumeText: string, model?: string): Promise<ResumeJSON>;
-
-  // Model and capabilities
-  fetchModels(): Promise<string[]>;
-  runPrompt(
+  // Low-level LLM call
+  runLLM<T>(
     messages: PromptMessage[],
-    model?: string,
-    maxTokens?: number
-  ): Promise<PromptResponse>;
+    options: LLMGenerationOptions
+  ): Promise<{ result: T; usage?: LLMUsageInfo }>;
 }

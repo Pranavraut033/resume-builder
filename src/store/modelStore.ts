@@ -14,7 +14,7 @@
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 
-import { fetchModels } from "@/lib/clientLLM";
+import { fetchModels } from "@/lib/llm/clientLLM";
 import { createLogger } from "@/lib/logger";
 import { ProviderType } from "@/types/llm";
 
@@ -41,7 +41,7 @@ interface ModelState {
   selectedModel: SelectedModels;
 
   // Current primary provider
-  selectedProvider: string;
+  selectedProvider: ProviderType;
 
   // Loading state
   isLoading: boolean;
@@ -55,16 +55,16 @@ interface ModelState {
   // Actions
   initializeCache: () => Promise<void>;
   forceFetchModels: () => Promise<void>;
-  setSelectedModel: (provider: string, model: string) => void;
-  setSelectedProvider: (provider: string) => void;
-  setProviderModels: (provider: string, models: string[]) => void;
+  setSelectedModel: (provider: ProviderType, model: string) => void;
+  setSelectedProvider: (provider: ProviderType) => void;
+  setProviderModels: (provider: ProviderType, models: string[]) => void;
   clearError: () => void;
   setCacheTimer: (timerId: NodeJS.Timeout) => void;
   clearCacheTimer: () => void;
 
   // Getters
-  getSelectedModel: (provider: string) => string;
-  getSelectedProvider: () => string;
+  getSelectedModel: (provider: ProviderType) => string;
+  getSelectedProvider: () => ProviderType;
   getAllSelectedModels: () => string[];
 
   // Legacy aliases for UI pages
@@ -79,7 +79,7 @@ export const useModelStore = create<ModelState>()(
       selectedModelsByProvider: {},
       cacheTimestamp: null,
       selectedModel: {},
-      selectedProvider: "",
+      selectedProvider: ProviderType.OLLAMA,
       isLoading: false,
       error: null,
       cacheTimerId: null,
@@ -110,7 +110,9 @@ export const useModelStore = create<ModelState>()(
           await get().forceFetchModels();
         } catch (error) {
           const errorMessage =
-            error instanceof Error ? error.message : "Failed to initialize cache";
+            error instanceof Error
+              ? error.message
+              : "Failed to initialize cache";
           logger.error("Error initializing cache", { error });
           set({
             isLoading: false,
@@ -169,7 +171,7 @@ export const useModelStore = create<ModelState>()(
         logger.info("Selected model updated", { provider, model });
       },
 
-      setSelectedProvider: (provider: string) => {
+      setSelectedProvider: (provider: ProviderType) => {
         // Clear the selected model for the new provider to force explicit selection
         const { selectedModel, selectedModelsByProvider } = get();
 
@@ -192,7 +194,7 @@ export const useModelStore = create<ModelState>()(
         logger.info("Provider changed and model cleared", { provider });
       },
 
-      setProviderModels: (provider: string, models: string[]) => {
+      setProviderModels: (provider: ProviderType, models: string[]) => {
         const firstModel = models[0] || "";
 
         set((state) => ({
@@ -228,12 +230,12 @@ export const useModelStore = create<ModelState>()(
         set({ cacheTimerId: null });
       },
 
-      getSelectedModel: (provider: string) => {
+      getSelectedModel: (provider: ProviderType) => {
         const { selectedModel } = get();
         return selectedModel[provider] || "";
       },
 
-      getSelectedProvider: () => {
+      getSelectedProvider: (): ProviderType => {
         const { selectedProvider, selectedModel } = get();
 
         // Return current provider if valid and has a selected model
@@ -247,7 +249,7 @@ export const useModelStore = create<ModelState>()(
         );
 
         return providersWithModels.length > 0
-          ? providersWithModels[0][0]
+          ? (providersWithModels[0][0] as ProviderType)
           : ProviderType.OLLAMA;
       },
 

@@ -198,7 +198,17 @@ export const ResumeParsingSchema = z.object({
   awards: z.array(AwardSchema).nullable(),
 });
 
-export type ParsedResume = z.infer<typeof ResumeParsingSchema>;
+export type ResumeJSON = z.infer<typeof ResumeParsingSchema>;
+
+export type ContactInfo = z.infer<typeof ContactInfoSchema>;
+export type Experience = z.infer<typeof ExperienceSchema>;
+export type Project = z.infer<typeof ProjectSchema>;
+export type Education = z.infer<typeof EducationSchema>;
+export type Certification = z.infer<typeof CertificationSchema>;
+export type Publication = z.infer<typeof PublicationSchema>;
+export type Language = z.infer<typeof LanguageSchema>;
+export type Volunteer = z.infer<typeof VolunteerSchema>;
+export type Award = z.infer<typeof AwardSchema>;
 
 // Schema for resume generation (same structure as parsing, used for structured output)
 export const ResumeGenerationSchema = z.object({
@@ -214,93 +224,6 @@ export const ResumeGenerationSchema = z.object({
   volunteer: z.array(VolunteerSchema).nullable(),
   awards: z.array(AwardSchema).nullable(),
 });
-
-export interface ContactInfo {
-  name: string;
-  email: string;
-  phone?: string;
-  location?: string;
-  linkedin?: string;
-  github?: string;
-  website?: string;
-}
-
-export interface Experience {
-  company: string;
-  role: string;
-  startDate: string;
-  endDate?: string;
-  description: string;
-  achievements: string[];
-}
-
-export interface Project {
-  name: string;
-  description: string;
-  technologies: string[];
-  url?: string;
-  startDate?: string;
-  endDate?: string;
-}
-
-export interface Education {
-  institution: string;
-  degree: string;
-  field: string;
-  startDate: string;
-  endDate?: string;
-  gpa?: string;
-}
-
-export interface Certification {
-  name: string;
-  issuer: string;
-  date: string;
-  url?: string;
-}
-
-export interface Publication {
-  title: string;
-  authors: string[];
-  venue: string;
-  date: string;
-  url?: string;
-  doi?: string;
-}
-
-export interface Language {
-  name: string;
-  proficiency: string; // e.g., "Native", "Fluent", "Professional", "Intermediate", "Basic"
-}
-
-export interface Volunteer {
-  organization: string;
-  role: string;
-  startDate: string;
-  endDate?: string;
-  description: string;
-}
-
-export interface Award {
-  title: string;
-  issuer: string;
-  date: string;
-  description?: string;
-}
-
-export interface ResumeJSON {
-  header: ContactInfo;
-  summary: string;
-  experience: Experience[];
-  projects: Project[];
-  skills: string[];
-  education: Education[];
-  certifications: Certification[];
-  publications?: Publication[];
-  languages?: Language[];
-  volunteer?: Volunteer[];
-  awards?: Award[];
-}
 
 /**
  * Adapted from Resumify (https://github.com/Afif718/Resumify)
@@ -358,59 +281,59 @@ export const AVAILABLE_TEMPLATES: Array<{
   features: string[];
   bestFor: string;
 }> = [
-    {
-      id: "tech-sidebar",
-      name: "Tech Sidebar",
-      description: "Perfect for developers and engineers with sidebar layout",
-      fontFamily: "Inter",
-      features: [
-        "Two-column layout",
-        "Tech-focused design",
-        "Profile photo support",
-      ],
-      bestFor: "Software developers, engineers, technical roles",
-    },
-    {
-      id: "business-professional",
-      name: "Business Professional",
-      description: "Clean and formal design for corporate roles",
-      fontFamily: "Georgia",
-      features: ["Single column", "Professional typography", "Minimal design"],
-      bestFor: "Corporate positions, management roles, traditional industries",
-    },
-    {
-      id: "modern-minimal",
-      name: "Modern Minimal",
-      description: "Balanced design for creative and technical roles",
-      fontFamily: "Poppins",
-      features: ["Two-column layout", "Clean typography", "Modern aesthetics"],
-      bestFor: "Creative professionals, designers, modern companies",
-    },
-    {
-      id: "elegant-timeline",
-      name: "Elegant Timeline",
-      description: "Timeline-based layout emphasizing career progression",
-      fontFamily: "Lora",
-      features: ["Timeline visualization", "Elegant typography", "Career focus"],
-      bestFor: "Experienced professionals, career changers",
-    },
-    {
-      id: "creative-modern",
-      name: "Creative Modern",
-      description: "Bold and creative design for standout applications",
-      fontFamily: "Montserrat",
-      features: ["Creative layout", "Bold colors", "Visual hierarchy"],
-      bestFor: "Creative roles, startups, design-focused companies",
-    },
-    {
-      id: "bjet-professional",
-      name: "BJet Professional",
-      description: "Executive-level professional template",
-      fontFamily: "Playfair Display",
-      features: ["Executive style", "Premium look", "Professional layout"],
-      bestFor: "Senior positions, executive roles, premium applications",
-    },
-  ];
+  {
+    id: "tech-sidebar",
+    name: "Tech Sidebar",
+    description: "Perfect for developers and engineers with sidebar layout",
+    fontFamily: "Inter",
+    features: [
+      "Two-column layout",
+      "Tech-focused design",
+      "Profile photo support",
+    ],
+    bestFor: "Software developers, engineers, technical roles",
+  },
+  {
+    id: "business-professional",
+    name: "Business Professional",
+    description: "Clean and formal design for corporate roles",
+    fontFamily: "Georgia",
+    features: ["Single column", "Professional typography", "Minimal design"],
+    bestFor: "Corporate positions, management roles, traditional industries",
+  },
+  {
+    id: "modern-minimal",
+    name: "Modern Minimal",
+    description: "Balanced design for creative and technical roles",
+    fontFamily: "Poppins",
+    features: ["Two-column layout", "Clean typography", "Modern aesthetics"],
+    bestFor: "Creative professionals, designers, modern companies",
+  },
+  {
+    id: "elegant-timeline",
+    name: "Elegant Timeline",
+    description: "Timeline-based layout emphasizing career progression",
+    fontFamily: "Lora",
+    features: ["Timeline visualization", "Elegant typography", "Career focus"],
+    bestFor: "Experienced professionals, career changers",
+  },
+  {
+    id: "creative-modern",
+    name: "Creative Modern",
+    description: "Bold and creative design for standout applications",
+    fontFamily: "Montserrat",
+    features: ["Creative layout", "Bold colors", "Visual hierarchy"],
+    bestFor: "Creative roles, startups, design-focused companies",
+  },
+  {
+    id: "bjet-professional",
+    name: "BJet Professional",
+    description: "Executive-level professional template",
+    fontFamily: "Playfair Display",
+    features: ["Executive style", "Premium look", "Professional layout"],
+    bestFor: "Senior positions, executive roles, premium applications",
+  },
+];
 
 export const AVAILABLE_FONTS = [
   "Inter",
