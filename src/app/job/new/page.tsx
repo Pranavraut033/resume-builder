@@ -2,18 +2,13 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 
 import { createJob } from "@/actions/job";
 import { getProfile, hasProfile } from "@/actions/profile";
 import { fetchJobDescriptionFromUrl } from "@/actions/urlFetcher";
-import BackButton from "@/components/BackButton";
-import { ModelSelector } from "@/components/ModelSelector";
-import {
-  parseJobDescription,
-  generateResume,
-  generateCoverLetter,
-} from "@/lib/clientLLM";
+import { SelectedModelCard } from "@/components/SelectedModelCard";
+import { parseJobDescription } from "@/lib/llm/clientLLM";
 import { createLogger } from "@/lib/logger";
 import { useModelStore } from "@/store/modelStore";
 
@@ -26,16 +21,15 @@ export default function NewJobPage() {
   const [loading, setLoading] = useState(false);
   const [fetchingUrl, setFetchingUrl] = useState(false);
   const [profileExists, setProfileExists] = useState<boolean | null>(null);
+  const [analysisProgress, setAnalysisProgress] = useState(0);
+  const [isDragging, setIsDragging] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
 
-  // Use Zustand store for model state
   const { selectedProvider, getSelectedModel } = useModelStore();
-
-  // Get the currently selected model for the active provider
-  const currentSelectedModel = getSelectedModel(selectedProvider);
+  const currentSelectedModel = getSelectedModel(selectedProvider!);
 
   useEffect(() => {
-    // Check if profile exists
     const checkProfile = async () => {
       const exists = await hasProfile();
       setProfileExists(exists);
@@ -43,19 +37,32 @@ export default function NewJobPage() {
     checkProfile();
   }, []);
 
-  const handleFetchFromUrl = async () => {
-    if (!url.trim()) {
-      alert("Please enter a URL");
-      return;
+  // Simulate analysis progress when description changes
+  useEffect(() => {
+    if (description.length > 50) {
+      setAnalysisProgress(0);
+      const interval = setInterval(() => {
+        setAnalysisProgress((prev) => {
+          if (prev >= 74) {
+            clearInterval(interval);
+            return 74;
+          }
+          return prev + 2;
+        });
+      }, 30);
+      return () => clearInterval(interval);
+    } else {
+      setAnalysisProgress(0);
     }
+  }, [description]);
 
+  const handleFetchFromUrl = async () => {
+    if (!url.trim()) return;
     setFetchingUrl(true);
     try {
       const result = await fetchJobDescriptionFromUrl(url);
-
       if (result.success && result.content) {
         setDescription(result.content);
-        // Keep the URL stored for later use
       } else {
         alert(result.error || "Failed to fetch content from URL");
       }
@@ -64,6 +71,16 @@ export default function NewJobPage() {
       alert("Error fetching URL content");
     } finally {
       setFetchingUrl(false);
+    }
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+    const file = e.dataTransfer.files[0];
+    if (file && file.type === "application/pdf") {
+      // PDF handling placeholder — set description note
+      setDescription(`[PDF uploaded: ${file.name}] — PDF parsing coming soon.`);
     }
   };
 
@@ -77,42 +94,25 @@ export default function NewJobPage() {
         return;
       }
 
-      // Step 1: Parse job description (client-side)
-      const jobDetails = await parseJobDescription(
-        description,
-        currentSelectedModel,
-        selectedProvider
-      );
+      const [jobDetails, baseProfile] = await Promise.all([
+        parseJobDescription(
+          description,
+          currentSelectedModel,
+          selectedProvider!
+        ),
+        getProfile(),
+      ]);
 
-      // Step 2: Get base profile
-      const baseProfile = await getProfile();
-
-      // Step 3: Generate resume (client-side)
-      const tailoredResume = await generateResume(
-        baseProfile,
-        description,
-        jobDetails.job.job_title,
-        jobDetails.company.company_name,
-        currentSelectedModel,
-        selectedProvider
-      );
-
-      // Step 4: Generate cover letter (client-side)
-      const _coverLetterResult = await generateCoverLetter(
-        baseProfile,
-        tailoredResume,
-        description,
-        jobDetails.job.job_title,
-        jobDetails.company.company_name,
-        currentSelectedModel,
-        selectedProvider
-      );
-
-      // Step 5: Save to database (server action)
       await createJob({
         jobDetails,
         url: inputMode === "url" && url.trim() ? url : undefined,
       });
+
+      if (!baseProfile) {
+        alert("Base profile not found. Please create your profile first.");
+        setLoading(false);
+        return;
+      }
 
       router.push("/");
     } catch (error) {
@@ -123,124 +123,291 @@ export default function NewJobPage() {
     }
   };
 
-  return (
-    <div>
-      <BackButton />
-      <h1 className="mb-4 text-2xl font-bold">Add New Job</h1>
-
-      {profileExists === null ? (
-        <div className="flex items-center justify-center py-8">
-          <div className="animate-pulse text-gray-500">Loading...</div>
-        </div>
-      ) : !profileExists ? (
-        <div className="mb-6 rounded-lg border border-yellow-200 bg-yellow-50 p-6">
-          <h2 className="mb-2 text-lg font-semibold text-yellow-800">
+  // ── No-profile guard ──────────────────────────────────────────────────────
+  if (profileExists === false) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-(--color-agent-bg)">
+        <div className="border-agent-outline-variant max-w-md rounded-2xl border bg-(--color-agent-surface-lowest) p-10 text-center shadow-(--shadow-agent-modal)">
+          <div className="mb-4 inline-flex h-14 w-14 items-center justify-center rounded-full bg-amber-100 text-2xl">
+            ⚠️
+          </div>
+          <h2 className="mb-2 text-xl font-bold text-(--color-agent-on-surface)">
             Base Profile Required
           </h2>
-          <p className="mb-4 text-yellow-700">
-            You need to create your base profile first before adding jobs. The
-            base profile contains your core information that will be used to
-            generate tailored resumes.
+          <p className="text-agent-on-surface-variant mb-6 text-sm">
+            Create your base profile first so we can tailor your resume to every
+            job.
           </p>
           <Link
             href="/profile"
-            className="inline-block rounded bg-yellow-600 px-4 py-2 text-white transition-colors hover:bg-yellow-700"
+            className="bg-agent-primary rounded-xl` inline-flex items-center gap-2 px-6 py-3 text-sm font-semibold text-white transition hover:opacity-90"
           >
-            Create Base Profile
+            Create Base Profile →
           </Link>
         </div>
-      ) : (
-        <>
-          <p className="mb-4">
-            Paste the job description below or fetch it from a URL. The system
-            will auto-parse company and role, and generate a tailored resume and
-            cover letter.
+      </div>
+    );
+  }
+
+  // ── Loading skeleton ──────────────────────────────────────────────────────
+  if (profileExists === null) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-(--color-agent-bg)">
+        <div className="border-agent-primary h-8 w-8 animate-spin rounded-full border-2 border-t-transparent" />
+      </div>
+    );
+  }
+
+  // ── Main page ─────────────────────────────────────────────────────────────
+  return (
+    <div className="flex min-h-full flex-col">
+      {/* ── Main content ── */}
+      <main className="flex flex-1 items-start justify-center gap-8 px-6 py-10 lg:px-12">
+        {/* ── Left column: form ── */}
+        <div className="w-full max-w-2xl">
+          <h1 className="mb-1 text-3xl font-bold text-(--color-agent-on-surface)">
+            Tailor Your Resume
+          </h1>
+          <p className="text-agent-on-surface-variant mb-6 text-sm">
+            Paste a job description or upload a PDF to let our AI architect a
+            resume that highlights your most relevant strengths.
           </p>
 
-          {/* Input Mode Toggle */}
-          <div className="mb-4 flex gap-2">
-            <button
-              type="button"
-              onClick={() => setInputMode("text")}
-              className={`rounded px-4 py-2 font-medium transition-colors ${
-                inputMode === "text"
-                  ? "bg-blue-500 text-white"
-                  : "bg-gray-200 text-gray-700 hover:bg-gray-300"
-              }`}
-            >
-              Paste Text
-            </button>
-            <button
-              type="button"
-              onClick={() => setInputMode("url")}
-              className={`rounded px-4 py-2 font-medium transition-colors ${
-                inputMode === "url"
-                  ? "bg-blue-500 text-white"
-                  : "bg-gray-200 text-gray-700 hover:bg-gray-300"
-              }`}
-            >
-              Fetch from URL
-            </button>
-          </div>
+          <form onSubmit={handleSubmit} className="space-y-5">
+            {/* ── Tab toggle ── */}
+            <div className="bg-agent-surface-container flex gap-1 rounded-xl p-1">
+              <button
+                type="button"
+                onClick={() => setInputMode("text")}
+                className={`flex-1 rounded-lg py-2 text-sm font-medium transition ${
+                  inputMode === "text"
+                    ? "text-agent-primary bg-(--color-agent-surface-lowest) shadow-sm"
+                    : "text-agent-on-surface-variant hover:text-(--color-agent-on-surface)"
+                }`}
+              >
+                Job Description
+              </button>
+              <button
+                type="button"
+                onClick={() => setInputMode("url")}
+                className={`flex-1 rounded-lg py-2 text-sm font-medium transition ${
+                  inputMode === "url"
+                    ? "text-agent-primary bg-(--color-agent-surface-lowest) shadow-sm"
+                    : "text-agent-on-surface-variant hover:text-(--color-agent-on-surface)"
+                }`}
+              >
+                Fetch from URL
+              </button>
+            </div>
 
-          <form onSubmit={handleSubmit} className="space-y-4">
+            {/* ── URL input ── */}
             {inputMode === "url" && (
-              <div>
-                <label htmlFor="url" className="mb-2 block text-sm font-medium">
-                  Job Posting URL
-                </label>
-                <div className="flex gap-2">
-                  <input
-                    type="url"
-                    id="url"
-                    value={url}
-                    onChange={(e) => setUrl(e.target.value)}
-                    className="flex-1 rounded border p-2"
-                    placeholder="https://example.com/job-posting"
-                  />
-                  <button
-                    type="button"
-                    onClick={handleFetchFromUrl}
-                    disabled={fetchingUrl}
-                    className="rounded bg-green-500 px-4 py-2 text-white transition-colors hover:bg-green-600 disabled:opacity-50"
-                  >
-                    {fetchingUrl ? "Fetching..." : "Fetch"}
-                  </button>
-                </div>
-                <p className="mt-1 text-sm text-gray-600">
-                  Enter a URL to automatically fetch the job description
-                </p>
+              <div className="flex gap-2">
+                <input
+                  type="url"
+                  value={url}
+                  onChange={(e) => setUrl(e.target.value)}
+                  className="border-agent-outline-variant placeholder:text-agent-on-surface-variant focus:border-agent-primary focus:ring-agent-primary flex-1 rounded-xl border bg-(--color-agent-surface-lowest) px-4 py-3 text-sm text-(--color-agent-on-surface) focus:ring-1 focus:outline-none"
+                  placeholder="https://example.com/job-posting"
+                />
+                <button
+                  type="button"
+                  onClick={handleFetchFromUrl}
+                  disabled={fetchingUrl || !url.trim()}
+                  className="bg-agent-primary rounded-xl px-5 py-3 text-sm font-semibold text-white transition hover:opacity-90 disabled:opacity-40"
+                >
+                  {fetchingUrl ? "Fetching…" : "Fetch"}
+                </button>
               </div>
             )}
 
-            <div>
-              <label
-                htmlFor="description"
-                className="block text-sm font-medium"
-              >
-                Job Description{" "}
-                {inputMode === "url" && "(fetched content will appear here)"}
-              </label>
+            {/* ── Textarea ── */}
+            <div className="relative">
               <textarea
                 id="description"
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
                 required
-                className="h-64 w-full border p-2"
-                placeholder="Paste the full job description here..."
+                rows={9}
+                className="border-agent-outline-variant placeholder:text-agent-on-surface-variant focus:border-agent-primary focus:ring-agent-primary w-full resize-none rounded-xl border bg-(--color-agent-surface-lowest) px-4 py-3 pr-12 text-sm text-(--color-agent-on-surface) focus:ring-1 focus:outline-none"
+                placeholder="Paste the full job description here…"
               />
+              {/* AI sparkle icon */}
+              <span className="text-agent-primary pointer-events-none absolute top-3 right-3 opacity-60">
+                ✦
+              </span>
             </div>
-            <ModelSelector compact />
+
+            {/* ── AI analysis progress ── */}
+            {analysisProgress > 0 && (
+              <div className="border-agent-outline-variant rounded-xl border bg-(--color-agent-surface-lowest) p-4">
+                <div className="text-agent-on-surface-variant mb-2 flex items-center justify-between text-xs">
+                  <span className="flex items-center gap-1.5">
+                    <span className="bg-agent-primary inline-block h-2 w-2 animate-pulse rounded-full" />
+                    AI is analyzing requirements…
+                  </span>
+                  <span className="text-agent-primary font-semibold">
+                    {analysisProgress}%
+                  </span>
+                </div>
+                <div className="bg-agent-surface-container h-1.5 w-full overflow-hidden rounded-full">
+                  <div
+                    className="bg-agent-primary h-full rounded-full transition-all duration-300"
+                    style={{ width: `${analysisProgress}%` }}
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* ── PDF upload ── */}
+            <div>
+              <p className="text-agent-on-surface-variant mb-2 text-xs font-medium">
+                Or upload the job PDF
+              </p>
+              <div
+                onDragOver={(e) => {
+                  e.preventDefault();
+                  setIsDragging(true);
+                }}
+                onDragLeave={() => setIsDragging(false)}
+                onDrop={handleDrop}
+                onClick={() => fileInputRef.current?.click()}
+                className={`flex cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed px-6 py-8 text-center transition ${
+                  isDragging
+                    ? "border-agent-primary bg-agent-surface-low"
+                    : "border-agent-outline-variant bg-agent-surface-container hover:border-agent-primary hover:bg-agent-surface-low"
+                }`}
+              >
+                <svg
+                  className="text-agent-on-surface-variant h-8 w-8"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  strokeWidth={1.5}
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5"
+                  />
+                </svg>
+                <p className="text-agent-on-surface-variant text-sm">
+                  Drag and drop your file here or{" "}
+                  <span className="text-agent-primary font-semibold">
+                    click to browse
+                  </span>
+                </p>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept=".pdf"
+                  className="hidden"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file)
+                      setDescription(
+                        `[PDF uploaded: ${file.name}] — PDF parsing coming soon.`
+                      );
+                  }}
+                />
+              </div>
+            </div>
+
+            {/* ── Pro tip ── */}
+            <div className="border-agent-primary-fixed bg-agent-surface-low flex items-start gap-3 rounded-xl border px-4 py-3">
+              <span className="mt-0.5 text-base">💡</span>
+              <div>
+                <p className="text-agent-primary mb-0.5 text-xs font-semibold tracking-wide uppercase">
+                  Pro Tip
+                </p>
+                <p className="text-agent-on-surface-variant text-xs">
+                  Include the company name and any specific cultural values
+                  mentioned. Our AI uses this to fine-tune the &ldquo;Tone of
+                  Voice&rdquo; in your summary.
+                </p>
+              </div>
+            </div>
+
+            {/* ── Submit button ── */}
             <button
               type="submit"
-              disabled={loading}
-              className="rounded bg-blue-500 px-4 py-2 text-white disabled:opacity-50"
+              disabled={loading || !description.trim() || !currentSelectedModel}
+              className="bg-agent-primary flex w-full items-center justify-center gap-2 rounded-xl px-6 py-3 text-sm font-semibold text-white transition hover:opacity-90 disabled:opacity-40"
             >
-              {loading ? "Creating..." : "Create Job, Resume & Cover Letter"}
+              {loading ? (
+                <>
+                  <span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                  Analyzing &amp; building…
+                </>
+              ) : (
+                <>
+                  Analyze &amp; Start
+                  <svg
+                    className="h-4 w-4"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    strokeWidth={2}
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3"
+                    />
+                  </svg>
+                </>
+              )}
             </button>
           </form>
-        </>
-      )}
+        </div>
+
+        {/* ── Right column: model & tips ── */}
+        <div className="hidden w-72 shrink-0 space-y-4 lg:block">
+          {/* Selected Model Card */}
+          <SelectedModelCard />
+
+          {/* How it works card */}
+          <div
+            className="rounded-2xl p-5"
+            style={{
+              background: "var(--color-agent-surface-lowest)",
+              border: "1px solid var(--color-agent-outline-variant)",
+            }}
+          >
+            <p
+              className="mb-3 text-xs font-semibold tracking-wide uppercase"
+              style={{ color: "var(--color-agent-on-surface-variant)" }}
+            >
+              How it works
+            </p>
+            <ol className="space-y-2.5">
+              {[
+                { step: "1", text: "Paste or fetch the job description" },
+                { step: "2", text: "AI extracts requirements & keywords" },
+                { step: "3", text: "Your resume is tailored to match" },
+              ].map(({ step, text }) => (
+                <li key={step} className="flex items-start gap-3">
+                  <span
+                    className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[10px] font-bold"
+                    style={{
+                      background: "var(--color-agent-primary-container)",
+                      color: "var(--color-agent-on-primary-container)",
+                    }}
+                  >
+                    {step}
+                  </span>
+                  <span
+                    className="text-xs leading-relaxed"
+                    style={{ color: "var(--color-agent-on-surface-variant)" }}
+                  >
+                    {text}
+                  </span>
+                </li>
+              ))}
+            </ol>
+          </div>
+        </div>
+      </main>
     </div>
   );
 }

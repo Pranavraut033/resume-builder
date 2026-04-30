@@ -2,8 +2,9 @@ import { Geist, Geist_Mono } from "next/font/google";
 
 import "./globals.css";
 
+import AppShell from "@/components/AppShell";
 import { CacheInitializer } from "@/components/CacheInitializer";
-import Nav from "@/components/Nav";
+import { ThemeProvider } from "@/contexts/ThemeContext";
 import { ToastProvider } from "@/components/ui/ToastProvider";
 
 import type { Metadata } from "next";
@@ -29,15 +30,17 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="dark">
+    <html lang="en">
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        style={{ background: "var(--color-agent-bg)" }}
       >
-        <ToastProvider>
-          <CacheInitializer />
-          <Nav />
-          <main className="container mx-auto p-4">{children}</main>
-        </ToastProvider>
+        <ThemeProvider>
+          <ToastProvider>
+            <CacheInitializer />
+            <AppShell>{children}</AppShell>
+          </ToastProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

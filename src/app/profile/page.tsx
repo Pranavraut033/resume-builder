@@ -10,7 +10,7 @@ import { Card } from "@/components/ui/Card";
 import { FormField } from "@/components/ui/FormField";
 import { Modal } from "@/components/ui/Modal";
 import { Section } from "@/components/ui/Section";
-import { parseResume } from "@/lib/clientLLM";
+import { parseResume } from "@/lib/llm/clientLLM";
 import { createLogger } from "@/lib/logger";
 import { useModelStore } from "@/store/modelStore";
 import {
@@ -29,7 +29,15 @@ const logger = createLogger("ProfilePage");
 
 export default function ProfilePage() {
   const [profile, setProfile] = useState<ResumeJSON>({
-    header: { name: "", email: "" },
+    header: {
+      name: "",
+      email: "",
+      phone: null,
+      location: null,
+      linkedin: null,
+      github: null,
+      website: null,
+    },
     summary: "",
     experience: [],
     projects: [],
@@ -193,7 +201,14 @@ export default function ProfilePage() {
       ...profile,
       projects: [
         ...profile.projects,
-        { name: "", description: "", technologies: [] },
+        {
+          name: "",
+          description: "",
+          technologies: [],
+          url: null,
+          startDate: null,
+          endDate: null,
+        },
       ],
     });
   };
@@ -221,7 +236,8 @@ export default function ProfilePage() {
           degree: "",
           field: "",
           startDate: "",
-          endDate: "",
+          endDate: null,
+          gpa: null,
         },
       ],
     });
@@ -245,7 +261,7 @@ export default function ProfilePage() {
       ...profile,
       certifications: [
         ...profile.certifications,
-        { name: "", issuer: "", date: "" },
+        { name: "", issuer: "", date: "", url: null },
       ],
     });
   };
@@ -268,7 +284,7 @@ export default function ProfilePage() {
       ...profile,
       publications: [
         ...(profile.publications || []),
-        { title: "", authors: [], venue: "", date: "" },
+        { title: "", authors: [], venue: "", date: "", url: null, doi: null },
       ],
     });
   };
@@ -315,7 +331,7 @@ export default function ProfilePage() {
           organization: "",
           role: "",
           startDate: "",
-          endDate: "",
+          endDate: null,
           description: "",
         },
       ],
@@ -338,7 +354,10 @@ export default function ProfilePage() {
   const addAward = () => {
     setProfile({
       ...profile,
-      awards: [...(profile.awards || []), { title: "", issuer: "", date: "" }],
+      awards: [
+        ...(profile.awards || []),
+        { title: "", issuer: "", date: "", description: null },
+      ],
     });
   };
 
@@ -1167,7 +1186,7 @@ export default function ProfilePage() {
             information to populate your profile.
           </p>
 
-          <ModelSelector compact showLabel={false} className="mb-4" />
+          <ModelSelector onModelSelected={() => {}} className="mb-4" />
 
           <p className="mt-2 text-xs text-gray-500">
             Note: Resume parsing is currently only supported with OpenAI models.
