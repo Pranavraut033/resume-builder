@@ -7,9 +7,9 @@
 "use client";
 
 import { TokenUsageProvider } from "@/actions/tokenUsage";
-import { ProviderFactory } from "@/lib/clientLLM";
+import { ProviderFactory } from "@/lib/llm/clientLLM";
+import { trackTokenUsage, generateRequestId } from "@/lib/llm/tokenTracker";
 import { createLogger } from "@/lib/logger";
-import { trackTokenUsage, generateRequestId } from "@/lib/tokenTracker";
 
 import type { LLMClient, JSONSchema } from "@pranavraut033/ats-checker";
 

@@ -4,13 +4,14 @@
  */
 
 import { TokenUsagePurpose, TokenUsageProvider } from "@/actions/tokenUsage";
+import LLMService from "@/lib/llm/llmService";
 import { ProviderFactory } from "@/lib/llm/providers/factory";
-import LLMService from "@/lib/llmService";
+import { trackTokenUsage, generateRequestId } from "@/lib/llm/tokenTracker";
 import { createLogger } from "@/lib/logger";
-import { PromptPurpose } from "@/lib/promptSystem";
-import { trackTokenUsage, generateRequestId } from "@/lib/tokenTracker";
 import { ProviderType, Providers } from "@/types/llm";
 import { ResumeJSON, JobDetails } from "@/types/resume";
+
+import { PromptPurpose } from "@/lib/llm/prompts/promptSystem";
 
 const logger = createLogger("ClientLLM");
 
@@ -111,65 +112,22 @@ function simpleParseJobDescription(description: string): JobDetails {
 export async function parseJobDescription(
   description: string,
   selectedModel: string,
-  selectedProvider: string
+  selectedProvider: ProviderType
 ): Promise<JobDetails> {
-  const provider = await ProviderFactory.getInstance(selectedProvider);
-  const requestId = generateRequestId();
+  try {
+    const result = await LLMService.parseJob(description, {
+      provider: selectedProvider,
+      model: selectedModel,
+    });
 
-  logger.debug("Provider resolved for job parsing", {
-    provider: !!provider,
-    selectedProvider,
-    selectedModel,
-  });
-
-  if (!provider) {
-    throw new Error("No provider available for parsing");
+    return result.result;
+  } catch (error) {
+    logger.error("LLM job parsing failed, falling back to simple parser", {
+      error,
+    });
+    // Fallback to simple parser
+    return simpleParseJobDescription(description);
   }
-
-  // If provider is OpenAI, attempt structured parsing but fallback gracefully
-  if (selectedProvider === ProviderType.OPENAI) {
-    try {
-      const result = await provider.runPrompt(
-        [
-          {
-            role: "system",
-            content: "Parse the job description into structured data.",
-          },
-          {
-            role: "user",
-            content: description,
-          },
-        ],
-        selectedModel
-      );
-
-      // Track token usage
-      if (result.usage?.prompt_tokens && result.usage?.completion_tokens) {
-        await trackTokenUsage({
-          model: selectedModel,
-          provider: selectedProvider as TokenUsageProvider,
-          inputTokens: result.usage.prompt_tokens,
-          outputTokens: result.usage.completion_tokens,
-          purpose: "JOB_PARSING" as TokenUsagePurpose,
-          requestId,
-        });
-      }
-
-      if (provider.parseJobDetails) {
-        const parsed = (await provider.parseJobDetails(
-          description,
-          selectedModel
-        )) as JobDetails;
-        return { ...parsed, raw_description: description };
-      }
-    } catch (_error) {
-      // Graceful fallback to simple heuristics
-      return simpleParseJobDescription(description);
-    }
-  }
-
-  // For non-OpenAI providers, use a lightweight heuristic-based parser
-  return simpleParseJobDescription(description);
 }
 
 /**
@@ -180,6 +138,21 @@ export async function parseResume(
   selectedModel: string,
   selectedProvider: string
 ): Promise<ResumeJSON> {
+  try {
+    const result = await LLMService.parseResume(resumeText, {
+      provider: selectedProvider,
+      model: selectedModel,
+    });
+
+    return result.result;
+  } catch (error) {
+    logger.error("LLM job parsing failed, falling back to simple parser", {
+      error,
+    });
+    // Fallback to simple parser
+    return simpleParseJobDescription(description);
+  }
+
   const provider = await ProviderFactory.getInstance(selectedProvider);
   const requestId = generateRequestId();
 
@@ -187,16 +160,25 @@ export async function parseResume(
     throw new Error("No provider available for parsing");
   }
 
+  // Use prompt template system for all providers
+  const { getPromptByPurpose } = await import("@/lib/llm/prompts");
+  const promptContext = {
+    resumeText,
+  };
+  const resolvedPrompt = getPromptByPurpose("parse_resume", promptContext);
+
   if (selectedProvider === ProviderType.OPENAI && provider.parseResume) {
+    // Use OpenAI's structured output method
+
     const result = await provider.runPrompt(
       [
         {
           role: "system",
-          content: "Parse the resume text into structured data.",
+          content: resolvedPrompt.systemPrompt,
         },
         {
           role: "user",
-          content: resumeText,
+          content: resolvedPrompt.userPrompt,
         },
       ],
       selectedModel
@@ -215,81 +197,164 @@ export async function parseResume(
     }
 
     const parsed = await provider.parseResume(resumeText, selectedModel);
+    return parsed;
+  }
 
-    // Convert ParsedResume to ResumeJSON format
-    return {
-      header: {
-        name: parsed.header.name,
-        email: parsed.header.email,
-        phone: parsed.header.phone || undefined,
-        location: parsed.header.location || undefined,
-        linkedin: parsed.header.linkedin || undefined,
-        github: parsed.header.github || undefined,
-        website: parsed.header.website || undefined,
+  // For all other providers, use standard prompt with runPrompt
+  const result = await provider.runPrompt(
+    [
+      {
+        role: "system",
+        content: resolvedPrompt.systemPrompt,
       },
-      summary: parsed.summary,
-      experience: parsed.experience.map((exp) => ({
+      {
+        role: "user",
+        content: resolvedPrompt.userPrompt,
+      },
+    ],
+    selectedModel
+  );
+
+  // Track token usage
+  if (result.usage?.prompt_tokens && result.usage?.completion_tokens) {
+    await trackTokenUsage({
+      model: selectedModel,
+      provider: selectedProvider as TokenUsageProvider,
+      inputTokens: result.usage.prompt_tokens,
+      outputTokens: result.usage.completion_tokens,
+      purpose: "RESUME_PARSING" as TokenUsagePurpose,
+      requestId,
+    });
+  }
+
+  // Parse the response as JSON (this will be a ParsedResume structure)
+  const content = result.content || "";
+  const parsed = JSON.parse(content);
+
+  // Convert ParsedResume to ResumeJSON format (same conversion as above)
+  return {
+    header: {
+      name: parsed.header.name,
+      email: parsed.header.email,
+      phone: parsed.header.phone || undefined,
+      location: parsed.header.location || undefined,
+      linkedin: parsed.header.linkedin || undefined,
+      github: parsed.header.github || undefined,
+      website: parsed.header.website || undefined,
+    },
+    summary: parsed.summary,
+    experience: parsed.experience.map(
+      (exp: {
+        company: string;
+        role: string;
+        startDate: string;
+        endDate?: string;
+        description: string;
+        achievements: string[];
+      }) => ({
         company: exp.company,
         role: exp.role,
         startDate: exp.startDate,
         endDate: exp.endDate || undefined,
         description: exp.description,
         achievements: exp.achievements,
-      })),
-      projects: parsed.projects.map((proj) => ({
+      })
+    ),
+    projects: parsed.projects.map(
+      (proj: {
+        name: string;
+        description: string;
+        technologies: string[];
+        url?: string;
+        startDate?: string;
+        endDate?: string;
+      }) => ({
         name: proj.name,
         description: proj.description,
         technologies: proj.technologies,
         url: proj.url || undefined,
         startDate: proj.startDate || undefined,
         endDate: proj.endDate || undefined,
-      })),
-      skills: parsed.skills,
-      education: parsed.education.map((edu) => ({
+      })
+    ),
+    skills: parsed.skills,
+    education: parsed.education.map(
+      (edu: {
+        institution: string;
+        degree: string;
+        field: string;
+        startDate: string;
+        endDate?: string;
+        gpa?: string;
+      }) => ({
         institution: edu.institution,
         degree: edu.degree,
         field: edu.field,
         startDate: edu.startDate,
         endDate: edu.endDate || undefined,
         gpa: edu.gpa || undefined,
-      })),
-      certifications: parsed.certifications.map((cert) => ({
+      })
+    ),
+    certifications: parsed.certifications.map(
+      (cert: { name: string; issuer: string; date: string; url?: string }) => ({
         name: cert.name,
         issuer: cert.issuer,
         date: cert.date,
         url: cert.url || undefined,
-      })),
-      publications: parsed.publications?.map((pub) => ({
+      })
+    ),
+    publications: parsed.publications?.map(
+      (pub: {
+        title: string;
+        authors: string;
+        venue: string;
+        date: string;
+        url?: string;
+        doi?: string;
+      }) => ({
         title: pub.title,
         authors: pub.authors,
         venue: pub.venue,
         date: pub.date,
         url: pub.url || undefined,
         doi: pub.doi || undefined,
-      })),
-      languages: parsed.languages?.map((lang) => ({
+      })
+    ),
+    languages: parsed.languages?.map(
+      (lang: { name: string; proficiency: string }) => ({
         name: lang.name,
         proficiency: lang.proficiency,
-      })),
-      volunteer: parsed.volunteer?.map((vol) => ({
+      })
+    ),
+    volunteer: parsed.volunteer?.map(
+      (vol: {
+        organization: string;
+        role: string;
+        startDate: string;
+        endDate?: string;
+        description: string;
+      }) => ({
         organization: vol.organization,
         role: vol.role,
         startDate: vol.startDate,
         endDate: vol.endDate || undefined,
         description: vol.description,
-      })),
-      awards: parsed.awards?.map((award) => ({
+      })
+    ),
+    awards: parsed.awards?.map(
+      (award: {
+        title: string;
+        issuer: string;
+        date: string;
+        description?: string;
+      }) => ({
         title: award.title,
         issuer: award.issuer,
         date: award.date,
         description: award.description || undefined,
-      })),
-    };
-  }
-
-  throw new Error(
-    `Resume parsing is only supported with OpenAI provider. Current provider: ${selectedProvider}`
-  );
+      })
+    ),
+  };
 }
 
 /**
@@ -310,7 +375,7 @@ export async function generateResume(
     throw new Error("Provider not available");
   }
 
-  const result = await provider.generateResume({
+  const { result, usage } = await provider.generateResume({
     baseProfile,
     jobDescription,
     jobRole,
@@ -318,12 +383,17 @@ export async function generateResume(
     model: selectedModel,
   });
 
-  // For providers that support usage tracking, extract and track token usage
-  // Note: Most providers implement generateResume to return ResumeJSON directly
-  // We'll need to update providers to optionally return usage info
+  if (usage) {
+    await trackTokenUsage({
+      model: selectedModel,
+      provider: selectedProvider as TokenUsageProvider,
+      inputTokens: usage.inputTokens,
+      outputTokens: usage.outputTokens,
+      purpose: "RESUME_GENERATION" as TokenUsagePurpose,
+      requestId: _requestId,
+    });
+  }
 
-  // For now, track with estimated tokens if actual usage is not available
-  // This can be improved by updating each provider's implementation
   logger.debug("Resume generated", {
     model: selectedModel,
     provider: selectedProvider,
@@ -351,7 +421,7 @@ export async function generateCoverLetter(
     throw new Error("Provider not available");
   }
 
-  const result = await provider.generateCoverLetter({
+  const { result, usage } = await provider.generateCoverLetter({
     baseProfile,
     jobDescription,
     jobRole,
@@ -360,7 +430,17 @@ export async function generateCoverLetter(
     model: selectedModel,
   });
 
-  // Similar to generateResume, track usage when available
+  if (usage) {
+    await trackTokenUsage({
+      model: selectedModel,
+      provider: selectedProvider as TokenUsageProvider,
+      inputTokens: usage.inputTokens,
+      outputTokens: usage.outputTokens,
+      purpose: "COVER_LETTER_GENERATION" as TokenUsagePurpose,
+      requestId: _requestId,
+    });
+  }
+
   logger.debug("Cover letter generated", {
     model: selectedModel,
     provider: selectedProvider,
@@ -373,9 +453,7 @@ export async function generateCoverLetter(
  * Fetch available models from all configured providers
  */
 export async function fetchModels(): Promise<Record<string, string[]>> {
-  const { getAvailableProviderTypes } = await import(
-    "@/lib/llm/providers"
-  );
+  const { getAvailableProviderTypes } = await import("@/lib/llm/providers");
   const providerTypes = getAvailableProviderTypes();
   const modelsMap: Record<string, string[]> = {};
 
@@ -493,6 +571,32 @@ export async function generateResumeFieldText(
       throw error;
     }
     throw new Error("Failed to generate field text");
+  }
+}
+
+/**
+ * Validate connection to an LLM provider
+ */
+export async function validateProviderConnection(
+  providerType: Providers | ProviderType
+): Promise<{ success: boolean; message: string }> {
+  try {
+    const provider = await ProviderFactory.getInstance(providerType);
+    if (!provider) {
+      return {
+        success: false,
+        message: `Provider ${providerType} is not available`,
+      };
+    }
+
+    const result = await provider.validateConnection();
+    return result;
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    return {
+      success: false,
+      message: `Failed to validate connection: ${errorMessage}`,
+    };
   }
 }
 

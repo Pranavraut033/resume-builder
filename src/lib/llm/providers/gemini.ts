@@ -1,101 +1,239 @@
 import { GoogleGenAI } from "@google/genai";
+import { zodToJsonSchema } from "zod-to-json-schema";
 
+import { createLogger } from "@/lib/logger";
 import {
   LLMProvider,
   ResumePromptInput,
   CoverLetterPromptInput,
   ProviderType,
+  ResumeGenerationResult,
+  CoverLetterGenerationResult,
+  JobParsingResult,
+  ResumeParsingResult,
+  LLMGenerationOptions,
+  LLMResult,
+  PromptMessage,
 } from "@/types/llm";
-import { ResumeJSON } from "@/types/resume";
+import {
+  ResumeJSON,
+  JobDetailsSchema,
+  ResumeGenerationSchema,
+} from "@/types/resume";
 
 import { BaseLLMProvider } from "./baseProvider";
 
+const logger = createLogger("Gemini");
+
 export class GeminiProvider extends BaseLLMProvider implements LLMProvider {
   private client: GoogleGenAI;
-  private model: string;
   private apiKey: string;
-  constructor(apiKey: string, model: string = "gemini-2.5-flash") {
+
+  constructor(apiKey: string) {
     super();
     this.apiKey = apiKey;
     this.client = new GoogleGenAI({ apiKey });
-    this.model = model;
   }
 
-  async generateResume(input: ResumePromptInput): Promise<ResumeJSON> {
-    const prompt = this.generateResumePrompt(input);
+  async generateResume(
+    input: ResumePromptInput,
+    options: LLMGenerationOptions
+  ): Promise<ResumeGenerationResult> {
+    const resolvedPrompt = this.getGenerateResumePromptTemplate(input);
+    const promptText = this.combinePromptText(resolvedPrompt);
 
     try {
       const response = await this.client.models.generateContent({
-        model: input.model || this.model,
-        contents: prompt,
+        model: options.model,
+        contents: promptText,
+        config: {
+          responseMimeType: "application/json",
+          responseSchema: zodToJsonSchema(ResumeGenerationSchema),
+        },
       });
 
       const content = response.text;
       if (!content) throw new Error("No response from Gemini");
 
-      return JSON.parse(content) as ResumeJSON;
-    } catch (e: unknown) {
-      const error = e as Record<string, unknown>;
-      if (error.message && String(error.message).includes("JSON")) {
-        throw new Error("Invalid JSON response from Gemini");
-      }
-      throw new Error("Gemini generateResume failed: " + String(error.message));
+      const result = JSON.parse(content) as ResumeJSON;
+      const usage = this.estimateTokenUsage(promptText, content);
+
+      return { result, usage, prompt: resolvedPrompt };
+    } catch (err: unknown) {
+      const error = err as Record<string, unknown>;
+      logger.error("generateResume failed", {
+        error: err,
+        message: error?.message,
+      });
+      throw new Error(
+        `Gemini generateResume failed: ${String(error?.message) || err}`
+      );
     }
   }
 
-  async generateCoverLetter(input: CoverLetterPromptInput): Promise<string> {
-    const prompt = this.generateCoverLetterPrompt(input);
+  async generateCoverLetter(
+    input: CoverLetterPromptInput,
+    options: LLMGenerationOptions
+  ): Promise<CoverLetterGenerationResult> {
+    const resolvedPrompt = this.getGenerateCoverLetterPromptTemplate(input);
+    const messages = this.toPromptMessages(resolvedPrompt);
 
-    const response = await this.client.models.generateContent({
-      model: input.model || this.model,
-      contents: prompt,
-    });
+    const { result, usage } = await this.runLLM<string>(messages, options);
 
-    return response.text || "";
+    return { result, prompt: resolvedPrompt, usage };
+  }
+
+  async parseJobDetails(
+    description: string,
+    options: LLMGenerationOptions
+  ): Promise<JobParsingResult> {
+    const template = this.getParseJobPromptTemplate(description);
+    const promptText = this.combinePromptText(template);
+
+    try {
+      const response = await this.client.models.generateContent({
+        model: options.model,
+        contents: promptText,
+        config: {
+          responseMimeType: "application/json",
+          responseSchema: zodToJsonSchema(JobDetailsSchema),
+        },
+      });
+
+      const content = response.text;
+      if (!content) throw new Error("No response from Gemini");
+
+      const result = JobDetailsSchema.parse(JSON.parse(content));
+      const usage = this.estimateTokenUsage(promptText, content);
+
+      return { result, usage, prompt: template };
+    } catch (err: unknown) {
+      const error = err as Record<string, unknown>;
+      logger.error("parseJobDetails failed", {
+        error: err,
+        message: error?.message,
+      });
+      throw new Error(
+        `Gemini parseJobDetails failed: ${String(error?.message) || err}`
+      );
+    }
+  }
+
+  async parseResume(
+    resumeText: string,
+    options: LLMGenerationOptions
+  ): Promise<ResumeParsingResult> {
+    const template = this.getParseResumePromptTemplate(resumeText);
+    const promptText = this.combinePromptText(template);
+
+    try {
+      const response = await this.client.models.generateContent({
+        model: options.model,
+        contents: promptText,
+        config: {
+          responseMimeType: "application/json",
+          responseSchema: zodToJsonSchema(ResumeGenerationSchema),
+        },
+      });
+
+      const content = response.text;
+      if (!content) throw new Error("No response from Gemini");
+
+      const result = JSON.parse(content) as ResumeJSON;
+      const usage = this.estimateTokenUsage(promptText, content);
+
+      return { result, usage, prompt: template };
+    } catch (err: unknown) {
+      const error = err as Record<string, unknown>;
+      logger.error("parseResume failed", {
+        error: err,
+        message: error?.message,
+      });
+      throw new Error(
+        `Gemini parseResume failed: ${String(error?.message) || err}`
+      );
+    }
+  }
+
+  async runLLM<T>(
+    messages: PromptMessage[],
+    options: LLMGenerationOptions
+  ): Promise<LLMResult<T>> {
+    // Gemini doesn't have separate system messages, combine them
+    const promptText = messages.map((m) => m.content).join("\n\n");
+
+    try {
+      const response = await this.client.models.generateContent({
+        model: options.model,
+        contents: promptText,
+      });
+
+      const content = response.text || "";
+      const usage = this.estimateTokenUsage(promptText, content);
+
+      return {
+        result: content as T,
+        usage,
+      };
+    } catch (err: unknown) {
+      const error = err as Record<string, unknown>;
+      logger.error("runLLM failed", {
+        error: err,
+        message: error?.message,
+      });
+      throw new Error(`Gemini runLLM failed: ${String(error?.message) || err}`);
+    }
   }
 
   async fetchModels(): Promise<string[]> {
-    return fetch("https://generativelanguage.googleapis.com/v1beta/models", {
-      headers: {
-        "x-goog-api-key": this.apiKey,
-      },
-    })
-      .then((res) => res.json())
-      .then((data) => {
-        if (!data.models || !Array.isArray(data.models)) {
-          throw new Error("Invalid response from Gemini models API");
-        }
-        return data.models.map((model: unknown) => (model as { name: string }).name);
-      })
-      .catch((error) => {
-        console.error("Error fetching Gemini models:", error);
-        return ["gemini-1.5-flash", "gemini-1.5-pro", "gemini-pro"]; // fallback
-      });
+    try {
+      logger.debug("Fetching models from Gemini API");
+      const response = await fetch(
+        "https://generativelanguage.googleapis.com/v1beta/models",
+        { headers: { "x-goog-api-key": this.apiKey } }
+      );
+      const data = await response.json();
+
+      if (!data.models || !Array.isArray(data.models)) {
+        throw new Error("Invalid response from Gemini models API");
+      }
+
+      return data.models.map((model: { name: string }) => model.name);
+    } catch (error) {
+      logger.error("Error fetching models", { error });
+      return ["gemini-2.5-flash", "gemini-2.0-pro", "gemini-1.5-pro"]; // fallback
+    }
   }
 
-  async runPrompt(
-    messages: Array<{ role: "system" | "user" | "assistant"; content: string }>,
-    _model?: string,
-    _maxTokens?: number
-  ): Promise<{
-    content: string;
-    usage?: {
-      prompt_tokens?: number;
-      completion_tokens?: number;
-      total_tokens?: number;
-    };
-  }> {
-    // Gemini doesn't have separate system messages, combine them
-    const prompt = messages.map((m) => m.content).join("\n\n");
+  protected getProviderName(): string {
+    return "Gemini";
+  }
 
-    const response = await this.client.models.generateContent({
-      model: _model || this.model,
-      contents: prompt,
-    });
+  async validateConnection(): Promise<{ success: boolean; message: string }> {
+    try {
+      const response = await fetch(
+        "https://generativelanguage.googleapis.com/v1beta/models",
+        { headers: { "x-goog-api-key": this.apiKey } }
+      );
+      const data = await response.json();
 
-    return {
-      content: response.text || "",
-    };
+      if (!response.ok || !data.models) {
+        throw new Error(data.error?.message || "Failed to fetch models");
+      }
+
+      const modelCount = data.models.length;
+      return {
+        success: true,
+        message: `Connected successfully. Found ${modelCount} available models.`,
+      };
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
+      return {
+        success: false,
+        message: `Connection failed: ${errorMessage}`,
+      };
+    }
   }
 }
 /**

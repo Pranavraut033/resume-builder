@@ -5,36 +5,119 @@
  * Providers should register themselves using the static register() method
  * to allow dynamic provider discovery and instantiation.
  */
-
-import { templateRegistry } from "@/lib/prompts/registry";
-import { resolveTemplate } from "@/lib/prompts/resolver";
+import { PromptSystem, ResolvedPrompt } from "@/lib/llm/prompts";
 import {
   ResumePromptInput,
   CoverLetterPromptInput,
   LLMGenerationOptions,
   ProviderType,
   LLMProvider,
+  LLMUsageInfo,
+  LLMResult,
+  CoverLetterGenerationResult,
+  JobParsingResult,
+  PromptMessage,
+  ResumeGenerationResult,
+  ResumeParsingResult,
+  TextGenerationResult,
 } from "@/types/llm";
-import { ResumeJSON } from "@/types/resume";
 
 import { ProviderRegistry, ProviderMetadata } from "./registry";
 
-export abstract class BaseLLMProvider {
+export abstract class BaseLLMProvider implements LLMProvider {
+  abstract generateResume(
+    input: ResumePromptInput,
+    options: LLMGenerationOptions
+  ): Promise<ResumeGenerationResult>;
+
+  abstract generateCoverLetter(
+    input: CoverLetterPromptInput,
+    options: LLMGenerationOptions
+  ): Promise<CoverLetterGenerationResult>;
+
+  abstract parseJobDetails(
+    description: string,
+    options: LLMGenerationOptions
+  ): Promise<JobParsingResult>;
+
+  abstract parseResume(
+    resumeText: string,
+    options: LLMGenerationOptions
+  ): Promise<ResumeParsingResult>;
+
+  abstract fetchModels(): Promise<string[]>;
+
   /**
-   * Get temperature settings based on model compatibility.
-   * Some models (like OpenAI o1) don't support custom temperature.
+   * Validate connection to the LLM provider
+   * Default implementation - providers should override for actual validation
    */
-  protected getTemperatureConfig(
-    model?: string,
-    temperature?: number
-  ): { temperature?: number } {
-    // OpenAI o1/o3 models don't support custom temperature
-    if (model && (model.includes("o1") || model.includes("o3"))) {
-      return {}; // Omit temperature parameter
+  async validateConnection(): Promise<{ success: boolean; message: string }> {
+    return {
+      success: true,
+      message: "Connection validated",
+    };
+  }
+
+  abstract runLLM<T>(
+    messages: PromptMessage[],
+    options: LLMGenerationOptions
+  ): Promise<LLMResult<T>>;
+
+  /**
+   * Returns 0.7 for standard chat models and undefined for reasoning models
+   * or unsupported providers to avoid API parameter errors.
+   * * Supported Providers: OpenAI, xAI (Grok), Gemini, Perplexity (Sonar).
+   */
+  getDefaultTemperature(modelId: string): number | undefined {
+    if (!modelId || typeof modelId !== "string") return undefined;
+
+    const m = modelId.toLowerCase();
+
+    // 1. PROVIDER CHECK
+    // Ensures we only return values for your specific requested stack.
+    const isSupportedProvider = /gpt|o1|o3|o4|gemini|grok|sonar|pplx/.test(m);
+    if (!isSupportedProvider) return undefined;
+
+    // 2. REASONING MODEL EXCLUSIONS (The "No-Temperature" Zone)
+    // These models in 2026 either error out or ignore temperature entirely.
+
+    // OpenAI: o1, o3, o4 series AND the gpt-5 reasoning family (except 'chat' variants)
+    const isOpenAIReasoning = /^(o1|o3|o4|gpt-5(?!.*-chat))/.test(m);
+
+    // xAI: Grok-4 reasoning and specialized logic variants
+    const isGrokReasoning = m.includes("grok") && m.includes("reasoning");
+
+    // Perplexity: Sonar reasoning and Deep Research models
+    const isSonarReasoning =
+      m.includes("sonar") &&
+      (m.includes("reasoning") || m.includes("research"));
+
+    // Gemini: Thinking/Reasoning modes
+    const isGeminiThinking = m.includes("gemini") && m.includes("thinking");
+
+    if (
+      isOpenAIReasoning ||
+      isGrokReasoning ||
+      isSonarReasoning ||
+      isGeminiThinking
+    ) {
+      return undefined;
     }
 
-    // Use provided temperature or default
-    return { temperature: temperature };
+    // 3. DEFAULT FOR STANDARD MODELS
+    // Returns 0.7 for gpt-4o, gpt-5-chat-latest, grok-3, gemini-2.0-flash, sonar-pro, etc.
+    return 0.7;
+  }
+
+  /**
+   * Helper to only include temperature when the model supports it.
+   */
+  protected getTemperatureConfig(
+    modelId?: string,
+    temperature?: number
+  ): { temperature?: number } {
+    const resolved = this.resolveTemperature(modelId ?? "", temperature);
+    return resolved === undefined ? {} : { temperature: resolved };
   }
 
   /**
@@ -44,115 +127,87 @@ export abstract class BaseLLMProvider {
   async generateText(
     systemPrompt: string,
     userPrompt: string,
-    options?: LLMGenerationOptions
-  ): Promise<string> {
+    options: LLMGenerationOptions
+  ): Promise<TextGenerationResult> {
     // Default implementation using runPrompt - providers can override
-    const response = await this.runPrompt(
+    const response = await this.runLLM<string>(
       [
         { role: "system", content: systemPrompt },
         { role: "user", content: userPrompt },
       ],
-      options?.model,
-      options?.maxTokens
+      {
+        ...options,
+        ...this.getTemperatureConfig(options.model, options.temperature),
+      }
     );
-    return response.content;
+
+    return {
+      ...response,
+
+      usage:
+        response.usage ??
+        this.estimateTokenUsage(systemPrompt + userPrompt, response.result),
+    };
   }
 
   /**
-   * Parse job details from description
-   * Must be implemented by subclasses or use parseJobDescription if available
+   * Normalize token usage from provider-specific format to LLMUsageInfo
    */
-  async parseJobDetails(_description: string, _model?: string): Promise<Record<string, unknown>> {
-    throw new Error("parseJobDetails not implemented for this provider");
+  protected estimateTokenUsage(
+    inputPrompt?: string,
+    outputText?: string
+  ): LLMUsageInfo | undefined {
+    if (!inputPrompt && !outputText) return undefined;
+
+    return {
+      inputTokens: inputPrompt ? Math.ceil(inputPrompt.length / 4) : 0,
+      outputTokens: outputText ? Math.ceil(outputText.length / 4) : 0,
+    } satisfies LLMUsageInfo;
   }
 
-  /**
-   * Parse resume text
-   * Optional method - not all providers support this
-   */
-  async parseResume?(resumeText: string, model?: string): Promise<ResumeJSON>;
-
-  /**
-   * Run a prompt and get response
-   * Must be implemented by subclasses
-   */
-  abstract runPrompt(
-    messages: Array<{ role: "system" | "user" | "assistant"; content: string }>,
-    model?: string,
-    maxTokens?: number
-  ): Promise<{
-    content: string;
-    usage?: { prompt_tokens?: number; completion_tokens?: number };
-  }>;
   /**
    * Generate a resume tailoring prompt using template system
    */
-  protected generateResumePrompt(input: ResumePromptInput): string {
-    const template = templateRegistry.get("tailor_resume");
-    if (!template) {
-      throw new Error("Resume tailoring template not found");
-    }
-
-    const resolved = resolveTemplate(template, {
+  protected getGenerateResumePromptTemplate(
+    input: ResumePromptInput
+  ): ResolvedPrompt {
+    return PromptSystem.generatePrompt("generate_tailored_resume", {
       baseProfile: input.baseProfile,
-      jobDescription: input.jobDescription,
-      jobRole: input.jobRole,
-      company: input.company,
+      jobData: input.jobDetails,
     });
-
-    // Return combined prompt (providers typically expect single prompt string)
-    return `${resolved.systemPrompt}\n\n${resolved.userPrompt}`;
   }
 
   /**
    * Generate a cover letter writing prompt using template system
    */
-  protected generateCoverLetterPrompt(input: CoverLetterPromptInput): string {
-    const template = templateRegistry.get("generate_cover_letter");
-    if (!template) {
-      throw new Error("Cover letter template not found");
-    }
-
-    const resolved = resolveTemplate(template, {
+  protected getGenerateCoverLetterPromptTemplate(
+    input: CoverLetterPromptInput
+  ): ResolvedPrompt {
+    return PromptSystem.generatePrompt("generate_cover_letter", {
       baseProfile: input.baseProfile,
-      jobDescription: input.jobDescription,
-      jobRole: input.jobRole,
-      company: input.company,
+      jobData: input.jobDetails,
       resume: input.resume,
     });
-
-    // Return combined prompt (providers typically expect single prompt string)
-    return `${resolved.systemPrompt}\n\n${resolved.userPrompt}`;
   }
 
   /**
    * Generate a job details extraction prompt (for structured parsing)
    * Returns only system prompt - user prompt is the job description itself
    */
-  protected generateJobParsingSystemPrompt(): string {
-    const template = templateRegistry.get("parse_job");
-    if (!template) {
-      throw new Error("Job parsing template not found");
-    }
-
-    // For parsing operations, we only need the system prompt
-    // The actual job description is passed as user message by the provider
-    return template.systemPrompt;
+  protected getParseJobPromptTemplate(jobText: string): ResolvedPrompt {
+    return PromptSystem.generatePrompt("parse_job", {
+      jobDescription: jobText,
+    });
   }
 
   /**
    * Generate a resume parsing prompt (for structured output)
    * Returns only system prompt - user prompt is the resume text itself
    */
-  protected generateResumeParsingSystemPrompt(): string {
-    const template = templateRegistry.get("parse_resume");
-    if (!template) {
-      throw new Error("Resume parsing template not found");
-    }
-
-    // For parsing operations, we only need the system prompt
-    // The actual resume text is passed as user message by the provider
-    return template.systemPrompt;
+  protected getParseResumePromptTemplate(resumeText: string): ResolvedPrompt {
+    return PromptSystem.generatePrompt("parse_resume", {
+      resumeText,
+    });
   }
 
   /**
@@ -169,5 +224,49 @@ export abstract class BaseLLMProvider {
     constructor: (apiKey?: string) => LLMProvider
   ): void {
     ProviderRegistry.getInstance().register(type, metadata, constructor);
+  }
+
+  /**
+   * Convert ResolvedPrompt to array of PromptMessages
+   */
+  protected toPromptMessages(resolved: ResolvedPrompt): PromptMessage[] {
+    const withMessages = resolved as ResolvedPrompt & {
+      messages?: PromptMessage[];
+    };
+
+    if (Array.isArray(withMessages.messages) && withMessages.messages.length) {
+      return withMessages.messages;
+    }
+
+    const messages: PromptMessage[] = [];
+    if (resolved.systemPrompt) {
+      messages.push({ role: "system", content: resolved.systemPrompt });
+    }
+    if (resolved.userPrompt) {
+      messages.push({ role: "user", content: resolved.userPrompt });
+    }
+    return messages;
+  }
+
+  protected combinePromptText(resolved: ResolvedPrompt): string {
+    const withMessages = resolved as ResolvedPrompt & {
+      messages?: PromptMessage[];
+    };
+    const messageContent = withMessages.messages?.map((m) => m.content) ?? [];
+
+    return [
+      resolved.systemPrompt ?? "",
+      resolved.userPrompt ?? "",
+      ...messageContent,
+    ]
+      .filter(Boolean)
+      .join("\n");
+  }
+
+  protected resolveTemperature(
+    model: string,
+    temperature?: number
+  ): number | undefined {
+    return temperature ?? this.getDefaultTemperature(model);
   }
 }
