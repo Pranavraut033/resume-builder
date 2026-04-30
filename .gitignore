@@ -53,3 +53,4 @@ drizzle/meta/_journal.json
 keys.enc
 .env
 /session-docs/
+dev.db
