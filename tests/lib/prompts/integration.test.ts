@@ -7,7 +7,7 @@ import { describe, it, expect } from "vitest";
 
 import { ExtractedContext } from "@/lib/contextExtractor";
 import { generateFieldPrompt } from "@/lib/fieldPromptSystem";
-import PromptSystem, { PromptContext } from "@/lib/promptSystem";
+import PromptSystem, { PromptContext } from "@/lib/llm/prompts/promptSystem";
 
 describe("Refactored Prompt System Integration", () => {
   describe("PromptSystem with Templates", () => {
@@ -131,7 +131,10 @@ describe("Refactored Prompt System Integration", () => {
         },
       };
 
-      const prompt = PromptSystem.generatePrompt("generate_experience", context);
+      const prompt = PromptSystem.generatePrompt(
+        "generate_experience",
+        context
+      );
 
       expect(prompt).toBeDefined();
       expect(prompt.purpose).toBe("generate_experience");
@@ -168,7 +171,9 @@ describe("Refactored Prompt System Integration", () => {
 
       expect(prompt).toBeDefined();
       expect(prompt.systemPrompt).toContain("expert resume writer");
-      expect(prompt.userPrompt).toContain("Software engineer with 5 years experience");
+      expect(prompt.userPrompt).toContain(
+        "Software engineer with 5 years experience"
+      );
       expect(prompt.userPrompt).toContain("Senior Developer");
     });
 

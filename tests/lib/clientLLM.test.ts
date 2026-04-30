@@ -6,7 +6,7 @@ import {
   generateResume,
   generateCoverLetter,
   ProviderFactory,
-} from "@/lib/clientLLM";
+} from "@/lib/llm/clientLLM";
 
 import { shouldUseRealLLMs } from "../config/test.config";
 import {
@@ -25,7 +25,7 @@ const mockGenerateCoverLetter = vi.fn();
 if (!shouldUseRealLLMs()) {
   vi.mock("@/lib/llm/providers/openai", () => ({
     OpenAIProvider: class {
-      constructor(_apiKey: string) { }
+      constructor(_apiKey: string) {}
       parseJobDetails = mockParseJobDetails;
       generateResume = mockGenerateResume;
       generateCoverLetter = mockGenerateCoverLetter;
@@ -34,7 +34,7 @@ if (!shouldUseRealLLMs()) {
 
   vi.mock("@/lib/llm/providers/gemini", () => ({
     GeminiProvider: class {
-      constructor(_apiKey: string, _model?: string) { }
+      constructor(_apiKey: string, _model?: string) {}
       generateResume = mockGenerateResume;
       generateCoverLetter = mockGenerateCoverLetter;
     },
@@ -42,7 +42,7 @@ if (!shouldUseRealLLMs()) {
 
   vi.mock("@/lib/llm/providers/grok", () => ({
     GrokProvider: class {
-      constructor(_apiKey: string) { }
+      constructor(_apiKey: string) {}
       generateResume = mockGenerateResume;
       generateCoverLetter = mockGenerateCoverLetter;
     },
@@ -50,7 +50,7 @@ if (!shouldUseRealLLMs()) {
 
   vi.mock("@/lib/llm/providers/ollama", () => ({
     OllamaProvider: class {
-      constructor() { }
+      constructor() {}
       generateResume = mockGenerateResume;
       generateCoverLetter = mockGenerateCoverLetter;
     },

@@ -5,9 +5,13 @@
 
 import { describe, it, expect, beforeEach } from "vitest";
 
-import { templateRegistry } from "@/lib/prompts/registry";
-import { shapeContext, resolveTemplate, estimateTokens } from "@/lib/prompts/resolver";
-import { PromptTemplate } from "@/lib/prompts/types";
+import { templateRegistry } from "@/lib/llm/prompts/registry";
+import {
+  shapeContext,
+  resolveTemplate,
+  estimateTokens,
+} from "@/lib/llm/prompts/resolver";
+import { PromptTemplate } from "@/lib/llm/prompts/types";
 
 describe("Prompt Template System", () => {
   describe("Context Shaping", () => {
