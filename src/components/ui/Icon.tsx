@@ -53,6 +53,10 @@ const ICON_ALIASES: Record<string, string> = {
   spinner: "Loader2",
   loader: "Loader2",
   loading: "Loader2",
+  user: "User",
+  settings: "Settings",
+  link: "Link",
+  barChart: "BarChart2",
 };
 
 /**

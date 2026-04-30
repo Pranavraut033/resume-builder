@@ -1,298 +1,286 @@
 /**
- * Model & Temperature Selector Component
- * Shared component for selecting LLM provider/model across the application
+ * Model Selector Component (Presenter)
  *
- * Features:
- * - Provider selection with descriptions
- * - Model dropdown (populates based on selected provider)
- * - Uses Zustand modelStore for centralized state management
- * - Automatic cache initialization on app load
- * - No context provider required
+ * Displays preselected models in a modal window.
+ * This is a pure presenter component that:
+ * - Reads preselected models and last used model from store (read-only)
+ * - Does NOT update any store state
+ * - Emits selected model via callback: {model, provider}
+ * - Defaults to last used model from store
  */
 
 "use client";
 
-import clsx from "clsx";
+import Link from "next/link";
+import { useEffect, useMemo, useState } from "react";
 
-import { Autocomplete, AutocompleteOption } from "@/components/ui/Autocomplete";
-import { Card } from "@/components/ui/Card";
 import { Icon } from "@/components/ui/Icon";
+import { Modal } from "@/components/ui/Modal";
 import { getAvailableProviders } from "@/lib/llm/providers";
 import { useModelStore } from "@/store/modelStore";
-import { ProviderType, Providers } from "@/types/llm";
+import { Providers } from "@/types/llm";
 
 interface ModelSelectorProps {
-  compact?: boolean;
-  showLabel?: boolean;
+  /** Callback when user selects a model. Emits {model, provider} */
+  onModelSelected: (model: string, provider: Providers) => void;
+  label?: string;
   className?: string;
+  variant?: "normal" | "compact";
 }
 
-// Build provider labels and info dynamically from registry
-function getProviderLabels(): Record<Providers, string> {
-  const labels: Record<Providers, string> = {} as unknown as Record<
-    Providers,
-    string
-  >;
-  const providers = getAvailableProviders();
-  for (const provider of providers) {
-    labels[provider.type as Providers] = provider.name;
-  }
-  return labels;
-}
+// Provider color mapping
+const PROVIDER_COLORS: Record<Providers, string> = {
+  openai: "#10a37f",
+  gemini: "#4285f4",
+  grok: "#000000",
+  ollama: "#fb542b",
+  perplexity: "#0066cc",
+};
 
-function getProviderInfo(): Record<
+// Build provider info map
+function buildProviderInfo(): Record<
   Providers,
-  { description: string; icon: string }
+  { name: string; icon: string }
 > {
-  const info = {} as unknown as Record<
-    Providers,
-    { description: string; icon: string }
-  >;
-
+  const info = {} as Record<Providers, { name: string; icon: string }>;
   const providers = getAvailableProviders();
+
   for (const provider of providers) {
     info[provider.type as Providers] = {
-      description: provider.description || "",
+      name: provider.name,
       icon: provider.icon || "zap",
     };
   }
+
   return info;
 }
 
-const PROVIDER_LABELS = getProviderLabels();
-const PROVIDER_INFO = getProviderInfo();
+const PROVIDER_INFO = buildProviderInfo();
 
 export function ModelSelector({
-  compact = false,
-  showLabel = true,
+  onModelSelected,
+  label = "Select Model",
   className = "",
+  variant = "compact",
 }: ModelSelectorProps) {
-  const {
-    modelsByProvider,
-    selectedProvider,
-    isLoading,
-    setSelectedModel,
-    getSelectedModel,
-    setSelectedProvider,
-  } = useModelStore();
+  const { selectedModelsByProvider, selectedModel, selectedProvider } =
+    useModelStore();
 
-  // Get current selected model for active provider
-  const currentModel = getSelectedModel(selectedProvider);
-  const currentModels = modelsByProvider[selectedProvider] ?? [];
+  const [isOpen, setIsOpen] = useState(false);
 
-  const handleProviderChange = (provider: Providers) => {
-    // Setting provider will clear the selected model in the store
-    setSelectedProvider(provider);
+  // Initialize with last used model from store
+  const initialSelected = useMemo(() => {
+    if (selectedModel && selectedProvider) {
+      const lastUsedModel = selectedModel[selectedProvider];
+      if (lastUsedModel) {
+        return {
+          model: lastUsedModel,
+          provider: selectedProvider as Providers,
+        };
+      }
+    }
+    return null;
+  }, [selectedModel, selectedProvider]);
+
+  const [selected, setSelected] = useState<{
+    model: string;
+    provider: Providers;
+  } | null>(initialSelected);
+
+  useEffect(() => {
+    setSelected(initialSelected);
+  }, [initialSelected]);
+
+  // Get preselected models by provider (from settings)
+  const preselectedByProvider = useMemo(
+    () =>
+      Object.entries(selectedModelsByProvider)
+        .map(([provider, models]) => ({
+          provider: provider as Providers,
+          models: (models || []).filter(Boolean),
+        }))
+        .filter(({ models }) => models.length > 0),
+    [selectedModelsByProvider]
+  );
+
+  const handleModelClick = (model: string, provider: Providers) => {
+    setSelected({ model, provider });
+    onModelSelected(model, provider);
+    setIsOpen(false);
   };
 
-  const handleModelChange = (model: string) => {
-    setSelectedModel(selectedProvider, model);
-  };
+  const selectedProviderInfo = selected
+    ? PROVIDER_INFO[selected.provider]
+    : undefined;
+  const selectedProviderColor = selected
+    ? PROVIDER_COLORS[selected.provider]
+    : undefined;
+  const showButtonTrigger = variant === "compact" || !selected;
 
-  // Convert models to autocomplete options
-  const modelOptions: AutocompleteOption[] = currentModels.map((model) => ({
-    value: model,
-    label: model,
-  }));
-
-  if (compact) {
-    // Compact inline layout for side panels
+  // Show error state if no models configured
+  if (preselectedByProvider.length === 0) {
     return (
-      <div className={clsx("space-y-3 text-sm", className)}>
-        {showLabel && (
-          <h3 className="font-semibold text-gray-900 dark:text-white">
-            AI Generation Settings
-          </h3>
-        )}
-
-        {/* Provider Selection */}
-        <div>
-          <label className="mb-2 block text-xs font-medium text-gray-700 dark:text-gray-300">
-            Provider
-          </label>
-          <div className="flex flex-col gap-1">
-            {(Object.keys(PROVIDER_LABELS) as Providers[]).map((provider) => (
-              <button
-                key={provider}
-                onClick={() => handleProviderChange(provider)}
-                className={clsx(
-                  "rounded-lg border px-3 py-2 text-left text-xs transition-all",
-                  selectedProvider === provider
-                    ? "border-blue-500 bg-blue-50 text-blue-900 dark:bg-blue-900/20 dark:text-blue-200"
-                    : "border-gray-200 hover:border-gray-300 dark:border-gray-700 dark:hover:border-gray-600"
-                )}
-              >
-                <div className="font-medium">{PROVIDER_LABELS[provider]}</div>
-                <div className="text-xs text-gray-600 dark:text-gray-400">
-                  {PROVIDER_INFO[provider].description}
-                </div>
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Model Selection */}
-        {currentModels.length > 0 && (
-          <div>
-            <label className="mb-2 block text-xs font-medium text-gray-700 dark:text-gray-300">
-              Model
-              {!currentModel && <span className="ml-1 text-red-500">*</span>}
-            </label>
-            <Autocomplete
-              options={modelOptions}
-              value={currentModel}
-              onChange={handleModelChange}
-              placeholder="Search or select a model..."
-              disabled={isLoading}
-              loading={isLoading}
-              emptyText="No models found"
-              searchable={true}
-              maxHeight={200}
-            />
-            {!currentModel && (
-              <p className="mt-1 text-xs text-red-600 dark:text-red-400">
-                Please select a model to continue
-              </p>
-            )}
-          </div>
-        )}
-
-        {isLoading && (
-          <div className="flex items-center gap-2 text-xs text-gray-600 dark:text-gray-400">
-            <Icon name="spinner" className="h-3 w-3 animate-spin" />
-            Loading models...
-          </div>
-        )}
+      <div
+        className={`rounded-xl px-4 py-3 ${className}`}
+        style={{
+          background: "var(--color-agent-error-container)",
+          color: "var(--color-agent-on-error-container)",
+        }}
+      >
+        <p className="text-xs">
+          No models configured. Go to{" "}
+          <Link href="/settings" className="font-semibold underline">
+            Settings
+          </Link>{" "}
+          to select models.
+        </p>
       </div>
     );
   }
 
-  // Full layout for settings page or dedicated sections
   return (
-    <div className={clsx("space-y-6", className)}>
-      {showLabel && (
-        <div>
-          <h2 className="mb-2 text-lg font-bold text-gray-900 dark:text-white">
-            AI Generation Settings
-          </h2>
-          <p className="text-sm text-gray-600 dark:text-gray-400">
-            Configure which LLM provider and model to use for all AI-generated
-            content
-          </p>
-        </div>
-      )}
-
-      {/* Provider Selection Cards */}
-      <div>
-        <h3 className="mb-3 text-sm font-semibold text-gray-900 dark:text-white">
-          Provider
-        </h3>
-        <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-          {(Object.keys(PROVIDER_LABELS) as Providers[]).map((provider) => (
-            <button
-              key={provider}
-              onClick={() => handleProviderChange(provider)}
-              className={clsx(
-                "rounded-lg border-2 p-4 text-left transition-all",
-                selectedProvider === provider
-                  ? "border-blue-500 bg-blue-50 dark:bg-blue-900/20"
-                  : "border-gray-200 hover:border-gray-300 dark:border-gray-700 dark:hover:border-gray-600"
-              )}
+    <>
+      {variant === "normal" && selected ? (
+        <>
+          {/* Current Model Display */}
+          <button
+            type="button"
+            onClick={() => setIsOpen(true)}
+            className="mb-4 flex w-full items-center gap-3 rounded-xl p-3 text-left transition-all hover:shadow-sm active:scale-[0.99]"
+            style={{
+              background: "var(--color-agent-surface-container)",
+              border: "1px solid var(--color-agent-outline-variant)",
+            }}
+          >
+            <div
+              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-white"
+              style={{ background: selectedProviderColor }}
             >
-              <div className="flex items-start gap-3">
-                <Icon
-                  name={PROVIDER_INFO[provider].icon}
-                  className={clsx(
-                    "h-5 w-5 shrink-0",
-                    selectedProvider === provider
-                      ? "text-blue-600 dark:text-blue-400"
-                      : "text-gray-600 dark:text-gray-400"
-                  )}
-                />
-                <div className="flex-1">
-                  <h4 className="font-semibold text-gray-900 dark:text-white">
-                    {PROVIDER_LABELS[provider]}
-                  </h4>
-                  <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
-                    {PROVIDER_INFO[provider].description}
-                  </p>
-                </div>
-                {selectedProvider === provider && (
-                  <Icon
-                    name="check"
-                    className="h-5 w-5 shrink-0 text-blue-600 dark:text-blue-400"
-                  />
-                )}
-              </div>
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Model Selection */}
-      {currentModels.length > 0 && (
-        <div>
-          <h3 className="mb-3 text-sm font-semibold text-gray-900 dark:text-white">
-            Model
-            {!currentModel && <span className="ml-1 text-red-500">*</span>}
-          </h3>
-          <Autocomplete
-            options={modelOptions}
-            value={currentModel}
-            onChange={handleModelChange}
-            placeholder="Search or select a model..."
-            disabled={isLoading}
-            loading={isLoading}
-            emptyText="No models found"
-            searchable={true}
-            maxHeight={300}
-          />
-          <p className="mt-2 text-xs text-gray-600 dark:text-gray-400">
-            {currentModels.length} model(s) available for{" "}
-            {PROVIDER_LABELS[selectedProvider as Providers]}
-          </p>
-          {!currentModel && (
-            <div className="mt-2 rounded bg-red-50 p-2 text-xs text-red-700 dark:bg-red-900/20 dark:text-red-400">
-              <Icon name="alert" className="mr-1 inline h-3 w-3" />
-              Model selection is required before generating content
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Loading State */}
-      {isLoading && (
-        <Card className="border-blue-200 bg-blue-50 p-4 dark:border-blue-800 dark:bg-blue-900/20">
-          <div className="flex items-center gap-3">
-            <Icon
-              name="spinner"
-              className="h-5 w-5 animate-spin text-blue-600 dark:text-blue-400"
-            />
-            <p className="text-sm text-blue-900 dark:text-blue-300">
-              Loading available models...
-            </p>
-          </div>
-        </Card>
-      )}
-
-      {/* No Models Available */}
-      {!isLoading &&
-        currentModels.length === 0 &&
-        selectedProvider !== ProviderType.OLLAMA && (
-          <Card className="border-yellow-200 bg-yellow-50 p-4 dark:border-yellow-800 dark:bg-yellow-900/20">
-            <div className="flex items-start gap-3">
               <Icon
-                name="alert"
-                className="mt-0.5 h-5 w-5 shrink-0 text-yellow-600 dark:text-yellow-400"
+                name={selectedProviderInfo?.icon || "zap"}
+                className="h-4 w-4"
               />
-              <p className="text-sm text-yellow-900 dark:text-yellow-300">
-                No models available for{" "}
-                {PROVIDER_LABELS[selectedProvider as Providers]}. Please
-                configure your API key in settings.
+            </div>
+            <div className="min-w-0 flex-1">
+              <p
+                className="text-xs font-semibold tracking-wide uppercase"
+                style={{ color: "var(--color-agent-on-surface-variant)" }}
+              >
+                {selectedProviderInfo?.name || selected.provider}
+              </p>
+              <p
+                className="truncate text-sm font-semibold"
+                style={{ color: "var(--color-agent-on-surface)" }}
+              >
+                {selected.model}
               </p>
             </div>
-          </Card>
-        )}
-    </div>
+            <Icon
+              name="chevron-down"
+              className="h-4 w-4 shrink-0"
+              style={{ color: "var(--color-agent-on-surface-variant)" }}
+            />
+          </button>
+
+          {/* Help text */}
+          <p
+            className="mb-4 text-xs"
+            style={{ color: "var(--color-agent-on-surface-variant)" }}
+          >
+            Pick from your pre-selected options. Need to add more? Visit
+            settings.
+          </p>
+        </>
+      ) : null}
+
+      {/* Trigger Button */}
+      {showButtonTrigger ? (
+        <button
+          type="button"
+          onClick={() => setIsOpen(true)}
+          className={`flex items-center justify-between gap-3 rounded-lg px-4 py-2.5 text-sm font-medium transition-all hover:shadow-md active:scale-95 ${className}`}
+          style={{
+            background: "var(--color-agent-primary-container)",
+            color: "var(--color-agent-on-primary-container)",
+            border: "1px solid var(--color-agent-outline-variant)",
+          }}
+        >
+          <div className="flex items-center gap-2">
+            <Icon name="sliders-horizontal" className="h-4 w-4" />
+            <span>
+              {variant === "compact" && selected
+                ? `${selected.provider} - ${selected.model}`
+                : label}
+            </span>
+          </div>
+          <Icon name="chevron-down" className="h-4 w-4 opacity-60" />
+        </button>
+      ) : null}
+
+      {/* Modal Window */}
+      <Modal
+        isOpen={isOpen}
+        onClose={() => setIsOpen(false)}
+        title="Select Model"
+        size="md"
+      >
+        <div className="space-y-5">
+          {preselectedByProvider.map(({ provider, models }) => {
+            const providerInfo = PROVIDER_INFO[provider];
+            const providerColor = PROVIDER_COLORS[provider];
+
+            return (
+              <div key={provider}>
+                {/* Provider Header */}
+                <div className="mb-3 flex items-center gap-2">
+                  <div
+                    className="flex h-6 w-6 items-center justify-center rounded-lg text-xs font-semibold text-white"
+                    style={{ background: providerColor }}
+                  >
+                    <Icon name={providerInfo.icon} className="h-3.5 w-3.5" />
+                  </div>
+                  <p
+                    className="text-sm font-semibold"
+                    style={{ color: "var(--color-agent-on-surface)" }}
+                  >
+                    {providerInfo.name}
+                  </p>
+                </div>
+
+                {/* Model Pills */}
+                <div className="flex flex-wrap gap-2">
+                  {models.map((model) => {
+                    const isSelected =
+                      selected?.provider === provider &&
+                      selected?.model === model;
+
+                    return (
+                      <button
+                        key={`${provider}-${model}`}
+                        onClick={() => handleModelClick(model, provider)}
+                        className="rounded-full px-4 py-2 text-sm font-medium transition-all hover:shadow-sm active:scale-95"
+                        style={{
+                          background: isSelected
+                            ? "var(--color-agent-primary)"
+                            : "var(--color-agent-surface-container)",
+                          color: isSelected
+                            ? "var(--color-agent-on-primary)"
+                            : "var(--color-agent-on-surface)",
+                          border: isSelected
+                            ? "2px solid var(--color-agent-primary)"
+                            : "1px solid var(--color-agent-outline-variant)",
+                        }}
+                      >
+                        {model}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </Modal>
+    </>
   );
 }

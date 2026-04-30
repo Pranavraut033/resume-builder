@@ -111,7 +111,6 @@ export const ColorCustomizer: React.FC<ColorCustomizerProps> = ({
   }, [colors]);
 
   const handleThemeChange = (themeName: string) => {
-    setSelectedTheme(themeName);
     if (themeName !== "custom") {
       const preset = COLOR_PRESETS.find((p) => p.name === themeName);
       if (preset) {
@@ -121,7 +120,6 @@ export const ColorCustomizer: React.FC<ColorCustomizerProps> = ({
   };
 
   const handleColorChange = (key: keyof ThemeColors, value: string) => {
-    setSelectedTheme("custom");
     onColorsChange({
       ...colors,
       [key]: value,
@@ -304,7 +302,6 @@ export const ColorCustomizer: React.FC<ColorCustomizerProps> = ({
         <div className="pt-block border-blocky-200 border-t">
           <Button
             onClick={() => {
-              setSelectedTheme("Default Blue");
               applyPreset(DEFAULT_COLORS);
             }}
             variant="secondary"
