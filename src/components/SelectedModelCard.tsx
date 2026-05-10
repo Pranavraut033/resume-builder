@@ -14,26 +14,18 @@ import { useSyncExternalStore } from "react";
 import { ModelSelector } from "@/components/ModelSelector";
 import { Icon } from "@/components/ui/Icon";
 import { useModelStore } from "@/store/modelStore";
-import { ProviderType, Providers } from "@/types/llm";
+import { ProviderType } from "@/types/llm";
 
 export function SelectedModelCard() {
-  const {
-    selectedModel,
-    selectedProvider,
-    setSelectedModel,
-    setSelectedProvider,
-  } = useModelStore();
+  const { selectedModel, setSelectedModel } = useModelStore();
   const hydrated = useSyncExternalStore(
     () => () => {},
     () => true,
     () => false
   );
 
-  const currentModel = selectedModel?.[selectedProvider!];
-
-  const handleModelSelected = (model: string, provider: Providers) => {
-    setSelectedProvider(provider as ProviderType);
-    setSelectedModel(provider as ProviderType, model);
+  const handleModelSelected = (model: string, provider: ProviderType) => {
+    setSelectedModel(provider, model);
   };
 
   if (!hydrated) {
@@ -69,7 +61,7 @@ export function SelectedModelCard() {
         Selected Model
       </p>
 
-      {currentModel ? (
+      {selectedModel ? (
         <>
           {/* Change Model Button */}
           <ModelSelector

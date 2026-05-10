@@ -19,7 +19,7 @@ import LLMService from "@/lib/llm/llmService";
 import { getAvailableProviders } from "@/lib/llm/providers";
 import { createLogger } from "@/lib/logger";
 import { useModelStore } from "@/store/modelStore";
-import { Providers } from "@/types/llm";
+import { ProviderType } from "@/types/llm";
 import { ResumeJSON } from "@/types/resume";
 
 const logger = createLogger("FieldAIHelper");
@@ -45,7 +45,7 @@ export function FieldAIHelper({
 }: FieldAIHelperProps) {
   const { modelsByProvider } = useModelStore();
   const [isLoading, setIsLoading] = useState(false);
-  const [provider, setProvider] = useState<Providers>("openai");
+  const [provider, setProvider] = useState<ProviderType>(ProviderType.OPENAI);
   const [temperature, setTemperature] = useState(0.7);
   const [showTooltip, setShowTooltip] = useState(false);
   const tooltipRef = useRef<HTMLDivElement>(null);
@@ -116,7 +116,7 @@ export function FieldAIHelper({
       {/* Model Dropdown */}
       <select
         value={provider}
-        onChange={(e) => setProvider(e.target.value as Providers)}
+        onChange={(e) => setProvider(e.target.value as ProviderType)}
         disabled={isLoading}
         className="rounded border border-gray-300 bg-white px-2 py-1 text-xs text-gray-900 dark:border-gray-600 dark:bg-gray-900 dark:text-white"
         title="Select LLM provider"

@@ -17,36 +17,37 @@ import { useEffect, useMemo, useState } from "react";
 import { Icon } from "@/components/ui/Icon";
 import { Modal } from "@/components/ui/Modal";
 import { getAvailableProviders } from "@/lib/llm/providers";
-import { useModelStore } from "@/store/modelStore";
-import { Providers } from "@/types/llm";
+import { ModelProviderPair, useModelStore } from "@/store/modelStore";
+import { ProviderType } from "@/types/llm";
 
 interface ModelSelectorProps {
   /** Callback when user selects a model. Emits {model, provider} */
-  onModelSelected: (model: string, provider: Providers) => void;
+  onModelSelected: (model: string, provider: ProviderType) => void;
   label?: string;
   className?: string;
   variant?: "normal" | "compact";
 }
 
 // Provider color mapping
-const PROVIDER_COLORS: Record<Providers, string> = {
-  openai: "#10a37f",
-  gemini: "#4285f4",
-  grok: "#000000",
-  ollama: "#fb542b",
-  perplexity: "#0066cc",
+const PROVIDER_COLORS: Record<ProviderType, string> = {
+  [ProviderType.OPENAI]: "#10a37f",
+  [ProviderType.GEMINI]: "#4285f4",
+  [ProviderType.GROK]: "#000000",
+  [ProviderType.OLLAMA]: "#fb542b",
+  [ProviderType.PERPLEXITY]: "#0066cc",
+  [ProviderType.ANTHROPIC]: "#ff5c93",
 };
 
 // Build provider info map
 function buildProviderInfo(): Record<
-  Providers,
+  ProviderType,
   { name: string; icon: string }
 > {
-  const info = {} as Record<Providers, { name: string; icon: string }>;
+  const info = {} as Record<ProviderType, { name: string; icon: string }>;
   const providers = getAvailableProviders();
 
   for (const provider of providers) {
-    info[provider.type as Providers] = {
+    info[provider.type as ProviderType] = {
       name: provider.name,
       icon: provider.icon || "zap",
     };
@@ -63,57 +64,41 @@ export function ModelSelector({
   className = "",
   variant = "compact",
 }: ModelSelectorProps) {
-  const { selectedModelsByProvider, selectedModel, selectedProvider } =
-    useModelStore();
+  const { selectedModelsByProvider, selectedModel } = useModelStore();
 
   const [isOpen, setIsOpen] = useState(false);
 
-  // Initialize with last used model from store
-  const initialSelected = useMemo(() => {
-    if (selectedModel && selectedProvider) {
-      const lastUsedModel = selectedModel[selectedProvider];
-      if (lastUsedModel) {
-        return {
-          model: lastUsedModel,
-          provider: selectedProvider as Providers,
-        };
-      }
-    }
-    return null;
-  }, [selectedModel, selectedProvider]);
-
-  const [selected, setSelected] = useState<{
-    model: string;
-    provider: Providers;
-  } | null>(initialSelected);
+  const [selected, setSelected] = useState<ModelProviderPair | null>(
+    selectedModel
+  );
 
   useEffect(() => {
-    setSelected(initialSelected);
-  }, [initialSelected]);
+    setSelected(selectedModel);
+  }, [selectedModel]);
 
   // Get preselected models by provider (from settings)
   const preselectedByProvider = useMemo(
     () =>
       Object.entries(selectedModelsByProvider)
         .map(([provider, models]) => ({
-          provider: provider as Providers,
+          provider: provider as ProviderType,
           models: (models || []).filter(Boolean),
         }))
         .filter(({ models }) => models.length > 0),
     [selectedModelsByProvider]
   );
 
-  const handleModelClick = (model: string, provider: Providers) => {
-    setSelected({ model, provider });
+  const handleModelClick = (model: string, provider: ProviderType) => {
+    setSelected([provider, model]);
     onModelSelected(model, provider);
     setIsOpen(false);
   };
 
   const selectedProviderInfo = selected
-    ? PROVIDER_INFO[selected.provider]
+    ? PROVIDER_INFO[selected[0]]
     : undefined;
   const selectedProviderColor = selected
-    ? PROVIDER_COLORS[selected.provider]
+    ? PROVIDER_COLORS[selected[0]]
     : undefined;
   const showButtonTrigger = variant === "compact" || !selected;
 
@@ -166,19 +151,18 @@ export function ModelSelector({
                 className="text-xs font-semibold tracking-wide uppercase"
                 style={{ color: "var(--color-agent-on-surface-variant)" }}
               >
-                {selectedProviderInfo?.name || selected.provider}
+                {selectedProviderInfo?.name || selected[0]}
               </p>
               <p
                 className="truncate text-sm font-semibold"
                 style={{ color: "var(--color-agent-on-surface)" }}
               >
-                {selected.model}
+                {selected[1]}
               </p>
             </div>
             <Icon
               name="chevron-down"
-              className="h-4 w-4 shrink-0"
-              style={{ color: "var(--color-agent-on-surface-variant)" }}
+              className="text-agent-on-surface-variant h-4 w-4 shrink-0"
             />
           </button>
 
@@ -209,7 +193,7 @@ export function ModelSelector({
             <Icon name="sliders-horizontal" className="h-4 w-4" />
             <span>
               {variant === "compact" && selected
-                ? `${selected.provider} - ${selected.model}`
+                ? `${selected[0]} - ${selected[1]}`
                 : label}
             </span>
           </div>
@@ -251,8 +235,7 @@ export function ModelSelector({
                 <div className="flex flex-wrap gap-2">
                   {models.map((model) => {
                     const isSelected =
-                      selected?.provider === provider &&
-                      selected?.model === model;
+                      selected?.[0] === provider && selected?.[1] === model;
 
                     return (
                       <button

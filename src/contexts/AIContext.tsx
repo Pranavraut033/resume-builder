@@ -23,7 +23,7 @@ import {
 
 import { generateResumeFieldText } from "@/lib/llm/clientLLM";
 import { useModelStore } from "@/store/modelStore";
-import { Providers } from "@/types/llm";
+import { ProviderType } from "@/types/llm";
 import { ResumeJSON } from "@/types/resume";
 
 import { useOptionalEditorContext } from "./EditorContext";
@@ -73,7 +73,7 @@ export interface AIContextType {
   isReady: () => boolean;
   getContextSummary: () => string;
   // Selected Model and Provider
-  selectedProvider: Providers;
+  selectedProvider: ProviderType;
   selectedModel: string;
 }
 
@@ -96,7 +96,7 @@ export function AIProvider({ children, defaultTemperature }: AIProviderProps) {
   // Use model store for provider and model selection
   const selectedProvider = useModelStore((s) =>
     s.getSelectedProvider()
-  ) as Providers;
+  ) as ProviderType;
   const selectedModel = useModelStore((s) => s.getAllSelectedModels()[0]);
 
   const [temperature, setTemperature] = useState<number | undefined>(
