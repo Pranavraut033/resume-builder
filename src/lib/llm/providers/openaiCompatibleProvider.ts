@@ -245,8 +245,8 @@ export abstract class OpenAICompatibleProvider extends BaseLLMProvider {
    */
   async validateConnection(): Promise<{ success: boolean; message: string }> {
     try {
-      const result = await this.client.models.list();
-      const modelCount = result.data?.length ?? 0;
+      const result = await this.fetchModels();
+      const modelCount = result.length;
       return {
         success: true,
         message: `Connected successfully. Found ${modelCount} available models.`,

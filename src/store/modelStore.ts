@@ -14,15 +14,15 @@
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 
-import { fetchModels } from "@/lib/llm/clientLLM";
+import { EMPTY_MODELS_MAPS, fetchModels } from "@/lib/llm/clientLLM";
 import { createLogger } from "@/lib/logger";
 import { ProviderType } from "@/types/llm";
 
 const logger = createLogger("ModelStore");
 
-type ProviderModels = Record<string, string[]>;
-type SelectedModels = Record<string, string>; // Single model per provider
-type SelectedModelsArray = Record<string, string[]>;
+type ProviderModels = Record<ProviderType, string[]>;
+type SelectedModelsArray = Partial<Record<ProviderType, string[]>>;
+export type ModelProviderPair = [ProviderType, string]; // [provider, model]
 
 // Cache duration: 6 hours in milliseconds
 const CACHE_DURATION_MS = 6 * 60 * 60 * 1000;
@@ -30,18 +30,14 @@ const CACHE_DURATION_MS = 6 * 60 * 60 * 1000;
 interface ModelState {
   // Cached models organized by provider
   modelsByProvider: ProviderModels;
+  // Currently selected model for each provider (single selection)
+  selectedModel: ModelProviderPair | null;
 
   // Selected models list by provider (for multi-select UIs)
   selectedModelsByProvider: SelectedModelsArray;
 
   // Cache timestamp for 6-hour refresh validation
   cacheTimestamp: number | null;
-
-  // Currently selected model for each provider (single model)
-  selectedModel: SelectedModels;
-
-  // Current primary provider
-  selectedProvider: ProviderType;
 
   // Loading state
   isLoading: boolean;
@@ -54,32 +50,31 @@ interface ModelState {
 
   // Actions
   initializeCache: () => Promise<void>;
-  forceFetchModels: () => Promise<void>;
+  forceFetchModels: (...providers: ProviderType[]) => Promise<void>;
   setSelectedModel: (provider: ProviderType, model: string) => void;
-  setSelectedProvider: (provider: ProviderType) => void;
   setProviderModels: (provider: ProviderType, models: string[]) => void;
   clearError: () => void;
   setCacheTimer: (timerId: NodeJS.Timeout) => void;
   clearCacheTimer: () => void;
 
   // Getters
-  getSelectedModel: (provider: ProviderType) => string;
-  getSelectedProvider: () => ProviderType;
-  getAllSelectedModels: () => string[];
+  getSelectedModel: () => string | null;
+  getSelectedProvider: () => ProviderType | null;
+  getSelectedModelsForProvider: (provider: ProviderType) => string[] | null;
+  getAllSelectedModels: () => SelectedModelsArray;
 
   // Legacy aliases for UI pages
   loadModels: () => Promise<void>;
-  refreshModels: () => Promise<void>;
+  refreshModels: (...providers: ProviderType[]) => Promise<void>;
 }
 
 export const useModelStore = create<ModelState>()(
   persist(
     (set, get) => ({
-      modelsByProvider: {},
+      modelsByProvider: { ...EMPTY_MODELS_MAPS },
       selectedModelsByProvider: {},
       cacheTimestamp: null,
-      selectedModel: {},
-      selectedProvider: ProviderType.OLLAMA,
+      selectedModel: null,
       isLoading: false,
       error: null,
       cacheTimerId: null,
@@ -121,13 +116,13 @@ export const useModelStore = create<ModelState>()(
         }
       },
 
-      forceFetchModels: async () => {
+      forceFetchModels: async (...providers: ProviderType[]) => {
         set({ isLoading: true, error: null });
 
         try {
           // Fetch fresh models from providers
           logger.info("Force fetching models from providers");
-          const data = await fetchModels();
+          const data = await fetchModels(...providers);
           const now = Date.now();
 
           set({
@@ -150,67 +145,19 @@ export const useModelStore = create<ModelState>()(
         }
       },
 
-      setSelectedModel: (provider: string, model: string) => {
-        const { selectedModel, selectedModelsByProvider } = get();
-
-        const updatedSelections = {
-          ...selectedModel,
-          [provider]: model,
-        };
-
-        const updatedLists: SelectedModelsArray = {
-          ...selectedModelsByProvider,
-          [provider]: model ? [model] : [],
-        };
-
-        set({
-          selectedModel: updatedSelections,
-          selectedModelsByProvider: updatedLists,
-        });
+      setSelectedModel: (provider: ProviderType, model: string) => {
+        set({ selectedModel: [provider, model] });
 
         logger.info("Selected model updated", { provider, model });
       },
 
-      setSelectedProvider: (provider: ProviderType) => {
-        // Clear the selected model for the new provider to force explicit selection
-        const { selectedModel, selectedModelsByProvider } = get();
-
-        const updatedSelections = {
-          ...selectedModel,
-          [provider]: "", // Clear model for new provider
-        };
-
-        const updatedLists: SelectedModelsArray = {
-          ...selectedModelsByProvider,
-          [provider]: [],
-        };
-
-        set({
-          selectedProvider: provider,
-          selectedModel: updatedSelections,
-          selectedModelsByProvider: updatedLists,
-        });
-
-        logger.info("Provider changed and model cleared", { provider });
-      },
-
       setProviderModels: (provider: ProviderType, models: string[]) => {
-        const firstModel = models[0] || "";
-
         set((state) => ({
           selectedModelsByProvider: {
             ...state.selectedModelsByProvider,
             [provider]: models,
           },
-          selectedModel: {
-            ...state.selectedModel,
-            [provider]: firstModel,
-          },
         }));
-
-        if (firstModel) {
-          logger.info("Provider models updated", { provider, firstModel });
-        }
       },
 
       clearError: () => {
@@ -230,55 +177,41 @@ export const useModelStore = create<ModelState>()(
         set({ cacheTimerId: null });
       },
 
-      getSelectedModel: (provider: ProviderType) => {
+      getSelectedModel: (): string | null => {
         const { selectedModel } = get();
-        return selectedModel[provider] || "";
+        return selectedModel ? selectedModel[1] : null;
       },
 
-      getSelectedProvider: (): ProviderType => {
-        const { selectedProvider, selectedModel } = get();
+      getSelectedProvider: (): ProviderType | null => {
+        const { selectedModel } = get();
 
-        // Return current provider if valid and has a selected model
-        if (selectedProvider && selectedModel[selectedProvider]) {
-          return selectedProvider;
-        }
-
-        // Otherwise return first provider with a selected model
-        const providersWithModels = Object.entries(selectedModel).filter(
-          ([, model]) => model.length > 0
-        );
-
-        return providersWithModels.length > 0
-          ? (providersWithModels[0][0] as ProviderType)
-          : ProviderType.OLLAMA;
+        return selectedModel ? selectedModel[0] : null;
       },
-
-      getAllSelectedModels: () => {
-        const { selectedModelsByProvider, selectedModel } = get();
-
-        const arraySelections = Object.values(selectedModelsByProvider).flat();
-        if (arraySelections.length > 0) {
-          return arraySelections.filter(Boolean);
-        }
-
-        return Object.values(selectedModel).filter((m) => m && m.length > 0);
+      getSelectedModelsForProvider: (
+        provider: ProviderType
+      ): string[] | null => {
+        const { selectedModelsByProvider } = get();
+        return selectedModelsByProvider[provider] || null;
+      },
+      getAllSelectedModels: (): SelectedModelsArray => {
+        const { selectedModelsByProvider } = get();
+        return selectedModelsByProvider;
       },
 
       loadModels: async () => {
         await get().initializeCache();
       },
 
-      refreshModels: async () => {
-        await get().forceFetchModels();
+      refreshModels: async (...providers: ProviderType[]) => {
+        await get().forceFetchModels(...providers);
       },
     }),
     {
       name: "model-store",
       storage: createJSONStorage(() => localStorage),
-      // Only persist selectedModel and selectedProvider, not modelsByProvider or cacheTimerId
+      // Only persist selectedModel and selectedModelsByProvider, not modelsByProvider or cacheTimerId
       partialize: (state) => ({
         selectedModel: state.selectedModel,
-        selectedProvider: state.selectedProvider,
         selectedModelsByProvider: state.selectedModelsByProvider,
       }),
     }

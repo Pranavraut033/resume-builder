@@ -8,10 +8,19 @@ import LLMService from "@/lib/llm/llmService";
 import { ProviderFactory } from "@/lib/llm/providers/factory";
 import { trackTokenUsage, generateRequestId } from "@/lib/llm/tokenTracker";
 import { createLogger } from "@/lib/logger";
-import { ProviderType, Providers } from "@/types/llm";
+import { ProviderType } from "@/types/llm";
 import { ResumeJSON, JobDetails } from "@/types/resume";
 
 import { PromptPurpose } from "@/lib/llm/prompts/promptSystem";
+
+export const EMPTY_MODELS_MAPS: Record<ProviderType, string[]> = {
+  [ProviderType.OPENAI]: [],
+  [ProviderType.GEMINI]: [],
+  [ProviderType.GROK]: [],
+  [ProviderType.PERPLEXITY]: [],
+  [ProviderType.OLLAMA]: [],
+  [ProviderType.ANTHROPIC]: [],
+};
 
 const logger = createLogger("ClientLLM");
 
@@ -375,13 +384,19 @@ export async function generateResume(
     throw new Error("Provider not available");
   }
 
-  const { result, usage } = await provider.generateResume({
-    baseProfile,
-    jobDescription,
-    jobRole,
-    company,
-    model: selectedModel,
-  });
+  const { result, usage } = await provider.generateResume(
+    {
+      baseProfile,
+      jobDetails: {
+        job_title: jobRole,
+        company_name: company,
+        raw_description: jobDescription,
+      } as any,
+    },
+    {
+      model: selectedModel,
+    }
+  );
 
   if (usage) {
     await trackTokenUsage({
@@ -421,14 +436,20 @@ export async function generateCoverLetter(
     throw new Error("Provider not available");
   }
 
-  const { result, usage } = await provider.generateCoverLetter({
-    baseProfile,
-    jobDescription,
-    jobRole,
-    company,
-    resume,
-    model: selectedModel,
-  });
+  const { result, usage } = await provider.generateCoverLetter(
+    {
+      baseProfile,
+      jobDetails: {
+        job_title: jobRole,
+        company_name: company,
+        raw_description: jobDescription,
+      } as any,
+      resume,
+    },
+    {
+      model: selectedModel,
+    }
+  );
 
   if (usage) {
     await trackTokenUsage({
@@ -451,18 +472,27 @@ export async function generateCoverLetter(
 
 /**
  * Fetch available models from all configured providers
+ *
+ * @param providers Optional list of provider types to fetch models for (fetches all if empty)
+ * @returns Map of provider type to array of model names
  */
-export async function fetchModels(): Promise<Record<string, string[]>> {
+export async function fetchModels(
+  ...providers: ProviderType[]
+): Promise<Record<ProviderType, string[]>> {
   const { getAvailableProviderTypes } = await import("@/lib/llm/providers");
   const providerTypes = getAvailableProviderTypes();
-  const modelsMap: Record<string, string[]> = {};
+  const modelsMap: Record<ProviderType, string[]> = { ...EMPTY_MODELS_MAPS };
 
   // Initialize empty model array for each provider
   for (const providerType of providerTypes) {
     modelsMap[providerType] = [];
   }
 
-  for (const [name] of Object.entries(modelsMap)) {
+  for (const name of Object.keys(
+    providers.length > 0
+      ? Object.fromEntries(providers.map((p) => [p, []]))
+      : modelsMap
+  ) as ProviderType[]) {
     try {
       const provider = await ProviderFactory.getInstance(name);
       if (provider) {
@@ -550,7 +580,7 @@ export async function generateResumeFieldText(
       context.jobData ?? null,
       context.jobDescription,
       {
-        provider: providerName as Providers,
+        provider: providerName as ProviderType,
         model,
         temperature: _temperature,
         purpose,
@@ -578,7 +608,7 @@ export async function generateResumeFieldText(
  * Validate connection to an LLM provider
  */
 export async function validateProviderConnection(
-  providerType: Providers | ProviderType
+  providerType: ProviderType
 ): Promise<{ success: boolean; message: string }> {
   try {
     const provider = await ProviderFactory.getInstance(providerType);

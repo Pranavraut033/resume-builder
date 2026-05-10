@@ -13,13 +13,23 @@ export class OpenAIProvider
     super({ apiKey });
   }
 
+  textGenModelRegex = /^gpt-(3\.5|4(o)?(\.\d+)?|5(o)?(\.\d+)?)(-(mini|nano))?$/;
+
   async fetchModels(): Promise<string[]> {
     try {
       logger.debug("Fetching models from OpenAI API");
       const response = await this.client.models.list();
+
       return response.data
         .map((model) => model.id)
-        .filter((id) => id.includes("gpt"));
+        .filter(
+          (id) =>
+            this.textGenModelRegex.test(id) &&
+            !id.includes("embedding") &&
+            !id.includes("audio") &&
+            !id.includes("vision") &&
+            !id.includes("image")
+        );
     } catch (error) {
       logger.error("Error fetching models", { error });
       return ["gpt-4o", "gpt-3.5-turbo"]; // fallback
@@ -41,7 +51,6 @@ OpenAICompatibleProvider.register(
     requiresAuth: true,
     icon: "openai",
     description: "OpenAI GPT models",
-    defaultModels: ["gpt-4o", "gpt-4-turbo", "gpt-3.5-turbo"],
   },
   (apiKey?: string) => {
     if (!apiKey) {

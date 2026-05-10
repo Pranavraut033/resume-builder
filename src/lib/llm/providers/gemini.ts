@@ -35,6 +35,9 @@ export class GeminiProvider extends BaseLLMProvider implements LLMProvider {
     this.client = new GoogleGenAI({ apiKey });
   }
 
+  textGenModelRegex =
+    /^models\/gemini-\d+(\.\d+)?-(pro|flash)(-(latest|lite|preview)){0,2}$/;
+
   async generateResume(
     input: ResumePromptInput,
     options: LLMGenerationOptions
@@ -48,6 +51,7 @@ export class GeminiProvider extends BaseLLMProvider implements LLMProvider {
         contents: promptText,
         config: {
           responseMimeType: "application/json",
+          // @ts-expect-error - zodToJsonSchema types are not fully compatible with Gemini's expected schema format, but it should work for our simple cases
           responseSchema: zodToJsonSchema(ResumeGenerationSchema),
         },
       });
@@ -96,6 +100,7 @@ export class GeminiProvider extends BaseLLMProvider implements LLMProvider {
         contents: promptText,
         config: {
           responseMimeType: "application/json",
+          // @ts-expect-error - zodToJsonSchema types are not fully compatible with Gemini's expected schema format, but it should work for our simple cases
           responseSchema: zodToJsonSchema(JobDetailsSchema),
         },
       });
@@ -132,6 +137,7 @@ export class GeminiProvider extends BaseLLMProvider implements LLMProvider {
         contents: promptText,
         config: {
           responseMimeType: "application/json",
+          // @ts-expect-error - zodToJsonSchema types are not fully compatible with Gemini's expected schema format, but it should work for our simple cases
           responseSchema: zodToJsonSchema(ResumeGenerationSchema),
         },
       });
@@ -198,7 +204,11 @@ export class GeminiProvider extends BaseLLMProvider implements LLMProvider {
         throw new Error("Invalid response from Gemini models API");
       }
 
-      return data.models.map((model: { name: string }) => model.name);
+      const textGenerationModels = data.models
+        .map((model: { name: string }) => model.name)
+        .filter((name: string) => this.textGenModelRegex.test(name));
+
+      return textGenerationModels;
     } catch (error) {
       logger.error("Error fetching models", { error });
       return ["gemini-2.5-flash", "gemini-2.0-pro", "gemini-1.5-pro"]; // fallback
@@ -246,7 +256,6 @@ BaseLLMProvider.register(
     requiresAuth: true,
     icon: "gemini",
     description: "Google Gemini models",
-    defaultModels: ["gemini-2.5-flash", "gemini-2.0-pro", "gemini-1.5-pro"],
   },
   (apiKey?: string) => {
     if (!apiKey) {

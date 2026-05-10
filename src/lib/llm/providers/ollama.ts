@@ -269,7 +269,6 @@ BaseLLMProvider.register(
     isLocal: true,
     icon: "ollama",
     description: "Local Ollama models",
-    defaultModels: ["llama2", "llama3", "mistral", "neural-chat"],
   },
   () => new OllamaProvider()
 );

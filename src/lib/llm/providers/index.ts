@@ -11,11 +11,12 @@
  */
 
 // Import all providers - this triggers their registration
-import "./openai";
+import "./antrophic";
 import "./gemini";
 import "./grok";
-import "./perplexity";
 import "./ollama";
+import "./openai";
+import "./perplexity";
 
 // Export registry and factory for consumers
 export {

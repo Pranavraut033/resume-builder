@@ -14,13 +14,8 @@ export enum ProviderType {
   GROK = "grok",
   PERPLEXITY = "perplexity",
   OLLAMA = "ollama",
+  ANTHROPIC = "anthropic",
 }
-
-/**
- * Legacy type alias for backwards compatibility during migration
- * New code should use ProviderType enum
- */
-export type Providers = "openai" | "gemini" | "grok" | "perplexity" | "ollama";
 
 export interface ResumePromptInput {
   baseProfile: ResumeJSON;

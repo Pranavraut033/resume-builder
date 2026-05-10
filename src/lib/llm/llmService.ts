@@ -17,7 +17,6 @@ import { ProviderFactory } from "@/lib/llm/providers/factory";
 import { trackTokenUsage, generateRequestId } from "@/lib/llm/tokenTracker";
 import { createLogger } from "@/lib/logger";
 import {
-  Providers,
   LLMProvider,
   ProviderType,
   LLMResult,
@@ -35,7 +34,7 @@ import {
 const logger = createLogger("LLMService");
 
 export interface LLMServiceOptions {
-  provider: Providers;
+  provider: ProviderType;
   model: string;
   temperature?: number;
 }
@@ -250,7 +249,7 @@ ${rawText}`;
   }
 
   private static async getProvider(
-    provider: Providers
+    provider: ProviderType
   ): Promise<LLMProvider | null> {
     return ProviderFactory.getInstance(provider);
   }
