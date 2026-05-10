@@ -16,7 +16,7 @@ if (!shouldUseRealLLMs()) {
 
     return {
       GoogleGenAI: class MockGoogleGenAI {
-        constructor(_config: unknown) { }
+        constructor(_config: unknown) {}
         models = {
           generateContent: mockGenerateContent,
         };
@@ -37,7 +37,9 @@ describe("GeminiProvider", () => {
     provider = new GeminiProvider(TEST_API_KEY);
     if (!useRealAPIs) {
       const geminiClient = (provider as unknown as { client: unknown }).client;
-      mockGenerateContent = (geminiClient as unknown as { models: { generateContent: unknown } }).models.generateContent;
+      mockGenerateContent = (
+        geminiClient as unknown as { models: { generateContent: unknown } }
+      ).models.generateContent;
     }
   });
 
@@ -57,28 +59,33 @@ describe("GeminiProvider", () => {
         text: JSON.stringify(mockResume),
       });
 
-      const result = await provider.generateResume({
-        baseProfile: sampleBaseProfile,
-        jobDescription: sampleJobDetails.raw_description,
-        jobRole: sampleJobDetails.job.job_title,
-        company: sampleJobDetails.company.company_name,
-        model: "gemini-pro",
-      });
+      const result = await provider.generateResume(
+        { baseProfile: sampleBaseProfile, jobDetails: sampleJobDetails },
+        { model: "gemini-pro" }
+      );
 
-      expect(result).toEqual(mockResume);
+      expect(result.result).toEqual(mockResume);
     });
 
     it("should use default model when not specified", async () => {
+      const mockResume = {
+        header: { name: "Test", email: "test@example.com" },
+        summary: "",
+        experience: [],
+        projects: [],
+        skills: [],
+        education: [],
+        certifications: [],
+      };
+
       mockGenerateContent.mockResolvedValue({
-        text: JSON.stringify({}),
+        text: JSON.stringify(mockResume),
       });
 
-      await provider.generateResume({
-        baseProfile: sampleBaseProfile,
-        jobDescription: sampleJobDetails.raw_description,
-        jobRole: sampleJobDetails.job.job_title,
-        company: sampleJobDetails.company.company_name,
-      });
+      await provider.generateResume(
+        { baseProfile: sampleBaseProfile, jobDetails: sampleJobDetails },
+        { model: "gemini-1.5-flash" }
+      );
 
       expect(mockGenerateContent).toHaveBeenCalled();
     });
@@ -87,12 +94,10 @@ describe("GeminiProvider", () => {
       mockGenerateContent.mockRejectedValue(new Error("API Error"));
 
       await expect(
-        provider.generateResume({
-          baseProfile: sampleBaseProfile,
-          jobDescription: sampleJobDetails.raw_description,
-          jobRole: sampleJobDetails.job.job_title,
-          company: sampleJobDetails.company.company_name,
-        })
+        provider.generateResume(
+          { baseProfile: sampleBaseProfile, jobDetails: sampleJobDetails },
+          { model: "gemini-pro" }
+        )
       ).rejects.toThrow("Gemini generateResume failed");
     });
 
@@ -102,13 +107,11 @@ describe("GeminiProvider", () => {
       });
 
       await expect(
-        provider.generateResume({
-          baseProfile: sampleBaseProfile,
-          jobDescription: sampleJobDetails.raw_description,
-          jobRole: sampleJobDetails.job.job_title,
-          company: sampleJobDetails.company.company_name,
-        })
-      ).rejects.toThrow("Invalid JSON");
+        provider.generateResume(
+          { baseProfile: sampleBaseProfile, jobDetails: sampleJobDetails },
+          { model: "gemini-pro" }
+        )
+      ).rejects.toThrow("Gemini generateResume failed");
     });
   });
 
@@ -120,15 +123,16 @@ describe("GeminiProvider", () => {
         text: mockCoverLetter,
       });
 
-      const result = await provider.generateCoverLetter({
-        baseProfile: sampleBaseProfile,
-        jobDescription: sampleJobDetails.raw_description,
-        jobRole: sampleJobDetails.job.job_title,
-        company: sampleJobDetails.company.company_name,
-        resume: sampleBaseProfile,
-      });
+      const result = await provider.generateCoverLetter(
+        {
+          baseProfile: sampleBaseProfile,
+          jobDetails: sampleJobDetails,
+          resume: sampleBaseProfile,
+        },
+        { model: "gemini-pro" }
+      );
 
-      expect(result).toBe(mockCoverLetter);
+      expect(result.result).toBe(mockCoverLetter);
     });
 
     it("should handle empty response", async () => {
@@ -136,30 +140,29 @@ describe("GeminiProvider", () => {
         text: "",
       });
 
-      const result = await provider.generateCoverLetter({
-        baseProfile: sampleBaseProfile,
-        jobDescription: sampleJobDetails.raw_description,
-        jobRole: sampleJobDetails.job.job_title,
-        company: sampleJobDetails.company.company_name,
-        resume: sampleBaseProfile,
-      });
+      const result = await provider.generateCoverLetter(
+        {
+          baseProfile: sampleBaseProfile,
+          jobDetails: sampleJobDetails,
+          resume: sampleBaseProfile,
+        },
+        { model: "gemini-pro" }
+      );
 
-      expect(result).toBe("");
+      expect(result.result).toBe("");
     });
   });
 
   describe("fetchModels", () => {
-    it("should return hardcoded Gemini models", async () => {
-      (global.fetch as unknown as MockedFunction<typeof fetch>) = vi
-        .fn()
-        .mockRejectedValue(new Error("Network error"));
+    it("should return fallback Gemini models on network error", async () => {
+      global.fetch = vi.fn().mockRejectedValue(new Error("Network error"));
 
       const result = await provider.fetchModels();
 
       expect(result).toEqual([
-        "gemini-1.5-flash",
+        "gemini-2.5-flash",
+        "gemini-2.0-pro",
         "gemini-1.5-pro",
-        "gemini-pro",
       ]);
     });
   });

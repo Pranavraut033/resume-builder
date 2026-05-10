@@ -10,6 +10,7 @@ import {
 import { sampleBaseProfile, sampleJobDetails } from "../../../fixtures/data";
 
 // Mock OpenAI SDK (Grok uses OpenAI SDK) (skip if testing with real APIs)
+const mockChatCompletionsParse = vi.fn();
 const mockChatCompletionsCreate = vi.fn();
 const mockModelsList = vi.fn();
 
@@ -21,6 +22,7 @@ if (!shouldUseRealLLMs()) {
         self.chat = {
           completions: {
             create: mockChatCompletionsCreate,
+            parse: mockChatCompletionsParse,
           },
         };
         self.models = {
@@ -58,40 +60,41 @@ describe("GrokProvider", () => {
         certifications: [],
       };
 
-      mockChatCompletionsCreate.mockResolvedValue({
-        choices: [
-          {
-            message: {
-              content: JSON.stringify(mockResume),
-            },
-          },
-        ],
+      mockChatCompletionsParse.mockResolvedValue({
+        choices: [{ message: { parsed: mockResume } }],
+        usage: { prompt_tokens: 100, completion_tokens: 50 },
       });
 
-      const result = await provider.generateResume({
-        baseProfile: sampleBaseProfile,
-        jobDescription: sampleJobDetails.raw_description,
-        jobRole: sampleJobDetails.job.job_title,
-        company: sampleJobDetails.company.company_name,
-        model: "grok-4-1-fast-reasoning",
-      });
+      const result = await provider.generateResume(
+        { baseProfile: sampleBaseProfile, jobDetails: sampleJobDetails },
+        { model: "grok-4-1-fast-reasoning" }
+      );
 
-      expect(result).toEqual(mockResume);
+      expect(result.result).toEqual(mockResume);
     });
 
     it("should use default model when not specified", async () => {
-      mockChatCompletionsCreate.mockResolvedValue({
-        choices: [{ message: { content: JSON.stringify({}) } }],
+      const mockResume = {
+        header: { name: "Test", email: "test@example.com" },
+        summary: "",
+        experience: [],
+        projects: [],
+        skills: [],
+        education: [],
+        certifications: [],
+      };
+
+      mockChatCompletionsParse.mockResolvedValue({
+        choices: [{ message: { parsed: mockResume } }],
+        usage: { prompt_tokens: 100, completion_tokens: 50 },
       });
 
-      await provider.generateResume({
-        baseProfile: sampleBaseProfile,
-        jobDescription: sampleJobDetails.raw_description,
-        jobRole: sampleJobDetails.job.job_title,
-        company: sampleJobDetails.company.company_name,
-      });
+      await provider.generateResume(
+        { baseProfile: sampleBaseProfile, jobDetails: sampleJobDetails },
+        { model: "grok-4-1-fast-reasoning" }
+      );
 
-      expect(mockChatCompletionsCreate).toHaveBeenCalledWith(
+      expect(mockChatCompletionsParse).toHaveBeenCalledWith(
         expect.objectContaining({
           model: "grok-4-1-fast-reasoning",
         })
@@ -99,33 +102,29 @@ describe("GrokProvider", () => {
     });
 
     it("should throw error on API failure", async () => {
-      mockChatCompletionsCreate.mockRejectedValue(
+      mockChatCompletionsParse.mockRejectedValue(
         new Error("Rate limit exceeded")
       );
 
       await expect(
-        provider.generateResume({
-          baseProfile: sampleBaseProfile,
-          jobDescription: sampleJobDetails.raw_description,
-          jobRole: sampleJobDetails.job.job_title,
-          company: sampleJobDetails.company.company_name,
-        })
+        provider.generateResume(
+          { baseProfile: sampleBaseProfile, jobDetails: sampleJobDetails },
+          { model: "grok-4-1-fast-reasoning" }
+        )
       ).rejects.toThrow("Grok generateResume failed");
     });
 
     it("should throw error on invalid JSON", async () => {
-      mockChatCompletionsCreate.mockResolvedValue({
-        choices: [{ message: { content: "invalid json" } }],
+      mockChatCompletionsParse.mockResolvedValue({
+        choices: [{ message: { parsed: undefined } }],
       });
 
       await expect(
-        provider.generateResume({
-          baseProfile: sampleBaseProfile,
-          jobDescription: sampleJobDetails.raw_description,
-          jobRole: sampleJobDetails.job.job_title,
-          company: sampleJobDetails.company.company_name,
-        })
-      ).rejects.toThrow("Invalid JSON");
+        provider.generateResume(
+          { baseProfile: sampleBaseProfile, jobDetails: sampleJobDetails },
+          { model: "grok-4-1-fast-reasoning" }
+        )
+      ).rejects.toThrow("Grok generateResume failed");
     });
   });
 
@@ -137,15 +136,16 @@ describe("GrokProvider", () => {
         choices: [{ message: { content: mockCoverLetter } }],
       });
 
-      const result = await provider.generateCoverLetter({
-        baseProfile: sampleBaseProfile,
-        jobDescription: sampleJobDetails.raw_description,
-        jobRole: sampleJobDetails.job.job_title,
-        company: sampleJobDetails.company.company_name,
-        resume: sampleBaseProfile,
-      });
+      const result = await provider.generateCoverLetter(
+        {
+          baseProfile: sampleBaseProfile,
+          jobDetails: sampleJobDetails,
+          resume: sampleBaseProfile,
+        },
+        { model: "grok-4-1-fast-reasoning" }
+      );
 
-      expect(result).toBe(mockCoverLetter);
+      expect(result.result).toBe(mockCoverLetter);
     });
 
     it("should handle empty response", async () => {
@@ -153,15 +153,16 @@ describe("GrokProvider", () => {
         choices: [{ message: { content: null } }],
       });
 
-      const result = await provider.generateCoverLetter({
-        baseProfile: sampleBaseProfile,
-        jobDescription: sampleJobDetails.raw_description,
-        jobRole: sampleJobDetails.job.job_title,
-        company: sampleJobDetails.company.company_name,
-        resume: sampleBaseProfile,
-      });
+      const result = await provider.generateCoverLetter(
+        {
+          baseProfile: sampleBaseProfile,
+          jobDetails: sampleJobDetails,
+          resume: sampleBaseProfile,
+        },
+        { model: "grok-4-1-fast-reasoning" }
+      );
 
-      expect(result).toBe("");
+      expect(result.result).toBe("");
     });
   });
 

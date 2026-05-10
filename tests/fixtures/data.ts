@@ -180,4 +180,36 @@ export const sampleTailoredResume: ResumeJSON = {
     },
     ...sampleBaseProfile.experience.slice(1),
   ],
+  projects: [
+    {
+      name: "Open Source Library",
+      description: "TypeScript library for data validation",
+      technologies: ["TypeScript", "Jest", "npm"],
+      url: "github.com/johndoe/library",
+      startDate: "2022-01",
+      endDate: "2023-06",
+    },
+  ],
+  education: [
+    {
+      institution: "University of California",
+      degree: "Bachelor of Science",
+      field: "Computer Science",
+      startDate: "2014",
+      endDate: "2018",
+      gpa: "3.8",
+    },
+  ],
+  certifications: [
+    {
+      name: "AWS Certified Developer",
+      issuer: "Amazon Web Services",
+      date: "2021",
+      url: "https://aws.amazon.com/certification",
+    },
+  ],
+  publications: null,
+  languages: null,
+  volunteer: null,
+  awards: null,
 };

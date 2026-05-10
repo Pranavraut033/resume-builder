@@ -313,7 +313,8 @@ describe("Job Actions", () => {
       const { getResumeByJobId } = await import("@/actions/job");
       const result = await getResumeByJobId(1);
 
-      expect(result).toEqual(sampleTailoredResume);
+      expect(result).toBeDefined();
+      expect(result?.contentJson).toEqual(sampleTailoredResume);
       expect(prismaMock.resume.findFirst).toHaveBeenCalledWith({
         where: { jobId: 1 },
       });
@@ -379,7 +380,8 @@ describe("Job Actions", () => {
       const { getCoverLetterByJobId } = await import("@/actions/job");
       const result = await getCoverLetterByJobId(1);
 
-      expect(result).toEqual("Cover letter text");
+      expect(result).toBeDefined();
+      expect(result?.contentText).toBe("Cover letter text");
     });
   });
 

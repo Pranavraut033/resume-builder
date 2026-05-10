@@ -6,7 +6,10 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 import { BaseLLMProvider } from "@/lib/llm/providers/baseProvider";
-import { ProviderFactory, getProviderInstance } from "@/lib/llm/providers/factory";
+import {
+  ProviderFactory,
+  getProviderInstance,
+} from "@/lib/llm/providers/factory";
 import { getRegistry } from "@/lib/llm/providers/registry";
 import { ProviderType } from "@/types/llm";
 import { ResumeJSON } from "@/types/resume";
@@ -167,7 +170,7 @@ describe("getProviderInstance", () => {
     });
 
     it("should throw error for unregistered provider", async () => {
-      await expect(getProviderInstance(ProviderType.GEMINI)).rejects.toThrow(
+      await expect(getProviderInstance(ProviderType.ANTHROPIC)).rejects.toThrow(
         /not registered/
       );
     });

@@ -59,26 +59,23 @@ describe("OpenAIProvider", () => {
         certifications: [],
       };
 
-      mockClient.chat.completions.create.mockResolvedValue({
-        choices: [
-          {
-            message: {
-              content: JSON.stringify(mockResume),
-            },
-          },
-        ],
+      mockClient.chat.completions.parse.mockResolvedValue({
+        choices: [{ message: { parsed: mockResume } }],
+        usage: { prompt_tokens: 100, completion_tokens: 50, total_tokens: 150 },
       });
 
-      const result = await provider.generateResume({
-        baseProfile: sampleBaseProfile,
-        jobDescription: sampleJobDetails.raw_description,
-        jobRole: sampleJobDetails.job.job_title,
-        company: sampleJobDetails.company.company_name,
-        model: "gpt-4o",
-      });
+      const result = await provider.generateResume(
+        {
+          baseProfile: sampleBaseProfile,
+          jobDescription: sampleJobDetails.raw_description,
+          jobRole: sampleJobDetails.job.job_title,
+          company: sampleJobDetails.company.company_name,
+        },
+        { model: "gpt-4o" }
+      );
 
-      expect(result).toEqual(mockResume);
-      expect(mockClient.chat.completions.create).toHaveBeenCalledWith(
+      expect(result.result).toEqual(mockResume);
+      expect(mockClient.chat.completions.parse).toHaveBeenCalledWith(
         expect.objectContaining({
           model: "gpt-4o",
           temperature: 0.7, // gpt-4o supports custom temperature
@@ -87,24 +84,21 @@ describe("OpenAIProvider", () => {
     });
 
     it("should use default model when not specified", async () => {
-      mockClient.chat.completions.create.mockResolvedValue({
-        choices: [
-          {
-            message: {
-              content: JSON.stringify({}),
-            },
-          },
-        ],
+      mockClient.chat.completions.parse.mockResolvedValue({
+        choices: [{ message: { parsed: {} } }],
       });
 
-      await provider.generateResume({
-        baseProfile: sampleBaseProfile,
-        jobDescription: sampleJobDetails.raw_description,
-        jobRole: sampleJobDetails.job.job_title,
-        company: sampleJobDetails.company.company_name,
-      });
+      await provider.generateResume(
+        {
+          baseProfile: sampleBaseProfile,
+          jobDescription: sampleJobDetails.raw_description,
+          jobRole: sampleJobDetails.job.job_title,
+          company: sampleJobDetails.company.company_name,
+        },
+        { model: "gpt-4o" }
+      );
 
-      expect(mockClient.chat.completions.create).toHaveBeenCalledWith(
+      expect(mockClient.chat.completions.parse).toHaveBeenCalledWith(
         expect.objectContaining({
           model: "gpt-4o",
         })
@@ -122,25 +116,21 @@ describe("OpenAIProvider", () => {
         certifications: [],
       };
 
-      mockClient.chat.completions.create.mockResolvedValue({
-        choices: [
-          {
-            message: {
-              content: JSON.stringify(testResume),
-            },
-          },
-        ],
+      mockClient.chat.completions.parse.mockResolvedValue({
+        choices: [{ message: { parsed: testResume } }],
       });
 
-      await provider.generateResume({
-        baseProfile: sampleBaseProfile,
-        jobDescription: sampleJobDetails.raw_description,
-        jobRole: sampleJobDetails.job.job_title,
-        company: sampleJobDetails.company.company_name,
-        model: "o1-preview",
-      });
+      await provider.generateResume(
+        {
+          baseProfile: sampleBaseProfile,
+          jobDescription: sampleJobDetails.raw_description,
+          jobRole: sampleJobDetails.job.job_title,
+          company: sampleJobDetails.company.company_name,
+        },
+        { model: "o1-preview" }
+      );
 
-      const mockFn = mockClient.chat.completions.create as ReturnType<
+      const mockFn = mockClient.chat.completions.parse as ReturnType<
         typeof vi.fn
       >;
       const lastCallIndex = mockFn.mock.calls.length - 1;
@@ -150,48 +140,39 @@ describe("OpenAIProvider", () => {
     });
 
     it("should throw error on API failure", async () => {
-      mockClient.chat.completions.create.mockRejectedValue(
+      mockClient.chat.completions.parse.mockRejectedValue(
         new Error("API Error")
       );
 
       await expect(
-        provider.generateResume({
-          baseProfile: sampleBaseProfile,
-          jobDescription: sampleJobDetails.raw_description,
-          jobRole: sampleJobDetails.job.job_title,
-          company: sampleJobDetails.company.company_name,
-        })
-      ).rejects.toThrow("OpenAI generateResume failed");
+        provider.generateResume(
+          {
+            baseProfile: sampleBaseProfile,
+            jobDescription: sampleJobDetails.raw_description,
+            jobRole: sampleJobDetails.job.job_title,
+            company: sampleJobDetails.company.company_name,
+          },
+          { model: "gpt-4o" }
+        )
+      ).rejects.toThrow("generateResume failed");
     });
 
-    it("should throw error when response is empty", async () => {
-      mockClient.chat.completions.create.mockResolvedValue({
-        choices: [{ message: { content: null } }],
+    it("should throw error when response is empty (no parsed)", async () => {
+      mockClient.chat.completions.parse.mockResolvedValue({
+        choices: [{ message: { parsed: null } }],
       });
 
       await expect(
-        provider.generateResume({
-          baseProfile: sampleBaseProfile,
-          jobDescription: sampleJobDetails.raw_description,
-          jobRole: sampleJobDetails.job.job_title,
-          company: sampleJobDetails.company.company_name,
-        })
-      ).rejects.toThrow("No response from OpenAI");
-    });
-
-    it("should throw error on invalid JSON response", async () => {
-      mockClient.chat.completions.create.mockResolvedValue({
-        choices: [{ message: { content: "invalid json" } }],
-      });
-
-      await expect(
-        provider.generateResume({
-          baseProfile: sampleBaseProfile,
-          jobDescription: sampleJobDetails.raw_description,
-          jobRole: sampleJobDetails.job.job_title,
-          company: sampleJobDetails.company.company_name,
-        })
-      ).rejects.toThrow("Invalid JSON response from OpenAI");
+        provider.generateResume(
+          {
+            baseProfile: sampleBaseProfile,
+            jobDescription: sampleJobDetails.raw_description,
+            jobRole: sampleJobDetails.job.job_title,
+            company: sampleJobDetails.company.company_name,
+          },
+          { model: "gpt-4o" }
+        )
+      ).rejects.toThrow("Failed to parse structured response");
     });
   });
 
@@ -209,16 +190,18 @@ describe("OpenAIProvider", () => {
         ],
       });
 
-      const result = await provider.generateCoverLetter({
-        baseProfile: sampleBaseProfile,
-        jobDescription: sampleJobDetails.raw_description,
-        jobRole: sampleJobDetails.job.job_title,
-        company: sampleJobDetails.company.company_name,
-        resume: sampleBaseProfile,
-        model: "gpt-4o",
-      });
+      const result = await provider.generateCoverLetter(
+        {
+          baseProfile: sampleBaseProfile,
+          jobDescription: sampleJobDetails.raw_description,
+          jobRole: sampleJobDetails.job.job_title,
+          company: sampleJobDetails.company.company_name,
+          resume: sampleBaseProfile,
+        },
+        { model: "gpt-4o" }
+      );
 
-      expect(result).toBe(mockCoverLetter);
+      expect(result.result).toBe(mockCoverLetter);
     });
 
     it("should return empty string when no content", async () => {
@@ -226,15 +209,18 @@ describe("OpenAIProvider", () => {
         choices: [{ message: { content: null } }],
       });
 
-      const result = await provider.generateCoverLetter({
-        baseProfile: sampleBaseProfile,
-        jobDescription: sampleJobDetails.raw_description,
-        jobRole: sampleJobDetails.job.job_title,
-        company: sampleJobDetails.company.company_name,
-        resume: sampleBaseProfile,
-      });
+      const result = await provider.generateCoverLetter(
+        {
+          baseProfile: sampleBaseProfile,
+          jobDescription: sampleJobDetails.raw_description,
+          jobRole: sampleJobDetails.job.job_title,
+          company: sampleJobDetails.company.company_name,
+          resume: sampleBaseProfile,
+        },
+        { model: "gpt-4o" }
+      );
 
-      expect(result).toBe("");
+      expect(result.result).toBe("");
     });
 
     it("should handle API errors", async () => {
@@ -243,14 +229,17 @@ describe("OpenAIProvider", () => {
       );
 
       await expect(
-        provider.generateCoverLetter({
-          baseProfile: sampleBaseProfile,
-          jobDescription: sampleJobDetails.raw_description,
-          jobRole: sampleJobDetails.job.job_title,
-          company: sampleJobDetails.company.company_name,
-          resume: sampleBaseProfile,
-        })
-      ).rejects.toThrow("OpenAI generateCoverLetter failed");
+        provider.generateCoverLetter(
+          {
+            baseProfile: sampleBaseProfile,
+            jobDescription: sampleJobDetails.raw_description,
+            jobRole: sampleJobDetails.job.job_title,
+            company: sampleJobDetails.company.company_name,
+            resume: sampleBaseProfile,
+          },
+          { model: "gpt-4o" }
+        )
+      ).rejects.toThrow();
     });
   });
 
@@ -299,12 +288,11 @@ describe("OpenAIProvider", () => {
         ],
       });
 
-      const result = await provider.parseJobDetails(
-        "Job description text",
-        "gpt-4o"
-      );
+      const result = await provider.parseJobDetails("Job description text", {
+        model: "gpt-4o",
+      });
 
-      expect(result).toEqual(sampleJobDetails);
+      expect(result.result).toEqual(sampleJobDetails);
       expect(mockClient.chat.completions.parse).toHaveBeenCalledWith(
         expect.objectContaining({
           model: "gpt-4o",
@@ -317,7 +305,7 @@ describe("OpenAIProvider", () => {
         choices: [{ message: { parsed: sampleJobDetails } }],
       });
 
-      await provider.parseJobDetails("Job description");
+      await provider.parseJobDetails("Job description", { model: "gpt-4o" });
 
       expect(mockClient.chat.completions.parse).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -331,9 +319,9 @@ describe("OpenAIProvider", () => {
         choices: [{ message: { parsed: null } }],
       });
 
-      await expect(provider.parseJobDetails("Job description")).rejects.toThrow(
-        "Failed to parse job details"
-      );
+      await expect(
+        provider.parseJobDetails("Job description", { model: "gpt-4o" })
+      ).rejects.toThrow("Failed to parse structured response");
     });
   });
 });

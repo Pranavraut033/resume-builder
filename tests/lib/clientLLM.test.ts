@@ -1,5 +1,36 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
+// Must use vi.hoisted for variables referenced inside vi.mock factory
+const {
+  mockParseJobDetails,
+  mockGenerateResume,
+  mockGenerateCoverLetter,
+  mockGetInstance,
+  mockGetApiKey,
+} = vi.hoisted(() => ({
+  mockParseJobDetails: vi.fn(),
+  mockGenerateResume: vi.fn(),
+  mockGenerateCoverLetter: vi.fn(),
+  mockGetInstance: vi.fn(),
+  mockGetApiKey: vi.fn().mockResolvedValue("test-api-key"),
+}));
+
+vi.mock("@/lib/keyStorage", () => ({
+  getApiKey: mockGetApiKey,
+  setApiKey: vi.fn().mockResolvedValue(undefined),
+  deleteApiKey: vi.fn().mockResolvedValue(undefined),
+}));
+
+// Mock the provider factory - must be before any module imports that use it
+vi.mock("@/lib/llm/providers/factory", () => ({
+  ProviderFactory: {
+    instances: new Map(),
+    getInstance: mockGetInstance,
+    clearCache: vi.fn(),
+  },
+  getProviderInstance: vi.fn(),
+}));
+
 // Import mocks FIRST before importing the module under test
 import {
   parseJobDescription,
@@ -14,57 +45,30 @@ import {
   sampleJobDetails,
   sampleTailoredResume,
 } from "../fixtures/data";
-import { mockGetApiKey } from "../mocks/llm";
 
-// Create mock implementations before mocking
-const mockParseJobDetails = vi.fn();
-const mockGenerateResume = vi.fn();
-const mockGenerateCoverLetter = vi.fn();
-
-// Mock all provider modules with proper class constructors (skip if testing with real APIs)
-if (!shouldUseRealLLMs()) {
-  vi.mock("@/lib/llm/providers/openai", () => ({
-    OpenAIProvider: class {
-      constructor(_apiKey: string) {}
-      parseJobDetails = mockParseJobDetails;
-      generateResume = mockGenerateResume;
-      generateCoverLetter = mockGenerateCoverLetter;
-    },
-  }));
-
-  vi.mock("@/lib/llm/providers/gemini", () => ({
-    GeminiProvider: class {
-      constructor(_apiKey: string, _model?: string) {}
-      generateResume = mockGenerateResume;
-      generateCoverLetter = mockGenerateCoverLetter;
-    },
-  }));
-
-  vi.mock("@/lib/llm/providers/grok", () => ({
-    GrokProvider: class {
-      constructor(_apiKey: string) {}
-      generateResume = mockGenerateResume;
-      generateCoverLetter = mockGenerateCoverLetter;
-    },
-  }));
-
-  vi.mock("@/lib/llm/providers/ollama", () => ({
-    OllamaProvider: class {
-      constructor() {}
-      generateResume = mockGenerateResume;
-      generateCoverLetter = mockGenerateCoverLetter;
-    },
-  }));
-}
+// Mock provider instance that satisfies the LLMProvider interface
+const mockProvider = {
+  parseJobDetails: mockParseJobDetails,
+  generateResume: mockGenerateResume,
+  generateCoverLetter: mockGenerateCoverLetter,
+  fetchModels: vi.fn().mockResolvedValue([]),
+  generateText: vi.fn(),
+  runLLM: vi.fn(),
+  parseResume: vi.fn(),
+  validateConnection: vi.fn(),
+};
 
 describe("Client LLM Functions", () => {
   const useRealAPIs = shouldUseRealLLMs();
 
   beforeEach(async () => {
     if (!useRealAPIs) {
-      mockParseJobDetails.mockClear();
-      mockGenerateResume.mockClear();
-      mockGenerateCoverLetter.mockClear();
+      mockParseJobDetails.mockReset();
+      mockGenerateResume.mockReset();
+      mockGenerateCoverLetter.mockReset();
+      mockGetInstance.mockReset();
+      // Default: provider is available
+      mockGetInstance.mockResolvedValue(mockProvider);
       mockGetApiKey.mockResolvedValue("test-api-key");
     }
 
@@ -74,7 +78,11 @@ describe("Client LLM Functions", () => {
 
   describe("parseJobDescription", () => {
     it("should parse job description using OpenAI provider", async () => {
-      mockParseJobDetails.mockResolvedValue(sampleJobDetails);
+      const expectedDetails = {
+        ...sampleJobDetails,
+        raw_description: "Job description text",
+      };
+      mockParseJobDetails.mockResolvedValue({ result: expectedDetails });
 
       const result = await parseJobDescription(
         "Job description text",
@@ -82,10 +90,7 @@ describe("Client LLM Functions", () => {
         "openai"
       );
 
-      expect(result).toEqual({
-        ...sampleJobDetails,
-        raw_description: "Job description text",
-      });
+      expect(result).toEqual(expectedDetails);
       expect(mockParseJobDetails).toHaveBeenCalledWith(
         "Job description text",
         "gpt-4o"
@@ -93,6 +98,7 @@ describe("Client LLM Functions", () => {
     });
 
     it("should use fallback parsing for non-OpenAI providers", async () => {
+      // mockParseJobDetails cleared — returns undefined → LLMService throws → fallback
       const result = await parseJobDescription(
         "Software Engineer at Google Inc",
         "llama3",
@@ -124,12 +130,16 @@ describe("Client LLM Functions", () => {
       expect(result.job.job_title).toBeTruthy();
     });
 
-    it("should throw error when no provider is available", async () => {
-      mockGetApiKey.mockResolvedValue(null);
+    it("should fall back to simple parsing when no provider is available", async () => {
+      mockGetInstance.mockResolvedValue(null);
 
-      await expect(
-        parseJobDescription("Job description", "model", "openai")
-      ).rejects.toThrow("No provider available for parsing");
+      // parseJobDescription always falls back on error — does not throw
+      const result = await parseJobDescription(
+        "Software Engineer role",
+        "model",
+        "openai"
+      );
+      expect(result.raw_description).toBe("Software Engineer role");
     });
 
     it("should handle structured parsing errors gracefully", async () => {
@@ -149,7 +159,7 @@ describe("Client LLM Functions", () => {
 
   describe("generateResume", () => {
     it("should generate resume using specified provider", async () => {
-      mockGenerateResume.mockResolvedValue(sampleTailoredResume);
+      mockGenerateResume.mockResolvedValue({ result: sampleTailoredResume });
 
       const result = await generateResume(
         sampleBaseProfile,
@@ -165,7 +175,7 @@ describe("Client LLM Functions", () => {
     });
 
     it("should work with Ollama provider", async () => {
-      mockGenerateResume.mockResolvedValue(sampleTailoredResume);
+      mockGenerateResume.mockResolvedValue({ result: sampleTailoredResume });
 
       const result = await generateResume(
         sampleBaseProfile,
@@ -180,7 +190,7 @@ describe("Client LLM Functions", () => {
     });
 
     it("should throw error when no provider is available", async () => {
-      mockGetApiKey.mockResolvedValue(null);
+      mockGetInstance.mockResolvedValue(null);
 
       await expect(
         generateResume(
@@ -212,7 +222,9 @@ describe("Client LLM Functions", () => {
 
   describe("generateCoverLetter", () => {
     it("should generate cover letter using specified provider", async () => {
-      mockGenerateCoverLetter.mockResolvedValue("Dear Hiring Manager...");
+      mockGenerateCoverLetter.mockResolvedValue({
+        result: "Dear Hiring Manager...",
+      });
 
       const result = await generateCoverLetter(
         sampleBaseProfile,
@@ -229,7 +241,9 @@ describe("Client LLM Functions", () => {
     });
 
     it("should work with Grok provider", async () => {
-      mockGenerateCoverLetter.mockResolvedValue("Cover letter text");
+      mockGenerateCoverLetter.mockResolvedValue({
+        result: "Cover letter text",
+      });
 
       const result = await generateCoverLetter(
         sampleBaseProfile,
@@ -245,7 +259,7 @@ describe("Client LLM Functions", () => {
     });
 
     it("should throw error when no provider is available", async () => {
-      mockGetApiKey.mockResolvedValue(null);
+      mockGetInstance.mockResolvedValue(null);
 
       await expect(
         generateCoverLetter(
@@ -263,7 +277,7 @@ describe("Client LLM Functions", () => {
 
   describe("ProviderFactory", () => {
     it("should cache provider instances", async () => {
-      mockGenerateResume.mockResolvedValue(sampleTailoredResume);
+      mockGenerateResume.mockResolvedValue({ result: sampleTailoredResume });
 
       await generateResume(
         sampleBaseProfile,
