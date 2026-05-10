@@ -15,7 +15,6 @@ import {
   validateCustomization,
 } from "@/types/resume";
 
-
 /**
  * Create a new job with parsed details, resume, and cover letter
  * Note: Job parsing, resume generation, and cover letter generation happen on client side
@@ -41,9 +40,16 @@ export async function createJob(input: {
     },
   });
 
-  // Create contact if available
+  // Create contact if any contact fields are provided
   let contactId: number | undefined;
-  if (jobDetails.contact) {
+  const hasContact =
+    jobDetails.contact &&
+    (jobDetails.contact.recruiter_name != null ||
+      jobDetails.contact.recruiter_role != null ||
+      jobDetails.contact.contact_email != null ||
+      jobDetails.contact.contact_phone != null ||
+      jobDetails.contact.contact_whatsapp_available != null);
+  if (hasContact) {
     const contact = await prisma.contact.create({
       data: {
         recruiterName: jobDetails.contact.recruiter_name,
@@ -181,7 +187,7 @@ export async function deleteJob(id: number) {
  */
 export async function getResumeByJobId(
   jobId: number
-): Promise<(Omit<Resume, 'contentJson'> & { contentJson: ResumeJSON } | null)> {
+): Promise<(Omit<Resume, "contentJson"> & { contentJson: ResumeJSON }) | null> {
   if (typeof jobId !== "number" || isNaN(jobId)) {
     throw new Error("Invalid or missing jobId argument");
   }
@@ -221,8 +227,6 @@ export async function updateResume(
   return { success: true };
 }
 
-
-
 /**
  * Get cover letter for a job
  */
@@ -233,7 +237,7 @@ export async function getCoverLetterByJobId(
     where: { jobId },
   });
 
-  return coverLetter
+  return coverLetter;
 }
 
 /**
@@ -329,7 +333,6 @@ export async function updateResumeCustomization(
   revalidatePath(`/resume/${jobId}`);
   return { success: true };
 }
-
 
 /**
  * Get resume customization for a job
