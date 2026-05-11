@@ -17,33 +17,18 @@ export default function Sidebar() {
   const pathname = usePathname();
 
   return (
-    <aside
-      className="flex h-screen w-60 shrink-0 flex-col"
-      style={{ background: "var(--color-agent-inverse-surface)" }}
-    >
+    <aside className="bg-agent-inverse-surface flex h-screen w-60 shrink-0 flex-col">
       {/* Logo */}
       <div className="flex flex-col gap-0.5 px-5 pt-6 pb-4">
         <div className="flex items-center gap-2">
-          <div
-            className="flex h-8 w-8 items-center justify-center rounded-lg"
-            style={{
-              background:
-                "linear-gradient(135deg, var(--color-agent-primary), var(--color-agent-primary-container))",
-            }}
-          >
-            <Icon name="fileText" size={16} className="text-white" />
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-linear-to-br from-agent-primary to-agent-primary-container">
+            <Icon name="fileText" size={16} className="text-agent-on-primary" />
           </div>
-          <span
-            className="text-base font-bold tracking-tight"
-            style={{ color: "var(--color-agent-inverse-on-surface)" }}
-          >
+          <span className="text-agent-inverse-on-surface text-base font-bold tracking-tight">
             Curator AI
           </span>
         </div>
-        <span
-          className="pl-10 text-[10px] font-medium tracking-widest uppercase"
-          style={{ color: "var(--color-agent-outline)" }}
-        >
+        <span className="text-agent-outline pl-10 text-[10px] font-medium tracking-widest uppercase">
           Local-First Engine
         </span>
       </div>
@@ -52,12 +37,7 @@ export default function Sidebar() {
       <div className="px-4 pb-4">
         <Link
           href="/job/new"
-          className="flex items-center justify-center gap-2 rounded-xl py-2.5 text-sm font-semibold transition-opacity hover:opacity-90"
-          style={{
-            background:
-              "linear-gradient(135deg, var(--color-agent-primary), var(--color-agent-primary-container))",
-            color: "var(--color-agent-on-primary)",
-          }}
+          className="flex items-center justify-center gap-2 rounded-xl bg-linear-to-br from-agent-primary to-agent-primary-container py-2.5 text-sm font-semibold text-agent-on-primary transition-opacity hover:opacity-90"
         >
           <Icon name="plus" size={16} />
           New Resume
@@ -73,16 +53,11 @@ export default function Sidebar() {
               key={item.href}
               href={item.href}
               aria-current={isActive ? "page" : undefined}
-              className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors"
-              style={
-                isActive
-                  ? {
-                      background: "var(--color-agent-primary-fixed-dim)",
-                      color: "var(--color-agent-on-primary-fixed)",
-                    }
-                  : {
-                      color: "var(--color-agent-inverse-on-surface)",
-                    }
+              className={
+                "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors " +
+                (isActive
+                  ? "bg-agent-primary-fixed-dim text-agent-on-primary-fixed"
+                  : "text-agent-inverse-on-surface hover:bg-agent-surface-lowest hover:text-agent-on-surface")
               }
             >
               <Icon name={item.icon} size={17} />
@@ -93,33 +68,16 @@ export default function Sidebar() {
       </nav>
 
       {/* Bottom section */}
-      <div
-        className="mt-auto border-t px-4 pt-4 pb-5"
-        style={{ borderColor: "rgba(255,255,255,0.08)" }}
-      >
+      <div className="mt-auto border-t border-agent-outline-variant px-4 pt-4 pb-5">
         <div className="flex items-center gap-3">
-          <div
-            className="flex h-9 w-9 items-center justify-center rounded-full text-sm font-bold"
-            style={{
-              background: "var(--color-agent-primary-fixed-dim)",
-              color: "var(--color-agent-on-primary-fixed)",
-            }}
-          >
+          <div className="bg-agent-primary-fixed-dim text-agent-on-primary-fixed flex h-9 w-9 items-center justify-center rounded-full text-sm font-bold">
             A
           </div>
           <div className="min-w-0 flex-1">
-            <p
-              className="truncate text-sm font-semibold"
-              style={{ color: "var(--color-agent-inverse-on-surface)" }}
-            >
+            <p className="text-agent-inverse-on-surface truncate text-sm font-semibold">
               Local User
             </p>
-            <p
-              className="text-[11px]"
-              style={{ color: "var(--color-agent-outline)" }}
-            >
-              Local Plan
-            </p>
+            <p className="text-agent-outline text-[11px]">Local Plan</p>
           </div>
         </div>
       </div>

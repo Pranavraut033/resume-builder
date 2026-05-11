@@ -29,7 +29,7 @@ export function ProfileActionButtons({
           Actions
         </MenuButton>
 
-        <MenuItems className="absolute right-0 z-10 mt-2 w-48 origin-top-right rounded-lg border border-gray-200 bg-white shadow-lg focus:outline-none dark:border-gray-700 dark:bg-gray-800">
+        <MenuItems className="absolute right-0 z-10 mt-2 w-48 origin-top-right rounded-lg border border-agent-outline-variant bg-agent-surface shadow-(--shadow-agent-card) focus:outline-none">
           <div className="py-1">
             <MenuItem>
               {({ active }) => (
@@ -38,8 +38,8 @@ export function ProfileActionButtons({
                   className={cn(
                     "block w-full px-4 py-2 text-left text-sm whitespace-nowrap",
                     active
-                      ? "bg-gray-100 text-gray-900 dark:bg-gray-700 dark:text-white"
-                      : "text-gray-700 dark:text-gray-300"
+                      ? "bg-agent-surface-low text-agent-on-surface"
+                      : "text-agent-on-surface-variant"
                   )}
                 >
                   Import from Resume
@@ -53,8 +53,8 @@ export function ProfileActionButtons({
                   className={cn(
                     "block w-full px-4 py-2 text-left text-sm",
                     active
-                      ? "bg-gray-100 text-gray-900 dark:bg-gray-700 dark:text-white"
-                      : "text-gray-700 dark:text-gray-300"
+                      ? "bg-agent-surface-low text-agent-on-surface"
+                      : "text-agent-on-surface-variant"
                   )}
                 >
                   Import from JSON
@@ -69,8 +69,8 @@ export function ProfileActionButtons({
                   className={cn(
                     "block w-full px-4 py-2 text-left text-sm disabled:cursor-not-allowed disabled:opacity-50",
                     active
-                      ? "bg-gray-100 text-gray-900 dark:bg-gray-700 dark:text-white"
-                      : "text-gray-700 dark:text-gray-300"
+                      ? "bg-agent-surface-low text-agent-on-surface"
+                      : "text-agent-on-surface-variant"
                   )}
                 >
                   Export as JSON

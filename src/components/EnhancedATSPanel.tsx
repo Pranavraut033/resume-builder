@@ -35,9 +35,7 @@ export function EnhancedATSPanel({
   jobDescription,
 }: EnhancedATSPanelProps) {
   const store = useModelStore();
-  const selectedProvider = store.selectedProvider;
-  const selectedModel =
-    store.selectedModelsByProvider[store.selectedProvider]?.[0];
+  const [selectedProvider, selectedModel] = store.selectedModel || [];
 
   const [showLLMOptions, setShowLLMOptions] = useState(false);
   const [llmSuggestions, setLLMSuggestions] = useState<string | null>(null);
