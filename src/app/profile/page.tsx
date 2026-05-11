@@ -5,11 +5,10 @@ import { useState, useEffect } from "react";
 import { getProfile, saveProfile } from "@/actions/profile";
 import { ModelSelector } from "@/components/ModelSelector";
 import { ProfileActionButtons } from "@/components/ProfileActionButtons";
+import { PageHeader, PageSection, SurfacePanel } from "@/components/ui";
 import { Button } from "@/components/ui/Button";
-import { Card } from "@/components/ui/Card";
 import { FormField } from "@/components/ui/FormField";
 import { Modal } from "@/components/ui/Modal";
-import { Section } from "@/components/ui/Section";
 import { parseResume } from "@/lib/llm/clientLLM";
 import { createLogger } from "@/lib/logger";
 import { useModelStore } from "@/store/modelStore";
@@ -58,8 +57,7 @@ export default function ProfilePage() {
   const [jsonText, setJsonText] = useState("");
   const [importingJson, setImportingJson] = useState(false);
 
-  const { loadModels, selectedModelsByProvider, selectedProvider } =
-    useModelStore();
+  const { loadModels, selectedModel } = useModelStore();
 
   useEffect(() => {
     loadModels();
@@ -98,7 +96,6 @@ export default function ProfilePage() {
       return;
     }
 
-    const selectedModel = selectedModelsByProvider[selectedProvider]?.[0];
     if (!selectedModel) {
       alert("Please select a model first");
       return;
@@ -106,7 +103,11 @@ export default function ProfilePage() {
 
     setImporting(true);
     try {
-      const parsed = await parseResume(resumeText, selectedModel, "openai");
+      const parsed = await parseResume(
+        resumeText,
+        selectedModel[0],
+        selectedModel[1]
+      );
       setProfile(parsed);
       setShowImportModal(false);
       setResumeText("");
@@ -375,25 +376,27 @@ export default function ProfilePage() {
   };
 
   return (
-    <div className="space-y-6 pb-12">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Base Profile</h1>
-        <ProfileActionButtons
-          onImportResume={() => setShowImportModal(true)}
-          onImportJSON={() => setShowImportJsonModal(true)}
-          onExportJSON={handleExportJSON}
-          onSave={handleSave}
-          isSaving={saving}
-        />
-      </div>
+    <div className="text-agent-on-surface space-y-6 pb-12">
+      <PageHeader
+        title="Base Profile"
+        actions={
+          <ProfileActionButtons
+            onImportResume={() => setShowImportModal(true)}
+            onImportJSON={() => setShowImportJsonModal(true)}
+            onExportJSON={handleExportJSON}
+            onSave={handleSave}
+            isSaving={saving}
+          />
+        }
+      />
 
       {loading ? (
-        <p>Loading...</p>
+        <p className="text-agent-on-surface-variant">Loading...</p>
       ) : (
         <>
           {/* Header / Contact Information */}
-          <Card>
-            <Section title="Contact Information">
+          <PageSection title="Contact Information">
+            <SurfacePanel>
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                 <FormField
                   label="Full Name"
@@ -480,12 +483,12 @@ export default function ProfilePage() {
                   placeholder="johndoe.com"
                 />
               </div>
-            </Section>
-          </Card>
+            </SurfacePanel>
+          </PageSection>
 
           {/* Professional Summary */}
-          <Card>
-            <Section title="Professional Summary">
+          <PageSection title="Professional Summary">
+            <SurfacePanel>
               <FormField
                 type="textarea"
                 value={profile.summary}
@@ -493,12 +496,12 @@ export default function ProfilePage() {
                 rows={5}
                 placeholder="Write a brief summary of your professional background and career goals..."
               />
-            </Section>
-          </Card>
+            </SurfacePanel>
+          </PageSection>
 
           {/* Skills */}
-          <Card>
-            <Section title="Skills">
+          <PageSection title="Skills">
+            <SurfacePanel>
               <FormField
                 type="textarea"
                 value={profile.skills.join(", ")}
@@ -515,21 +518,19 @@ export default function ProfilePage() {
                 placeholder="JavaScript, TypeScript, React, Node.js, Python, etc."
                 helpText="Comma-separated list of skills"
               />
-            </Section>
-          </Card>
+            </SurfacePanel>
+          </PageSection>
 
           {/* Experience */}
-          <Card>
-            <Section
-              title="Work Experience"
-              actions={
+          <PageSection title="Work Experience">
+            <SurfacePanel>
+              <div className="mb-4 flex justify-end">
                 <Button variant="secondary" size="sm" onClick={addExperience}>
                   + Add Experience
                 </Button>
-              }
-            >
+              </div>
               {profile.experience.length === 0 ? (
-                <p className="text-sm text-gray-500">
+                <p className="text-agent-on-surface-variant text-sm">
                   No experience added yet. Click &quot;Add Experience&quot; to
                   get started.
                 </p>
@@ -538,7 +539,7 @@ export default function ProfilePage() {
                   {profile.experience.map((exp, index) => (
                     <div
                       key={index}
-                      className="space-y-3 rounded-lg border border-gray-200 p-4"
+                      className="border-agent-outline-variant space-y-3 rounded-lg border p-4"
                     >
                       <div className="flex items-start justify-between">
                         <h4 className="font-medium">Experience {index + 1}</h4>
@@ -608,21 +609,19 @@ export default function ProfilePage() {
                   ))}
                 </div>
               )}
-            </Section>
-          </Card>
+            </SurfacePanel>
+          </PageSection>
 
           {/* Projects */}
-          <Card>
-            <Section
-              title="Projects"
-              actions={
+          <PageSection title="Projects">
+            <SurfacePanel>
+              <div className="mb-4 flex justify-end">
                 <Button variant="secondary" size="sm" onClick={addProject}>
                   + Add Project
                 </Button>
-              }
-            >
+              </div>
               {profile.projects.length === 0 ? (
-                <p className="text-sm text-gray-500">
+                <p className="text-agent-on-surface-variant text-sm">
                   No projects added yet. Click &quot;Add Project&quot; to get
                   started.
                 </p>
@@ -631,7 +630,7 @@ export default function ProfilePage() {
                   {profile.projects.map((proj, index) => (
                     <div
                       key={index}
-                      className="space-y-3 rounded-lg border border-gray-200 p-4"
+                      className="border-agent-outline-variant space-y-3 rounded-lg border p-4"
                     >
                       <div className="flex items-start justify-between">
                         <h4 className="font-medium">Project {index + 1}</h4>
@@ -695,21 +694,19 @@ export default function ProfilePage() {
                   ))}
                 </div>
               )}
-            </Section>
-          </Card>
+            </SurfacePanel>
+          </PageSection>
 
           {/* Education */}
-          <Card>
-            <Section
-              title="Education"
-              actions={
+          <PageSection title="Education">
+            <SurfacePanel>
+              <div className="mb-4 flex justify-end">
                 <Button variant="secondary" size="sm" onClick={addEducation}>
                   + Add Education
                 </Button>
-              }
-            >
+              </div>
               {profile.education.length === 0 ? (
-                <p className="text-sm text-gray-500">
+                <p className="text-agent-on-surface-variant text-sm">
                   No education added yet. Click &quot;Add Education&quot; to get
                   started.
                 </p>
@@ -718,7 +715,7 @@ export default function ProfilePage() {
                   {profile.education.map((edu, index) => (
                     <div
                       key={index}
-                      className="space-y-3 rounded-lg border border-gray-200 p-4"
+                      className="border-agent-outline-variant space-y-3 rounded-lg border p-4"
                     >
                       <div className="flex items-start justify-between">
                         <h4 className="font-medium">Education {index + 1}</h4>
@@ -785,14 +782,13 @@ export default function ProfilePage() {
                   ))}
                 </div>
               )}
-            </Section>
-          </Card>
+            </SurfacePanel>
+          </PageSection>
 
           {/* Certifications */}
-          <Card>
-            <Section
-              title="Certifications"
-              actions={
+          <PageSection title="Certifications">
+            <SurfacePanel>
+              <div className="mb-4 flex justify-end">
                 <Button
                   variant="secondary"
                   size="sm"
@@ -800,10 +796,9 @@ export default function ProfilePage() {
                 >
                   + Add Certification
                 </Button>
-              }
-            >
+              </div>
               {profile.certifications.length === 0 ? (
-                <p className="text-sm text-gray-500">
+                <p className="text-agent-on-surface-variant text-sm">
                   No certifications added yet.
                 </p>
               ) : (
@@ -811,7 +806,7 @@ export default function ProfilePage() {
                   {profile.certifications.map((cert, index) => (
                     <div
                       key={index}
-                      className="space-y-3 rounded-lg border border-gray-200 p-4"
+                      className="border-agent-outline-variant space-y-3 rounded-lg border p-4"
                     >
                       <div className="flex items-start justify-between">
                         <h4 className="font-medium">
@@ -861,21 +856,19 @@ export default function ProfilePage() {
                   ))}
                 </div>
               )}
-            </Section>
-          </Card>
+            </SurfacePanel>
+          </PageSection>
 
           {/* Publications (Optional) */}
-          <Card>
-            <Section
-              title="Publications (Optional)"
-              actions={
+          <PageSection title="Publications (Optional)">
+            <SurfacePanel>
+              <div className="mb-4 flex justify-end">
                 <Button variant="secondary" size="sm" onClick={addPublication}>
                   + Add Publication
                 </Button>
-              }
-            >
+              </div>
               {(profile.publications || []).length === 0 ? (
-                <p className="text-sm text-gray-500">
+                <p className="text-agent-on-surface-variant text-sm">
                   No publications added yet.
                 </p>
               ) : (
@@ -883,7 +876,7 @@ export default function ProfilePage() {
                   {(profile.publications || []).map((pub, index) => (
                     <div
                       key={index}
-                      className="space-y-3 rounded-lg border border-gray-200 p-4"
+                      className="border-agent-outline-variant space-y-3 rounded-lg border p-4"
                     >
                       <div className="flex items-start justify-between">
                         <h4 className="font-medium">Publication {index + 1}</h4>
@@ -955,27 +948,27 @@ export default function ProfilePage() {
                   ))}
                 </div>
               )}
-            </Section>
-          </Card>
+            </SurfacePanel>
+          </PageSection>
 
           {/* Languages (Optional) */}
-          <Card>
-            <Section
-              title="Languages (Optional)"
-              actions={
+          <PageSection title="Languages (Optional)">
+            <SurfacePanel>
+              <div className="mb-4 flex justify-end">
                 <Button variant="secondary" size="sm" onClick={addLanguage}>
                   + Add Language
                 </Button>
-              }
-            >
+              </div>
               {(profile.languages || []).length === 0 ? (
-                <p className="text-sm text-gray-500">No languages added yet.</p>
+                <p className="text-agent-on-surface-variant text-sm">
+                  No languages added yet.
+                </p>
               ) : (
                 <div className="space-y-4">
                   {(profile.languages || []).map((lang, index) => (
                     <div
                       key={index}
-                      className="space-y-3 rounded-lg border border-gray-200 p-4"
+                      className="border-agent-outline-variant space-y-3 rounded-lg border p-4"
                     >
                       <div className="flex items-start justify-between">
                         <h4 className="font-medium">Language {index + 1}</h4>
@@ -1009,21 +1002,19 @@ export default function ProfilePage() {
                   ))}
                 </div>
               )}
-            </Section>
-          </Card>
+            </SurfacePanel>
+          </PageSection>
 
           {/* Volunteer Work (Optional) */}
-          <Card>
-            <Section
-              title="Volunteer Work (Optional)"
-              actions={
+          <PageSection title="Volunteer Work (Optional)">
+            <SurfacePanel>
+              <div className="mb-4 flex justify-end">
                 <Button variant="secondary" size="sm" onClick={addVolunteer}>
                   + Add Volunteer Work
                 </Button>
-              }
-            >
+              </div>
               {(profile.volunteer || []).length === 0 ? (
-                <p className="text-sm text-gray-500">
+                <p className="text-agent-on-surface-variant text-sm">
                   No volunteer work added yet.
                 </p>
               ) : (
@@ -1031,7 +1022,7 @@ export default function ProfilePage() {
                   {(profile.volunteer || []).map((vol, index) => (
                     <div
                       key={index}
-                      className="space-y-3 rounded-lg border border-gray-200 p-4"
+                      className="border-agent-outline-variant space-y-3 rounded-lg border p-4"
                     >
                       <div className="flex items-start justify-between">
                         <h4 className="font-medium">Volunteer {index + 1}</h4>
@@ -1086,27 +1077,27 @@ export default function ProfilePage() {
                   ))}
                 </div>
               )}
-            </Section>
-          </Card>
+            </SurfacePanel>
+          </PageSection>
 
           {/* Awards (Optional) */}
-          <Card>
-            <Section
-              title="Awards & Honors (Optional)"
-              actions={
+          <PageSection title="Awards & Honors (Optional)">
+            <SurfacePanel>
+              <div className="mb-4 flex justify-end">
                 <Button variant="secondary" size="sm" onClick={addAward}>
                   + Add Award
                 </Button>
-              }
-            >
+              </div>
               {(profile.awards || []).length === 0 ? (
-                <p className="text-sm text-gray-500">No awards added yet.</p>
+                <p className="text-agent-on-surface-variant text-sm">
+                  No awards added yet.
+                </p>
               ) : (
                 <div className="space-y-6">
                   {(profile.awards || []).map((award, index) => (
                     <div
                       key={index}
-                      className="space-y-3 rounded-lg border border-gray-200 p-4"
+                      className="border-agent-outline-variant space-y-3 rounded-lg border p-4"
                     >
                       <div className="flex items-start justify-between">
                         <h4 className="font-medium">Award {index + 1}</h4>
@@ -1154,11 +1145,11 @@ export default function ProfilePage() {
                   ))}
                 </div>
               )}
-            </Section>
-          </Card>
+            </SurfacePanel>
+          </PageSection>
 
           {/* Save Actions */}
-          <Card>
+          <SurfacePanel>
             <div className="flex items-center justify-end gap-3">
               <Button
                 variant="secondary"
@@ -1170,7 +1161,7 @@ export default function ProfilePage() {
                 {saving ? "Saving…" : "Save Profile"}
               </Button>
             </div>
-          </Card>
+          </SurfacePanel>
         </>
       )}
 
@@ -1181,14 +1172,14 @@ export default function ProfilePage() {
         title="Import Resume"
       >
         <div className="space-y-4">
-          <p className="text-sm text-gray-600">
+          <p className="text-agent-on-surface-variant text-sm">
             Paste your resume text below. The AI will extract structured
             information to populate your profile.
           </p>
 
           <ModelSelector onModelSelected={() => {}} className="mb-4" />
 
-          <p className="mt-2 text-xs text-gray-500">
+          <p className="text-agent-on-surface-variant mt-2 text-xs">
             Note: Resume parsing is currently only supported with OpenAI models.
           </p>
 
@@ -1234,7 +1225,7 @@ export default function ProfilePage() {
         title="Import Profile from JSON"
       >
         <div className="space-y-4">
-          <p className="text-sm text-gray-600">
+          <p className="text-agent-on-surface-variant text-sm">
             Paste your profile JSON below to import it. This will replace your
             current profile.
           </p>

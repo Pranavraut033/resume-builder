@@ -2,7 +2,18 @@
 
 import { useState, useEffect } from "react";
 
-import { MultiSelect } from "@/components/ui/MultiSelect";
+import {
+  Alert,
+  Badge,
+  Button,
+  MultiSelect,
+  PageHeader,
+  PageSection,
+  SegmentedControl,
+  SettingsRow,
+  SurfacePanel,
+  Toggle,
+} from "@/components/ui";
 import { useTheme } from "@/contexts/ThemeContext";
 import { setApiKey, getApiKey } from "@/lib/keyStorage";
 import { validateProviderConnection } from "@/lib/llm/clientLLM";
@@ -163,66 +174,37 @@ export default function SettingsPage() {
   };
 
   return (
-    <div
-      className="min-h-full px-6 py-8"
-      style={{ color: "var(--color-agent-on-surface)" }}
-    >
-      {/* Page header */}
-      <div className="mb-8">
-        <div className="mb-1 flex items-center gap-3">
-          <h1
-            className="text-2xl font-bold tracking-tight"
-            style={{ color: "var(--color-agent-on-surface)" }}
+    <div className="text-agent-on-surface min-h-full px-6 py-8">
+      <PageHeader
+        title="Settings"
+        description="Configure your intelligent drafting engine. All configurations are stored locally on your device."
+        badge={
+          <Badge
+            icon={
+              <svg
+                width="11"
+                height="11"
+                viewBox="0 0 24 24"
+                fill="currentColor"
+              >
+                <path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z" />
+              </svg>
+            }
           >
-            Settings
-          </h1>
-          <span
-            className="flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium"
-            style={{
-              background: "var(--color-agent-surface-low)",
-              color: "var(--color-agent-on-surface-variant)",
-              border: "1px solid var(--color-agent-outline-variant)",
-            }}
-          >
-            <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z" />
-            </svg>
             Stored Locally &amp; Encrypted
-          </span>
-        </div>
-        <p
-          className="text-sm"
-          style={{ color: "var(--color-agent-on-surface-variant)" }}
-        >
-          Configure your intelligent drafting engine. All configurations are
-          stored locally on your device.
-        </p>
-      </div>
+          </Badge>
+        }
+      />
 
       {error && (
-        <div
-          className="mb-6 flex items-center justify-between rounded-xl px-4 py-3 text-sm"
-          style={{
-            background: "var(--color-agent-error-container)",
-            color: "var(--color-agent-on-error-container)",
-          }}
-        >
-          <span>Error loading models: {error}</span>
-          <button onClick={clearError} className="underline hover:no-underline">
-            Dismiss
-          </button>
-        </div>
+        <Alert variant="error" onDismiss={clearError}>
+          Error loading models: {error}
+        </Alert>
       )}
 
       <div className="space-y-8">
         {/* Cloud LLM Providers */}
-        <section>
-          <h2
-            className="mb-4 text-base font-semibold"
-            style={{ color: "var(--color-agent-on-surface)" }}
-          >
-            Cloud LLM Providers
-          </h2>
+        <PageSection title="Cloud LLM Providers">
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
             {cloudProviders.map((provider) => {
               const meta = providerMeta[provider.type] ?? {
@@ -264,38 +246,20 @@ export default function SettingsPage() {
               );
             })}
           </div>
-        </section>
+        </PageSection>
 
         {/* Local LLM — Ollama */}
-        <section>
-          <h2
-            className="mb-4 text-base font-semibold"
-            style={{ color: "var(--color-agent-on-surface)" }}
-          >
-            Local LLM
-          </h2>
-          <div
-            className="rounded-2xl p-5"
-            style={{ background: "var(--color-agent-surface-low)" }}
-          >
-            <p
-              className="mb-5 text-sm leading-relaxed"
-              style={{ color: "var(--color-agent-on-surface-variant)" }}
-            >
+        <PageSection title="Local LLM">
+          <SurfacePanel>
+            <p className="text-agent-on-surface-variant text-sm leading-relaxed">
               Connect to Ollama for 100% private, air-gapped processing. No data
               ever leaves your machine when using local models.
             </p>
 
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               {/* Status */}
-              <div
-                className="rounded-xl px-4 py-3"
-                style={{ background: "var(--color-agent-surface-container)" }}
-              >
-                <p
-                  className="mb-2 text-xs font-semibold tracking-wider uppercase"
-                  style={{ color: "var(--color-agent-on-surface-variant)" }}
-                >
+              <div className="bg-agent-surface-container rounded-xl px-4 py-3">
+                <p className="text-agent-on-surface-variant mb-2 text-xs font-semibold tracking-wider uppercase">
                   Status
                 </p>
                 <div className="flex items-center gap-2">
@@ -307,10 +271,7 @@ export default function SettingsPage() {
                         : "var(--color-agent-outline)",
                     }}
                   />
-                  <span
-                    className="text-sm font-medium"
-                    style={{ color: "var(--color-agent-on-surface)" }}
-                  >
+                  <span className="text-agent-on-surface text-sm font-medium">
                     {modelsByProvider.ollama?.length
                       ? "Ollama Service Detected"
                       : "Ollama Not Connected"}
@@ -319,33 +280,22 @@ export default function SettingsPage() {
               </div>
 
               {/* Host URL */}
-              <div
-                className="rounded-xl px-4 py-3"
-                style={{ background: "var(--color-agent-surface-container)" }}
-              >
-                <p
-                  className="mb-2 text-xs font-semibold tracking-wider uppercase"
-                  style={{ color: "var(--color-agent-on-surface-variant)" }}
-                >
+              <div className="bg-agent-surface-container rounded-xl px-4 py-3">
+                <p className="text-agent-on-surface-variant mb-2 text-xs font-semibold tracking-wider uppercase">
                   Host URL
                 </p>
                 <input
                   type="text"
                   value={ollamaHost}
                   onChange={(e) => setOllamaHost(e.target.value)}
-                  className="w-full bg-transparent text-sm outline-none"
-                  style={{ color: "var(--color-agent-on-surface)" }}
+                  className="text-agent-on-surface w-full bg-transparent text-sm outline-none"
                 />
               </div>
             </div>
 
-            {/* Ollama model selector */}
             {(modelsByProvider.ollama?.length ?? 0) > 0 && (
-              <div className="mt-4">
-                <p
-                  className="mb-2 text-xs font-medium"
-                  style={{ color: "var(--color-agent-on-surface-variant)" }}
-                >
+              <div>
+                <p className="text-agent-on-surface-variant mb-2 text-xs font-medium">
                   Select Model
                 </p>
                 <MultiSelect
@@ -360,60 +310,44 @@ export default function SettingsPage() {
               </div>
             )}
 
-            <div className="mt-4 flex justify-end">
-              <button
+            <div className="flex justify-end">
+              <Button
+                variant="gradient"
+                size="sm"
                 onClick={() => refreshModels(ProviderType.OLLAMA)}
-                className="flex items-center gap-1.5 rounded-xl px-4 py-2 text-sm font-semibold transition-opacity hover:opacity-90"
-                style={{
-                  background:
-                    "linear-gradient(135deg, var(--color-agent-primary), var(--color-agent-primary-container))",
-                  color: "var(--color-agent-on-primary)",
-                }}
+                icon={
+                  <svg
+                    width="14"
+                    height="14"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                  >
+                    <polyline points="13 2 13 9 20 9" />
+                    <polyline points="11 22 11 15 4 15" />
+                    <path d="M2 11.5A10 10 0 0 1 20.5 8" />
+                    <path d="M22 12.5A10 10 0 0 1 3.5 16" />
+                  </svg>
+                }
               >
-                <svg
-                  width="14"
-                  height="14"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                >
-                  <polyline points="13 2 13 9 20 9" />
-                  <polyline points="11 22 11 15 4 15" />
-                  <path d="M2 11.5A10 10 0 0 1 20.5 8" />
-                  <path d="M22 12.5A10 10 0 0 1 3.5 16" />
-                </svg>
                 Test Connection
-              </button>
+              </Button>
             </div>
-          </div>
-        </section>
+          </SurfacePanel>
+        </PageSection>
 
         {/* Security Architecture */}
-        <section>
-          <h2
-            className="mb-4 flex items-center gap-2 text-base font-semibold"
-            style={{ color: "var(--color-agent-on-surface)" }}
-          >
-            <svg
-              width="16"
-              height="16"
-              viewBox="0 0 24 24"
-              fill="currentColor"
-              style={{ color: "var(--color-agent-primary)" }}
-            >
+        <PageSection
+          title="Security Architecture"
+          icon={
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
               <path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm-2 16l-4-4 1.41-1.41L10 14.17l6.59-6.59L18 9l-8 8z" />
             </svg>
-            Security Architecture
-          </h2>
-          <div
-            className="rounded-2xl p-5"
-            style={{ background: "var(--color-agent-surface-low)" }}
-          >
-            <p
-              className="mb-5 text-sm leading-relaxed"
-              style={{ color: "var(--color-agent-on-surface-variant)" }}
-            >
+          }
+        >
+          <SurfacePanel>
+            <p className="text-agent-on-surface-variant text-sm leading-relaxed">
               We use Tauri Stronghold to encrypt your API keys before they are
               written to disk. Our &ldquo;Local-First&rdquo; philosophy ensures
               that Curator AI operates as a sovereign vault for your
@@ -431,55 +365,30 @@ export default function SettingsPage() {
                     height="16"
                     viewBox="0 0 24 24"
                     fill="currentColor"
-                    style={{ color: "var(--color-agent-secondary)" }}
+                    className="text-agent-secondary shrink-0"
                   >
                     <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z" />
                   </svg>
-                  <span style={{ color: "var(--color-agent-on-surface)" }}>
-                    {feature}
-                  </span>
+                  <span className="text-agent-on-surface">{feature}</span>
                 </li>
               ))}
             </ul>
-          </div>
-        </section>
+          </SurfacePanel>
+        </PageSection>
 
         {/* General Preferences */}
-        <section>
-          <h2
-            className="mb-4 text-base font-semibold"
-            style={{ color: "var(--color-agent-on-surface)" }}
-          >
-            General Preferences
-          </h2>
-          <div
-            className="space-y-5 rounded-2xl p-5"
-            style={{ background: "var(--color-agent-surface-low)" }}
-          >
+        <PageSection title="General Preferences">
+          <SurfacePanel stack>
             {/* Interface Theme */}
-            <div>
-              <div className="mb-3">
-                <p
-                  className="text-sm font-medium"
-                  style={{ color: "var(--color-agent-on-surface)" }}
-                >
-                  Interface Theme
-                </p>
-                <p
-                  className="text-xs"
-                  style={{ color: "var(--color-agent-on-surface-variant)" }}
-                >
-                  Switch between Light and Dark mode
-                </p>
-              </div>
-              <div
-                className="inline-flex gap-1 rounded-xl p-1"
-                style={{ background: "var(--color-agent-surface-container)" }}
-                role="group"
-                aria-label="Theme"
-              >
-                {(
-                  [
+            <SettingsRow
+              label="Interface Theme"
+              description="Switch between Light and Dark mode"
+              control={
+                <SegmentedControl
+                  ariaLabel="Theme"
+                  value={theme}
+                  onChange={setTheme}
+                  options={[
                     {
                       value: "light" as const,
                       label: "Light",
@@ -539,93 +448,35 @@ export default function SettingsPage() {
                         </svg>
                       ),
                     },
-                  ] as const
-                ).map(({ value, label, icon }) => (
-                  <button
-                    key={value}
-                    onClick={() => setTheme(value)}
-                    className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition-all"
-                    style={
-                      theme === value
-                        ? {
-                            background: "var(--color-agent-surface-lowest)",
-                            color: "var(--color-agent-on-surface)",
-                            boxShadow: "var(--shadow-agent-card)",
-                          }
-                        : {
-                            background: "transparent",
-                            color: "var(--color-agent-on-surface-variant)",
-                          }
-                    }
-                  >
-                    {icon}
-                    {label}
-                  </button>
-                ))}
-              </div>
-            </div>
+                  ]}
+                />
+              }
+            />
 
             {/* Telemetry */}
-            <div className="flex items-center justify-between">
-              <div>
-                <p
-                  className="text-sm font-medium"
-                  style={{ color: "var(--color-agent-on-surface)" }}
-                >
-                  Anonymous Telemetry
-                </p>
-                <p
-                  className="text-xs"
-                  style={{ color: "var(--color-agent-on-surface-variant)" }}
-                >
-                  Help improve AI parsing accuracy (Opt-in)
-                </p>
-              </div>
-              <button
-                role="switch"
-                aria-checked={telemetry}
-                onClick={() => setTelemetry((v) => !v)}
-                className="relative inline-flex h-6 w-11 items-center rounded-full transition-colors"
-                style={{
-                  background: telemetry
-                    ? "var(--color-agent-primary)"
-                    : "var(--color-agent-surface-highest)",
-                }}
-              >
-                <span
-                  className="inline-block h-4 w-4 transform rounded-full bg-white transition-transform"
-                  style={{
-                    transform: telemetry
-                      ? "translateX(22px)"
-                      : "translateX(4px)",
-                  }}
+            <SettingsRow
+              label="Anonymous Telemetry"
+              description="Help improve AI parsing accuracy (Opt-in)"
+              control={
+                <Toggle
+                  checked={telemetry}
+                  onChange={setTelemetry}
+                  label="Anonymous Telemetry"
                 />
-              </button>
-            </div>
+              }
+            />
 
             {/* Version */}
-            <div
-              className="flex items-center justify-between rounded-xl px-4 py-3"
-              style={{ background: "var(--color-agent-surface-container)" }}
-            >
-              <span
-                className="text-sm"
-                style={{ color: "var(--color-agent-on-surface-variant)" }}
-              >
+            <div className="bg-agent-surface-container flex items-center justify-between rounded-xl px-4 py-3">
+              <span className="text-agent-on-surface-variant text-sm">
                 Version 2.4.0 (Stable)
               </span>
-              <button
-                className="rounded-lg px-3 py-1.5 text-xs font-medium transition-opacity hover:opacity-80"
-                style={{
-                  background: "var(--color-agent-surface-high)",
-                  color: "var(--color-agent-on-surface)",
-                }}
-              >
+              <Button variant="secondary" size="sm">
                 Check for Updates
-              </button>
+              </Button>
             </div>
-          </div>
-        </section>
+          </SurfacePanel>
+        </PageSection>
       </div>
     </div>
   );

@@ -26,8 +26,9 @@ export default function NewJobPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
 
-  const { selectedProvider, getSelectedModel } = useModelStore();
-  const currentSelectedModel = getSelectedModel(selectedProvider!);
+  const { getSelectedModel, getSelectedProvider } = useModelStore();
+  const currentSelectedModel = getSelectedModel();
+  const selectedProvider = getSelectedProvider();
 
   useEffect(() => {
     const checkProfile = async () => {
