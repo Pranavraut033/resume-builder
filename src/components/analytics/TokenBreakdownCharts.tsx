@@ -28,7 +28,10 @@ export default function TokenBreakdownCharts({
   // Handle empty data
   if (!data || data.length === 0) {
     return (
-      <div className="flex h-[300px] items-center justify-center text-gray-500 dark:text-gray-400">
+      <div
+        className="text-agent-on-surface-variant flex items-center justify-center"
+        style={{ minHeight: 300 }}
+      >
         <p>No {type} data available yet.</p>
       </div>
     );
@@ -69,28 +72,40 @@ export default function TokenBreakdownCharts({
   return (
     <ResponsiveContainer width="100%" height={300}>
       <BarChart data={displayData}>
-        <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+        <CartesianGrid
+          strokeDasharray="3 3"
+          stroke="var(--color-agent-surface-variant)"
+        />
         <XAxis
           dataKey="name"
-          stroke="#6b7280"
-          style={{ fontSize: "12px", fill: "#6b7280" }}
+          stroke="var(--color-agent-on-surface-variant)"
+          style={{
+            fontSize: "12px",
+            fill: "var(--color-agent-on-surface-variant)",
+          }}
           angle={-45}
           textAnchor="end"
           height={80}
         />
         <YAxis
-          stroke="#6b7280"
-          style={{ fontSize: "12px", fill: "#6b7280" }}
+          stroke="var(--color-agent-on-surface-variant)"
+          style={{
+            fontSize: "12px",
+            fill: "var(--color-agent-on-surface-variant)",
+          }}
           tickFormatter={formatNumber}
         />
         <Tooltip
           contentStyle={{
-            backgroundColor: "rgba(255, 255, 255, 0.98)",
-            border: "1px solid #e5e7eb",
+            backgroundColor: "var(--color-agent-surface)",
+            border: "1px solid var(--color-agent-outline-variant)",
             borderRadius: "0.5rem",
             boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1)",
           }}
-          labelStyle={{ color: "#111827", fontWeight: 600 }}
+          labelStyle={{
+            color: "var(--color-agent-on-surface)",
+            fontWeight: 600,
+          }}
           formatter={(value: any) =>
             typeof value === "number" ? value.toLocaleString() : "0"
           }
@@ -102,13 +117,13 @@ export default function TokenBreakdownCharts({
         <Legend wrapperStyle={{ paddingTop: "20px" }} />
         <Bar
           dataKey="inputTokens"
-          fill="#3b82f6"
+          fill="var(--color-agent-primary)"
           name="Input Tokens"
           radius={[4, 4, 0, 0]}
         />
         <Bar
           dataKey="outputTokens"
-          fill="#8b5cf6"
+          fill="var(--color-agent-primary-container)"
           name="Output Tokens"
           radius={[4, 4, 0, 0]}
         />

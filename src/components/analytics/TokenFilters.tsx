@@ -75,7 +75,7 @@ export default function TokenFilters({
         <div>
           <label
             htmlFor="startDate"
-            className="block text-sm font-medium text-gray-700 dark:text-gray-300"
+            className="text-agent-on-surface-variant block text-sm font-medium"
           >
             Start Date
           </label>
@@ -84,7 +84,7 @@ export default function TokenFilters({
             id="startDate"
             value={startDate}
             onChange={(e) => setStartDate(e.target.value)}
-            className="mt-1 block w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
+            className="border-agent-outline-variant bg-agent-surface-low text-agent-on-surface focus:border-agent-primary focus:ring-agent-primary mt-1 block w-full rounded-xl border px-3 py-2 text-sm shadow-sm focus:ring-1 focus:outline-none"
           />
         </div>
 
@@ -92,7 +92,7 @@ export default function TokenFilters({
         <div>
           <label
             htmlFor="endDate"
-            className="block text-sm font-medium text-gray-700 dark:text-gray-300"
+            className="text-agent-on-surface-variant block text-sm font-medium"
           >
             End Date
           </label>
@@ -101,7 +101,7 @@ export default function TokenFilters({
             id="endDate"
             value={endDate}
             onChange={(e) => setEndDate(e.target.value)}
-            className="mt-1 block w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
+            className="border-agent-outline-variant bg-agent-surface-low text-agent-on-surface focus:border-agent-primary focus:ring-agent-primary mt-1 block w-full rounded-xl border px-3 py-2 text-sm shadow-sm focus:ring-1 focus:outline-none"
           />
         </div>
 
@@ -109,7 +109,7 @@ export default function TokenFilters({
         <div>
           <label
             htmlFor="provider"
-            className="block text-sm font-medium text-gray-700 dark:text-gray-300"
+            className="text-agent-on-surface-variant block text-sm font-medium"
           >
             Provider
           </label>
@@ -117,7 +117,7 @@ export default function TokenFilters({
             id="provider"
             value={provider}
             onChange={(e) => setProvider(e.target.value)}
-            className="mt-1 block w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
+            className="border-agent-outline-variant bg-agent-surface-low text-agent-on-surface focus:border-agent-primary focus:ring-agent-primary mt-1 block w-full rounded-xl border px-3 py-2 text-sm shadow-sm focus:ring-1 focus:outline-none"
           >
             <option value="">All Providers</option>
             {providers.map((p) => (
@@ -132,7 +132,7 @@ export default function TokenFilters({
         <div>
           <label
             htmlFor="purpose"
-            className="block text-sm font-medium text-gray-700 dark:text-gray-300"
+            className="text-agent-on-surface-variant block text-sm font-medium"
           >
             Purpose
           </label>
@@ -140,7 +140,7 @@ export default function TokenFilters({
             id="purpose"
             value={purpose}
             onChange={(e) => setPurpose(e.target.value)}
-            className="mt-1 block w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
+            className="border-agent-outline-variant bg-agent-surface-low text-agent-on-surface focus:border-agent-primary focus:ring-agent-primary mt-1 block w-full rounded-xl border px-3 py-2 text-sm shadow-sm focus:ring-1 focus:outline-none"
           >
             <option value="">All Purposes</option>
             {purposes.map((p) => (
@@ -156,10 +156,12 @@ export default function TokenFilters({
       </div>
 
       {/* Action Buttons */}
-      <div className="flex gap-2">
-        <Button onClick={handleApplyFilters}>Apply Filters</Button>
+      <div className="flex flex-wrap gap-2">
+        <Button onClick={handleApplyFilters} size="sm">
+          Apply Filters
+        </Button>
         {hasActiveFilters && (
-          <Button variant="secondary" onClick={handleClearFilters}>
+          <Button variant="secondary" size="sm" onClick={handleClearFilters}>
             Clear Filters
           </Button>
         )}

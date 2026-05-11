@@ -31,8 +31,13 @@ import TokenFilters from "@/components/analytics/TokenFilters";
 import TokenSummaryCards from "@/components/analytics/TokenSummaryCards";
 import TokenTimeSeriesChart from "@/components/analytics/TokenTimeSeriesChart";
 import TokenUsageTable from "@/components/analytics/TokenUsageTable";
-import { Button } from "@/components/ui/Button";
-import { Card } from "@/components/ui/Card";
+import {
+  Button,
+  Card,
+  PageHeader,
+  PageSection,
+  SurfacePanel,
+} from "@/components/ui";
 import { createLogger } from "@/lib/logger";
 
 const logger = createLogger("TokenAnalytics");
@@ -107,27 +112,26 @@ export default function TokenAnalyticsPage() {
   const totalPages = Math.ceil(totalRecords / recordsPerPage);
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+    <div className="bg-agent-surface-lowest text-agent-on-surface min-h-screen">
       <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
         {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-            Token Usage Analytics
-          </h1>
-          <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
-            Monitor and analyze your LLM token consumption across providers and
-            models.
-          </p>
-        </div>
+        <PageHeader
+          title="Token Usage Analytics"
+          description="Monitor and analyze your LLM token consumption across providers and models."
+        />
 
-        {/* Filters */}
-        <Card className="mb-6 p-4">
-          <TokenFilters filters={filters} onFilterChange={handleFilterChange} />
-        </Card>
+        <PageSection title="Filters" className="mb-5">
+          <SurfacePanel>
+            <TokenFilters
+              filters={filters}
+              onFilterChange={handleFilterChange}
+            />
+          </SurfacePanel>
+        </PageSection>
 
         {loading && (
           <div className="flex items-center justify-center py-12">
-            <div className="h-8 w-8 animate-spin rounded-full border-4 border-blue-500 border-t-transparent"></div>
+            <div className="border-agent-primary h-8 w-8 animate-spin rounded-full border-4 border-t-transparent"></div>
           </div>
         )}
 
@@ -138,78 +142,86 @@ export default function TokenAnalyticsPage() {
 
             {/* Time Series Chart */}
             {timeSeriesData.length > 0 && (
-              <Card className="mb-6 p-6">
-                <h2 className="mb-4 text-xl font-semibold text-gray-900 dark:text-white">
-                  Token Usage Over Time
-                </h2>
-                <TokenTimeSeriesChart data={timeSeriesData} />
-              </Card>
+              <PageSection title="Token Usage Over Time">
+                <SurfacePanel>
+                  <TokenTimeSeriesChart data={timeSeriesData} />
+                </SurfacePanel>
+              </PageSection>
             )}
 
             {/* Breakdown Charts */}
             {(providerData.length > 0 || modelData.length > 0) && (
-              <div className="mb-6 grid grid-cols-1 gap-6 lg:grid-cols-2">
-                {providerData.length > 0 && (
-                  <Card className="p-6">
-                    <h2 className="mb-4 text-xl font-semibold text-gray-900 dark:text-white">
-                      Usage by Provider
-                    </h2>
-                    <TokenBreakdownCharts data={providerData} type="provider" />
-                  </Card>
-                )}
-                {modelData.length > 0 && (
-                  <Card className="p-6">
-                    <h2 className="mb-4 text-xl font-semibold text-gray-900 dark:text-white">
-                      Usage by Model
-                    </h2>
-                    <TokenBreakdownCharts data={modelData} type="model" />
-                  </Card>
-                )}
-              </div>
+              <PageSection title="Usage Breakdown">
+                <div className="mb-6 grid grid-cols-1 gap-6 lg:grid-cols-2">
+                  {providerData.length > 0 && (
+                    <Card className="p-6" padding="lg" variant="surface">
+                      <h2 className="text-agent-on-surface mb-4 text-xl font-semibold tracking-tight">
+                        Usage by Provider
+                      </h2>
+                      <TokenBreakdownCharts
+                        data={providerData}
+                        type="provider"
+                      />
+                    </Card>
+                  )}
+                  {modelData.length > 0 && (
+                    <Card className="p-6" padding="lg" variant="surface">
+                      <h2 className="text-agent-on-surface mb-4 text-xl font-semibold tracking-tight">
+                        Usage by Model
+                      </h2>
+                      <TokenBreakdownCharts data={modelData} type="model" />
+                    </Card>
+                  )}
+                </div>
+              </PageSection>
             )}
 
             {/* Data Table */}
             {records.length > 0 && (
-              <Card className="p-6">
-                <div className="mb-4 flex items-center justify-between">
-                  <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
-                    Token Usage Records
-                  </h2>
-                  <div className="text-sm text-gray-600 dark:text-gray-400">
-                    {totalRecords} total record{totalRecords !== 1 ? "s" : ""}
+              <PageSection title="Token Usage Records">
+                <SurfacePanel className="p-6" stack>
+                  <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="text-agent-on-surface text-xl font-semibold tracking-tight">
+                      Records overview
+                    </div>
+                    <div className="text-agent-on-surface-variant text-sm">
+                      {totalRecords} total record{totalRecords !== 1 ? "s" : ""}
+                    </div>
                   </div>
-                </div>
-                <TokenUsageTable records={records} />
+                  <TokenUsageTable records={records} />
 
-                {/* Pagination */}
-                {totalPages > 1 && (
-                  <div className="mt-4 flex items-center justify-between border-t border-gray-200 pt-4 dark:border-gray-700">
-                    <div className="text-sm text-gray-600 dark:text-gray-400">
-                      Page {currentPage} of {totalPages}
+                  {/* Pagination */}
+                  {totalPages > 1 && (
+                    <div className="border-agent-outline-variant mt-4 flex items-center justify-between border-t pt-4">
+                      <div className="text-agent-on-surface-variant text-sm">
+                        Page {currentPage} of {totalPages}
+                      </div>
+                      <div className="flex gap-2">
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          onClick={() => handlePageChange(currentPage - 1)}
+                          disabled={currentPage === 1}
+                        >
+                          Previous
+                        </Button>
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          onClick={() => handlePageChange(currentPage + 1)}
+                          disabled={currentPage === totalPages}
+                        >
+                          Next
+                        </Button>
+                      </div>
                     </div>
-                    <div className="flex gap-2">
-                      <Button
-                        variant="secondary"
-                        onClick={() => handlePageChange(currentPage - 1)}
-                        disabled={currentPage === 1}
-                      >
-                        Previous
-                      </Button>
-                      <Button
-                        variant="secondary"
-                        onClick={() => handlePageChange(currentPage + 1)}
-                        disabled={currentPage === totalPages}
-                      >
-                        Next
-                      </Button>
-                    </div>
-                  </div>
-                )}
-              </Card>
+                  )}
+                </SurfacePanel>
+              </PageSection>
             )}
 
             {records.length === 0 && (
-              <Card className="p-12 text-center">
+              <Card className="p-12 text-center" variant="surface">
                 <p className="text-gray-600 dark:text-gray-400">
                   No token usage data found. Start using the application to see
                   analytics.

@@ -24,9 +24,13 @@ const SortIcon = ({
   sortDirection: SortDirection;
 }) => {
   if (sortField !== field) {
-    return <span className="ml-1 text-gray-400">⇅</span>;
+    return <span className="text-agent-on-surface-variant ml-1">⇅</span>;
   }
-  return <span className="ml-1">{sortDirection === "asc" ? "↑" : "↓"}</span>;
+  return (
+    <span className="text-agent-on-surface ml-1">
+      {sortDirection === "asc" ? "↑" : "↓"}
+    </span>
+  );
 };
 
 export default function TokenUsageTable({ records }: TokenUsageTableProps) {
@@ -82,12 +86,12 @@ export default function TokenUsageTable({ records }: TokenUsageTableProps) {
 
   return (
     <div className="overflow-x-auto">
-      <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-        <thead className="bg-gray-50 dark:bg-gray-800">
+      <table className="divide-agent-outline-variant min-w-full divide-y">
+        <thead className="bg-agent-surface-container">
           <tr>
             <th
               scope="col"
-              className="cursor-pointer px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+              className="text-agent-on-surface-variant hover:text-agent-on-surface cursor-pointer px-6 py-3 text-left text-xs font-semibold tracking-wider uppercase"
               onClick={() => handleSort("createdAt")}
             >
               Date{" "}
@@ -99,25 +103,25 @@ export default function TokenUsageTable({ records }: TokenUsageTableProps) {
             </th>
             <th
               scope="col"
-              className="px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase dark:text-gray-400"
+              className="text-agent-on-surface-variant px-6 py-3 text-left text-xs font-semibold tracking-wider uppercase"
             >
               Provider
             </th>
             <th
               scope="col"
-              className="px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase dark:text-gray-400"
+              className="text-agent-on-surface-variant px-6 py-3 text-left text-xs font-semibold tracking-wider uppercase"
             >
               Model
             </th>
             <th
               scope="col"
-              className="px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase dark:text-gray-400"
+              className="text-agent-on-surface-variant px-6 py-3 text-left text-xs font-semibold tracking-wider uppercase"
             >
               Purpose
             </th>
             <th
               scope="col"
-              className="cursor-pointer px-6 py-3 text-right text-xs font-medium tracking-wider text-gray-500 uppercase hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+              className="text-agent-on-surface-variant hover:text-agent-on-surface cursor-pointer px-6 py-3 text-right text-xs font-semibold tracking-wider uppercase"
               onClick={() => handleSort("inputTokens")}
             >
               Input{" "}
@@ -129,7 +133,7 @@ export default function TokenUsageTable({ records }: TokenUsageTableProps) {
             </th>
             <th
               scope="col"
-              className="cursor-pointer px-6 py-3 text-right text-xs font-medium tracking-wider text-gray-500 uppercase hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+              className="text-agent-on-surface-variant hover:text-agent-on-surface cursor-pointer px-6 py-3 text-right text-xs font-semibold tracking-wider uppercase"
               onClick={() => handleSort("outputTokens")}
             >
               Output{" "}
@@ -141,7 +145,7 @@ export default function TokenUsageTable({ records }: TokenUsageTableProps) {
             </th>
             <th
               scope="col"
-              className="cursor-pointer px-6 py-3 text-right text-xs font-medium tracking-wider text-gray-500 uppercase hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+              className="text-agent-on-surface-variant hover:text-agent-on-surface cursor-pointer px-6 py-3 text-right text-xs font-semibold tracking-wider uppercase"
               onClick={() => handleSort("totalTokens")}
             >
               Total{" "}
@@ -153,35 +157,32 @@ export default function TokenUsageTable({ records }: TokenUsageTableProps) {
             </th>
           </tr>
         </thead>
-        <tbody className="divide-y divide-gray-200 bg-white dark:divide-gray-700 dark:bg-gray-900">
+        <tbody className="divide-agent-outline-variant bg-agent-surface divide-y">
           {sortedRecords.map((record) => (
-            <tr
-              key={record.id}
-              className="hover:bg-gray-50 dark:hover:bg-gray-800"
-            >
-              <td className="px-6 py-4 text-sm whitespace-nowrap text-gray-900 dark:text-gray-100">
+            <tr key={record.id} className="hover:bg-agent-surface-low">
+              <td className="text-agent-on-surface px-6 py-4 text-sm whitespace-nowrap">
                 {formatDate(record.createdAt)}
               </td>
               <td className="px-6 py-4 text-sm whitespace-nowrap">
-                <span className="inline-flex rounded-full bg-blue-100 px-2 py-1 text-xs font-semibold text-blue-800 dark:bg-blue-900 dark:text-blue-200">
+                <span className="bg-agent-surface-high text-agent-on-surface inline-flex rounded-full px-2 py-1 text-xs font-semibold">
                   {record.provider}
                 </span>
               </td>
-              <td className="max-w-xs truncate px-6 py-4 text-sm text-gray-900 dark:text-gray-100">
+              <td className="text-agent-on-surface max-w-xs truncate px-6 py-4 text-sm">
                 {record.model}
               </td>
               <td className="px-6 py-4 text-sm whitespace-nowrap">
-                <span className="inline-flex rounded-full bg-green-100 px-2 py-1 text-xs font-semibold text-green-800 dark:bg-green-900 dark:text-green-200">
+                <span className="bg-agent-surface-high text-agent-on-surface inline-flex rounded-full px-2 py-1 text-xs font-semibold">
                   {formatPurpose(record.purpose)}
                 </span>
               </td>
-              <td className="px-6 py-4 text-right text-sm whitespace-nowrap text-gray-900 dark:text-gray-100">
+              <td className="text-agent-on-surface px-6 py-4 text-right text-sm whitespace-nowrap">
                 {record.inputTokens.toLocaleString()}
               </td>
-              <td className="px-6 py-4 text-right text-sm whitespace-nowrap text-gray-900 dark:text-gray-100">
+              <td className="text-agent-on-surface px-6 py-4 text-right text-sm whitespace-nowrap">
                 {record.outputTokens.toLocaleString()}
               </td>
-              <td className="px-6 py-4 text-right text-sm font-medium whitespace-nowrap text-gray-900 dark:text-gray-100">
+              <td className="text-agent-on-surface px-6 py-4 text-right text-sm font-medium whitespace-nowrap">
                 {(record.inputTokens + record.outputTokens).toLocaleString()}
               </td>
             </tr>

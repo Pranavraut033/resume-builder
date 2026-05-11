@@ -64,20 +64,20 @@ export default function TokenSummaryCards({
   return (
     <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
       {cards.map((card, index) => (
-        <Card key={index} className="p-6">
+        <Card key={index} className="p-6" variant="container">
           <div className="flex items-start justify-between">
             <div className="flex-1">
-              <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
+              <p className="text-agent-on-surface-variant text-sm font-medium">
                 {card.title}
               </p>
-              <p className="mt-2 text-3xl font-semibold text-gray-900 dark:text-white">
+              <p className="text-agent-on-surface mt-2 text-3xl font-semibold">
                 {card.value}
               </p>
-              <p className="mt-1 text-xs text-gray-500 dark:text-gray-500">
+              <p className="text-agent-on-surface-variant mt-1 text-xs">
                 {card.description}
               </p>
             </div>
-            <span className="text-2xl">{card.icon}</span>
+            <span className="text-agent-primary text-3xl">{card.icon}</span>
           </div>
         </Card>
       ))}
