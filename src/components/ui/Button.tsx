@@ -4,7 +4,13 @@ import { cn } from "@/lib/cn";
 
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   /** Visual variant of the button */
-  variant?: "primary" | "secondary" | "danger" | "ghost" | "blocky";
+  variant?:
+    | "primary"
+    | "secondary"
+    | "danger"
+    | "ghost"
+    | "gradient"
+    | "blocky";
   /** Size of the button */
   size?: "sm" | "md" | "lg";
   /** Optional icon to render before children */
@@ -16,11 +22,15 @@ const baseStyles =
 
 const variants = {
   primary:
-    "bg-primary-600 text-white hover:bg-primary-700 focus:ring-primary-500",
-  secondary: "bg-gray-600 text-white hover:bg-gray-700 focus:ring-gray-500",
-  danger: "bg-red-600 text-white hover:bg-red-700 focus:ring-red-500",
+    "bg-agent-primary text-agent-on-primary hover:bg-agent-primary-container focus:ring-agent-primary",
+  secondary:
+    "bg-agent-surface-container text-agent-on-surface hover:bg-agent-surface-high focus:ring-agent-primary",
+  danger:
+    "bg-agent-error text-agent-on-error hover:bg-agent-error-container focus:ring-agent-error",
   ghost:
-    "text-gray-600 hover:text-gray-800 hover:bg-gray-50 focus:ring-gray-500 dark:text-gray-300 dark:hover:text-white dark:hover:bg-gray-700",
+    "text-agent-on-surface hover:text-agent-primary hover:bg-agent-surface-low focus:ring-agent-primary",
+  gradient:
+    "bg-gradient-to-br from-agent-primary to-agent-primary-container text-agent-on-primary hover:opacity-90 focus:ring-agent-primary border-none shadow-none",
   blocky:
     "bg-blocky-500 text-blocky-900 hover:bg-blocky-500/90 focus:ring-blocky-500 rounded-block shadow-block",
 };

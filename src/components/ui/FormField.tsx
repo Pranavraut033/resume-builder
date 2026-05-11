@@ -32,12 +32,12 @@ export function FormField({
   const inputType = isPasswordField && showPassword ? "text" : type;
 
   const inputClasses =
-    "w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400";
+    "w-full px-3 py-2 border border-agent-outline-variant rounded-lg focus:ring-agent-primary focus:border-transparent transition-colors bg-agent-surface-lowest text-agent-on-surface placeholder-(--color-agent-on-surface-variant)";
 
   return (
     <div className={`space-y-1 ${className}`}>
       {label && (
-        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+        <label className="block text-sm font-medium text-agent-on-surface">
           {label}
           {required && <span className="ml-1 text-red-500">*</span>}
         </label>
@@ -65,7 +65,7 @@ export function FormField({
             <button
               type="button"
               onClick={() => setShowPassword(!showPassword)}
-              className="absolute inset-y-0 right-0 mr-3 flex items-center text-gray-500 transition-colors hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+              className="absolute inset-y-0 right-0 mr-3 flex items-center text-agent-on-surface-variant transition-colors hover:text-agent-on-surface"
               aria-label={showPassword ? "Hide password" : "Show password"}
             >
               <Icon
@@ -77,7 +77,7 @@ export function FormField({
         </div>
       )}
       {helpText && (
-        <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+        <p className="mt-1 text-xs text-agent-on-surface-variant">
           {helpText}
         </p>
       )}

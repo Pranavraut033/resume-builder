@@ -45,7 +45,7 @@ export function Modal({
           leaveFrom="opacity-100"
           leaveTo="opacity-0"
         >
-          <div className="bg-opacity-50 fixed inset-0 bg-black" />
+          <div className="fixed inset-0 bg-black/40 backdrop-blur-lg" />
         </Transition.Child>
 
         <div className="fixed inset-0 overflow-y-auto">
@@ -60,26 +60,26 @@ export function Modal({
               leaveTo="opacity-0 scale-95"
             >
               <Dialog.Panel
-                className={`w-full ${sizes[size]} max-h-[90vh] transform overflow-hidden overflow-y-auto rounded-lg border border-gray-200 bg-white text-left align-middle shadow-xl transition-all dark:border-gray-700 dark:bg-gray-800`}
+                className={`w-full ${sizes[size]} border-agent-outline-variant bg-agent-surface max-h-[90vh] transform overflow-hidden overflow-y-auto rounded-lg border text-left align-middle shadow-(--shadow-agent-modal) transition-all`}
               >
-                <div className="flex items-center justify-between border-b border-gray-200 p-6 dark:border-gray-700">
+                <div className="border-agent-outline-variant flex items-center justify-between border-b p-6">
                   <Dialog.Title
                     as="h2"
-                    className="text-xl font-semibold text-gray-900 dark:text-white"
+                    className="text-agent-on-surface text-xl font-semibold"
                   >
                     {title}
                   </Dialog.Title>
                   <button
                     onClick={onClose}
-                    className="text-gray-400 transition-colors hover:text-gray-600 dark:text-gray-300 dark:hover:text-gray-100"
+                    className="text-agent-on-surface-variant hover:text-agent-on-surface transition-colors"
                   >
                     <Icon name="x" size={24} />
                   </button>
                 </div>
 
-                <div className="p-6">{children}</div>
+                <div className="text-agent-on-surface p-6">{children}</div>
 
-                <div className="flex justify-end gap-3 border-t border-gray-200 bg-gray-50 p-6 dark:border-gray-700 dark:bg-gray-700">
+                <div className="border-agent-outline-variant bg-agent-surface-lowest flex justify-end gap-3 border-t p-6">
                   <Button variant="secondary" onClick={onClose}>
                     Cancel
                   </Button>

@@ -26,7 +26,7 @@ export function Section({
   return (
     <div className={`mb-8 ${className}`}>
       <div className="mb-4 flex items-center justify-between">
-        <h2 className="border-b-2 border-blue-500 pb-1 text-2xl font-bold text-gray-900 dark:text-white">
+        <h2 className="border-agent-primary text-agent-on-surface border-b-2 pb-2 text-lg font-semibold tracking-tight">
           {title}
         </h2>
         <div className="flex gap-2">
@@ -34,7 +34,7 @@ export function Section({
           {onEdit && (
             <button
               onClick={onEdit}
-              className="rounded-lg p-2 text-gray-500 transition-colors hover:bg-blue-50 hover:text-blue-600"
+              className="text-agent-on-surface-variant hover:bg-agent-surface-lowest hover:text-agent-primary rounded-lg p-2 transition-colors"
               title="Edit section"
             >
               <Icon name="edit" size={16} />
@@ -43,7 +43,7 @@ export function Section({
           {canDelete && onDelete && (
             <button
               onClick={onDelete}
-              className="rounded-lg p-2 text-gray-500 transition-colors hover:bg-red-50 hover:text-red-600"
+              className="text-agent-on-surface-variant hover:bg-agent-error-container hover:text-agent-on-error rounded-lg p-2 transition-colors"
               title="Delete section"
             >
               <Icon name="trash" size={16} />

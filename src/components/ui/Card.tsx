@@ -5,8 +5,9 @@ import { ReactNode } from "react";
 interface CardProps {
   children: ReactNode;
   className?: string;
-  padding?: "sm" | "md" | "lg";
+  padding?: "sm" | "md" | "lg" | "none";
   shadow?: boolean;
+  variant?: "surface" | "container" | "surface-low";
 }
 
 export function Card({
@@ -14,18 +15,27 @@ export function Card({
   className = "",
   padding = "md",
   shadow = true,
+  variant = "surface",
 }: CardProps) {
   const paddings = {
     sm: "p-4",
     md: "p-6",
     lg: "p-8",
+    none: "",
   };
 
-  const shadowClass = shadow ? "shadow-block border" : "border";
+  const bgClass =
+    variant === "surface-low"
+      ? "bg-agent-surface-low"
+      : variant === "container"
+        ? "bg-agent-surface-container"
+        : "bg-agent-surface";
+
+  const shadowClass = shadow ? "shadow-(--shadow-agent-card)" : "shadow-none";
 
   return (
     <div
-      className={`bg-blocky-100 rounded-block-lg dark:bg-gray-800 ${shadowClass} border-blocky-500 dark:border-gray-700 ${paddings[padding]} font-blocky ${className}`}
+      className={`${bgClass} border-agent-outline-variant rounded-(--radius-agent-lg) border ${shadowClass} ${paddings[padding]} ${className}`}
     >
       {children}
     </div>
