@@ -30,7 +30,7 @@ const CACHE_DURATION_MS = 6 * 60 * 60 * 1000;
 interface ModelState {
   // Cached models organized by provider
   modelsByProvider: ProviderModels;
-  // Currently selected model for each provider (single selection)
+  // Currently selected model (single selection across all providers);
   selectedModel: ModelProviderPair | null;
 
   // Selected models list by provider (for multi-select UIs)
