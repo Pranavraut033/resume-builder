@@ -14,7 +14,7 @@ import React, {
   ReactNode,
 } from "react";
 
-import { ResumeJSON, JobDetails } from "@/types/resume";
+import { ResumeJSON, JobDetailsJSON } from "@/types/resume";
 
 export interface LLMGenerationState {
   isLoading: boolean;
@@ -32,7 +32,7 @@ export interface ResumeEditContextType {
   // Job data
   job: {
     id: number;
-    details: JobDetails | null;
+    details: JobDetailsJSON | null;
     description: string;
     rawData: Record<string, unknown> | null;
   } | null;
