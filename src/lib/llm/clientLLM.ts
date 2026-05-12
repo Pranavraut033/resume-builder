@@ -161,209 +161,6 @@ export async function parseResume(
     // Fallback to simple parser
     return simpleParseJobDescription(description);
   }
-
-  const provider = await ProviderFactory.getInstance(selectedProvider);
-  const requestId = generateRequestId();
-
-  if (!provider) {
-    throw new Error("No provider available for parsing");
-  }
-
-  // Use prompt template system for all providers
-  const { getPromptByPurpose } = await import("@/lib/llm/prompts");
-  const promptContext = {
-    resumeText,
-  };
-  const resolvedPrompt = getPromptByPurpose("parse_resume", promptContext);
-
-  if (selectedProvider === ProviderType.OPENAI && provider.parseResume) {
-    // Use OpenAI's structured output method
-
-    const result = await provider.runPrompt(
-      [
-        {
-          role: "system",
-          content: resolvedPrompt.systemPrompt,
-        },
-        {
-          role: "user",
-          content: resolvedPrompt.userPrompt,
-        },
-      ],
-      selectedModel
-    );
-
-    // Track token usage
-    if (result.usage?.prompt_tokens && result.usage?.completion_tokens) {
-      await trackTokenUsage({
-        model: selectedModel,
-        provider: selectedProvider as TokenUsageProvider,
-        inputTokens: result.usage.prompt_tokens,
-        outputTokens: result.usage.completion_tokens,
-        purpose: "RESUME_PARSING" as TokenUsagePurpose,
-        requestId,
-      });
-    }
-
-    const parsed = await provider.parseResume(resumeText, selectedModel);
-    return parsed;
-  }
-
-  // For all other providers, use standard prompt with runPrompt
-  const result = await provider.runPrompt(
-    [
-      {
-        role: "system",
-        content: resolvedPrompt.systemPrompt,
-      },
-      {
-        role: "user",
-        content: resolvedPrompt.userPrompt,
-      },
-    ],
-    selectedModel
-  );
-
-  // Track token usage
-  if (result.usage?.prompt_tokens && result.usage?.completion_tokens) {
-    await trackTokenUsage({
-      model: selectedModel,
-      provider: selectedProvider as TokenUsageProvider,
-      inputTokens: result.usage.prompt_tokens,
-      outputTokens: result.usage.completion_tokens,
-      purpose: "RESUME_PARSING" as TokenUsagePurpose,
-      requestId,
-    });
-  }
-
-  // Parse the response as JSON (this will be a ParsedResume structure)
-  const content = result.content || "";
-  const parsed = JSON.parse(content);
-
-  // Convert ParsedResume to ResumeJSON format (same conversion as above)
-  return {
-    header: {
-      name: parsed.header.name,
-      email: parsed.header.email,
-      phone: parsed.header.phone || undefined,
-      location: parsed.header.location || undefined,
-      linkedin: parsed.header.linkedin || undefined,
-      github: parsed.header.github || undefined,
-      website: parsed.header.website || undefined,
-    },
-    summary: parsed.summary,
-    experience: parsed.experience.map(
-      (exp: {
-        company: string;
-        role: string;
-        startDate: string;
-        endDate?: string;
-        description: string;
-        achievements: string[];
-      }) => ({
-        company: exp.company,
-        role: exp.role,
-        startDate: exp.startDate,
-        endDate: exp.endDate || undefined,
-        description: exp.description,
-        achievements: exp.achievements,
-      })
-    ),
-    projects: parsed.projects.map(
-      (proj: {
-        name: string;
-        description: string;
-        technologies: string[];
-        url?: string;
-        startDate?: string;
-        endDate?: string;
-      }) => ({
-        name: proj.name,
-        description: proj.description,
-        technologies: proj.technologies,
-        url: proj.url || undefined,
-        startDate: proj.startDate || undefined,
-        endDate: proj.endDate || undefined,
-      })
-    ),
-    skills: parsed.skills,
-    education: parsed.education.map(
-      (edu: {
-        institution: string;
-        degree: string;
-        field: string;
-        startDate: string;
-        endDate?: string;
-        gpa?: string;
-      }) => ({
-        institution: edu.institution,
-        degree: edu.degree,
-        field: edu.field,
-        startDate: edu.startDate,
-        endDate: edu.endDate || undefined,
-        gpa: edu.gpa || undefined,
-      })
-    ),
-    certifications: parsed.certifications.map(
-      (cert: { name: string; issuer: string; date: string; url?: string }) => ({
-        name: cert.name,
-        issuer: cert.issuer,
-        date: cert.date,
-        url: cert.url || undefined,
-      })
-    ),
-    publications: parsed.publications?.map(
-      (pub: {
-        title: string;
-        authors: string;
-        venue: string;
-        date: string;
-        url?: string;
-        doi?: string;
-      }) => ({
-        title: pub.title,
-        authors: pub.authors,
-        venue: pub.venue,
-        date: pub.date,
-        url: pub.url || undefined,
-        doi: pub.doi || undefined,
-      })
-    ),
-    languages: parsed.languages?.map(
-      (lang: { name: string; proficiency: string }) => ({
-        name: lang.name,
-        proficiency: lang.proficiency,
-      })
-    ),
-    volunteer: parsed.volunteer?.map(
-      (vol: {
-        organization: string;
-        role: string;
-        startDate: string;
-        endDate?: string;
-        description: string;
-      }) => ({
-        organization: vol.organization,
-        role: vol.role,
-        startDate: vol.startDate,
-        endDate: vol.endDate || undefined,
-        description: vol.description,
-      })
-    ),
-    awards: parsed.awards?.map(
-      (award: {
-        title: string;
-        issuer: string;
-        date: string;
-        description?: string;
-      }) => ({
-        title: award.title,
-        issuer: award.issuer,
-        date: award.date,
-        description: award.description || undefined,
-      })
-    ),
-  };
 }
 
 /**
@@ -371,9 +168,7 @@ export async function parseResume(
  */
 export async function generateResume(
   baseProfile: ResumeJSON,
-  jobDescription: string,
-  jobRole: string,
-  company: string,
+  jobDetails: JobDetails,
   selectedModel: string,
   selectedProvider: string
 ): Promise<ResumeJSON> {
@@ -387,11 +182,7 @@ export async function generateResume(
   const { result, usage } = await provider.generateResume(
     {
       baseProfile,
-      jobDetails: {
-        job_title: jobRole,
-        company_name: company,
-        raw_description: jobDescription,
-      } as any,
+      jobDetails: jobDetails,
     },
     {
       model: selectedModel,
@@ -423,9 +214,7 @@ export async function generateResume(
 export async function generateCoverLetter(
   baseProfile: ResumeJSON,
   resume: ResumeJSON,
-  jobDescription: string,
-  jobRole: string,
-  company: string,
+  jobDetails: JobDetails,
   selectedModel: string,
   selectedProvider: string
 ): Promise<string> {
@@ -439,11 +228,7 @@ export async function generateCoverLetter(
   const { result, usage } = await provider.generateCoverLetter(
     {
       baseProfile,
-      jobDetails: {
-        job_title: jobRole,
-        company_name: company,
-        raw_description: jobDescription,
-      } as any,
+      jobDetails: jobDetails,
       resume,
     },
     {
@@ -528,7 +313,7 @@ export async function generateResumeFieldText(
   field: string,
   context: {
     resumeData: ResumeJSON | null;
-    jobData: JobDetails | null;
+    jobDetails: JobDetails | null;
     jobDescription?: string;
     context?: Record<string, unknown>;
   },
@@ -541,15 +326,17 @@ export async function generateResumeFieldText(
 
   if (!providerName || !model) {
     const { useModelStore } = await import("@/store/modelStore");
-    const store = useModelStore.getState?.();
+    const store = useModelStore.getState();
 
     if (!store) {
       throw new Error("Model store not initialized");
     }
 
-    providerName = providerName || store.getSelectedProvider?.();
-    const allModels = store.getAllSelectedModels?.() || [];
-    model = model || allModels[0];
+    const selectedModel = store.selectedModel;
+    if (selectedModel) {
+      providerName = selectedModel[0];
+      model = selectedModel[1];
+    }
   }
 
   if (!providerName || !model) {
@@ -577,7 +364,7 @@ export async function generateResumeFieldText(
     const { result, requestId } = await LLMService.generateFieldText(
       field,
       context.resumeData ?? null,
-      context.jobData ?? null,
+      context.jobDetails ?? null,
       context.jobDescription,
       {
         provider: providerName as ProviderType,

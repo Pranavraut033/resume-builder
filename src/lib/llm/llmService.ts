@@ -16,12 +16,7 @@ import { TokenUsagePurpose, TokenUsageProvider } from "@/actions/tokenUsage";
 import { ProviderFactory } from "@/lib/llm/providers/factory";
 import { trackTokenUsage, generateRequestId } from "@/lib/llm/tokenTracker";
 import { createLogger } from "@/lib/logger";
-import {
-  LLMProvider,
-  ProviderType,
-  LLMResult,
-  LLMUsageInfo,
-} from "@/types/llm";
+import { ProviderType, LLMResult, LLMUsageInfo } from "@/types/llm";
 import { ResumeJSON, JobDetails, ResumeParsingSchema } from "@/types/resume";
 
 import {
@@ -30,6 +25,7 @@ import {
   PromptSystem,
   ResolvedPrompt,
 } from "./prompts";
+import { LLMProvider } from "./providers/LLMProvider";
 
 const logger = createLogger("LLMService");
 
@@ -288,10 +284,10 @@ ${rawText}`;
 
       switch (purpose) {
         case "generate_cover_letter":
-          ({ result, usage } = await provider.generateCoverLetter({
-            ...context,
-            model: options.model,
-          }));
+          ({ result, usage } = await provider.generateCoverLetter(
+            context,
+            options
+          ));
           break;
         case "generate_tailored_resume":
           ({ result, usage } = (await provider.generateResume({
@@ -342,9 +338,11 @@ ${rawText}`;
 
         case "parse_job":
           if (provider.parseJobDetails) {
+            console.log({ provider });
+
             ({ result, usage } = (await provider.parseJobDetails(
               context.jobDescription || "",
-              options.model
+              options
             )) as { result: T; usage?: LLMUsageInfo });
           } else {
             throw new Error(
@@ -357,7 +355,7 @@ ${rawText}`;
           if (provider.parseResume) {
             ({ result, usage } = (await provider.parseResume(
               context.jobDescription || "",
-              options.model
+              options
             )) as { result: T; usage?: LLMUsageInfo });
           } else {
             throw new Error(
@@ -444,15 +442,11 @@ ${rawText}`;
       purpose,
       {
         resume,
-        jobData,
+        jobDetails: jobData,
         jobDescription,
         field,
       },
-      options || {
-        provider: "openai",
-        model: "gpt-4o",
-        temperature: 0.7,
-      }
+      options
     );
   }
 
@@ -495,7 +489,7 @@ ${rawText}`;
   ): Promise<LLMResult<string>> {
     return this.executeCall(
       "generate_cover_letter",
-      { resume, jobData },
+      { resume, jobDetails: jobData },
       options || {
         provider: "openai",
         model: "gpt-4o",
@@ -513,7 +507,7 @@ ${rawText}`;
       "generate_tailored_resume",
       {
         resume: baseProfile,
-        jobData: jobData,
+        jobDetails: jobData,
       },
       options
     );
@@ -530,7 +524,7 @@ ${rawText}`;
       "edit_resume_chat",
       {
         resume,
-        jobData,
+        jobDetails: jobData,
         jobDescription,
         additionalInstructions: request,
       },
@@ -608,6 +602,7 @@ ${rawText}`;
 
       // Map provider name to token usage provider
       const providerMap: Record<ProviderType, TokenUsageProvider> = {
+        [ProviderType.ANTHROPIC]: "anthropic",
         [ProviderType.GEMINI]: "gemini",
         [ProviderType.GROK]: "grok",
         [ProviderType.OLLAMA]: "ollama",
