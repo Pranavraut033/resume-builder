@@ -147,18 +147,35 @@ model CoverLetter {
 }
 
 model TokenUsage {
-  id             String   @id @default(uuid())
-  model          String
-  provider       String   // openai, gemini, grok, perplexity, ollama, anthropic
-  inputTokens    Int      @map("input_tokens")
-  outputTokens   Int      @map("output_tokens")
-  purpose        String   // NEW_JOB, RESUME_FIELD_IMPROVEMENT, RESUME_GENERATION, COVER_LETTER_GENERATION, RESUME_PARSING, JOB_PARSING
-  requestId      String?  @map("request_id") // Optional UUID for grouping related requests
-  createdAt      String   @map("created_at")
+  id                   String   @id @default(uuid())
+  model                String
+  provider             String   // openai, gemini, grok, perplexity, ollama, anthropic
+
+  // Core token counts (all providers)
+  promptTokens         Int      @map("prompt_tokens")
+  completionTokens     Int      @map("completion_tokens")
+  totalTokens          Int      @map("total_tokens")
+
+  // Cache tokens — Anthropic: cache_read_input_tokens / cache_creation_input_tokens
+  //                OpenAI: prompt_tokens_details.cached_tokens
+  cacheReadTokens      Int?     @map("cache_read_tokens")
+  cacheCreationTokens  Int?     @map("cache_creation_tokens")
+
+  // Reasoning tokens — OpenAI o-series: completion_tokens_details.reasoning_tokens
+  reasoningTokens      Int?     @map("reasoning_tokens")
+
+  // Cost
+  costMicrocents       Int?     @map("cost_microcents") // costUSD * 1_000_000
+
+  purpose              String   // NEW_JOB, RESUME_FIELD_IMPROVEMENT, RESUME_GENERATION, COVER_LETTER_GENERATION, RESUME_PARSING, JOB_PARSING
+  requestId            String?  @map("request_id")
+  durationMs           Int?     @map("duration_ms")
+  createdAt            DateTime @default(now()) @map("created_at")
 
   @@index([provider])
   @@index([model])
   @@index([createdAt])
   @@index([purpose])
+  @@index([requestId])
   @@map("token_usage")
 }
