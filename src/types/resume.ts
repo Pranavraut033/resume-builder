@@ -109,9 +109,16 @@ export const JobDetailsSchema = z.object({
 
 // TypeScript type derived from schema
 export type JobDetails = z.infer<typeof JobDetailsSchema>;
+export type Responsibilities = z.infer<typeof ResponsibilitiesSchema>;
+export type RequiredSkills = z.infer<typeof RequiredSkillsSchema>;
+export type NiceToHaveSkills = z.infer<typeof NiceToHaveSkillsSchema>;
+export type TechStack = z.infer<typeof TechStackSchema>;
+export type Benefits = z.infer<typeof BenefitsSchema>;
+export type JobIdentification = z.infer<typeof JobIdentificationSchema>;
+export type CompanyInfo = z.infer<typeof CompanyInfoSchema>;
 
 // Resume Parsing Schema for structured output
-const ContactInfoSchema = z.object({
+export const ContactInfoSchema = z.object({
   name: z.string(),
   email: z.string(),
   phone: z.string().nullable(),
@@ -121,7 +128,7 @@ const ContactInfoSchema = z.object({
   website: z.string().nullable(),
 });
 
-const ExperienceSchema = z.object({
+export const ExperienceSchema = z.object({
   company: z.string(),
   role: z.string(),
   startDate: z.string(),
@@ -130,7 +137,7 @@ const ExperienceSchema = z.object({
   achievements: z.array(z.string()),
 });
 
-const ProjectSchema = z.object({
+export const ProjectSchema = z.object({
   name: z.string(),
   description: z.string(),
   technologies: z.array(z.string()),
@@ -139,7 +146,7 @@ const ProjectSchema = z.object({
   endDate: z.string().nullable(),
 });
 
-const EducationSchema = z.object({
+export const EducationSchema = z.object({
   institution: z.string(),
   degree: z.string(),
   field: z.string(),
@@ -148,14 +155,14 @@ const EducationSchema = z.object({
   gpa: z.string().nullable(),
 });
 
-const CertificationSchema = z.object({
+export const CertificationSchema = z.object({
   name: z.string(),
   issuer: z.string(),
   date: z.string(),
   url: z.string().nullable(),
 });
 
-const PublicationSchema = z.object({
+export const PublicationSchema = z.object({
   title: z.string(),
   authors: z.array(z.string()),
   venue: z.string(),
@@ -164,12 +171,12 @@ const PublicationSchema = z.object({
   doi: z.string().nullable(),
 });
 
-const LanguageSchema = z.object({
+export const LanguageSchema = z.object({
   name: z.string(),
   proficiency: z.string(),
 });
 
-const VolunteerSchema = z.object({
+export const VolunteerSchema = z.object({
   organization: z.string(),
   role: z.string(),
   startDate: z.string(),
@@ -177,7 +184,7 @@ const VolunteerSchema = z.object({
   description: z.string(),
 });
 
-const AwardSchema = z.object({
+export const AwardSchema = z.object({
   title: z.string(),
   issuer: z.string(),
   date: z.string(),
