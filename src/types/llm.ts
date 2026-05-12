@@ -1,9 +1,9 @@
 // Types for LLM inputs and outputs
 
-import { ResolvedPrompt } from "@/lib/llm/prompts";
+import { LLMUsageInfo } from "@/actions/tokenUsage";
 
-import { HumanizerResult } from "./humanizer";
-import { JobDetails, ResumeJSON } from "./resume";
+import { HumanizerJSON } from "./humanizer";
+import { ATSAnalysisJSON, JobDetailsJSON, ResumeJSON } from "./resume";
 
 /**
  * Provider type enumeration
@@ -20,12 +20,11 @@ export enum ProviderType {
 
 export interface ResumePromptInput {
   baseProfile: ResumeJSON;
-  jobDetails: JobDetails;
+  jobDetails: JobDetailsJSON;
 }
 
 export interface CoverLetterPromptInput {
-  baseProfile: ResumeJSON;
-  jobDetails: JobDetails;
+  jobDetails: JobDetailsJSON;
   resume: ResumeJSON; // the tailored resume
 }
 
@@ -34,23 +33,18 @@ export interface PromptMessage {
   content: string;
 }
 
-export interface LLMUsageInfo {
-  inputTokens: number;
-  outputTokens: number;
-}
-
 export interface LLMResult<T = string> {
   result: T;
-  prompt?: ResolvedPrompt;
-  usage?: LLMUsageInfo;
+  usage: LLMUsageInfo;
 }
 
 export type TextGenerationResult = LLMResult<string>;
 export type ResumeGenerationResult = LLMResult<ResumeJSON>;
 export type CoverLetterGenerationResult = LLMResult<string>;
-export type JobParsingResult = LLMResult<JobDetails>;
+export type JobParsingResult = LLMResult<JobDetailsJSON>;
 export type ResumeParsingResult = LLMResult<ResumeJSON>;
-export type HumanizeContentResult = LLMResult<HumanizerResult>;
+export type HumanizeContentResult = LLMResult<HumanizerJSON>;
+export type ATSAnalysisResult = LLMResult<ATSAnalysisJSON>;
 
 export interface LLMGenerationOptions {
   model: string;

@@ -4,7 +4,7 @@
  * to reduce token usage while maintaining context quality
  */
 
-import { ResumeJSON, JobDetails } from "@/types/resume";
+import { ResumeJSON, JobDetailsJSON } from "@/types/resume";
 
 export interface ExtractedContext {
   field: string;
@@ -17,7 +17,7 @@ export interface ExtractedContext {
  */
 export function extractSummaryContext(
   resume: ResumeJSON,
-  jobDetails?: JobDetails
+  jobDetails?: JobDetailsJSON
 ): ExtractedContext {
   const context: Record<string, unknown> = {};
 
@@ -82,7 +82,7 @@ export function extractEducationContext(
 export function extractExperienceContext(
   experience: ResumeJSON["experience"],
   index: number,
-  jobDetails?: JobDetails,
+  jobDetails?: JobDetailsJSON,
   resume?: ResumeJSON
 ): ExtractedContext {
   const exp = experience?.[index];
@@ -119,7 +119,7 @@ export function extractExperienceContext(
 export function extractAchievementsContext(
   experience: ResumeJSON["experience"],
   index: number,
-  jobDetails?: JobDetails
+  jobDetails?: JobDetailsJSON
 ): ExtractedContext {
   const exp = experience?.[index];
   const context: Record<string, unknown> = {};

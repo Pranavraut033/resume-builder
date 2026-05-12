@@ -17,7 +17,7 @@ export const HumanizerSchema = z.object({
     .describe("Audit trail of every change made"),
 });
 
-export type HumanizerResult = z.infer<typeof HumanizerSchema>;
+export type HumanizerJSON = z.infer<typeof HumanizerSchema>;
 
 export interface HumanizerPromptInput {
   content: string;
