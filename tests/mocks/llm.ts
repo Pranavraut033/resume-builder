@@ -1,7 +1,7 @@
 import { vi } from "vitest";
 
 import { LLMProvider } from "@/lib/llm/providers/LLMProvider";
-import { ResumeJSON, JobDetails } from "@/types/resume";
+import { ResumeJSON, JobDetailsJSON } from "@/types/resume";
 
 import { getTestApiKey } from "../config/test.config";
 
@@ -112,7 +112,7 @@ export class MockLLMProvider implements LLMProvider {
       contact_whatsapp_available: false,
     },
     raw_description: "Mock job description",
-  } as JobDetails);
+  } as JobDetailsJSON);
 }
 
 /**

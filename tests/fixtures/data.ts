@@ -1,4 +1,4 @@
-import { ResumeJSON, JobDetails } from "@/types/resume";
+import { ResumeJSON, JobDetailsJSON } from "@/types/resume";
 
 /**
  * Sample base profile for testing
@@ -80,7 +80,7 @@ export const sampleBaseProfile: ResumeJSON = {
 /**
  * Sample job details for testing
  */
-export const sampleJobDetails: JobDetails = {
+export const sampleJobDetails: JobDetailsJSON = {
   job: {
     job_title: "Full Stack Developer",
     job_role_category: "Engineering",

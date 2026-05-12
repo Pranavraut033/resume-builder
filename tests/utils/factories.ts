@@ -7,7 +7,7 @@
 
 import { PrismaClient } from "@prisma/client";
 
-import { JobDetails, ResumeJSON } from "@/types/resume";
+import { JobDetailsJSON, ResumeJSON } from "@/types/resume";
 
 // ============================================================================
 // Profile Factories
@@ -525,8 +525,8 @@ export async function createTokenUsage(
 // ============================================================================
 
 export function createJobDetails(
-  overrides: Partial<JobDetails> = {}
-): JobDetails {
+  overrides: Partial<JobDetailsJSON> = {}
+): JobDetailsJSON {
   return {
     job: {
       job_title: "Full Stack Developer",
