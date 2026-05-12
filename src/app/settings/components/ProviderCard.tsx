@@ -1,4 +1,5 @@
 "use client";
+import clsx from "clsx";
 import { useState } from "react";
 
 import { MultiSelect } from "@/components/ui";
@@ -16,7 +17,7 @@ export function ProviderCard({
   onValidate,
   isSaving,
   isConnected,
-  modelOptions,
+  modelOptions: _modelOptions,
   selectedModels,
   onModelsChange,
   isLoadingModels,
@@ -25,12 +26,41 @@ export function ProviderCard({
   validationSuccess = null,
 }: ProviderCardProps) {
   const [showKey, setShowKey] = useState(false);
+  const hasFallback = _modelOptions[0] === "fallback";
+  const modelOptions = hasFallback ? _modelOptions.slice(1) : _modelOptions;
 
   return (
     <div
       className="flex flex-col gap-4 rounded-2xl p-5"
       style={{ background: "var(--color-agent-surface-low)" }}
     >
+      {/* Fallback warning */}
+      {hasFallback && (
+        <div
+          className="flex items-center gap-2 rounded-xl px-3 py-2 text-xs font-medium"
+          style={{
+            background: "var(--color-agent-warning-container, #fffbe6)",
+            color: "var(--color-agent-on-warning-container, #ad6800)",
+            border: "1px solid var(--color-agent-outline-variant, #ffe58f)",
+          }}
+        >
+          <svg
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            className="shrink-0"
+            style={{ marginRight: 6 }}
+          >
+            <circle cx="12" cy="12" r="10" />
+            <line x1="12" y1="8" x2="12" y2="12" />
+            <circle cx="12" cy="16" r="1" />
+          </svg>
+          Connection could not be verified. Using fallback models.
+        </div>
+      )}
       {/* Header */}
       <div className="flex items-center gap-3">
         <div
@@ -54,20 +84,21 @@ export function ProviderCard({
           </p>
         </div>
         <span
-          className="shrink-0 rounded-full px-2.5 py-0.5 text-xs font-medium"
-          style={
-            isConnected
-              ? {
-                  background: "var(--color-agent-secondary-container)",
-                  color: "var(--color-agent-on-secondary-container)",
-                }
-              : {
-                  background: "var(--color-agent-surface-highest)",
-                  color: "var(--color-agent-on-surface-variant)",
-                }
-          }
+          className={clsx(
+            "shrink-0 rounded-full px-2.5 py-0.5 text-xs font-medium",
+
+            hasFallback
+              ? "text-color-agent-on-warning-container border border-[#ffe58f] bg-[#fffbe6]"
+              : isConnected
+                ? "bg-agent-primary text-white"
+                : "bg-agent-error text-white/90"
+          )}
         >
-          {isConnected ? "Connected" : "Not Configured"}
+          {hasFallback
+            ? "Unavailable"
+            : isConnected
+              ? "Connected"
+              : "Not Configured"}
         </span>
       </div>
 

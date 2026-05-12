@@ -117,7 +117,7 @@ export function AIAssistPanel({ onFieldInsert }: AISuggestionsPanelProps) {
     const purpose = FIELD_LABELS[selectedField].purpose;
     const prompt = PromptSystem.generatePrompt(purpose, {
       resume,
-      jobData: job?.details,
+      jobDetails: job?.details,
       jobDescription: job?.description,
       field: selectedField,
     });
