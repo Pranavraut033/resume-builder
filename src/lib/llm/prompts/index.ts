@@ -61,6 +61,7 @@ export class PromptSystem {
     generate_tailored_resume: "Tailored Resume Generation",
     parse_job: "Job Description Parsing",
     parse_resume: "Resume Parsing",
+    humanize_content: "Content Humanization",
   };
 
   /**

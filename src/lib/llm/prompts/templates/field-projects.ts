@@ -3,6 +3,8 @@
  * Creates compelling project descriptions with technical details
  */
 
+import { ProjectSchema } from "@/types/resume";
+
 import { templateRegistry } from "../registry";
 import { PromptTemplate } from "../types";
 
@@ -11,50 +13,61 @@ const projectsTemplate: PromptTemplate = {
   purpose: "generate_projects",
   description: "Generate technical project descriptions",
 
-  // Field configuration
   fieldType: "projects",
   intent:
-    "Improve project descriptions - 2-3 lines each, emphasizing technical skills, impact, and measurable outcomes.",
+    "Rewrite each project description to lead with technical decisions and measurable outcomes, ordered by relevance to the target role.",
   guidelines: [
-    "2-3 lines per project",
-    "Lead with technical impact",
-    "Quantifiable results when possible",
-    "Emphasize role-relevant technologies",
-    "Include team size/scope if relevant",
-    "Avoid fluff and generic descriptions",
-    "Highlight learning or innovation",
+    "2–3 sentences per project — tight, no filler",
+    "Open with what was built and the primary technical challenge solved, not the project's purpose",
+    "Surface technologies that overlap with the job's required or preferred stack in the first sentence",
+    "Include scope signals where present: scale, team size, users, performance gains, or business impact",
+    "Use past tense, active voice, strong verbs (built, reduced, designed, automated — not 'worked on' or 'helped with')",
+    "Preserve all factual details — do not invent metrics, users, or outcomes not in the source",
+    "Reorder projects: most job-relevant first",
   ],
 
-  requiredContext: [
-    "resume.projects",
-    "jobData.requirements.tech_stack",
-    "jobData.requirements.required_skills",
-    "jobDescription",
-  ],
+  requiredContext: ["resume.projects", "jobDetails", "jobDescription"],
 
-  systemPrompt: `Rewrite project descriptions for job relevance.
-Highlight technical skills, impact, and measurable outcomes.
-Be concise. Do not invent details.`,
+  systemPrompt: `You are a technical resume writer specializing in project descriptions for software and technical roles.
 
-  userPrompt: `Enhance projects for {{jobData.job.job_title}}.
+OUTPUT CONTRACT:
+- Return ONLY valid JSON matching the ProjectsJSON schema — no markdown, no prose
+- Each project object must preserve all original fields; only description is rewritten
 
-Relevant tech:
-{{#each jobData.requirements.tech_stack}}{{this}}{{#unless @last}}, {{/unless}}{{/each}}
+DATA INTEGRITY (non-negotiable):
+- Rewrite using ONLY details present in the existing project entry
+- Never invent technologies, metrics, team sizes, or outcomes not in the source
+- If a project has no quantifiable result, describe the technical approach with precision instead — do not fabricate numbers
 
-Job context:
-{{jobDescription}}
+REWRITE QUALITY BAR:
+- A strong description answers: what was built, how (key technical decisions), and what it achieved
+- Prefer specific over general: "reduced cold start latency from 4s to 800ms" beats "improved performance"
+- The job-relevant technology should appear naturally — never forced or listed as an afterthought`,
 
-Projects:
+  userPrompt: `Rewrite project descriptions for the {{jobData.job.job_title}} role.
+
+TARGET ROLE CONTEXT:
+- Required Tech Stack: {{#each jobData.requirements.tech_stack}}{{this}}{{#unless @last}}, {{/unless}}{{/each}}
+- Job Description: {{jobDescription}}
+
+CANDIDATE PROJECTS (source of truth):
 {{#each resume.projects}}
-{{this.name}}
-Current: {{this.description}}
-Tech: {{#each this.technologies}}{{this}}{{#unless @last}}, {{/unless}}{{/each}}{{#if this.link}} | {{this.link}}{{/if}}
+Project: {{this.name}}
+Current Description: {{this.description}}
+Technologies: {{#each this.technologies}}{{this}}{{#unless @last}}, {{/unless}}{{/each}}
+{{#if this.link}}Link: {{this.link}}{{/if}}
+{{#if this.impact}}Impact: {{this.impact}}{{/if}}
+---
 {{/each}}
 
-Rules:
-- 2–3 lines per project
-- Emphasize impact and role-relevant tech
-- Avoid repetition and filler`,
+TASK:
+1. Identify which projects have the strongest technology overlap with the target role
+2. For each project, extract the core technical action, key decisions, and any stated outcomes
+3. Rewrite the description: technical action first → how it was achieved → outcome or scale
+4. Reorder the final array: highest job-relevance first
+
+Return ONLY valid JSON matching the ProjectsJSON schema.`,
+  outputSchema: ProjectSchema,
 };
 
 // Auto-register on module load

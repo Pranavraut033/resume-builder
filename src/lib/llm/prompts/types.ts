@@ -5,11 +5,12 @@ import type { ZodSchema } from "zod";
 export interface PromptContext {
   baseProfile?: ResumeJSON | null;
   resume?: ResumeJSON | null;
-  jobData?: JobDetails | null;
+  jobDetails?: JobDetails | null;
   jobDescription?: string;
   resumeText?: string;
   field?: string;
   additionalInstructions?: string;
+  userInput?: string;
 }
 
 export type FieldType =
@@ -18,7 +19,8 @@ export type FieldType =
   | "experience_description"
   | "projects"
   | "skills"
-  | "achievements";
+  | "achievements"
+  | "generic";
 
 // Note: We reuse all existing data types (ResumeJSON, JobDetails, etc.)
 // Only creating NEW types for the template system infrastructure below:
@@ -33,7 +35,8 @@ export type PromptPurpose =
   | "generate_cover_letter"
   | "parse_job"
   | "parse_resume"
-  | "analyze_ats";
+  | "analyze_ats"
+  | "humanize_content";
 
 /**
  * Dot/bracket path utility that produces autocompleteable paths through nested objects and arrays.
