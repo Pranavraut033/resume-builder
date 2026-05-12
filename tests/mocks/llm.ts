@@ -1,11 +1,9 @@
 import { vi } from "vitest";
 
-import { LLMProvider } from "@/types/llm";
+import { LLMProvider } from "@/lib/llm/providers/LLMProvider";
 import { ResumeJSON, JobDetails } from "@/types/resume";
 
-import {
-  getTestApiKey,
-} from "../config/test.config";
+import { getTestApiKey } from "../config/test.config";
 
 /**
  * Mock LLM Provider for testing

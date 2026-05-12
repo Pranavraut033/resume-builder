@@ -5,7 +5,7 @@
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
-import { BaseLLMProvider } from "@/lib/llm/providers/baseProvider";
+import { BaseLLMProvider } from "@/lib/llm/providers/LLMProvider";
 import {
   ProviderFactory,
   getProviderInstance,
