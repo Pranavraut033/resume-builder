@@ -7,18 +7,6 @@ import { FieldType, PromptPurpose } from "@/lib/llm/prompts";
 
 import type { ZodSchema } from "zod";
 
-// Note: We reuse all existing data types (ResumeJSON, JobDetails, etc.)
-// Only creating NEW types for the template system infrastructure below:
-export type PromptPurpose =
-  | "generate_summary"
-  | "generate_experience"
-  | "generate_skills"
-  | "generate_projects"
-  | "generate_education"
-  | "parse_job"
-  | "parse_resume"
-  | "analyze_ats";
-
 /**
  * Context path in dot notation
  * Examples: "resume.summary", "jobData.job.job_title", "resume.skills[0]"
