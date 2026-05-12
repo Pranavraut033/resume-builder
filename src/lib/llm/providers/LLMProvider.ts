@@ -5,13 +5,15 @@
  * Providers should register themselves using the static register() method
  * to allow dynamic provider discovery and instantiation.
  */
+import z, { ZodTypeAny } from "zod";
+
 import { PromptSystem, ResolvedPrompt } from "@/lib/llm/prompts";
+import { HumanizerSchema } from "@/types/humanizer";
 import {
   ResumePromptInput,
   CoverLetterPromptInput,
   LLMGenerationOptions,
   ProviderType,
-  LLMProvider,
   LLMUsageInfo,
   LLMResult,
   CoverLetterGenerationResult,
@@ -20,48 +22,96 @@ import {
   ResumeGenerationResult,
   ResumeParsingResult,
   TextGenerationResult,
+  HumanizeContentResult,
 } from "@/types/llm";
+import { ResumeGenerationSchema, JobDetailsSchema } from "@/types/resume";
 
 import { ProviderRegistry, ProviderMetadata } from "./registry";
 
-export abstract class BaseLLMProvider implements LLMProvider {
-  abstract generateResume(
-    input: ResumePromptInput,
-    options: LLMGenerationOptions
-  ): Promise<ResumeGenerationResult>;
-
-  abstract generateCoverLetter(
-    input: CoverLetterPromptInput,
-    options: LLMGenerationOptions
-  ): Promise<CoverLetterGenerationResult>;
-
-  abstract parseJobDetails(
-    description: string,
-    options: LLMGenerationOptions
-  ): Promise<JobParsingResult>;
-
-  abstract parseResume(
-    resumeText: string,
-    options: LLMGenerationOptions
-  ): Promise<ResumeParsingResult>;
-
+export abstract class LLMProvider {
   abstract fetchModels(): Promise<string[]>;
 
-  /**
-   * Validate connection to the LLM provider
-   * Default implementation - providers should override for actual validation
-   */
-  async validateConnection(): Promise<{ success: boolean; message: string }> {
-    return {
-      success: true,
-      message: "Connection validated",
-    };
-  }
+  abstract validateConnection(): Promise<{ success: boolean; message: string }>;
 
   abstract runLLM<T>(
     messages: PromptMessage[],
     options: LLMGenerationOptions
   ): Promise<LLMResult<T>>;
+
+  abstract runStructuredLLM<TSchema extends ZodTypeAny>(
+    template: ResolvedPrompt,
+    options: LLMGenerationOptions,
+    zodSchema: TSchema,
+    schemaName?: string
+  ): Promise<{ result: z.infer<TSchema>; usage: LLMUsageInfo | undefined }>;
+
+  async generateResume(
+    input: ResumePromptInput,
+    options: LLMGenerationOptions
+  ): Promise<ResumeGenerationResult> {
+    const resolvedPrompt = this.getGenerateResumePromptTemplate(input);
+
+    const { result, usage } = await this.runStructuredLLM(
+      resolvedPrompt,
+      options,
+      ResumeGenerationSchema
+    );
+    return { result, usage, prompt: resolvedPrompt };
+  }
+
+  async generateCoverLetter(
+    input: CoverLetterPromptInput,
+    options: LLMGenerationOptions
+  ): Promise<CoverLetterGenerationResult> {
+    const resolvedPrompt = this.getGenerateCoverLetterPromptTemplate(input);
+    const messages = this.toPromptMessages(resolvedPrompt);
+
+    const { result, usage } = await this.runLLM<string>(messages, options);
+
+    return { result, prompt: resolvedPrompt, usage };
+  }
+
+  async parseJobDetails(
+    description: string,
+    options: LLMGenerationOptions
+  ): Promise<JobParsingResult> {
+    const template = this.getParseJobPromptTemplate(description);
+
+    const { result, usage } = await this.runStructuredLLM(
+      template,
+      options,
+      JobDetailsSchema
+    );
+    return { result, usage, prompt: template };
+  }
+
+  async parseResume(
+    resumeText: string,
+    options: LLMGenerationOptions
+  ): Promise<ResumeParsingResult> {
+    const template = this.getParseResumePromptTemplate(resumeText);
+    const { result, usage } = await this.runStructuredLLM(
+      template,
+      options,
+      ResumeGenerationSchema,
+      "ParsedResume"
+    );
+    return { result, usage, prompt: template };
+  }
+
+  async humanizeContent(
+    input: string,
+    options: LLMGenerationOptions
+  ): Promise<HumanizeContentResult> {
+    const template = this.getParseHumanizerPromptTemplate(input);
+    const { result, usage } = await this.runStructuredLLM(
+      template,
+      options,
+      HumanizerSchema,
+      "HumanizerResult"
+    );
+    return { result, usage, prompt: template };
+  }
 
   /**
    * Returns 0.7 for standard chat models and undefined for reasoning models
@@ -173,7 +223,7 @@ export abstract class BaseLLMProvider implements LLMProvider {
   ): ResolvedPrompt {
     return PromptSystem.generatePrompt("generate_tailored_resume", {
       baseProfile: input.baseProfile,
-      jobData: input.jobDetails,
+      jobDetails: input.jobDetails,
     });
   }
 
@@ -185,7 +235,7 @@ export abstract class BaseLLMProvider implements LLMProvider {
   ): ResolvedPrompt {
     return PromptSystem.generatePrompt("generate_cover_letter", {
       baseProfile: input.baseProfile,
-      jobData: input.jobDetails,
+      jobDetails: input.jobDetails,
       resume: input.resume,
     });
   }
@@ -205,8 +255,12 @@ export abstract class BaseLLMProvider implements LLMProvider {
    * Returns only system prompt - user prompt is the resume text itself
    */
   protected getParseResumePromptTemplate(resumeText: string): ResolvedPrompt {
-    return PromptSystem.generatePrompt("parse_resume", {
-      resumeText,
+    return PromptSystem.generatePrompt("parse_resume", { resumeText });
+  }
+
+  protected getParseHumanizerPromptTemplate(content: string): ResolvedPrompt {
+    return PromptSystem.generatePrompt("humanize_content", {
+      userInput: content,
     });
   }
 

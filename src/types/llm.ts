@@ -2,6 +2,7 @@
 
 import { ResolvedPrompt } from "@/lib/llm/prompts";
 
+import { HumanizerResult } from "./humanizer";
 import { JobDetails, ResumeJSON } from "./resume";
 
 /**
@@ -49,50 +50,10 @@ export type ResumeGenerationResult = LLMResult<ResumeJSON>;
 export type CoverLetterGenerationResult = LLMResult<string>;
 export type JobParsingResult = LLMResult<JobDetails>;
 export type ResumeParsingResult = LLMResult<ResumeJSON>;
+export type HumanizeContentResult = LLMResult<HumanizerResult>;
 
 export interface LLMGenerationOptions {
   model: string;
   temperature?: number;
   maxTokens?: number;
-}
-
-export interface LLMProvider {
-  // Core generation methods
-  generateResume(
-    input: ResumePromptInput,
-    options: LLMGenerationOptions
-  ): Promise<ResumeGenerationResult>;
-  generateCoverLetter(
-    input: CoverLetterPromptInput,
-    options: LLMGenerationOptions
-  ): Promise<CoverLetterGenerationResult>;
-
-  // Parsing methods
-  parseJobDetails(
-    description: string,
-    options: LLMGenerationOptions
-  ): Promise<JobParsingResult>;
-  parseResume(
-    resumeText: string,
-    options: LLMGenerationOptions
-  ): Promise<ResumeParsingResult>;
-
-  // Model and capabilities
-  fetchModels(): Promise<string[]>;
-
-  // Validation
-  validateConnection(): Promise<{ success: boolean; message: string }>;
-
-  // Text generation (for unified prompt system)
-  generateText(
-    systemPrompt: string,
-    userPrompt: string,
-    options: LLMGenerationOptions
-  ): Promise<TextGenerationResult>;
-
-  // Low-level LLM call
-  runLLM<T>(
-    messages: PromptMessage[],
-    options: LLMGenerationOptions
-  ): Promise<{ result: T; usage?: LLMUsageInfo }>;
 }
