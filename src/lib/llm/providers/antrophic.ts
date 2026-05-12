@@ -4,25 +4,23 @@ import { z } from "zod";
 
 import { createLogger } from "@/lib/logger";
 import {
-  CoverLetterGenerationResult,
-  CoverLetterPromptInput,
-  JobParsingResult,
   LLMGenerationOptions,
-  LLMProvider,
   LLMResult,
+  LLMUsageInfo,
   PromptMessage,
   ProviderType,
-  ResumeGenerationResult,
-  ResumeParsingResult,
-  ResumePromptInput,
 } from "@/types/llm";
-import { JobDetailsSchema, ResumeGenerationSchema } from "@/types/resume";
 
-import { BaseLLMProvider } from "./baseProvider";
+import { LLMProvider } from "./LLMProvider";
+import { ResolvedPrompt } from "../prompts";
 
 const logger = createLogger("Anthropic");
 
-export class AnthropicProvider extends BaseLLMProvider implements LLMProvider {
+export class AnthropicProvider extends LLMProvider {
+  validateConnection(): Promise<{ success: boolean; message: string }> {
+    throw new Error("Method not implemented.");
+  }
+
   private client: Anthropic;
 
   constructor(apiKey: string) {
@@ -112,133 +110,6 @@ export class AnthropicProvider extends BaseLLMProvider implements LLMProvider {
     };
   }
 
-  private async parseStructured<T>(
-    messages: PromptMessage[],
-    options: LLMGenerationOptions,
-    schema: z.ZodType<T>,
-    promptTextForEstimation: string
-  ): Promise<LLMResult<T>> {
-    const response = await this.client.messages.parse({
-      ...this.toAnthropicRequest(messages, options),
-      output_config: {
-        format: zodOutputFormat(schema),
-      },
-    });
-
-    const parsed = response.parsed_output;
-    if (!parsed) {
-      throw new Error("Failed to parse structured response from Anthropic");
-    }
-
-    const usage =
-      this.normalizeUsage(response) ??
-      this.estimateTokenUsage(promptTextForEstimation, JSON.stringify(parsed));
-
-    return {
-      result: parsed,
-      usage,
-    };
-  }
-
-  async generateResume(
-    input: ResumePromptInput,
-    options: LLMGenerationOptions
-  ): Promise<ResumeGenerationResult> {
-    const resolvedPrompt = this.getGenerateResumePromptTemplate(input);
-    const messages = this.toPromptMessages(resolvedPrompt);
-    const promptText = this.combinePromptText(resolvedPrompt);
-
-    try {
-      const { result, usage } = await this.parseStructured(
-        messages,
-        options,
-        ResumeGenerationSchema,
-        promptText
-      );
-
-      return { result, usage, prompt: resolvedPrompt };
-    } catch (err: unknown) {
-      const error = err as Record<string, unknown>;
-      logger.error("generateResume failed", {
-        error: err,
-        message: error?.message,
-      });
-      throw new Error(
-        `Anthropic generateResume failed: ${String(error?.message) || err}`
-      );
-    }
-  }
-
-  async generateCoverLetter(
-    input: CoverLetterPromptInput,
-    options: LLMGenerationOptions
-  ): Promise<CoverLetterGenerationResult> {
-    const resolvedPrompt = this.getGenerateCoverLetterPromptTemplate(input);
-    const messages = this.toPromptMessages(resolvedPrompt);
-
-    const { result, usage } = await this.runLLM<string>(messages, options);
-
-    return { result, prompt: resolvedPrompt, usage };
-  }
-
-  async parseJobDetails(
-    description: string,
-    options: LLMGenerationOptions
-  ): Promise<JobParsingResult> {
-    const template = this.getParseJobPromptTemplate(description);
-    const messages = this.toPromptMessages(template);
-    const promptText = this.combinePromptText(template);
-
-    try {
-      const { result, usage } = await this.parseStructured(
-        messages,
-        options,
-        JobDetailsSchema,
-        promptText
-      );
-
-      return { result, usage, prompt: template };
-    } catch (err: unknown) {
-      const error = err as Record<string, unknown>;
-      logger.error("parseJobDetails failed", {
-        error: err,
-        message: error?.message,
-      });
-      throw new Error(
-        `Anthropic parseJobDetails failed: ${String(error?.message) || err}`
-      );
-    }
-  }
-
-  async parseResume(
-    resumeText: string,
-    options: LLMGenerationOptions
-  ): Promise<ResumeParsingResult> {
-    const template = this.getParseResumePromptTemplate(resumeText);
-    const messages = this.toPromptMessages(template);
-    const promptText = this.combinePromptText(template);
-
-    try {
-      const { result, usage } = await this.parseStructured(
-        messages,
-        options,
-        ResumeGenerationSchema,
-        promptText
-      );
-
-      return { result, usage, prompt: template };
-    } catch (err: unknown) {
-      const error = err as Record<string, unknown>;
-      logger.error("parseResume failed", {
-        error: err,
-        message: error?.message,
-      });
-      throw new Error(
-        `Anthropic parseResume failed: ${String(error?.message) || err}`
-      );
-    }
-  }
-
   async runLLM<T>(
     messages: PromptMessage[],
     options: LLMGenerationOptions
@@ -271,6 +142,37 @@ export class AnthropicProvider extends BaseLLMProvider implements LLMProvider {
     }
   }
 
+  async runStructuredLLM<TSchema extends z.ZodType>(
+    template: ResolvedPrompt,
+    options: LLMGenerationOptions,
+    zodSchema: TSchema,
+    _schemaName?: string
+  ): Promise<{ result: z.infer<TSchema>; usage: LLMUsageInfo | undefined }> {
+    const messages = this.toPromptMessages(template);
+    const promptTextForEstimation = this.combinePromptText(template);
+
+    const response = await this.client.messages.parse({
+      ...this.toAnthropicRequest(messages, options),
+      output_config: {
+        format: zodOutputFormat(zodSchema),
+      },
+    });
+
+    const parsed = response.parsed_output;
+    if (!parsed) {
+      throw new Error("Failed to parse structured response from Anthropic");
+    }
+
+    const usage =
+      this.normalizeUsage(response) ??
+      this.estimateTokenUsage(promptTextForEstimation, JSON.stringify(parsed));
+
+    return {
+      result: parsed,
+      usage,
+    };
+  }
+
   async fetchModels(): Promise<string[]> {
     const response = await this.client.models.list();
     const data = response.data;
@@ -286,7 +188,7 @@ export class AnthropicProvider extends BaseLLMProvider implements LLMProvider {
 /**
  * Register Anthropic provider
  */
-BaseLLMProvider.register(
+LLMProvider.register(
   ProviderType.ANTHROPIC,
   {
     name: "Anthropic",

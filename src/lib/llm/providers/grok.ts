@@ -1,14 +1,12 @@
 import { createLogger } from "@/lib/logger";
-import { LLMProvider, ProviderType } from "@/types/llm";
+import { ProviderType } from "@/types/llm";
 
+import { LLMProvider } from "./LLMProvider";
 import { OpenAICompatibleProvider } from "./openaiCompatibleProvider";
 
 const logger = createLogger("Grok");
 
-export class GrokProvider
-  extends OpenAICompatibleProvider
-  implements LLMProvider
-{
+export class GrokProvider extends OpenAICompatibleProvider {
   constructor(apiKey: string) {
     super({ apiKey, baseURL: "https://api.x.ai/v1" });
   }
@@ -36,7 +34,7 @@ export class GrokProvider
 /**
  * Register Grok provider
  */
-OpenAICompatibleProvider.register(
+LLMProvider.register(
   ProviderType.GROK,
   {
     name: "Grok (X.AI)",

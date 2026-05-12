@@ -8,8 +8,8 @@
 
 import { getApiKey } from "@/lib/keyStorage";
 import { ProviderType } from "@/types/llm";
-import { LLMProvider } from "@/types/llm";
 
+import { LLMProvider } from "./LLMProvider";
 import { getRegistry } from "./registry";
 
 // Import entry point to trigger all provider registrations
@@ -58,7 +58,6 @@ export async function getProviderInstance(
     }
   }
 
-
   // Create and return provider instance
   return registry.getInstance(type, apiKey);
 }
@@ -86,7 +85,10 @@ export class ProviderFactory {
       this.instances.set(cacheKey, instance);
       return instance;
     } catch (error) {
-      console.error(`Failed to get provider instance for ${providerName}:`, error);
+      console.error(
+        `Failed to get provider instance for ${providerName}:`,
+        error
+      );
       return null;
     }
   }

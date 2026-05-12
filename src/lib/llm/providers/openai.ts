@@ -1,14 +1,12 @@
 import { createLogger } from "@/lib/logger";
-import { LLMProvider, ProviderType } from "@/types/llm";
+import { ProviderType } from "@/types/llm";
 
+import { LLMProvider } from "./LLMProvider";
 import { OpenAICompatibleProvider } from "./openaiCompatibleProvider";
 
 const logger = createLogger("OpenAI");
 
-export class OpenAIProvider
-  extends OpenAICompatibleProvider
-  implements LLMProvider
-{
+export class OpenAIProvider extends OpenAICompatibleProvider {
   constructor(apiKey: string) {
     super({ apiKey });
   }
@@ -44,7 +42,7 @@ export class OpenAIProvider
 /**
  * Register OpenAI provider
  */
-OpenAICompatibleProvider.register(
+LLMProvider.register(
   ProviderType.OPENAI,
   {
     name: "OpenAI",

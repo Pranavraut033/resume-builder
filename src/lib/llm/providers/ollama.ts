@@ -1,22 +1,17 @@
+import z from "zod";
 import zodToJsonSchema from "zod-to-json-schema";
 
+import { ResolvedPrompt } from "@/lib/llm/prompts";
 import { createLogger } from "@/lib/logger";
 import {
-  LLMProvider,
-  ResumePromptInput,
-  CoverLetterPromptInput,
   ProviderType,
-  ResumeGenerationResult,
-  CoverLetterGenerationResult,
-  JobParsingResult,
-  ResumeParsingResult,
   LLMGenerationOptions,
   LLMResult,
   PromptMessage,
+  LLMUsageInfo,
 } from "@/types/llm";
-import { JobDetailsSchema, ResumeGenerationSchema } from "@/types/resume";
 
-import { BaseLLMProvider } from "./baseProvider";
+import { LLMProvider } from "./LLMProvider";
 
 const logger = createLogger("Ollama");
 
@@ -28,7 +23,7 @@ interface OllamaModel {
   name: string;
 }
 
-export class OllamaProvider extends BaseLLMProvider implements LLMProvider {
+export class OllamaProvider extends LLMProvider {
   private baseUrl: string;
 
   constructor(baseUrl: string = "http://localhost:11434") {
@@ -43,11 +38,22 @@ export class OllamaProvider extends BaseLLMProvider implements LLMProvider {
   private injectSchemaIntoPrompt(prompt: string, schemaObject: object): string {
     return `${prompt}
 
-IMPORTANT: You MUST respond with valid JSON matching this exact structure:
+You must return a valid JSON object that conforms to this JSON Schema:
 
 ${JSON.stringify(schemaObject, null, 2)}
 
-Return ONLY the JSON object, no markdown code blocks, no explanations.`;
+Rules:
+- Output ONLY a raw JSON object
+- Do NOT wrap in markdown
+- Do NOT explain anything
+- Do NOT repeat the schema
+- Every field must match the required type
+- Include all required fields
+- If a string field is unknown, return an empty string
+- If an array field is unknown, return []
+- If an object field is unknown, return {}
+
+Begin your response with { and end with }`;
   }
 
   private async callOllama(
@@ -75,120 +81,6 @@ Return ONLY the JSON object, no markdown code blocks, no explanations.`;
     return data.response;
   }
 
-  async generateResume(
-    input: ResumePromptInput,
-    options: LLMGenerationOptions
-  ): Promise<ResumeGenerationResult> {
-    const resolvedPrompt = this.getGenerateResumePromptTemplate(input);
-    let promptText = this.combinePromptText(resolvedPrompt);
-
-    // Inject schema for better structured output
-    promptText = this.injectSchemaIntoPrompt(
-      promptText,
-      zodToJsonSchema(ResumeGenerationSchema)
-    );
-
-    try {
-      const content = await this.callOllama(promptText, options.model, true);
-
-      if (!content) throw new Error("No response from Ollama");
-
-      const result = ResumeGenerationSchema.parse(JSON.parse(content));
-      const usage = this.estimateTokenUsage(promptText, content);
-
-      return { result, usage, prompt: resolvedPrompt };
-    } catch (err: unknown) {
-      const error = err as Record<string, unknown>;
-      logger.error("generateResume failed", {
-        error: err,
-        message: error?.message,
-      });
-      throw new Error(
-        `Ollama generateResume failed: ${String(error?.message) || err}`
-      );
-    }
-  }
-
-  async generateCoverLetter(
-    input: CoverLetterPromptInput,
-    options: LLMGenerationOptions
-  ): Promise<CoverLetterGenerationResult> {
-    const resolvedPrompt = this.getGenerateCoverLetterPromptTemplate(input);
-    const messages = this.toPromptMessages(resolvedPrompt);
-
-    const { result, usage } = await this.runLLM<string>(messages, options);
-
-    return { result, prompt: resolvedPrompt, usage };
-  }
-
-  async parseJobDetails(
-    description: string,
-    options: LLMGenerationOptions
-  ): Promise<JobParsingResult> {
-    const template = this.getParseJobPromptTemplate(description);
-    let promptText = this.combinePromptText(template);
-
-    // Inject schema for better structured output
-    promptText = this.injectSchemaIntoPrompt(
-      promptText,
-      zodToJsonSchema(JobDetailsSchema)
-    );
-
-    try {
-      const content = await this.callOllama(promptText, options.model, true);
-
-      if (!content) throw new Error("No response from Ollama");
-
-      const result = JobDetailsSchema.parse(JSON.parse(content));
-      const usage = this.estimateTokenUsage(promptText, content);
-
-      return { result, usage, prompt: template };
-    } catch (err: unknown) {
-      const error = err as Record<string, unknown>;
-      logger.error("parseJobDetails failed", {
-        error: err,
-        message: error?.message,
-      });
-      throw new Error(
-        `Ollama parseJobDetails failed: ${String(error?.message) || err}`
-      );
-    }
-  }
-
-  async parseResume(
-    resumeText: string,
-    options: LLMGenerationOptions
-  ): Promise<ResumeParsingResult> {
-    const template = this.getParseResumePromptTemplate(resumeText);
-    let promptText = this.combinePromptText(template);
-
-    // Inject schema for better structured output
-    promptText = this.injectSchemaIntoPrompt(
-      promptText,
-      zodToJsonSchema(ResumeGenerationSchema)
-    );
-
-    try {
-      const content = await this.callOllama(promptText, options.model, true);
-
-      if (!content) throw new Error("No response from Ollama");
-
-      const result = ResumeGenerationSchema.parse(JSON.parse(content));
-      const usage = this.estimateTokenUsage(promptText, content);
-
-      return { result, usage, prompt: template };
-    } catch (err: unknown) {
-      const error = err as Record<string, unknown>;
-      logger.error("parseResume failed", {
-        error: err,
-        message: error?.message,
-      });
-      throw new Error(
-        `Ollama parseResume failed: ${String(error?.message) || err}`
-      );
-    }
-  }
-
   async runLLM<T>(
     messages: PromptMessage[],
     options: LLMGenerationOptions
@@ -214,6 +106,40 @@ Return ONLY the JSON object, no markdown code blocks, no explanations.`;
         message: error?.message,
       });
       throw new Error(`Ollama runLLM failed: ${String(error?.message) || err}`);
+    }
+  }
+
+  async runStructuredLLM<TSchema extends z.ZodTypeAny>(
+    template: ResolvedPrompt,
+    options: LLMGenerationOptions,
+    zodSchema: TSchema
+  ): Promise<{ result: z.infer<TSchema>; usage: LLMUsageInfo | undefined }> {
+    let promptText = this.combinePromptText(template);
+
+    // Inject schema for better structured output
+    // @ts-expect-error - zodToJsonSchema types are not fully compatible with our ZodTypeAny, but it works at runtime
+    const schemaJson = zodToJsonSchema(zodSchema);
+
+    promptText = this.injectSchemaIntoPrompt(promptText, schemaJson);
+
+    try {
+      const content = await this.callOllama(promptText, options.model, true);
+
+      if (!content) throw new Error("No response from Ollama");
+
+      const result = zodSchema.parse(JSON.parse(content));
+      const usage = this.estimateTokenUsage(promptText, content);
+
+      return { result, usage };
+    } catch (err: unknown) {
+      const error = err as Record<string, unknown>;
+      logger.error("runStructuredLLM failed", {
+        error: err,
+        message: error?.message,
+      });
+      throw new Error(
+        `Ollama runStructuredLLM failed: ${String(error?.message) || err}`
+      );
     }
   }
 
@@ -261,7 +187,7 @@ Return ONLY the JSON object, no markdown code blocks, no explanations.`;
 /**
  * Register Ollama provider
  */
-BaseLLMProvider.register(
+LLMProvider.register(
   ProviderType.OLLAMA,
   {
     name: "Ollama",
@@ -270,5 +196,5 @@ BaseLLMProvider.register(
     icon: "ollama",
     description: "Local Ollama models",
   },
-  () => new OllamaProvider()
+  (baseUrl) => new OllamaProvider(baseUrl)
 );

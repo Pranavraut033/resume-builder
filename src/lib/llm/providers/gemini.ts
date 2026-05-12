@@ -1,31 +1,22 @@
 import { GoogleGenAI } from "@google/genai";
+import z, { ZodTypeAny } from "zod";
 import { zodToJsonSchema } from "zod-to-json-schema";
 
 import { createLogger } from "@/lib/logger";
 import {
-  LLMProvider,
-  ResumePromptInput,
-  CoverLetterPromptInput,
   ProviderType,
-  ResumeGenerationResult,
-  CoverLetterGenerationResult,
-  JobParsingResult,
-  ResumeParsingResult,
   LLMGenerationOptions,
   LLMResult,
   PromptMessage,
+  LLMUsageInfo,
 } from "@/types/llm";
-import {
-  ResumeJSON,
-  JobDetailsSchema,
-  ResumeGenerationSchema,
-} from "@/types/resume";
 
-import { BaseLLMProvider } from "./baseProvider";
+import { LLMProvider } from "./LLMProvider";
+import { ResolvedPrompt } from "../prompts";
 
 const logger = createLogger("Gemini");
 
-export class GeminiProvider extends BaseLLMProvider implements LLMProvider {
+export class GeminiProvider extends LLMProvider {
   private client: GoogleGenAI;
   private apiKey: string;
 
@@ -37,129 +28,6 @@ export class GeminiProvider extends BaseLLMProvider implements LLMProvider {
 
   textGenModelRegex =
     /^models\/gemini-\d+(\.\d+)?-(pro|flash)(-(latest|lite|preview)){0,2}$/;
-
-  async generateResume(
-    input: ResumePromptInput,
-    options: LLMGenerationOptions
-  ): Promise<ResumeGenerationResult> {
-    const resolvedPrompt = this.getGenerateResumePromptTemplate(input);
-    const promptText = this.combinePromptText(resolvedPrompt);
-
-    try {
-      const response = await this.client.models.generateContent({
-        model: options.model,
-        contents: promptText,
-        config: {
-          responseMimeType: "application/json",
-          // @ts-expect-error - zodToJsonSchema types are not fully compatible with Gemini's expected schema format, but it should work for our simple cases
-          responseSchema: zodToJsonSchema(ResumeGenerationSchema),
-        },
-      });
-
-      const content = response.text;
-      if (!content) throw new Error("No response from Gemini");
-
-      const result = JSON.parse(content) as ResumeJSON;
-      const usage = this.estimateTokenUsage(promptText, content);
-
-      return { result, usage, prompt: resolvedPrompt };
-    } catch (err: unknown) {
-      const error = err as Record<string, unknown>;
-      logger.error("generateResume failed", {
-        error: err,
-        message: error?.message,
-      });
-      throw new Error(
-        `Gemini generateResume failed: ${String(error?.message) || err}`
-      );
-    }
-  }
-
-  async generateCoverLetter(
-    input: CoverLetterPromptInput,
-    options: LLMGenerationOptions
-  ): Promise<CoverLetterGenerationResult> {
-    const resolvedPrompt = this.getGenerateCoverLetterPromptTemplate(input);
-    const messages = this.toPromptMessages(resolvedPrompt);
-
-    const { result, usage } = await this.runLLM<string>(messages, options);
-
-    return { result, prompt: resolvedPrompt, usage };
-  }
-
-  async parseJobDetails(
-    description: string,
-    options: LLMGenerationOptions
-  ): Promise<JobParsingResult> {
-    const template = this.getParseJobPromptTemplate(description);
-    const promptText = this.combinePromptText(template);
-
-    try {
-      const response = await this.client.models.generateContent({
-        model: options.model,
-        contents: promptText,
-        config: {
-          responseMimeType: "application/json",
-          // @ts-expect-error - zodToJsonSchema types are not fully compatible with Gemini's expected schema format, but it should work for our simple cases
-          responseSchema: zodToJsonSchema(JobDetailsSchema),
-        },
-      });
-
-      const content = response.text;
-      if (!content) throw new Error("No response from Gemini");
-
-      const result = JobDetailsSchema.parse(JSON.parse(content));
-      const usage = this.estimateTokenUsage(promptText, content);
-
-      return { result, usage, prompt: template };
-    } catch (err: unknown) {
-      const error = err as Record<string, unknown>;
-      logger.error("parseJobDetails failed", {
-        error: err,
-        message: error?.message,
-      });
-      throw new Error(
-        `Gemini parseJobDetails failed: ${String(error?.message) || err}`
-      );
-    }
-  }
-
-  async parseResume(
-    resumeText: string,
-    options: LLMGenerationOptions
-  ): Promise<ResumeParsingResult> {
-    const template = this.getParseResumePromptTemplate(resumeText);
-    const promptText = this.combinePromptText(template);
-
-    try {
-      const response = await this.client.models.generateContent({
-        model: options.model,
-        contents: promptText,
-        config: {
-          responseMimeType: "application/json",
-          // @ts-expect-error - zodToJsonSchema types are not fully compatible with Gemini's expected schema format, but it should work for our simple cases
-          responseSchema: zodToJsonSchema(ResumeGenerationSchema),
-        },
-      });
-
-      const content = response.text;
-      if (!content) throw new Error("No response from Gemini");
-
-      const result = JSON.parse(content) as ResumeJSON;
-      const usage = this.estimateTokenUsage(promptText, content);
-
-      return { result, usage, prompt: template };
-    } catch (err: unknown) {
-      const error = err as Record<string, unknown>;
-      logger.error("parseResume failed", {
-        error: err,
-        message: error?.message,
-      });
-      throw new Error(
-        `Gemini parseResume failed: ${String(error?.message) || err}`
-      );
-    }
-  }
 
   async runLLM<T>(
     messages: PromptMessage[],
@@ -219,6 +87,44 @@ export class GeminiProvider extends BaseLLMProvider implements LLMProvider {
     return "Gemini";
   }
 
+  async runStructuredLLM<TSchema extends ZodTypeAny>(
+    template: ResolvedPrompt,
+    options: LLMGenerationOptions,
+    zodSchema: TSchema,
+    _schemaName?: string
+  ): Promise<{ result: z.infer<TSchema>; usage: LLMUsageInfo | undefined }> {
+    const promptText = this.combinePromptText(template);
+    try {
+      const response = await this.client.models.generateContent({
+        model: options.model,
+        contents: promptText,
+        config: {
+          responseMimeType: "application/json",
+          // @ts-expect-error - zodToJsonSchema types are not fully compatible
+          // with Gemini's expected schema format, but works for simple cases
+          responseSchema: zodToJsonSchema(zodSchema),
+        },
+      });
+
+      const content = response.text;
+      if (!content) throw new Error("No response from Gemini");
+
+      const result: z.infer<TSchema> = zodSchema.parse(JSON.parse(content));
+      const usage = this.estimateTokenUsage(promptText, content);
+
+      return { result, usage };
+    } catch (err: unknown) {
+      const error = err as Record<string, unknown>;
+      logger.error("runStructuredLLM failed", {
+        error: err,
+        message: error?.message,
+      });
+      throw new Error(
+        `Gemini runStructuredLLM failed: ${String(error?.message ?? err)}`
+      );
+    }
+  }
+
   async validateConnection(): Promise<{ success: boolean; message: string }> {
     try {
       const response = await fetch(
@@ -249,7 +155,7 @@ export class GeminiProvider extends BaseLLMProvider implements LLMProvider {
 /**
  * Register Gemini provider
  */
-BaseLLMProvider.register(
+LLMProvider.register(
   ProviderType.GEMINI,
   {
     name: "Google Gemini",

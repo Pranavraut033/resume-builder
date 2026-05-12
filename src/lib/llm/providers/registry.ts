@@ -5,7 +5,8 @@
  */
 
 import { ProviderType } from "@/types/llm";
-import { LLMProvider } from "@/types/llm";
+
+import { LLMProvider } from "./LLMProvider";
 
 export interface ProviderMetadata {
   type: ProviderType;

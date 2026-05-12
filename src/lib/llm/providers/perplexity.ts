@@ -1,14 +1,22 @@
 import { createLogger } from "@/lib/logger";
-import { LLMProvider, ProviderType } from "@/types/llm";
+import { ProviderType } from "@/types/llm";
 
 import { OpenAICompatibleProvider } from "./openaiCompatibleProvider";
+import fallbackModels from "./response/perplexity-fallback.json";
 
 const logger = createLogger("Perplexity");
 
-export class PerplexityProvider
-  extends OpenAICompatibleProvider
-  implements LLMProvider
-{
+const PERPLEXITY_FALLBACK_MODELS = Array.isArray(fallbackModels?.data)
+  ? fallbackModels.data
+      .map((model) => (typeof model?.id === "string" ? model.id : undefined))
+      .filter((id): id is string => Boolean(id))
+  : [
+      "perplexity/sonar",
+      "perplexity/sonar-pro",
+      "perplexity/sonar-reasoning-pro",
+    ];
+
+export class PerplexityProvider extends OpenAICompatibleProvider {
   private apiKey: string;
 
   constructor(apiKey: string) {
@@ -17,26 +25,27 @@ export class PerplexityProvider
   }
 
   async fetchModels(): Promise<string[]> {
-    console.log("abc");
-
     logger.debug("Fetching models from Perplexity API");
-    const response = await fetch("https://api.perplexity.ai/v1/models", {
-      method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${this.apiKey}`,
-      },
-    });
 
-    const data = await response.json();
+    try {
+      const response = await fetch("https://api.perplexity.ai/v1/models");
+      const data = await response.json();
 
-    if (!response.ok)
-      throw new Error(
-        `HTTP ${response.status}: ${data.error?.message || response.statusText || "Failed to fetch models"}`
-      );
-    if (!data.data || !Array.isArray(data.data))
-      throw new Error("Invalid response from Perplexity models API");
-    return data.data.map((model: { id: string }) => model.id);
+      if (!response.ok)
+        throw new Error(
+          `HTTP ${response.status}: ${data.error?.message || response.statusText || "Failed to fetch models"}`
+        );
+      if (!data.data || !Array.isArray(data.data))
+        throw new Error("Invalid response from Perplexity models API");
+
+      return data.data.map((model: { id: string }) => model.id);
+    } catch (error) {
+      logger.error("Perplexity model fetch failed, using fallback data", {
+        error,
+      });
+
+      return ["fallback", ...PERPLEXITY_FALLBACK_MODELS];
+    }
   }
 
   protected getProviderName(): string {
