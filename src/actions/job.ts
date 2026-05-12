@@ -8,7 +8,7 @@ import { prisma } from "@/lib/prisma";
 import { JobStatus, JOB_STATUSES } from "@/types/job";
 import {
   ResumeJSON,
-  JobDetails,
+  JobDetailsJSON,
   ThemeCustomization,
   DEFAULT_CUSTOMIZATION,
   applyCustomization,
@@ -20,7 +20,7 @@ import {
  * Note: Job parsing, resume generation, and cover letter generation happen on client side
  */
 export async function createJob(input: {
-  jobDetails: JobDetails;
+  jobDetails: JobDetailsJSON;
   tailoredResume?: ResumeJSON;
   coverLetterText?: string;
   url?: string;
@@ -139,10 +139,10 @@ export async function getJobContext(jobId: number) {
     return null;
   }
 
-  let jobDetails: JobDetails | null = null;
+  let jobDetails: JobDetailsJSON | null = null;
   if (job.jobDetailsJson) {
     try {
-      jobDetails = JSON.parse(job.jobDetailsJson) as JobDetails;
+      jobDetails = JSON.parse(job.jobDetailsJson) as JobDetailsJSON;
     } catch {
       console.error("Failed to parse jobDetailsJson for job", jobId);
     }

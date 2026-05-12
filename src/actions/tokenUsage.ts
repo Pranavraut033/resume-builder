@@ -9,51 +9,43 @@
  * - Aggregations (total tokens, per-model, per-provider, per-day)
  */
 
+import { TokenUsage } from "@prisma/client";
+
+import { PromptPurpose } from "@/lib/llm/prompts";
 import { prisma } from "@/lib/prisma";
+import { ProviderType } from "@/types/llm";
 
-export type TokenUsagePurpose =
-  | "NEW_JOB"
-  | "RESUME_FIELD_IMPROVEMENT"
-  | "RESUME_GENERATION"
-  | "COVER_LETTER_GENERATION"
-  | "RESUME_PARSING"
-  | "JOB_PARSING"
-  | "ATS_ANALYSIS";
+export interface LLMUsageInfo {
+  // Core — all providers
+  promptTokens: number; // OpenAI: prompt_tokens / Anthropic: input_tokens
+  completionTokens: number; // OpenAI: completion_tokens / Anthropic: output_tokens
+  totalTokens?: number; // OpenAI: total_tokens
 
-export type TokenUsageProvider =
-  | "openai"
-  | "gemini"
-  | "grok"
-  | "perplexity"
-  | "ollama"
-  | "anthropic";
+  // Cache — Anthropic: cache_read_input_tokens / cache_creation_input_tokens
+  //          OpenAI: prompt_tokens_details.cached_tokens
+  cacheReadTokens?: number;
+  cacheCreationTokens?: number;
 
-export interface CreateTokenUsageData {
+  // Reasoning — OpenAI o-series: completion_tokens_details.reasoning_tokens
+  reasoningTokens?: number;
+
+  // Cost
+  costUSD?: number;
+
+  // Metadata
+  provider: ProviderType;
   model: string;
-  provider: TokenUsageProvider;
-  inputTokens: number;
-  outputTokens: number;
-  purpose: TokenUsagePurpose;
+  purpose: PromptPurpose;
   requestId?: string;
+  durationMs?: number;
 }
 
 export interface TokenUsageFilters {
   startDate?: string; // ISO date string
   endDate?: string; // ISO date string
-  provider?: TokenUsageProvider;
+  provider?: ProviderType;
   model?: string;
-  purpose?: TokenUsagePurpose;
-}
-
-export interface TokenUsageRecord {
-  id: string;
-  model: string;
-  provider: string;
-  inputTokens: number;
-  outputTokens: number;
-  purpose: string;
-  requestId: string | null;
-  createdAt: string;
+  purpose?: PromptPurpose;
 }
 
 export interface TokenUsageAggregation {
@@ -64,26 +56,26 @@ export interface TokenUsageAggregation {
 }
 
 export interface TokenUsageByProvider {
-  provider: string;
-  inputTokens: number;
-  outputTokens: number;
+  provider: ProviderType;
+  promptTokens: number;
+  completionTokens: number;
   totalTokens: number;
   requestCount: number;
 }
 
 export interface TokenUsageByModel {
   model: string;
-  provider: string;
-  inputTokens: number;
-  outputTokens: number;
+  provider: ProviderType;
+  promptTokens: number;
+  completionTokens: number;
   totalTokens: number;
   requestCount: number;
 }
 
 export interface TokenUsageByDay {
   date: string; // YYYY-MM-DD format
-  inputTokens: number;
-  outputTokens: number;
+  promptTokens: number;
+  completionTokens: number;
   totalTokens: number;
   requestCount: number;
 }
@@ -92,30 +84,16 @@ export interface TokenUsageByDay {
  * Create a new token usage record
  */
 export async function createTokenUsage(
-  data: CreateTokenUsageData
-): Promise<TokenUsageRecord> {
-  const record = await prisma.tokenUsage.create({
+  data: LLMUsageInfo
+): Promise<TokenUsage> {
+  return prisma.tokenUsage.create({
     data: {
-      model: data.model,
-      provider: data.provider,
-      inputTokens: data.inputTokens,
-      outputTokens: data.outputTokens,
-      purpose: data.purpose,
-      requestId: data.requestId || null,
-      createdAt: new Date().toISOString(),
+      ...data,
+      totalTokens:
+        data.totalTokens || data.promptTokens + data.completionTokens || 0,
+      costMicrocents: data.costUSD ? data.costUSD * 1_000_000 : undefined, // Store as cents to avoid floating point issues
     },
   });
-
-  return {
-    id: record.id,
-    model: record.model,
-    provider: record.provider,
-    inputTokens: record.inputTokens,
-    outputTokens: record.outputTokens,
-    purpose: record.purpose,
-    requestId: record.requestId,
-    createdAt: record.createdAt,
-  };
 }
 
 /**
@@ -125,7 +103,7 @@ export async function getTokenUsageRecords(
   filters?: TokenUsageFilters,
   limit: number = 100,
   offset: number = 0
-): Promise<TokenUsageRecord[]> {
+): Promise<TokenUsage[]> {
   const where: Record<string, unknown> = {};
 
   if (filters?.startDate || filters?.endDate) {
@@ -157,16 +135,7 @@ export async function getTokenUsageRecords(
     skip: offset,
   });
 
-  return records.map((record) => ({
-    id: record.id,
-    model: record.model,
-    provider: record.provider,
-    inputTokens: record.inputTokens,
-    outputTokens: record.outputTokens,
-    purpose: record.purpose,
-    requestId: record.requestId,
-    createdAt: record.createdAt,
-  }));
+  return records;
 }
 
 /**
@@ -235,14 +204,14 @@ export async function getTokenUsageAggregation(
   const aggregation = await prisma.tokenUsage.aggregate({
     where,
     _sum: {
-      inputTokens: true,
-      outputTokens: true,
+      promptTokens: true,
+      completionTokens: true,
     },
     _count: true,
   });
 
-  const totalInputTokens = aggregation._sum.inputTokens || 0;
-  const totalOutputTokens = aggregation._sum.outputTokens || 0;
+  const totalInputTokens = aggregation._sum.promptTokens || 0;
+  const totalOutputTokens = aggregation._sum.completionTokens || 0;
 
   return {
     totalInputTokens,
@@ -282,17 +251,18 @@ export async function getTokenUsageByProvider(
     by: ["provider"],
     where,
     _sum: {
-      inputTokens: true,
-      outputTokens: true,
+      promptTokens: true,
+      completionTokens: true,
     },
     _count: true,
   });
 
   return groupedData.map((item) => ({
-    provider: item.provider,
-    inputTokens: item._sum.inputTokens || 0,
-    outputTokens: item._sum.outputTokens || 0,
-    totalTokens: (item._sum.inputTokens || 0) + (item._sum.outputTokens || 0),
+    provider: ProviderType[item.provider as keyof typeof ProviderType],
+    promptTokens: item._sum.promptTokens || 0,
+    completionTokens: item._sum.completionTokens || 0,
+    totalTokens:
+      (item._sum.promptTokens || 0) + (item._sum.completionTokens || 0),
     requestCount: item._count,
   }));
 }
@@ -327,18 +297,19 @@ export async function getTokenUsageByModel(
     by: ["model", "provider"],
     where,
     _sum: {
-      inputTokens: true,
-      outputTokens: true,
+      promptTokens: true,
+      completionTokens: true,
     },
     _count: true,
   });
 
   return groupedData.map((item) => ({
     model: item.model,
-    provider: item.provider,
-    inputTokens: item._sum.inputTokens || 0,
-    outputTokens: item._sum.outputTokens || 0,
-    totalTokens: (item._sum.inputTokens || 0) + (item._sum.outputTokens || 0),
+    provider: ProviderType[item.provider as keyof typeof ProviderType],
+    promptTokens: item._sum.promptTokens || 0,
+    completionTokens: item._sum.completionTokens || 0,
+    totalTokens:
+      (item._sum.promptTokens || 0) + (item._sum.completionTokens || 0),
     requestCount: item._count,
   }));
 }
@@ -378,8 +349,8 @@ export async function getTokenUsageByDay(
     where,
     select: {
       createdAt: true,
-      inputTokens: true,
-      outputTokens: true,
+      promptTokens: true,
+      completionTokens: true,
     },
   });
 
@@ -387,21 +358,22 @@ export async function getTokenUsageByDay(
   const groupedByDate: Record<string, TokenUsageByDay> = {};
 
   for (const record of records) {
-    const date = record.createdAt.split("T")[0]; // Extract YYYY-MM-DD
+    const date = record.createdAt.toISOString().split("T")[0]; // Extract YYYY-MM-DD
 
     if (!groupedByDate[date]) {
       groupedByDate[date] = {
         date,
-        inputTokens: 0,
-        outputTokens: 0,
+        promptTokens: 0,
+        completionTokens: 0,
         totalTokens: 0,
         requestCount: 0,
       };
     }
 
-    groupedByDate[date].inputTokens += record.inputTokens;
-    groupedByDate[date].outputTokens += record.outputTokens;
-    groupedByDate[date].totalTokens += record.inputTokens + record.outputTokens;
+    groupedByDate[date].promptTokens += record.promptTokens;
+    groupedByDate[date].completionTokens += record.completionTokens;
+    groupedByDate[date].totalTokens +=
+      record.promptTokens + record.completionTokens;
     groupedByDate[date].requestCount += 1;
   }
 
