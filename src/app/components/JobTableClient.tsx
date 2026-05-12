@@ -26,7 +26,7 @@ import { Icon } from "@/components/ui/Icon";
 import { Modal } from "@/components/ui/Modal";
 import { useToast } from "@/components/ui/ToastProvider";
 import { JOB_STATUSES, JobStatus, isJobStatus } from "@/types/job";
-import { JobDetails } from "@/types/resume";
+import { JobDetailsJSON } from "@/types/resume";
 
 import type { Table as ReactTableType } from "@tanstack/react-table";
 
@@ -103,10 +103,10 @@ function formatTimestamp(value: string) {
   });
 }
 
-function parseJobDetails(raw: string | null): JobDetails | null {
+function parseJobDetails(raw: string | null): JobDetailsJSON | null {
   if (!raw) return null;
   try {
-    return JSON.parse(raw) as JobDetails;
+    return JSON.parse(raw) as JobDetailsJSON;
   } catch (_error) {
     return null;
   }
@@ -123,7 +123,7 @@ export default function JobTableClient({ jobs }: { jobs: JobInput[] }) {
   const [statusLoadingId, setStatusLoadingId] = useState<number | null>(null);
   const [deleteLoadingId, setDeleteLoadingId] = useState<number | null>(null);
   const [peekJob, setPeekJob] = useState<JobRecord | null>(null);
-  const [peekDetails, setPeekDetails] = useState<JobDetails | null>(null);
+  const [peekDetails, setPeekDetails] = useState<JobDetailsJSON | null>(null);
   const [isPeekOpen, setIsPeekOpen] = useState(false);
   const [jobItems, setJobItems] = useState<JobRecord[]>(() =>
     jobs.map((job) => ({
@@ -798,7 +798,7 @@ function PeekContent({
   onClose,
 }: {
   job: JobRecord;
-  details: JobDetails | null;
+  details: JobDetailsJSON | null;
   onClose: () => void;
 }) {
   return (
