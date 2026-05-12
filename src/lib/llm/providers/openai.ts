@@ -7,6 +7,8 @@ import { OpenAICompatibleProvider } from "./openaiCompatibleProvider";
 const logger = createLogger("OpenAI");
 
 export class OpenAIProvider extends OpenAICompatibleProvider {
+  public readonly providerType = ProviderType.OPENAI;
+
   constructor(apiKey: string) {
     super({ apiKey });
   }

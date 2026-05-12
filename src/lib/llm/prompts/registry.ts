@@ -3,7 +3,7 @@
  * Centralized registry for all prompt templates
  */
 
-import { PromptTemplate, PromptPurpose } from "./types";
+import { PromptTemplate, PromptPurpose, PROMPT_PURPOSES } from "./types";
 
 /**
  * Centralized template registry
@@ -70,24 +70,14 @@ class TemplateRegistry {
    */
   getStats(): {
     templateCount: number;
-    purposeCoverage: Record<string, boolean>;
+    purposeCoverage: Record<PromptPurpose, boolean>;
   } {
-    const purposeCoverage: Record<string, boolean> = {};
+    const purposeCoverage: Record<PromptPurpose, boolean> = {} as Record<
+      PromptPurpose,
+      boolean
+    >;
 
-    // Check which purposes are covered
-    const purposeKeys: PromptPurpose[] = [
-      "generate_summary",
-      "generate_experience",
-      "generate_skills",
-      "generate_projects",
-      "generate_education",
-      "edit_resume_chat",
-      "parse_job",
-      "parse_resume",
-      "analyze_ats",
-    ];
-
-    for (const purpose of purposeKeys) {
+    for (const purpose of PROMPT_PURPOSES) {
       purposeCoverage[purpose] = this.getByPurpose(purpose) !== undefined;
     }
 

@@ -7,14 +7,14 @@
  */
 import z, { ZodTypeAny } from "zod";
 
-import { PromptSystem, ResolvedPrompt } from "@/lib/llm/prompts";
+import { LLMUsageInfo } from "@/actions/tokenUsage";
+import { PromptPurpose, PromptSystem, ResolvedPrompt } from "@/lib/llm/prompts";
 import { HumanizerSchema } from "@/types/humanizer";
 import {
   ResumePromptInput,
   CoverLetterPromptInput,
   LLMGenerationOptions,
   ProviderType,
-  LLMUsageInfo,
   LLMResult,
   CoverLetterGenerationResult,
   JobParsingResult,
@@ -24,9 +24,19 @@ import {
   TextGenerationResult,
   HumanizeContentResult,
 } from "@/types/llm";
-import { ResumeGenerationSchema, JobDetailsSchema } from "@/types/resume";
+import {
+  ResumeGenerationSchema,
+  JobDetailsSchema,
+  ATSAnalysisSchema,
+  ATSAnalysisJSON,
+} from "@/types/resume";
 
 import { ProviderRegistry, ProviderMetadata } from "./registry";
+
+export type StructureResult<TSchema extends ZodTypeAny> = {
+  result: z.infer<TSchema>;
+  usage: LLMUsageInfo;
+};
 
 export abstract class LLMProvider {
   abstract fetchModels(): Promise<string[]>;
@@ -43,7 +53,7 @@ export abstract class LLMProvider {
     options: LLMGenerationOptions,
     zodSchema: TSchema,
     schemaName?: string
-  ): Promise<{ result: z.infer<TSchema>; usage: LLMUsageInfo | undefined }>;
+  ): Promise<StructureResult<TSchema>>;
 
   async generateResume(
     input: ResumePromptInput,
@@ -56,7 +66,22 @@ export abstract class LLMProvider {
       options,
       ResumeGenerationSchema
     );
-    return { result, usage, prompt: resolvedPrompt };
+
+    return { result, usage };
+  }
+
+  analyzeATS(
+    input: CoverLetterPromptInput,
+    options: LLMGenerationOptions
+  ): Promise<LLMResult<ATSAnalysisJSON>> {
+    const prompt = PromptSystem.generatePrompt("analyze_ats", input);
+
+    return this.runStructuredLLM(
+      prompt,
+      options,
+      ATSAnalysisSchema,
+      "ATSAnalysisResult"
+    );
   }
 
   async generateCoverLetter(
@@ -68,7 +93,7 @@ export abstract class LLMProvider {
 
     const { result, usage } = await this.runLLM<string>(messages, options);
 
-    return { result, prompt: resolvedPrompt, usage };
+    return { result, usage };
   }
 
   async parseJobDetails(
@@ -82,7 +107,7 @@ export abstract class LLMProvider {
       options,
       JobDetailsSchema
     );
-    return { result, usage, prompt: template };
+    return { result, usage };
   }
 
   async parseResume(
@@ -96,7 +121,7 @@ export abstract class LLMProvider {
       ResumeGenerationSchema,
       "ParsedResume"
     );
-    return { result, usage, prompt: template };
+    return { result, usage };
   }
 
   async humanizeContent(
@@ -110,7 +135,7 @@ export abstract class LLMProvider {
       HumanizerSchema,
       "HumanizerResult"
     );
-    return { result, usage, prompt: template };
+    return { result, usage };
   }
 
   /**
@@ -196,22 +221,44 @@ export abstract class LLMProvider {
 
       usage:
         response.usage ??
-        this.estimateTokenUsage(systemPrompt + userPrompt, response.result),
+        this.estimateTokenUsage({
+          inputPrompt: systemPrompt + userPrompt,
+          outputText: response.result,
+          model: options.model,
+          purpose: "generate_text",
+          provider: this.providerType, // Assuming each provider implementation sets this.providerType
+        }),
     };
   }
+
+  abstract providerType: ProviderType;
 
   /**
    * Normalize token usage from provider-specific format to LLMUsageInfo
    */
-  protected estimateTokenUsage(
-    inputPrompt?: string,
-    outputText?: string
-  ): LLMUsageInfo | undefined {
-    if (!inputPrompt && !outputText) return undefined;
+  protected estimateTokenUsage({
+    inputPrompt,
+    outputText,
+    model,
+    purpose,
+    provider,
+  }: {
+    inputPrompt: string;
+    outputText: string;
+    model: string;
+    purpose: PromptPurpose;
+    provider: ProviderType;
+  }): LLMUsageInfo {
+    const inputTokens = inputPrompt ? Math.ceil(inputPrompt.length / 4) : 0;
+    const outputTokens = outputText ? Math.ceil(outputText.length / 4) : 0;
 
     return {
-      inputTokens: inputPrompt ? Math.ceil(inputPrompt.length / 4) : 0,
-      outputTokens: outputText ? Math.ceil(outputText.length / 4) : 0,
+      promptTokens: inputTokens,
+      completionTokens: outputTokens,
+      totalTokens: inputTokens + outputTokens,
+      model,
+      purpose,
+      provider,
     } satisfies LLMUsageInfo;
   }
 
@@ -234,7 +281,6 @@ export abstract class LLMProvider {
     input: CoverLetterPromptInput
   ): ResolvedPrompt {
     return PromptSystem.generatePrompt("generate_cover_letter", {
-      baseProfile: input.baseProfile,
       jobDetails: input.jobDetails,
       resume: input.resume,
     });

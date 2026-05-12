@@ -7,17 +7,18 @@ import OpenAI from "openai";
 import { zodResponseFormat } from "openai/helpers/zod";
 import { CompletionUsage } from "openai/resources/completions.mjs";
 
-import { LLMProvider } from "./LLMProvider";
-import { ResolvedPrompt } from "../prompts";
+import { LLMUsageInfo } from "@/actions/tokenUsage";
+
+import { LLMProvider, StructureResult } from "./LLMProvider";
+import { PromptPurpose, ResolvedPrompt } from "../prompts";
 
 import type {
   LLMGenerationOptions,
   LLMResult,
-  LLMUsageInfo,
   PromptMessage,
 } from "@/types/llm";
 import type { ChatCompletionMessageParam } from "openai/resources/chat/completions";
-import type { z, ZodTypeAny } from "zod";
+import type { ZodTypeAny } from "zod";
 
 export type OpenAIClientConfig = {
   apiKey: string;
@@ -37,13 +38,18 @@ export abstract class OpenAICompatibleProvider extends LLMProvider {
   }
 
   protected normalizeUsage(
-    usage?: CompletionUsage | null
-  ): LLMUsageInfo | undefined {
-    if (!usage) return undefined;
-
+    usage: CompletionUsage,
+    model: string,
+    purpose: PromptPurpose = "generate_text"
+  ): LLMUsageInfo {
     return {
-      inputTokens: usage.prompt_tokens ?? 0,
-      outputTokens: usage.completion_tokens ?? 0,
+      promptTokens: usage.prompt_tokens,
+      completionTokens: usage.completion_tokens,
+      totalTokens: usage.total_tokens,
+      provider: this.providerType,
+      reasoningTokens: usage.completion_tokens_details?.reasoning_tokens,
+      model,
+      purpose,
     } satisfies LLMUsageInfo;
   }
 
@@ -72,12 +78,15 @@ export abstract class OpenAICompatibleProvider extends LLMProvider {
       });
 
       const content = completion.choices[0]?.message?.content ?? "";
-      const usage =
-        this.normalizeUsage(completion.usage) ??
-        this.estimateTokenUsage(
-          messages.map((m) => m.content).join("\n"),
-          content
-        );
+      const usage = completion.usage
+        ? this.normalizeUsage(completion.usage, model, "generate_text")
+        : this.estimateTokenUsage({
+            inputPrompt: messages.map((m) => m.content).join("\n"),
+            outputText: content,
+            model,
+            purpose: "generate_text",
+            provider: this.providerType,
+          });
 
       return {
         result: content as T,
@@ -96,7 +105,7 @@ export abstract class OpenAICompatibleProvider extends LLMProvider {
     options: LLMGenerationOptions,
     zodSchema: TSchema,
     schemaName: string
-  ): Promise<{ result: z.infer<TSchema>; usage: LLMUsageInfo | undefined }> {
+  ): Promise<StructureResult<TSchema>> {
     const messages = this.toPromptMessages(template);
     const promptTextForEstimation = this.combinePromptText(template);
 
@@ -114,12 +123,17 @@ export abstract class OpenAICompatibleProvider extends LLMProvider {
       throw new Error("Failed to parse structured response");
     }
 
-    const usage =
-      this.normalizeUsage(completion.usage) ||
-      this.estimateTokenUsage(
-        promptTextForEstimation ?? messages.map((m) => m.content).join("\n"),
-        JSON.stringify(parsed)
-      );
+    const usage = completion.usage
+      ? this.normalizeUsage(completion.usage, options.model, template.purpose)
+      : this.estimateTokenUsage({
+          inputPrompt:
+            promptTextForEstimation ??
+            messages.map((m) => m.content).join("\n"),
+          outputText: JSON.stringify(parsed),
+          model: options.model,
+          purpose: template.purpose,
+          provider: this.providerType,
+        });
 
     return { result: parsed, usage };
   }

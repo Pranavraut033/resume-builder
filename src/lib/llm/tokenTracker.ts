@@ -7,55 +7,33 @@
 
 import { v4 as uuidv4 } from "uuid";
 
-import {
-  createTokenUsage,
-  TokenUsagePurpose,
-  TokenUsageProvider,
-} from "@/actions/tokenUsage";
+import { createTokenUsage, LLMUsageInfo } from "@/actions/tokenUsage";
 import { createLogger } from "@/lib/logger";
 
 const logger = createLogger("TokenTracker");
-
-export interface TokenUsageData {
-  model: string;
-  provider: TokenUsageProvider;
-  inputTokens: number;
-  outputTokens: number;
-  purpose: TokenUsagePurpose;
-  requestId?: string;
-}
 
 /**
  * Track token usage from an LLM response
  * Extracts usage data and sends to server for storage
  */
-export async function trackTokenUsage(data: TokenUsageData): Promise<void> {
-  try {
-    await createTokenUsage({
-      model: data.model,
-      provider: data.provider,
-      inputTokens: data.inputTokens,
-      outputTokens: data.outputTokens,
-      purpose: data.purpose,
-      requestId: data.requestId || uuidv4(),
-    });
+export async function trackTokenUsage(data: LLMUsageInfo): Promise<void> {
+  logger.debug("Saving token usage", {
+    provider: data.provider,
+    model: data.model,
+    tokens: (data.promptTokens || 0) + (data.completionTokens || 0),
+  });
 
-    logger.debug("Token usage tracked", {
-      provider: data.provider,
-      model: data.model,
-      tokens: data.inputTokens + data.outputTokens,
-    });
-  } catch (error) {
-    logger.error("Failed to track token usage", { error, data });
-    // Don't throw - token tracking failures shouldn't break the app
-  }
+  await createTokenUsage({
+    ...data,
+    requestId: data.requestId || generateRequestId(data.purpose),
+  });
 }
 
 /**
  * Generate a unique request ID for grouping related LLM calls
  */
-export function generateRequestId(): string {
-  return uuidv4();
+export function generateRequestId(purpose?: string): string {
+  return purpose ? `${purpose}-${uuidv4()}` : uuidv4();
 }
 
 /**

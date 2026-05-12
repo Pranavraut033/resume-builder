@@ -8,10 +8,9 @@ import {
   LLMGenerationOptions,
   LLMResult,
   PromptMessage,
-  LLMUsageInfo,
 } from "@/types/llm";
 
-import { LLMProvider } from "./LLMProvider";
+import { LLMProvider, StructureResult } from "./LLMProvider";
 
 const logger = createLogger("Ollama");
 
@@ -25,6 +24,7 @@ interface OllamaModel {
 
 export class OllamaProvider extends LLMProvider {
   private baseUrl: string;
+  public readonly providerType = ProviderType.OLLAMA;
 
   constructor(baseUrl: string = "http://localhost:11434") {
     super();
@@ -93,7 +93,13 @@ Begin your response with { and end with }`;
 
       if (!content) throw new Error("No response from Ollama");
 
-      const usage = this.estimateTokenUsage(promptText, content);
+      const usage = this.estimateTokenUsage({
+        inputPrompt: promptText,
+        outputText: content,
+        model: options.model,
+        purpose: "generate_text",
+        provider: this.providerType,
+      });
 
       return {
         result: content as T,
@@ -113,7 +119,7 @@ Begin your response with { and end with }`;
     template: ResolvedPrompt,
     options: LLMGenerationOptions,
     zodSchema: TSchema
-  ): Promise<{ result: z.infer<TSchema>; usage: LLMUsageInfo | undefined }> {
+  ): Promise<StructureResult<TSchema>> {
     let promptText = this.combinePromptText(template);
 
     // Inject schema for better structured output
@@ -128,7 +134,13 @@ Begin your response with { and end with }`;
       if (!content) throw new Error("No response from Ollama");
 
       const result = zodSchema.parse(JSON.parse(content));
-      const usage = this.estimateTokenUsage(promptText, content);
+      const usage = this.estimateTokenUsage({
+        inputPrompt: promptText,
+        outputText: content,
+        model: options.model,
+        purpose: template.purpose,
+        provider: this.providerType,
+      });
 
       return { result, usage };
     } catch (err: unknown) {

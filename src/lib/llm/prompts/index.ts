@@ -55,13 +55,13 @@ export class PromptSystem {
     generate_education: "Education Summary Generation",
     generate_experience: "Experience Description Generation",
     generate_projects: "Project Description Generation",
-    edit_resume_chat: "Resume Chat Edit",
     generate_skills: "Skills Generation",
     generate_summary: "Professional Summary Generation",
     generate_tailored_resume: "Tailored Resume Generation",
     parse_job: "Job Description Parsing",
     parse_resume: "Resume Parsing",
     humanize_content: "Content Humanization",
+    generate_text: "General Text Generation",
   };
 
   /**

@@ -1,11 +1,11 @@
-import { JobDetails, ResumeJSON } from "@/types/resume";
+import { JobDetailsJSON, ResumeJSON } from "@/types/resume";
 
 import type { ZodSchema } from "zod";
 
 export interface PromptContext {
   baseProfile?: ResumeJSON | null;
   resume?: ResumeJSON | null;
-  jobDetails?: JobDetails | null;
+  jobDetails?: JobDetailsJSON | null;
   jobDescription?: string;
   resumeText?: string;
   field?: string;
@@ -24,19 +24,22 @@ export type FieldType =
 
 // Note: We reuse all existing data types (ResumeJSON, JobDetails, etc.)
 // Only creating NEW types for the template system infrastructure below:
-export type PromptPurpose =
-  | "generate_summary"
-  | "generate_experience"
-  | "generate_skills"
-  | "generate_projects"
-  | "generate_education"
-  | "generate_tailored_resume"
-  | "edit_resume_chat"
-  | "generate_cover_letter"
-  | "parse_job"
-  | "parse_resume"
-  | "analyze_ats"
-  | "humanize_content";
+export const PROMPT_PURPOSES = [
+  "generate_text",
+  "generate_summary",
+  "generate_experience",
+  "generate_skills",
+  "generate_projects",
+  "generate_education",
+  "generate_tailored_resume",
+  "generate_cover_letter",
+  "parse_job",
+  "parse_resume",
+  "analyze_ats",
+  "humanize_content",
+] as const;
+
+export type PromptPurpose = (typeof PROMPT_PURPOSES)[number];
 
 /**
  * Dot/bracket path utility that produces autocompleteable paths through nested objects and arrays.

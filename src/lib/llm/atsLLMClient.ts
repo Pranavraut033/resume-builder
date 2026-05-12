@@ -6,20 +6,17 @@
 
 "use client";
 
-import { TokenUsageProvider } from "@/actions/tokenUsage";
 import { ProviderFactory } from "@/lib/llm/clientLLM";
 import { trackTokenUsage, generateRequestId } from "@/lib/llm/tokenTracker";
-import { createLogger } from "@/lib/logger";
+import { ProviderType } from "@/types/llm";
 
 import type { LLMClient, JSONSchema } from "@pranavraut033/ats-checker";
-
-const logger = createLogger("ATSLLMClient");
 
 /**
  * Create an LLMClient backed by any available LLM provider. Returns null if no provider available.
  */
 export async function createLLMClient(
-  providerName: string,
+  providerName: ProviderType,
   requestId?: string
 ): Promise<LLMClient | null> {
   const provider = await ProviderFactory.getInstance(providerName);
@@ -41,46 +38,25 @@ export async function createLLMClient(
         total_tokens?: number;
       };
     }> {
-      // Use the provider's runPrompt method
-      const response = await provider.runPrompt(
-        input.messages,
-        input.model,
-        input.max_tokens
-      );
+      // Use the provider's runLLM method
+      const response = await provider.runLLM<string>(input.messages, {
+        model: input.model,
+        maxTokens: input.max_tokens,
+        temperature: 0, // Deterministic output for ATS suggestions
+      });
 
-      // Track token usage if available
-      if (response.usage?.prompt_tokens && response.usage?.completion_tokens) {
-        try {
-          await trackTokenUsage({
-            model: input.model,
-            provider: providerName as TokenUsageProvider,
-            inputTokens: response.usage.prompt_tokens,
-            outputTokens: response.usage.completion_tokens,
-            purpose: "RESUME_FIELD_IMPROVEMENT", // ATS suggestions are improvements
-            requestId: trackingRequestId,
-          });
-          logger.debug("ATS token usage tracked", {
-            model: input.model,
-            provider: providerName,
-            tokens: response.usage.total_tokens,
-          });
-        } catch (error) {
-          logger.error("Failed to track ATS token usage", { error });
-          // Don't throw - token tracking failures shouldn't break ATS
-        }
-      }
-
-      const contentStr = response.content || "";
-      let parsed: unknown = contentStr;
-      try {
-        parsed = JSON.parse(contentStr);
-      } catch (_) {
-        // Non-JSON content; allow downstream validator to handle.
-      }
+      await trackTokenUsage({
+        ...response.usage,
+        requestId: trackingRequestId,
+      });
 
       return {
-        content: parsed,
-        usage: response.usage,
+        content: response.result,
+        usage: {
+          prompt_tokens: response.usage.promptTokens,
+          completion_tokens: response.usage.completionTokens,
+          total_tokens: response.usage.totalTokens,
+        },
       };
     },
   };

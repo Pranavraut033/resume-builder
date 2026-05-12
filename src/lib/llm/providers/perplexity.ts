@@ -17,6 +17,7 @@ const PERPLEXITY_FALLBACK_MODELS = Array.isArray(fallbackModels?.data)
     ];
 
 export class PerplexityProvider extends OpenAICompatibleProvider {
+  public readonly providerType = ProviderType.PERPLEXITY;
   private apiKey: string;
 
   constructor(apiKey: string) {

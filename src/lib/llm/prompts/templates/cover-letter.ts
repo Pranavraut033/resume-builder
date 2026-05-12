@@ -22,11 +22,7 @@ const coverLetterTemplate: PromptTemplate = {
   purpose: "generate_cover_letter", // Using existing purpose enum - this might need a new purpose type
   description:
     "Generate a professional cover letter based on profile, job, and tailored resume",
-  requiredContext: [
-    "baseProfile",
-    "jobDetails",
-    "resume", // The tailored resume
-  ],
+  requiredContext: ["jobDetails", "resume"],
 
   systemPrompt: `You are an expert cover letter writer who crafts compelling, ATS-aware letters that feel human.
 
@@ -41,13 +37,13 @@ WRITING PRINCIPLES:
 - Every sentence must earn its place — cut anything vague or decorative
 
 DATA INTEGRITY (non-negotiable):
-- Use ONLY facts, achievements, and experiences present in the base profile and resume
+- Use ONLY facts, achievements, and experiences present in the resume
 - Never invent metrics, outcomes, responsibilities, or technologies
 - Fabrication of any kind is a critical failure
 
 STRUCTURE:
 - Para 1 — Hook + role fit: open with the strongest, most specific reason this candidate belongs in this role; name the company and title
-- Para 2 — Proof of impact: 1–2 concrete achievements from the profile that directly address the job's core requirements; quantify using existing data only
+- Para 2 — Proof of impact: 1–2 concrete achievements from the resume that directly address the job's core requirements; quantify using existing data only
 - Para 3 — Company signal: connect the candidate's background or values to something specific about the company, team, or role (use only what is inferable from the job details provided)
 - Para 4 — Close: brief, forward-looking, no fluff
 
@@ -57,10 +53,7 @@ ATS AWARENESS:
 
   userPrompt: `Write a cover letter for the {{jobDetails.job.job_title}} role at {{jobDetails.job.company.company_name}}.
 
-CANDIDATE BASE PROFILE:
-{{{json baseProfile}}}
-
-TAILORED RESUME:
+RESUME:
 {{{json resume}}}
 
 TARGET JOB:

@@ -2,21 +2,23 @@ import Anthropic from "@anthropic-ai/sdk";
 import { zodOutputFormat } from "@anthropic-ai/sdk/helpers/zod";
 import { z } from "zod";
 
+import { LLMUsageInfo } from "@/actions/tokenUsage";
 import { createLogger } from "@/lib/logger";
 import {
   LLMGenerationOptions,
   LLMResult,
-  LLMUsageInfo,
   PromptMessage,
   ProviderType,
 } from "@/types/llm";
 
-import { LLMProvider } from "./LLMProvider";
-import { ResolvedPrompt } from "../prompts";
+import { LLMProvider, StructureResult } from "./LLMProvider";
+import { PromptPurpose, ResolvedPrompt } from "../prompts";
 
 const logger = createLogger("Anthropic");
 
 export class AnthropicProvider extends LLMProvider {
+  public readonly providerType = ProviderType.ANTHROPIC;
+
   validateConnection(): Promise<{ success: boolean; message: string }> {
     throw new Error("Method not implemented.");
   }
@@ -46,24 +48,25 @@ export class AnthropicProvider extends LLMProvider {
       .trim();
   }
 
-  private normalizeUsage(
-    response: unknown
-  ): { inputTokens: number; outputTokens: number } | undefined {
-    if (!response || typeof response !== "object") return undefined;
-
-    const usage = (response as { usage?: unknown }).usage;
-    if (!usage || typeof usage !== "object") return undefined;
-
-    const inputTokens =
-      typeof (usage as { input_tokens?: unknown }).input_tokens === "number"
-        ? (usage as { input_tokens: number }).input_tokens
-        : 0;
-    const outputTokens =
-      typeof (usage as { output_tokens?: unknown }).output_tokens === "number"
-        ? (usage as { output_tokens: number }).output_tokens
-        : 0;
-
-    return { inputTokens, outputTokens };
+  private normalizeUsage({
+    usage,
+    model,
+    purpose,
+  }: {
+    usage: Anthropic.Usage;
+    model: string;
+    purpose: PromptPurpose;
+  }): LLMUsageInfo {
+    return {
+      promptTokens: usage.input_tokens,
+      cacheCreationTokens: usage.cache_creation_input_tokens ?? undefined,
+      cacheReadTokens: usage.cache_read_input_tokens ?? undefined,
+      completionTokens: usage.output_tokens,
+      totalTokens: usage.input_tokens + usage.output_tokens,
+      provider: this.providerType,
+      model,
+      purpose,
+    } satisfies LLMUsageInfo;
   }
 
   private toAnthropicRequest(
@@ -122,9 +125,19 @@ export class AnthropicProvider extends LLMProvider {
       );
 
       const content = this.extractTextResponse(response);
-      const usage =
-        this.normalizeUsage(response) ??
-        this.estimateTokenUsage(promptText, content);
+      const usage = response.usage
+        ? this.normalizeUsage({
+            usage: response.usage,
+            model: options.model,
+            purpose: "generate_text",
+          })
+        : this.estimateTokenUsage({
+            inputPrompt: promptText,
+            outputText: content,
+            model: options.model,
+            purpose: "generate_text",
+            provider: this.providerType,
+          });
 
       return {
         result: content as T,
@@ -147,7 +160,7 @@ export class AnthropicProvider extends LLMProvider {
     options: LLMGenerationOptions,
     zodSchema: TSchema,
     _schemaName?: string
-  ): Promise<{ result: z.infer<TSchema>; usage: LLMUsageInfo | undefined }> {
+  ): Promise<StructureResult<TSchema>> {
     const messages = this.toPromptMessages(template);
     const promptTextForEstimation = this.combinePromptText(template);
 
@@ -163,9 +176,19 @@ export class AnthropicProvider extends LLMProvider {
       throw new Error("Failed to parse structured response from Anthropic");
     }
 
-    const usage =
-      this.normalizeUsage(response) ??
-      this.estimateTokenUsage(promptTextForEstimation, JSON.stringify(parsed));
+    const usage = response.usage
+      ? this.normalizeUsage({
+          usage: response.usage,
+          model: options.model,
+          purpose: "generate_text",
+        })
+      : this.estimateTokenUsage({
+          inputPrompt: promptTextForEstimation,
+          outputText: JSON.stringify(parsed),
+          model: options.model,
+          purpose: "generate_text",
+          provider: this.providerType,
+        });
 
     return {
       result: parsed,

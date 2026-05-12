@@ -8,15 +8,16 @@ import {
   LLMGenerationOptions,
   LLMResult,
   PromptMessage,
-  LLMUsageInfo,
 } from "@/types/llm";
 
-import { LLMProvider } from "./LLMProvider";
+import { LLMProvider, StructureResult } from "./LLMProvider";
 import { ResolvedPrompt } from "../prompts";
 
 const logger = createLogger("Gemini");
 
 export class GeminiProvider extends LLMProvider {
+  public readonly providerType = ProviderType.GEMINI;
+
   private client: GoogleGenAI;
   private apiKey: string;
 
@@ -26,7 +27,7 @@ export class GeminiProvider extends LLMProvider {
     this.client = new GoogleGenAI({ apiKey });
   }
 
-  textGenModelRegex =
+  private textGenModelRegex =
     /^models\/gemini-\d+(\.\d+)?-(pro|flash)(-(latest|lite|preview)){0,2}$/;
 
   async runLLM<T>(
@@ -43,7 +44,13 @@ export class GeminiProvider extends LLMProvider {
       });
 
       const content = response.text || "";
-      const usage = this.estimateTokenUsage(promptText, content);
+      const usage = this.estimateTokenUsage({
+        inputPrompt: promptText,
+        outputText: content,
+        model: options.model,
+        purpose: "generate_text",
+        provider: this.providerType,
+      });
 
       return {
         result: content as T,
@@ -92,7 +99,7 @@ export class GeminiProvider extends LLMProvider {
     options: LLMGenerationOptions,
     zodSchema: TSchema,
     _schemaName?: string
-  ): Promise<{ result: z.infer<TSchema>; usage: LLMUsageInfo | undefined }> {
+  ): Promise<StructureResult<TSchema>> {
     const promptText = this.combinePromptText(template);
     try {
       const response = await this.client.models.generateContent({
@@ -110,7 +117,13 @@ export class GeminiProvider extends LLMProvider {
       if (!content) throw new Error("No response from Gemini");
 
       const result: z.infer<TSchema> = zodSchema.parse(JSON.parse(content));
-      const usage = this.estimateTokenUsage(promptText, content);
+      const usage = this.estimateTokenUsage({
+        inputPrompt: promptText,
+        outputText: content,
+        model: options.model,
+        purpose: template.purpose,
+        provider: this.providerType,
+      });
 
       return { result, usage };
     } catch (err: unknown) {

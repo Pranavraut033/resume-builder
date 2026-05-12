@@ -7,10 +7,13 @@ import { OpenAICompatibleProvider } from "./openaiCompatibleProvider";
 const logger = createLogger("Grok");
 
 export class GrokProvider extends OpenAICompatibleProvider {
+  public readonly providerType = ProviderType.GROK;
+
   constructor(apiKey: string) {
     super({ apiKey, baseURL: "https://api.x.ai/v1" });
   }
-  textGenModelRegex =
+
+  private textGenModelRegex =
     /^grok-\d+((\-|\.)\d+)?(-fast|-mini)?((-non)?(-reasoning))?$/;
 
   async fetchModels(): Promise<string[]> {

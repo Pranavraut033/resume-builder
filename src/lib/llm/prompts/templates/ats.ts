@@ -3,6 +3,8 @@
  * Analyzes resume for ATS compatibility and provides optimization recommendations
  */
 
+import { ATSAnalysisSchema } from "@/types/resume";
+
 import { templateRegistry } from "../registry";
 import { PromptTemplate } from "../types";
 
@@ -87,6 +89,7 @@ HARD CONSTRAINTS:
 - Score calibration: a perfect resume for the exact role = 95 (reserve 100 as theoretical ceiling)
 
 Return ONLY valid JSON matching the ATSAnalysisJSON schema.`,
+  outputSchema: ATSAnalysisSchema,
 };
 
 // Auto-register on module load
