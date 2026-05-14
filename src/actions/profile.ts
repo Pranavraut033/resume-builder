@@ -1,6 +1,6 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { Prisma, Profile } from "@prisma/client";
 
 import { prisma } from "@/lib/prisma";
 import { ResumeJSON } from "@/types/resume";
@@ -16,33 +16,17 @@ export async function hasProfile(): Promise<boolean> {
 /**
  * Get the base profile (returns first profile or default structure)
  */
-export async function getProfile(): Promise<ResumeJSON> {
+export async function getProfile(): Promise<ResumeJSON | null> {
   const profile = await prisma.profile.findFirst();
 
   if (!profile) {
-    return {
-      header: {
-        name: "",
-        email: "",
-        phone: null,
-        location: null,
-        linkedin: null,
-        github: null,
-        website: null,
-      },
-      summary: "",
-      experience: [],
-      projects: [],
-      skills: [],
-      education: [],
-      certifications: [],
-      publications: [],
-      languages: [],
-      volunteer: [],
-      awards: [],
-    };
+    return null;
   }
 
+  return profileDataToResumeJson(profile);
+}
+
+function profileDataToResumeJson(profile: Profile): ResumeJSON {
   return {
     header: {
       name: profile.name,
@@ -65,19 +49,13 @@ export async function getProfile(): Promise<ResumeJSON> {
     languages: profile.languagesJson ? JSON.parse(profile.languagesJson) : [],
     volunteer: profile.volunteerJson ? JSON.parse(profile.volunteerJson) : [],
     awards: profile.awardsJson ? JSON.parse(profile.awardsJson) : [],
-  };
+  } satisfies ResumeJSON;
 }
 
-/**
- * Save or update the base profile
- */
-export async function saveProfile(
+function resumeJsonToProfileData(
   resumeJson: ResumeJSON
-): Promise<{ success: boolean }> {
-  const now = new Date().toISOString();
-  const existing = await prisma.profile.findFirst();
-
-  const data = {
+): Omit<Prisma.ProfileCreateInput, "id" | "createdAt" | "updatedAt"> {
+  return {
     name: resumeJson.header.name,
     email: resumeJson.header.email,
     phone: resumeJson.header.phone || null,
@@ -101,23 +79,26 @@ export async function saveProfile(
       ? JSON.stringify(resumeJson.volunteer)
       : null,
     awardsJson: resumeJson.awards ? JSON.stringify(resumeJson.awards) : null,
+  };
+}
+
+/**
+ * Save or update the base profile
+ */
+export async function saveProfile(
+  resumeJson: ResumeJSON
+): Promise<{ success: boolean }> {
+  const existing = await prisma.profile.findFirst();
+  const now = new Date().toISOString();
+
+  const data = {
+    ...resumeJsonToProfileData(resumeJson),
     updatedAt: now,
   };
 
-  if (!existing) {
-    await prisma.profile.create({
-      data: {
-        ...data,
-        createdAt: now,
-      },
-    });
-  } else {
-    await prisma.profile.update({
-      where: { id: existing.id },
-      data,
-    });
-  }
+  if (existing)
+    await prisma.profile.update({ where: { id: existing.id }, data });
+  else await prisma.profile.create({ data: { ...data, createdAt: now } });
 
-  revalidatePath("/profile");
   return { success: true };
 }
