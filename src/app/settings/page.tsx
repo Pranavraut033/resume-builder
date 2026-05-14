@@ -22,7 +22,7 @@ import { createLogger } from "@/lib/logger";
 import { useModelStore } from "@/store/modelStore";
 import { ProviderType } from "@/types/llm";
 
-import { ProviderCard } from "./components/ProviderCard";
+import { ProviderCard } from "../../components/settings/ProviderCard";
 
 const logger = createLogger("SettingsPage");
 
