@@ -31,7 +31,7 @@ interface ModelState {
   // Cached models organized by provider
   modelsByProvider: ProviderModels;
   // Currently selected model (single selection across all providers);
-  selectedModel: ModelProviderPair | null;
+  activeModelPair: ModelProviderPair | null;
 
   // Selected models list by provider (for multi-select UIs)
   selectedModelsByProvider: SelectedModelsArray;
@@ -74,7 +74,7 @@ export const useModelStore = create<ModelState>()(
       modelsByProvider: { ...EMPTY_MODELS_MAPS },
       selectedModelsByProvider: {},
       cacheTimestamp: null,
-      selectedModel: null,
+      activeModelPair: null,
       isLoading: false,
       error: null,
       cacheTimerId: null,
@@ -146,7 +146,7 @@ export const useModelStore = create<ModelState>()(
       },
 
       setSelectedModel: (provider: ProviderType, model: string) => {
-        set({ selectedModel: [provider, model] });
+        set({ activeModelPair: [provider, model] });
 
         logger.info("Selected model updated", { provider, model });
       },
@@ -178,12 +178,12 @@ export const useModelStore = create<ModelState>()(
       },
 
       getSelectedModel: (): string | null => {
-        const { selectedModel } = get();
+        const { activeModelPair: selectedModel } = get();
         return selectedModel ? selectedModel[1] : null;
       },
 
       getSelectedProvider: (): ProviderType | null => {
-        const { selectedModel } = get();
+        const { activeModelPair: selectedModel } = get();
 
         return selectedModel ? selectedModel[0] : null;
       },
@@ -211,7 +211,7 @@ export const useModelStore = create<ModelState>()(
       storage: createJSONStorage(() => localStorage),
       // Only persist selectedModel and selectedModelsByProvider, not modelsByProvider or cacheTimerId
       partialize: (state) => ({
-        selectedModel: state.selectedModel,
+        selectedModel: state.activeModelPair,
         selectedModelsByProvider: state.selectedModelsByProvider,
       }),
     }
