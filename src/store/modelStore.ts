@@ -209,9 +209,9 @@ export const useModelStore = create<ModelState>()(
     {
       name: "model-store",
       storage: createJSONStorage(() => localStorage),
-      // Only persist selectedModel and selectedModelsByProvider, not modelsByProvider or cacheTimerId
+      // Only persist activeModelPair and selectedModelsByProvider, not modelsByProvider or cacheTimerId
       partialize: (state) => ({
-        selectedModel: state.activeModelPair,
+        activeModelPair: state.activeModelPair,
         selectedModelsByProvider: state.selectedModelsByProvider,
       }),
     }

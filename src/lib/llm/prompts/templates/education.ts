@@ -44,7 +44,7 @@ SIGNAL VS. NOISE RULE:
 - Noise: a detail that is generic, expected for the degree, or unrelated to the target role
 - When in doubt, omit — a clean, accurate one-liner outperforms a padded two-sentence entry`,
 
-  userPrompt: `Rewrite education descriptions for the {{jobData.job.job_title}} role.
+  userPrompt: `Rewrite education descriptions for the Target Job role.
 
 TARGET ROLE CONTEXT:
 - Education Requirement: {{jobData.requirements.education}}

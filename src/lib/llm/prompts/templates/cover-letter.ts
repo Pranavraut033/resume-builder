@@ -3,19 +3,8 @@
  * Professional cover letter tailored to job and profile
  */
 
-import { z } from "zod";
-
 import { templateRegistry } from "../registry";
 import { PromptTemplate } from "../types";
-
-// Schema for cover letter structured output
-const CoverLetterGenerationSchema = z.object({
-  letterContent: z.string().describe("Full cover letter text"),
-  date: z.string().optional().describe("Letter date"),
-  recipientName: z.string().optional().describe("Recipient name if available"),
-  recipientTitle: z.string().optional().describe("Recipient job title"),
-  recipientCompany: z.string().optional().describe("Company name"),
-});
 
 const coverLetterTemplate: PromptTemplate = {
   id: "generate_cover_letter",
@@ -27,7 +16,11 @@ const coverLetterTemplate: PromptTemplate = {
   systemPrompt: `You are an expert cover letter writer who crafts compelling, ATS-aware letters that feel human.
 
 OUTPUT CONTRACT:
-- Return ONLY valid JSON matching the CoverLetterJSON schema — no markdown, no prose, no explanation
+- Return ONLY clean WYSIWYG editor content as valid HTML
+- No JSON, no markdown fences, no explanations, no surrounding prose
+- Output must be directly renderable inside a rich text editor
+- Use semantic HTML tags only: <p>, <strong>, <em>, <ul>, <li>, <br>
+- Do not include <html>, <body>, <head>, scripts, styles, or attributes
 
 WRITING PRINCIPLES:
 - Tone: confident and specific — not humble, not hyperbolic
@@ -51,13 +44,16 @@ ATS AWARENESS:
 - Naturally incorporate 2–3 high-signal keywords from the job description
 - Avoid keyword stuffing — integrate terms contextually`,
 
-  userPrompt: `Write a cover letter for the {{jobDetails.job.job_title}} role at {{jobDetails.job.company.company_name}}.
+  userPrompt: `Write a cover letter on behalf of the candidate for the Target Job role.
 
 RESUME:
-{{{json resume}}}
+{{{resume}}}
 
 TARGET JOB:
-{{{json jobDetails}}}
+{{{jobDetails}}}
+
+OLD COVER LETTER (if any):
+{{coverLetter}}
 
 INSTRUCTIONS:
 1. Identify the 2–3 most critical requirements from the job description
@@ -72,9 +68,7 @@ HARD CONSTRAINTS:
 - Do not use first-person opener ("I" as the first word of the letter)
 - 3–4 paragraphs, each 2–4 sentences — tight, no padding
 
-Return ONLY valid JSON matching the CoverLetterJSON schema.`,
-
-  outputSchema: CoverLetterGenerationSchema,
+Return ONLY clean WYSIWYG editor HTML content.`,
 };
 
 // Auto-register on module load

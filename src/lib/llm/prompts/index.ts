@@ -26,6 +26,11 @@ export { templateRegistry } from "./registry";
 
 // Convenience functions
 
+import {
+  resumeJsonToCompactPositional,
+  jobDetailsToCompactPositional,
+} from "@/types/resume";
+
 import { templateRegistry } from "./registry";
 import { resolveTemplate } from "./resolver";
 import { PromptContext, PromptPurpose, ResolvedPrompt } from "./types";
@@ -43,7 +48,22 @@ export function getPromptByPurpose(
     throw new Error(`No template found for purpose: ${purpose}`);
   }
 
-  return resolveTemplate(template, context);
+  return resolveTemplate(template, normalizedFieldsToString(context));
+}
+
+function normalizedFieldsToString(
+  context: PromptContext
+): Partial<Record<keyof PromptContext, string | undefined>> {
+  return {
+    ...context,
+    baseProfile: context.baseProfile
+      ? resumeJsonToCompactPositional(context.baseProfile)
+      : "",
+    resume: context.resume ? resumeJsonToCompactPositional(context.resume) : "",
+    jobDetails: context.jobDetails
+      ? jobDetailsToCompactPositional(context.jobDetails)
+      : "",
+  };
 }
 
 export class PromptSystem {

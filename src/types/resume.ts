@@ -534,3 +534,78 @@ export function extractCustomization(
     colors: customization.colors,
   };
 }
+
+export function resumeJsonToCompactPositional(resume: ResumeJSON): string {
+  return `
+  ${[resume.header.name, resume.header.email, resume.header.phone, resume.header.location, resume.header.linkedin, resume.header.github, resume.header.website].filter(Boolean).join("|")}
+  ${resume.summary}
+  ${resume.experience
+    .map(
+      (exp) =>
+        `${exp.company}|${exp.role}|${exp.startDate}|${exp.endDate || "Present"}|${exp.description}|${exp.achievements.join(";")}`
+    )
+    .join("\n")}
+  ${resume.projects
+    .map(
+      (proj) =>
+        `${proj.name}|${proj.description}|${proj.technologies.join(",")}|${proj.url || ""}|${proj.startDate || ""}|${proj.endDate || ""}`
+    )
+    .join("\n")}
+  ${resume.skills.join(",")}
+  ${resume.education
+    .map(
+      (edu) =>
+        `${edu.institution}|${edu.degree}|${edu.field}|${edu.startDate}|${edu.endDate || ""}|${edu.gpa || ""}`
+    )
+    .join("\n")}
+  ${resume.certifications
+    .map((cert) => `${cert.name}|${cert.issuer}|${cert.date}|${cert.url || ""}`)
+    .join("\n")}
+  ${
+    resume.publications
+      ?.map(
+        (pub) =>
+          `${pub.title}|${pub.authors.join(",")}|${pub.venue}|${pub.date}|${pub.url || ""}|${pub.doi || ""}`
+      )
+      .join("\n") || ""
+  }
+  ${
+    resume.languages
+      ?.map((lang) => `${lang.name}|${lang.proficiency}`)
+      .join("\n") || ""
+  }
+  ${
+    resume.volunteer
+      ?.map(
+        (vol) =>
+          `${vol.organization}|${vol.role}|${vol.startDate}|${vol.endDate || "Present"}|${vol.description}`
+      )
+      .join("\n") || ""
+  }
+  ${
+    resume.awards
+      ?.map(
+        (award) =>
+          `${award.title}|${award.issuer}|${award.date}|${award.description || ""}`
+      )
+      .join("\n") || ""
+  }
+  `;
+}
+
+export function jobDetailsToCompactPositional(
+  jobDetails: JobDetailsJSON
+): string {
+  return `
+  ${[jobDetails.job.job_title, jobDetails.job.job_role_category, jobDetails.job.seniority_level, jobDetails.job.employment_type, jobDetails.job.workplace_type, jobDetails.job.reposted_status, jobDetails.job.application_volume_indicator].filter(Boolean).join("|")}
+  ${[jobDetails.company.company_name, jobDetails.company.company_industry, jobDetails.company.company_description, jobDetails.company.company_market_position, jobDetails.company.company_location_city, jobDetails.company.company_location_country, jobDetails.company.office_location_details].filter(Boolean).join("|")}
+  ${[jobDetails.location.city, jobDetails.location.state_or_region, jobDetails.location.country, jobDetails.location.onsite_required].filter(Boolean).join("|")}
+  ${[jobDetails.responsibilities.core_responsibilities?.join(";"), jobDetails.responsibilities.technical_responsibilities?.join(";"), jobDetails.responsibilities.collaboration_teams?.join(";"), jobDetails.responsibilities.architecture_responsibilities?.join(";"), jobDetails.responsibilities.performance_and_quality_expectations?.join(";")].filter(Boolean).join("|")}
+  ${[jobDetails.requirements.required_experience_years, jobDetails.requirements.primary_technologies?.join(";"), jobDetails.requirements.programming_languages?.join(";"), jobDetails.requirements.frameworks_libraries?.join(";"), jobDetails.requirements.api_knowledge?.join(";"), jobDetails.requirements.version_control_tools?.join(";"), jobDetails.requirements.ux_ui_knowledge?.join(";"), jobDetails.requirements.soft_skills?.join(";"), jobDetails.requirements.language_requirements?.join(";")].filter(Boolean).join("|")}
+  ${[jobDetails.nice_to_have.ci_cd_experience?.join(";"), jobDetails.nice_to_have.testing_experience?.join(";"), jobDetails.nice_to_have.cloud_platforms?.join(";"), jobDetails.nice_to_have.domain_interest?.join(";")].filter(Boolean).join("|")}
+  ${[jobDetails.tech_stack.frontend_stack?.join(";"), jobDetails.tech_stack.backend_stack?.join(";"), jobDetails.tech_stack.database?.join(";"), jobDetails.tech_stack.cloud_stack?.join(";"), jobDetails.tech_stack.devops_tools?.join(";")].filter(Boolean).join("|")}
+  ${[jobDetails.benefits.compensation_type, jobDetails.benefits.work_environment, jobDetails.benefits.career_growth_opportunities, jobDetails.benefits.flexibility?.join(";"), jobDetails.benefits.office_perks?.join(";"), jobDetails.benefits.team_culture?.join(";"), jobDetails.benefits.events_and_travel?.join(";")].filter(Boolean).join("|")}
+  ${[jobDetails.contact.recruiter_name, jobDetails.contact.recruiter_role, jobDetails.contact.contact_email, jobDetails.contact.contact_phone, jobDetails.contact.contact_whatsapp_available].filter(Boolean).join("|")}
+  ${jobDetails.raw_description}
+  `;
+}

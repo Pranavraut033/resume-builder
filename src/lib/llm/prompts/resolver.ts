@@ -71,7 +71,7 @@ function setByPath(obj: unknown, path: ContextPath, value: unknown): void {
  * This is the TOKEN OPTIMIZATION core
  */
 export function shapeContext(
-  fullContext: PromptContext,
+  fullContext: Partial<Record<keyof PromptContext, string>>,
   requiredPaths: ContextPath[]
 ): ShapedContext {
   const shaped: Record<string, unknown> = {};
@@ -109,7 +109,7 @@ export function estimateTokens(text: string): number {
  */
 export function resolveTemplate(
   template: PromptTemplate,
-  fullContext: PromptContext,
+  fullContext: Partial<Record<keyof PromptContext, string>>,
   options?: {
     warnUnused?: boolean; // Warn about unused context paths
     warnLarge?: boolean; // Warn about large prompts
@@ -123,23 +123,23 @@ export function resolveTemplate(
     ...options,
   };
 
-  // Shape context to minimal required paths
-  const shaped = shapeContext(fullContext, template.requiredContext);
+  // // Shape context to minimal required paths
+  // const shaped = shapeContext(fullContext, template.requiredContext);
 
-  // Warn about missing required context
-  if (opts.warnUnused && shaped.unused.length > 0) {
-    console.warn(
-      `[Prompt Template] Missing required context for template "${template.id}":`,
-      shaped.unused
-    );
-  }
+  // // Warn about missing required context
+  // if (opts.warnUnused && shaped.unused.length > 0) {
+  //   console.warn(
+  //     `[Prompt Template] Missing required context for template "${template.id}":`,
+  //     shaped.unused
+  //   );
+  // }
 
   // Compile and execute Handlebars templates
   const systemTemplate = Handlebars.compile(template.systemPrompt);
   const userTemplate = Handlebars.compile(template.userPrompt);
 
-  const systemPrompt = systemTemplate(shaped.data);
-  let userPrompt = userTemplate(shaped.data);
+  const systemPrompt = systemTemplate(fullContext);
+  let userPrompt = userTemplate(fullContext);
 
   // For field templates, wrap userPrompt with intent and guidelines
   if (template.fieldType && template.intent && template.guidelines) {

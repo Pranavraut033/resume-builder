@@ -41,7 +41,7 @@ export class PerplexityProvider extends OpenAICompatibleProvider {
 
       return data.data.map((model: { id: string }) => model.id);
     } catch (error) {
-      logger.error("Perplexity model fetch failed, using fallback data", {
+      logger.warn("Perplexity model fetch failed, using fallback data", {
         error,
       });
 

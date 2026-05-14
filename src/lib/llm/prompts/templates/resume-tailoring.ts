@@ -44,10 +44,10 @@ ATS OPTIMIZATION:
   userPrompt: `Tailor the resume below to the target job. Use ONLY the provided base profile — no exceptions.
 
 TARGET JOB:
-{{json jobDetails}}
+{{{jobDetails}}}
 
 CANDIDATE BASE PROFILE:
-{{{json baseProfile}}}
+{{{baseProfile}}}
 
 INSTRUCTIONS:
 1. Parse the job description for required skills, responsibilities, and preferred qualifications
@@ -64,7 +64,7 @@ HARD CONSTRAINTS:
 - No fabricated metrics or outcomes
 - No assumed responsibilities beyond what is stated
 
-Return ONLY valid JSON matching the ResumeJSON schema.`,
+Return ONLY valid JSON matching the schema.`,
 
   outputSchema: ResumeGenerationSchema,
 };

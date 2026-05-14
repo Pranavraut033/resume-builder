@@ -33,6 +33,34 @@ export interface LLMServiceOptions {
   temperature?: number;
 }
 
+// map each purpose to the keys from PromptContext that must be present
+type RequiredKeysByPurpose = {
+  generate_text: never;
+  generate_summary: "resume";
+  generate_experience: "resume" | "jobDetails";
+  generate_skills: "resume" | "jobDetails";
+  generate_projects: "resume" | "jobDetails";
+  generate_education: "resume" | "jobDetails";
+  generate_tailored_resume: "baseProfile" | "jobDetails";
+  generate_cover_letter: "resume" | "jobDetails";
+  parse_job: "jobDescription";
+  parse_resume: "resumeText";
+  analyze_ats: "resume" | "jobDetails";
+  humanize_content: "userInput";
+};
+
+// Helper: require those keys when present
+type RequiredFor<P extends PromptPurpose> =
+  RequiredKeysByPurpose[P] extends never
+    ? PromptContext
+    : PromptContext &
+        Required<
+          Pick<
+            PromptContext,
+            Extract<RequiredKeysByPurpose[P], keyof PromptContext>
+          >
+        >;
+
 class LLMService {
   private static async getProvider(
     provider: ProviderType
@@ -43,9 +71,9 @@ class LLMService {
   /**
    * Execute a standardized LLM call with prompt generation and token tracking
    */
-  static async executeCall<T = string>(
-    purpose: PromptPurpose,
-    context: PromptContext,
+  static async executeCall<P extends PromptPurpose, T = string>(
+    purpose: P,
+    context: RequiredFor<P>,
     options: LLMServiceOptions
   ): Promise<LLMResult<T>> {
     const requestId = generateRequestId(purpose);
@@ -200,6 +228,7 @@ class LLMService {
 
     return this.executeCall(
       purpose,
+      // @ts-expect-error - context typing is complex, we ensure required fields are present in the method signature
       {
         resume,
         jobDetails: jobData,
@@ -232,41 +261,34 @@ class LLMService {
 
   static async generateCoverLetter(
     resume: ResumeJSON | null,
-    jobData: JobDetailsJSON,
+    jobDetails: JobDetailsJSON,
     options: LLMServiceOptions
   ): Promise<LLMResult<string>> {
     return this.executeCall(
       "generate_cover_letter",
-      { resume, jobDetails: jobData },
+      { resume, jobDetails },
       options
     );
   }
 
   static async generateTailoredResume(
     baseProfile: ResumeJSON,
-    jobData: JobDetailsJSON,
+    jobDetails: JobDetailsJSON,
     options: LLMServiceOptions
   ): Promise<LLMResult<ResumeJSON>> {
     return this.executeCall(
       "generate_tailored_resume",
-      {
-        resume: baseProfile,
-        jobDetails: jobData,
-      },
+      { baseProfile, jobDetails },
       options
     );
   }
 
   static async analyzeATS(
-    resumeText: string,
-    jobDescription: string,
+    resume: ResumeJSON,
+    jobDetails: JobDetailsJSON,
     options: LLMServiceOptions
   ): Promise<LLMResult<string>> {
-    return this.executeCall(
-      "analyze_ats",
-      { resumeText, jobDescription },
-      options
-    );
+    return this.executeCall("analyze_ats", { resume, jobDetails }, options);
   }
 
   /**
