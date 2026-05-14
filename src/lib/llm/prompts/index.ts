@@ -9,7 +9,6 @@ export * from "./resolver";
 export * from "./registry";
 export * from "./validation";
 export * from "./documentation";
-export * from "./provider";
 
 // Import all templates to trigger registration
 import "./templates/field-summary";
@@ -21,7 +20,6 @@ import "./templates/parsing";
 import "./templates/ats";
 import "./templates/resume-tailoring";
 import "./templates/cover-letter";
-import "./templates/chat-resume-edit";
 
 // Re-export registry instance
 export { templateRegistry } from "./registry";

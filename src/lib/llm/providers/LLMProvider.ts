@@ -52,7 +52,7 @@ export abstract class LLMProvider {
     template: ResolvedPrompt,
     options: LLMGenerationOptions,
     zodSchema: TSchema,
-    schemaName?: string
+    schemaName: string
   ): Promise<StructureResult<TSchema>>;
 
   async generateResume(
@@ -64,7 +64,8 @@ export abstract class LLMProvider {
     const { result, usage } = await this.runStructuredLLM(
       resolvedPrompt,
       options,
-      ResumeGenerationSchema
+      ResumeGenerationSchema,
+      "GeneratedResume"
     );
 
     return { result, usage };
@@ -105,7 +106,8 @@ export abstract class LLMProvider {
     const { result, usage } = await this.runStructuredLLM(
       template,
       options,
-      JobDetailsSchema
+      JobDetailsSchema,
+      "ParsedJobDetails"
     );
     return { result, usage };
   }
