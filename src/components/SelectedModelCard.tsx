@@ -17,7 +17,7 @@ import { useModelStore } from "@/store/modelStore";
 import { ProviderType } from "@/types/llm";
 
 export function SelectedModelCard() {
-  const { selectedModel, setSelectedModel } = useModelStore();
+  const { activeModelPair: selectedModel, setSelectedModel } = useModelStore();
   const hydrated = useSyncExternalStore(
     () => () => {},
     () => true,

@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 
 import { getCoverLetterByJobId, updateCoverLetter } from "@/actions/job";
 import { createLogger } from "@/lib/logger";
+import { useToast } from "@/components/ui/ToastProvider";
 
 const logger = createLogger("CoverLetterEditor");
 
@@ -13,6 +14,7 @@ export default function CoverLetterEditor({ jobId }: { jobId: string }) {
   );
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const { pushToast } = useToast();
 
   useEffect(() => {
     const loadCoverLetter = async () => {
@@ -34,10 +36,17 @@ export default function CoverLetterEditor({ jobId }: { jobId: string }) {
     setSaving(true);
     try {
       await updateCoverLetter(parseInt(jobId), coverLetter);
-      alert("Cover letter saved!");
+      pushToast({
+        title: "Cover letter saved",
+        variant: "success",
+      });
     } catch (error) {
       logger.error("Error saving cover letter", { error });
-      alert("Error saving cover letter");
+      pushToast({
+        title: "Save failed",
+        description: "Error saving cover letter.",
+        variant: "error",
+      });
     } finally {
       setSaving(false);
     }

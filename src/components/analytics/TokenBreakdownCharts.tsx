@@ -56,10 +56,7 @@ export default function TokenBreakdownCharts({
     return {
       name: label,
       fullName: type === "model" ? (item as TokenUsageByModel).model : label,
-      inputTokens: item.inputTokens,
-      outputTokens: item.outputTokens,
-      totalTokens: item.totalTokens,
-      requests: item.requestCount,
+      ...item,
     };
   });
 
@@ -106,7 +103,7 @@ export default function TokenBreakdownCharts({
             color: "var(--color-agent-on-surface)",
             fontWeight: 600,
           }}
-          formatter={(value: any) =>
+          formatter={(value) =>
             typeof value === "number" ? value.toLocaleString() : "0"
           }
           labelFormatter={(label) => {

@@ -24,6 +24,7 @@ import {
   extractExperienceContext,
   extractAchievementsContext,
 } from "@/lib/contextExtractor";
+import { useToast } from "@/components/ui/ToastProvider";
 import { generateResumePDF } from "@/lib/pdfExport";
 import { generateResumeTXT } from "@/lib/txtExport";
 import {
@@ -141,6 +142,7 @@ export default function ResumeEditor({
 
   // Access resume context for job details and generation
   const { job } = useResumeEditContext();
+  const { pushToast } = useToast();
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -181,6 +183,11 @@ export default function ResumeEditor({
   function handleBackup() {
     if (!resume) return;
     backupToGoogleDrive(JSON.stringify(resume));
+    pushToast({
+      title: "Backup not available",
+      description: "Google Drive backup is optional and not implemented yet.",
+      variant: "info",
+    });
   }
 
   function updateResume(updates: Partial<ResumeJSON>) {

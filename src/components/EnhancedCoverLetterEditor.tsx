@@ -6,6 +6,7 @@ import {
   updateCoverLetter as updateCoverLetterAction,
   updateCoverLetterCustomization,
 } from "@/actions/job";
+import { useToast } from "@/components/ui/ToastProvider";
 import { getProfile } from "@/actions/profile";
 import { EditorLayout } from "@/components/editor/EditorLayout";
 import { EditorSidePanel } from "@/components/editor/EditorSidePanel";
@@ -29,6 +30,7 @@ export default function CoverLetterEditorContent() {
   } = useEditorContext();
   const { generateCoverLetter } = useAIContext();
   const jobId: number = job!.id!;
+  const { pushToast } = useToast();
 
   const [isGenerating, setIsGenerating] = useState(false);
   const [editableText, setEditableText] = useState("");
@@ -43,7 +45,12 @@ export default function CoverLetterEditorContent() {
 
   const handleGenerate = async () => {
     if (!job?.description) {
-      alert("Please select a model and ensure job description is available.");
+      pushToast({
+        title: "Missing requirements",
+        description:
+          "Please select a model and ensure job description is available.",
+        variant: "error",
+      });
       return;
     }
 
@@ -68,7 +75,11 @@ export default function CoverLetterEditorContent() {
       const errorMsg =
         err instanceof Error ? err.message : "Failed to generate cover letter";
       console.error("Failed to generate cover letter:", err);
-      alert(errorMsg);
+      pushToast({
+        title: "Generation failed",
+        description: errorMsg,
+        variant: "error",
+      });
     } finally {
       setIsGenerating(false);
     }
@@ -79,10 +90,17 @@ export default function CoverLetterEditorContent() {
       setIsSaving(true);
       await updateCoverLetterAction(jobId, editableText, customization);
       updateCoverLetter(editableText);
-      alert("Cover letter saved successfully!");
+      pushToast({
+        title: "Cover letter saved",
+        variant: "success",
+      });
     } catch (err) {
       console.error("Failed to save cover letter:", err);
-      alert("Failed to save cover letter");
+      pushToast({
+        title: "Save failed",
+        description: "Failed to save cover letter.",
+        variant: "error",
+      });
     } finally {
       setIsSaving(false);
     }
@@ -100,7 +118,11 @@ export default function CoverLetterEditorContent() {
   };
 
   const handleExportPDF = () => {
-    alert("PDF export for cover letters coming soon!");
+    pushToast({
+      title: "Coming soon",
+      description: "PDF export for cover letters is coming soon!",
+      variant: "info",
+    });
   };
 
   const handleExportTXT = () => {

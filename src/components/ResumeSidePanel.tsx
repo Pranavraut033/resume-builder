@@ -136,7 +136,7 @@ export function ResumeSidePanel({
   const [enableLLM, setEnableLLM] = useState(false);
   const [selectedTheme, setSelectedTheme] = useState<string>("custom");
   const [selectedProvider, selectedModel] = useModelStore(
-    (s) => s.selectedModel ?? [null, null]
+    (s) => s.activeModelPair ?? [null, null]
   );
 
   // Check if current colors match any preset

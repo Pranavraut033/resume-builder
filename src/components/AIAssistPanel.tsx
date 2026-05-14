@@ -95,7 +95,7 @@ export function AIAssistPanel({ onFieldInsert }: AISuggestionsPanelProps) {
   const [promptPreview, setPromptPreview] = useState<ResolvedPrompt | null>(
     null
   );
-  const [showPromptPreview, setShowPromptPreview] = useState(false);
+  const [, setShowPromptPreview] = useState(false);
 
   // Reset flow when field changes
   useEffect(() => {

@@ -12,12 +12,12 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 
 import { Icon } from "@/components/ui/Icon";
 import { Modal } from "@/components/ui/Modal";
 import { getAvailableProviders } from "@/lib/llm/providers";
-import { ModelProviderPair, useModelStore } from "@/store/modelStore";
+import { useModelStore } from "@/store/modelStore";
 import { ProviderType } from "@/types/llm";
 
 interface ModelSelectorProps {
@@ -64,17 +64,10 @@ export function ModelSelector({
   className = "",
   variant = "compact",
 }: ModelSelectorProps) {
-  const { selectedModelsByProvider, selectedModel } = useModelStore();
+  const { selectedModelsByProvider, activeModelPair, setSelectedModel } =
+    useModelStore();
 
   const [isOpen, setIsOpen] = useState(false);
-
-  const [selected, setSelected] = useState<ModelProviderPair | null>(
-    selectedModel
-  );
-
-  useEffect(() => {
-    setSelected(selectedModel);
-  }, [selectedModel]);
 
   // Get preselected models by provider (from settings)
   const preselectedByProvider = useMemo(
@@ -89,18 +82,18 @@ export function ModelSelector({
   );
 
   const handleModelClick = (model: string, provider: ProviderType) => {
-    setSelected([provider, model]);
+    setSelectedModel(provider, model);
     onModelSelected(model, provider);
     setIsOpen(false);
   };
 
-  const selectedProviderInfo = selected
-    ? PROVIDER_INFO[selected[0]]
+  const selectedProviderInfo = activeModelPair
+    ? PROVIDER_INFO[activeModelPair[0]]
     : undefined;
-  const selectedProviderColor = selected
-    ? PROVIDER_COLORS[selected[0]]
+  const selectedProviderColor = activeModelPair
+    ? PROVIDER_COLORS[activeModelPair[0]]
     : undefined;
-  const showButtonTrigger = variant === "compact" || !selected;
+  const showButtonTrigger = variant === "compact" || !activeModelPair;
 
   // Show error state if no models configured
   if (preselectedByProvider.length === 0) {
@@ -125,7 +118,7 @@ export function ModelSelector({
 
   return (
     <>
-      {variant === "normal" && selected ? (
+      {variant === "normal" && activeModelPair ? (
         <>
           {/* Current Model Display */}
           <button
@@ -151,13 +144,13 @@ export function ModelSelector({
                 className="text-xs font-semibold tracking-wide uppercase"
                 style={{ color: "var(--color-agent-on-surface-variant)" }}
               >
-                {selectedProviderInfo?.name || selected[0]}
+                {selectedProviderInfo?.name || activeModelPair[0]}
               </p>
               <p
                 className="truncate text-sm font-semibold"
                 style={{ color: "var(--color-agent-on-surface)" }}
               >
-                {selected[1]}
+                {activeModelPair[1]}
               </p>
             </div>
             <Icon
@@ -192,8 +185,8 @@ export function ModelSelector({
           <div className="flex items-center gap-2">
             <Icon name="sliders-horizontal" className="h-4 w-4" />
             <span>
-              {variant === "compact" && selected
-                ? `${selected[0]} - ${selected[1]}`
+              {variant === "compact" && activeModelPair
+                ? `${activeModelPair[0]} - ${activeModelPair[1]}`
                 : label}
             </span>
           </div>
@@ -235,7 +228,8 @@ export function ModelSelector({
                 <div className="flex flex-wrap gap-2">
                   {models.map((model) => {
                     const isSelected =
-                      selected?.[0] === provider && selected?.[1] === model;
+                      activeModelPair?.[0] === provider &&
+                      activeModelPair?.[1] === model;
 
                     return (
                       <button
