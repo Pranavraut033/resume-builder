@@ -2,13 +2,14 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState, useEffect, useRef } from "react";
+import { useState, useRef } from "react";
 
 import { createJob } from "@/actions/job";
-import { getProfile, hasProfile } from "@/actions/profile";
 import { fetchJobDescriptionFromUrl } from "@/actions/urlFetcher";
 import { SelectedModelCard } from "@/components/SelectedModelCard";
-import { parseJobDescription } from "@/lib/llm/clientLLM";
+import { useToast } from "@/components/ui/ToastProvider";
+import { useProfile } from "@/hooks/useProfile";
+import LLMService from "@/lib/llm/llmService";
 import { createLogger } from "@/lib/logger";
 import { useModelStore } from "@/store/modelStore";
 
@@ -20,42 +21,14 @@ export default function NewJobPage() {
   const [inputMode, setInputMode] = useState<"text" | "url">("text");
   const [loading, setLoading] = useState(false);
   const [fetchingUrl, setFetchingUrl] = useState(false);
-  const [profileExists, setProfileExists] = useState<boolean | null>(null);
-  const [analysisProgress, setAnalysisProgress] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
+  const { data: profile, isLoading } = useProfile();
 
-  const { getSelectedModel, getSelectedProvider } = useModelStore();
-  const currentSelectedModel = getSelectedModel();
-  const selectedProvider = getSelectedProvider();
-
-  useEffect(() => {
-    const checkProfile = async () => {
-      const exists = await hasProfile();
-      setProfileExists(exists);
-    };
-    checkProfile();
-  }, []);
-
-  // Simulate analysis progress when description changes
-  useEffect(() => {
-    if (description.length > 50) {
-      setAnalysisProgress(0);
-      const interval = setInterval(() => {
-        setAnalysisProgress((prev) => {
-          if (prev >= 74) {
-            clearInterval(interval);
-            return 74;
-          }
-          return prev + 2;
-        });
-      }, 30);
-      return () => clearInterval(interval);
-    } else {
-      setAnalysisProgress(0);
-    }
-  }, [description]);
+  const { activeModelPair: selectedModel } = useModelStore();
+  const [currentSelectedProvider, currentSelectedModel] = selectedModel ?? [];
+  const { pushToast } = useToast();
 
   const handleFetchFromUrl = async () => {
     if (!url.trim()) return;
@@ -65,11 +38,19 @@ export default function NewJobPage() {
       if (result.success && result.content) {
         setDescription(result.content);
       } else {
-        alert(result.error || "Failed to fetch content from URL");
+        pushToast({
+          title: "Failed to fetch content",
+          description: result.error || "Failed to fetch content from URL.",
+          variant: "error",
+        });
       }
     } catch (error) {
       logger.error("Error fetching URL", { error });
-      alert("Error fetching URL content");
+      pushToast({
+        title: "URL fetch failed",
+        description: "Error fetching URL content.",
+        variant: "error",
+      });
     } finally {
       setFetchingUrl(false);
     }
@@ -89,43 +70,64 @@ export default function NewJobPage() {
     e.preventDefault();
     setLoading(true);
     try {
-      if (!currentSelectedModel) {
-        alert("Please select a model first");
+      if (!currentSelectedModel || !currentSelectedProvider) {
+        pushToast({
+          title: "Model required",
+          description: "Please select a model first.",
+          variant: "error",
+        });
         setLoading(false);
         return;
       }
 
-      const [jobDetails, baseProfile] = await Promise.all([
-        parseJobDescription(
-          description,
-          currentSelectedModel,
-          selectedProvider!
-        ),
-        getProfile(),
+      if (!profile) {
+        pushToast({
+          title: "Profile unavailable",
+          description: "Profile not loaded.",
+          variant: "error",
+        });
+        setLoading(false);
+        return;
+      }
+
+      const jobDetails = await LLMService.parseJob(description, {
+        model: currentSelectedModel,
+        provider: currentSelectedProvider,
+      });
+
+      const [resume, coverLetter] = await Promise.all([
+        LLMService.generateTailoredResume(profile, jobDetails.result, {
+          model: currentSelectedModel,
+          provider: currentSelectedProvider,
+        }),
+        LLMService.generateCoverLetter(profile, jobDetails.result, {
+          model: currentSelectedModel,
+          provider: currentSelectedProvider,
+        }),
       ]);
 
       await createJob({
-        jobDetails,
+        jobDetails: jobDetails.result,
         url: inputMode === "url" && url.trim() ? url : undefined,
+        tailoredResume: resume.result,
+        coverLetterText: coverLetter.result,
       });
-
-      if (!baseProfile) {
-        alert("Base profile not found. Please create your profile first.");
-        setLoading(false);
-        return;
-      }
 
       router.push("/");
     } catch (error) {
       logger.error("Error creating job", { error });
-      alert("Error creating job");
+      pushToast({
+        title: "Job creation failed",
+        description: "Error creating job.",
+        variant: "error",
+      });
     } finally {
       setLoading(false);
     }
   };
 
   // ── No-profile guard ──────────────────────────────────────────────────────
-  if (profileExists === false) {
+  if (!isLoading && !profile) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-(--color-agent-bg)">
         <div className="border-agent-outline-variant max-w-md rounded-2xl border bg-(--color-agent-surface-lowest) p-10 text-center shadow-(--shadow-agent-modal)">
@@ -151,7 +153,7 @@ export default function NewJobPage() {
   }
 
   // ── Loading skeleton ──────────────────────────────────────────────────────
-  if (profileExists === null) {
+  if (isLoading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-(--color-agent-bg)">
         <div className="border-agent-primary h-8 w-8 animate-spin rounded-full border-2 border-t-transparent" />
@@ -238,27 +240,6 @@ export default function NewJobPage() {
                 ✦
               </span>
             </div>
-
-            {/* ── AI analysis progress ── */}
-            {analysisProgress > 0 && (
-              <div className="border-agent-outline-variant rounded-xl border bg-(--color-agent-surface-lowest) p-4">
-                <div className="text-agent-on-surface-variant mb-2 flex items-center justify-between text-xs">
-                  <span className="flex items-center gap-1.5">
-                    <span className="bg-agent-primary inline-block h-2 w-2 animate-pulse rounded-full" />
-                    AI is analyzing requirements…
-                  </span>
-                  <span className="text-agent-primary font-semibold">
-                    {analysisProgress}%
-                  </span>
-                </div>
-                <div className="bg-agent-surface-container h-1.5 w-full overflow-hidden rounded-full">
-                  <div
-                    className="bg-agent-primary h-full rounded-full transition-all duration-300"
-                    style={{ width: `${analysisProgress}%` }}
-                  />
-                </div>
-              </div>
-            )}
 
             {/* ── PDF upload ── */}
             <div>
