@@ -3,9 +3,6 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 
 import AppShell from "@/components/AppShell";
-import { CacheInitializer } from "@/components/CacheInitializer";
-import { ThemeProvider } from "@/contexts/ThemeContext";
-import { ToastProvider } from "@/components/ui/ToastProvider";
 
 import type { Metadata } from "next";
 
@@ -35,12 +32,7 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
         style={{ background: "var(--color-agent-bg)" }}
       >
-        <ThemeProvider>
-          <ToastProvider>
-            <CacheInitializer />
-            <AppShell>{children}</AppShell>
-          </ToastProvider>
-        </ThemeProvider>
+        <AppShell>{children}</AppShell>
       </body>
     </html>
   );
