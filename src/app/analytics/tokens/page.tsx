@@ -10,6 +10,7 @@
  * - Filterable data table
  */
 
+import { TokenUsage } from "@prisma/client";
 import { useState, useEffect, useCallback } from "react";
 
 import {
@@ -24,7 +25,6 @@ import {
   TokenUsageByDay,
   TokenUsageByProvider,
   TokenUsageByModel,
-  TokenUsageRecord,
 } from "@/actions/tokenUsage";
 import TokenBreakdownCharts from "@/components/analytics/TokenBreakdownCharts";
 import TokenFilters from "@/components/analytics/TokenFilters";
@@ -51,7 +51,7 @@ export default function TokenAnalyticsPage() {
   const [timeSeriesData, setTimeSeriesData] = useState<TokenUsageByDay[]>([]);
   const [providerData, setProviderData] = useState<TokenUsageByProvider[]>([]);
   const [modelData, setModelData] = useState<TokenUsageByModel[]>([]);
-  const [records, setRecords] = useState<TokenUsageRecord[]>([]);
+  const [records, setRecords] = useState<TokenUsage[]>([]);
   const [totalRecords, setTotalRecords] = useState(0);
   const [currentPage, setCurrentPage] = useState(1);
   const recordsPerPage = 50;

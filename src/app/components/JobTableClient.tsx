@@ -1,5 +1,6 @@
 "use client";
 
+import { Job, Company } from "@prisma/client";
 import {
   ColumnDef,
   FilterFn,
@@ -30,24 +31,9 @@ import { JobDetailsJSON } from "@/types/resume";
 
 import type { Table as ReactTableType } from "@tanstack/react-table";
 
-type JobInput = {
-  id: number;
-  role: string;
-  status: string;
-  createdAt: string;
-  description: string;
-  jobDetailsJson: string | null;
-  url?: string | null;
-  company: {
-    name: string;
-    industry?: string | null;
-    description?: string | null;
-    locationCity?: string | null;
-    locationCountry?: string | null;
-  } | null;
-};
+type PopulatedJob = Job & { company: Company | null };
 
-type JobRecord = Omit<JobInput, "status"> & { status: JobStatus };
+type JobRecord = Omit<PopulatedJob, "status"> & { status: JobStatus };
 
 type ViewMode = "card" | "table";
 
@@ -94,7 +80,7 @@ function formatStatus(status: JobStatus) {
   return `${status.charAt(0)}${status.slice(1).toLowerCase()}`;
 }
 
-function formatTimestamp(value: string) {
+function formatTimestamp(value: string | Date) {
   const date = new Date(value);
   return date.toLocaleDateString(undefined, {
     month: "short",
@@ -112,7 +98,7 @@ function parseJobDetails(raw: string | null): JobDetailsJSON | null {
   }
 }
 
-export default function JobTableClient({ jobs }: { jobs: JobInput[] }) {
+export default function JobTableClient({ jobs }: { jobs: PopulatedJob[] }) {
   const router = useRouter();
   const { pushToast } = useToast();
   const [viewMode, setViewMode] = useState<ViewMode>("card");
@@ -484,6 +470,8 @@ function CardGrid({
   statusLoadingId: number | null;
   deleteLoadingId: number | null;
 }) {
+  console.log(jobs);
+
   return (
     <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
       {jobs.map((job) => (
@@ -522,9 +510,7 @@ function CardGrid({
                   style={{ color: "var(--color-agent-primary)" }}
                 >
                   <Icon name="link" size={12} />
-                  <span className="line-clamp-1">
-                    {new URL(job.url).hostname}
-                  </span>
+                  <span className="line-clamp-1">{job.url.length}</span>
                 </a>
               )}
             </div>

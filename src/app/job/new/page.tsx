@@ -8,7 +8,7 @@ import { createJob } from "@/actions/job";
 import { fetchJobDescriptionFromUrl } from "@/actions/urlFetcher";
 import { SelectedModelCard } from "@/components/SelectedModelCard";
 import { useToast } from "@/components/ui/ToastProvider";
-import { useProfile } from "@/hooks/useProfile";
+import { useProfileQuery } from "@/hooks/useProfile";
 import LLMService from "@/lib/llm/llmService";
 import { createLogger } from "@/lib/logger";
 import { useModelStore } from "@/store/modelStore";
@@ -24,7 +24,7 @@ export default function NewJobPage() {
   const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
-  const { data: profile, isLoading } = useProfile();
+  const { data: profile, isLoading } = useProfileQuery();
 
   const { activeModelPair: selectedModel } = useModelStore();
   const [currentSelectedProvider, currentSelectedModel] = selectedModel ?? [];

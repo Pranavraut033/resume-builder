@@ -18,10 +18,10 @@ import { SkillsSection } from "@/components/profile/SkillsSection";
 import { SummarySection } from "@/components/profile/SummarySection";
 import { VolunteerSection } from "@/components/profile/VolunteerSection";
 import { ProfileActionButtons } from "@/components/ProfileActionButtons";
-import { PageHeader, SurfacePanel } from "@/components/ui";
+import { FallbackState, PageHeader, SurfacePanel } from "@/components/ui";
 import { Button } from "@/components/ui/Button";
 import { useToast } from "@/components/ui/ToastProvider";
-import { useProfile } from "@/hooks/useProfile";
+import { useProfileQuery } from "@/hooks/useProfile";
 import { createLogger } from "@/lib/logger";
 import { ResumeJSON } from "@/types/resume";
 
@@ -33,9 +33,32 @@ export default function ProfilePage() {
   const [showImportJsonModal, setShowImportJsonModal] = useState(false);
   const { pushToast } = useToast();
 
-  const { data, refetch, isLoading } = useProfile(true);
+  const { data, refetch, isLoading } = useProfileQuery();
 
-  const [profile, setProfile] = useState<ResumeJSON>(data!);
+  const [profile, setProfile] = useState<ResumeJSON>(
+    data ??
+      ({
+        header: {
+          name: "",
+          email: "",
+          phone: null,
+          location: null,
+          linkedin: null,
+          github: null,
+          website: null,
+        },
+        summary: "",
+        experience: [],
+        projects: [],
+        skills: [],
+        education: [],
+        certifications: [],
+        publications: [],
+        languages: [],
+        volunteer: [],
+        awards: [],
+      } satisfies ResumeJSON)
+  );
 
   const handleSave = async () => {
     setSaving(true);
@@ -93,6 +116,15 @@ export default function ProfilePage() {
       });
     }
   };
+
+  if (isLoading) {
+    return (
+      <FallbackState
+        title="Loading profile..."
+        description="Please wait while we load your profile data."
+      ></FallbackState>
+    );
+  }
 
   return (
     <div className="text-agent-on-surface space-y-6 pb-12">

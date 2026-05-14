@@ -10,6 +10,7 @@
 
 "use client";
 
+import { RefetchOptions } from "@tanstack/react-query";
 import {
   createContext,
   useContext,
@@ -19,37 +20,35 @@ import {
 } from "react";
 
 import { JobContext } from "@/actions/job";
+import { Button } from "@/components/ui/Button";
+import { FallbackState } from "@/components/ui/FallbackState";
+import {
+  EditorContextData,
+  useEditorContextQuery,
+} from "@/hooks/useEditorContext";
 import {
   ResumeJSON,
   ThemeCustomization,
   DEFAULT_CUSTOMIZATION,
+  extractCustomization,
 } from "@/types/resume";
 
 export type EditorContentType = "resume" | "coverLetter";
 
-/**
- * Editor Context Type
- * Defines the shape of the editor context state and updater functions
- * for both resume and cover letter editing scenarios.
- * Includes:
- * - contentType: Indicates if editing a resume or cover letter
- * - coverLetter: Current cover letter text (if applicable)
- * - customization: Theme customization settings
- * - job: Job context data
- * - resume: Current resume JSON data (if applicable)
- * - updateCoverLetter: Function to update cover letter text
- * - updateCustomization: Function to update theme customization
- * - updateResume: Function to update resume JSON data
- */
 export interface EditorContextType {
   contentType: EditorContentType;
-  coverLetter: string | null;
+  coverLetter: string;
   customization: ThemeCustomization;
   job: JobContext;
-  resume: ResumeJSON | null;
+  profile: ResumeJSON;
+  resume: ResumeJSON;
   updateCoverLetter: (text: string) => void;
   updateCustomization: (updates: Partial<ThemeCustomization>) => void;
   updateResume: (updates: Partial<ResumeJSON>) => void;
+  refetch: (
+    options?: RefetchOptions,
+    ...fields: (keyof EditorContextData)[]
+  ) => void;
 }
 
 const EditorContext = createContext<EditorContextType | null>(null);
@@ -57,36 +56,42 @@ const EditorContext = createContext<EditorContextType | null>(null);
 interface EditorProviderProps {
   children: ReactNode;
   contentType: EditorContentType;
-  values: {
-    coverLetter: string | null;
-    customization: ThemeCustomization;
-    job: JobContext;
-    resume: ResumeJSON | null;
-  };
+  serverData: EditorContextData;
+  jobId: number;
 }
 
 export function EditorProvider({
   children,
   contentType,
-  values,
+  serverData,
+  jobId,
 }: EditorProviderProps) {
-  const job = values.job!;
-
-  const [resume, setResumeState] = useState<ResumeJSON | null>(
-    values.resume || null
+  const { data, isLoading, isError, refetch } = useEditorContextQuery(
+    jobId,
+    serverData
   );
+
+  const [resume, setResumeState] = useState<ResumeJSON>(
+    data?.resume?.contentJson ??
+      (JSON.parse(JSON.stringify(data?.profile ?? {})) as ResumeJSON) // Deep clone to prevent direct mutations
+  );
+
   const [coverLetter, updateCoverLetter] = useState<string>(
-    values.coverLetter || ""
+    data?.coverLetter?.contentText || ""
   );
 
   const [customization, setCustomization] = useState<ThemeCustomization>(
-    values.customization || DEFAULT_CUSTOMIZATION
+    contentType === "coverLetter" && data?.coverLetter
+      ? extractCustomization(data.coverLetter)
+      : data?.resume
+        ? extractCustomization(data.resume)
+        : DEFAULT_CUSTOMIZATION
   );
 
   const updateResume = useCallback((updates: Partial<ResumeJSON>) => {
     setResumeState((prev) => {
-      if (!prev) return null;
       const updated = { ...prev, ...updates };
+
       return updated;
     });
   }, []);
@@ -96,16 +101,43 @@ export function EditorProvider({
       setCustomization((prev) => ({ ...prev, ...updates })),
     []
   );
+  if (isLoading) {
+    return (
+      <FallbackState
+        iconName="loader"
+        title="Loading editor context"
+        description="Fetching your resume and cover letter data. This should only take a moment."
+        action={null}
+      />
+    );
+  }
 
+  if (!data || isError) {
+    return (
+      <FallbackState
+        title="Editor context unavailable"
+        description="We couldn’t load your editor data right now. Refresh the app or try again later."
+        action={
+          <Button variant="secondary" onClick={() => window.location.reload()}>
+            Reload
+          </Button>
+        }
+      />
+    );
+  }
+
+  const job = data.job;
   const value: EditorContextType = {
     contentType,
     coverLetter,
     customization,
     job,
-    resume,
+    profile: data.profile,
+    resume: resume,
     updateCoverLetter,
     updateCustomization,
     updateResume,
+    refetch,
   };
 
   return (

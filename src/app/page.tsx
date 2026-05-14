@@ -9,6 +9,7 @@ export default async function Home() {
     orderBy: { createdAt: "desc" },
     include: { company: true },
   });
+  console.log({ jobList });
 
   const totalApplied = jobList.filter((j) => j.status !== "DRAFT").length;
   const interviews = jobList.filter((j) => j.status === "INTERVIEW").length;

@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 import {
   getCoverLetterByJobId,
   getResumeByJobId,
@@ -5,9 +7,9 @@ import {
 } from "@/actions/job";
 import { getProfile } from "@/actions/profile";
 import EnhancedCoverLetterEditor from "@/components/EnhancedCoverLetterEditor";
-import { AIProvider } from "@/contexts/AIContext";
+import { Button } from "@/components/ui/Button";
+import { FallbackState } from "@/components/ui/FallbackState";
 import { EditorProvider } from "@/contexts/EditorContext";
-import { DEFAULT_CUSTOMIZATION, extractCustomization } from "@/types/resume";
 
 export default async function CoverLetterEditorPage({
   params,
@@ -17,27 +19,34 @@ export default async function CoverLetterEditorPage({
   const resolvedParams = await params;
   const jobIdNum = parseInt(resolvedParams.jobId);
 
-  const [coverLetterData, resumeData, jobData] = await Promise.all([
+  const [coverLetter, job, profile, resume] = await Promise.all([
     getCoverLetterByJobId(jobIdNum),
-    getResumeByJobId(jobIdNum),
     getJobContext(jobIdNum),
+    getProfile(),
+    getResumeByJobId(jobIdNum),
   ]);
+
+  if (!profile) {
+    return (
+      <FallbackState
+        title="Profile not found"
+        description="Please create a profile before editing your cover letter."
+        action={
+          <Link href="/profile">
+            <Button variant="primary">Create Profile</Button>
+          </Link>
+        }
+      />
+    );
+  }
 
   return (
     <EditorProvider
-      values={{
-        coverLetter: coverLetterData?.contentText || "",
-        resume: resumeData?.contentJson || (await getProfile()),
-        customization: coverLetterData
-          ? extractCustomization(coverLetterData)
-          : DEFAULT_CUSTOMIZATION,
-        job: jobData,
-      }}
+      jobId={jobIdNum}
+      serverData={{ coverLetter, job, profile, resume }}
       contentType="coverLetter"
     >
-      <AIProvider>
-        <EnhancedCoverLetterEditor />
-      </AIProvider>
+      <EnhancedCoverLetterEditor />
     </EditorProvider>
   );
 }
