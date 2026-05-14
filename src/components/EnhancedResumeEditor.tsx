@@ -13,7 +13,6 @@ import {
   getJobContext,
 } from "@/actions/job";
 import { getProfile } from "@/actions/profile";
-import { AIProvider } from "@/contexts/AIContext";
 import {
   ResumeEditProvider,
   useResumeEditContext,
@@ -27,12 +26,12 @@ import {
 
 import BackButton from "./BackButton";
 import { FinalReviewExport } from "./resume/FinalReviewExport";
-import { ResumeChatAssistant } from "./resume/ResumeChatAssistant";
+// import { ResumeChatAssistant } from "./resume/ResumeChatAssistant";
 import { ResumeSectionNav, SectionId } from "./resume/ResumeSectionNav";
 import { SectionEditor } from "./resume/SectionEditor";
 import { TemplateRenderer } from "./templates/TemplateRenderer";
 import { Button } from "./ui";
-import { Icon } from "./ui/Icon";
+import { FallbackState } from "./ui/FallbackState";
 
 interface EnhancedResumeEditorProps {
   jobId: string;
@@ -170,48 +169,26 @@ function ResumeEditorContent({ jobId }: { jobId: string }) {
 
   if (isLoading) {
     return (
-      <div className="flex h-full items-center justify-center">
-        <div className="text-center">
-          <div
-            className="mx-auto h-10 w-10 animate-spin rounded-full border-2 border-transparent border-t-current"
-            style={{ color: "var(--color-agent-primary)" }}
-          />
-          <p
-            className="mt-4 text-sm"
-            style={{ color: "var(--color-agent-on-surface-variant)" }}
-          >
-            Loading resume…
-          </p>
-        </div>
-      </div>
+      <FallbackState
+        iconName="loader"
+        title="Loading resume"
+        description="Preparing the editor and loading your saved resume draft."
+        action={null}
+      />
     );
   }
 
   if (error || !resume) {
     return (
-      <div className="flex h-full items-center justify-center">
-        <div className="max-w-sm text-center">
-          <Icon
-            name="AlertCircle"
-            className="mx-auto mb-4 h-12 w-12 text-yellow-500"
-          />
-          <h2
-            className="mb-2 text-lg font-semibold"
-            style={{ color: "var(--color-agent-on-surface)" }}
-          >
-            {error || "Resume Not Found"}
-          </h2>
-          <p
-            className="mb-6 text-sm"
-            style={{ color: "var(--color-agent-on-surface-variant)" }}
-          >
-            {error || "No resume data available for this job."}
-          </p>
+      <FallbackState
+        title={error || "Resume not found"}
+        description={error || "No resume data is available for this job."}
+        action={
           <Button variant="primary" onClick={() => window.history.back()}>
             Go Back
           </Button>
-        </div>
-      </div>
+        }
+      />
     );
   }
 
@@ -370,13 +347,13 @@ function ResumeEditorContent({ jobId }: { jobId: string }) {
           jobId={jobId}
         />
       )}
-
+      {/*
       {activeTab === "edit" && (
         <ResumeChatAssistant
           resume={resume}
           onApplyResume={handleResumeChange}
         />
-      )}
+      )} */}
     </div>
   );
 }
@@ -388,10 +365,8 @@ export default function EnhancedResumeEditor({
   jobId,
 }: EnhancedResumeEditorProps) {
   return (
-    <AIProvider>
-      <ResumeEditProvider>
-        <ResumeEditorContent jobId={jobId} />
-      </ResumeEditProvider>
-    </AIProvider>
+    <ResumeEditProvider>
+      <ResumeEditorContent jobId={jobId} />
+    </ResumeEditProvider>
   );
 }

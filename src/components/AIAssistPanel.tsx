@@ -18,7 +18,6 @@ import { PromptPreview } from "@/components/PromptPreview";
 import { Button } from "@/components/ui";
 import { Card } from "@/components/ui/Card";
 import { Icon } from "@/components/ui/Icon";
-import { useAIContext } from "@/contexts/AIContext";
 import { useResumeEditContext } from "@/contexts/ResumeEditContext";
 import LLMService from "@/lib/llm/llmService";
 import { PromptSystem, PromptPurpose, ResolvedPrompt } from "@/lib/llm/prompts";
@@ -80,14 +79,6 @@ type FlowState =
 
 export function AIAssistPanel({ onFieldInsert }: AISuggestionsPanelProps) {
   const { resume, job } = useResumeEditContext();
-  const {
-    selectedProvider,
-    selectedModel,
-    temperature,
-    resetGenerationState,
-    generationState,
-    setGenerationState,
-  } = useAIContext();
 
   const [flowState, setFlowState] = useState<FlowState>("idle");
   const [selectedField, setSelectedField] = useState<string>("summary");
@@ -102,7 +93,6 @@ export function AIAssistPanel({ onFieldInsert }: AISuggestionsPanelProps) {
     setFlowState("idle");
     setGeneratedContent(null);
     resetGenerationState();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedField]);
 
   const handleStartConfiguration = () => {

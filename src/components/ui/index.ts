@@ -13,6 +13,7 @@ export { PageSection, SurfacePanel } from "./PageSection";
 export { Section } from "./Section";
 export { SegmentedControl } from "./SegmentedControl";
 export { Select } from "./Select";
+export { FallbackState } from "./FallbackState";
 export { SettingsRow } from "./SettingsRow";
 export { MultiSelect } from "./MultiSelect";
 export { SortableSection } from "./SortableSection";

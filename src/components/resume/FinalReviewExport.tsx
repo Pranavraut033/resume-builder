@@ -1,7 +1,7 @@
 "use client";
 
 import { analyzeResume } from "@pranavraut033/ats-checker";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 
 import { FontSelector } from "@/components/FontSelector";
 import { TemplateRenderer } from "@/components/templates/TemplateRenderer";
@@ -9,6 +9,7 @@ import { Button } from "@/components/ui";
 import { Card } from "@/components/ui/Card";
 import { Icon } from "@/components/ui/Icon";
 import { generateResumePDF } from "@/lib/pdfExport";
+import { resumeToText } from "@/lib/resumeToText";
 import { generateResumeTXT } from "@/lib/txtExport";
 import {
   ResumeJSON,
@@ -18,6 +19,8 @@ import {
   AVAILABLE_TEMPLATES,
   TemplateType,
 } from "@/types/resume";
+
+import { useToast } from "../ui/ToastProvider";
 
 const COLOR_PRESETS: Array<{ name: string; hex: string; colors: ThemeColors }> =
   [
@@ -98,6 +101,19 @@ const COLOR_PRESETS: Array<{ name: string; hex: string; colors: ThemeColors }> =
     },
   ];
 
+const A4_WIDTH_MM = 210;
+const A4_HEIGHT_MM = 297;
+const CSS_PIXELS_PER_MM = 96 / 25.4;
+const A4_WIDTH_PX = A4_WIDTH_MM * CSS_PIXELS_PER_MM;
+const A4_HEIGHT_PX = A4_HEIGHT_MM * CSS_PIXELS_PER_MM;
+const ZOOM_MIN = 0.5;
+const ZOOM_MAX = 2;
+const ZOOM_STEP = 0.1;
+
+function clampZoom(zoom: number): number {
+  return Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, zoom));
+}
+
 interface FinalReviewExportProps {
   resume: ResumeJSON;
   customization: ThemeCustomization;
@@ -122,6 +138,27 @@ export function FinalReviewExport({
   const [typographySize, setTypographySize] = useState<"compact" | "readable">(
     "readable"
   );
+  const [zoomScale, setZoomScale] = useState(1);
+  const [isFitMode, setIsFitMode] = useState(true);
+  const [renderHeightPx, setRenderHeightPx] = useState(A4_HEIGHT_PX);
+
+  const previewViewportRef = useRef<HTMLDivElement | null>(null);
+  const previewPageRef = useRef<HTMLDivElement | null>(null);
+
+  const { pushToast } = useToast();
+
+  const recalculateFitZoom = useCallback(() => {
+    const viewportEl = previewViewportRef.current;
+    if (!viewportEl) return;
+
+    const horizontalPadding = 48;
+    const availableWidth = Math.max(
+      0,
+      viewportEl.clientWidth - horizontalPadding
+    );
+    const nextZoom = clampZoom(availableWidth / A4_WIDTH_PX);
+    setZoomScale(nextZoom);
+  }, []);
 
   useEffect(() => {
     import("@/actions/job").then(({ getJobById }) => {
@@ -138,6 +175,46 @@ export function FinalReviewExport({
     setAtsScore(result.score);
     setAtsKeywords(result.missingKeywords?.slice(0, 5) ?? []);
   }, [resume, jobDescription]);
+
+  useEffect(() => {
+    const pageEl = previewPageRef.current;
+    if (!pageEl) return;
+
+    const measureHeight = () => {
+      const measured = pageEl.scrollHeight;
+      setRenderHeightPx(Math.max(A4_HEIGHT_PX, measured));
+    };
+
+    measureHeight();
+
+    const observer = new ResizeObserver(measureHeight);
+    observer.observe(pageEl);
+    return () => observer.disconnect();
+  }, [resume, customization]);
+
+  useEffect(() => {
+    if (!isFitMode) return;
+
+    recalculateFitZoom();
+
+    const viewportEl = previewViewportRef.current;
+    if (!viewportEl) return;
+
+    const observer = new ResizeObserver(() => {
+      recalculateFitZoom();
+    });
+    observer.observe(viewportEl);
+
+    return () => observer.disconnect();
+  }, [isFitMode, recalculateFitZoom]);
+
+  const zoomPercent = Math.round(zoomScale * 100);
+  const scaledWidthPx = A4_WIDTH_PX * zoomScale;
+  const scaledHeightPx = renderHeightPx * zoomScale;
+  const pageBreakPositions = Array.from(
+    { length: Math.max(0, Math.floor((renderHeightPx - 1) / A4_HEIGHT_PX)) },
+    (_, index) => (index + 1) * A4_HEIGHT_PX
+  );
 
   const handlePDFExport = async () => {
     setIsExporting(true);
@@ -188,36 +265,172 @@ export function FinalReviewExport({
             >
               Final Review
             </h2>
-            <p
-              className="text-xs"
-              style={{ color: "var(--color-agent-on-surface-variant)" }}
-            >
-              Page 1 of 1
-            </p>
           </div>
-          <Button
-            variant="secondary"
-            onClick={() => {
-              const text = resumeToText(resume);
-              navigator.clipboard.writeText(text);
-            }}
-          >
-            <Icon name="Copy" className="mr-1.5 h-4 w-4" />
-            Copy Text
-          </Button>
+          <div className="flex items-center gap-2">
+            <div
+              className="flex items-center gap-1 rounded-lg border px-2 py-1"
+              style={{
+                borderColor: "var(--color-agent-outline-variant)",
+                background: "var(--color-agent-surface)",
+              }}
+            >
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-7 px-2"
+                onClick={() => {
+                  setIsFitMode(true);
+                  recalculateFitZoom();
+                }}
+                style={
+                  isFitMode
+                    ? {
+                        background: "var(--color-agent-primary-container)",
+                        color: "var(--color-agent-on-primary-container)",
+                      }
+                    : undefined
+                }
+              >
+                Fit
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-7 px-2"
+                onClick={() => {
+                  setIsFitMode(false);
+                  setZoomScale(1);
+                }}
+                style={
+                  !isFitMode && zoomPercent === 100
+                    ? {
+                        background: "var(--color-agent-primary-container)",
+                        color: "var(--color-agent-on-primary-container)",
+                      }
+                    : undefined
+                }
+              >
+                100%
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-7 px-2"
+                onClick={() => {
+                  setIsFitMode(false);
+                  setZoomScale((current) => clampZoom(current - ZOOM_STEP));
+                }}
+                aria-label="Zoom out"
+              >
+                <Icon name="minus" className="h-4 w-4" />
+              </Button>
+              <span
+                className="w-14 text-center text-xs font-semibold tabular-nums"
+                style={{ color: "var(--color-agent-on-surface)" }}
+              >
+                {zoomPercent}%
+              </span>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-7 px-2"
+                onClick={() => {
+                  setIsFitMode(false);
+                  setZoomScale((current) => clampZoom(current + ZOOM_STEP));
+                }}
+                aria-label="Zoom in"
+              >
+                <Icon name="plus" className="h-4 w-4" />
+              </Button>
+            </div>
+
+            <Button
+              variant="secondary"
+              onClick={() => {
+                const text = resumeToText(resume);
+                navigator.clipboard.writeText(text);
+                pushToast({ title: "Resume text copied to clipboard" });
+              }}
+            >
+              <Icon name="Copy" className="mr-1.5 h-4 w-4" />
+              Copy Text
+            </Button>
+          </div>
         </div>
 
-        <div
-          className="overflow-hidden rounded-xl border shadow-md"
-          style={{ borderColor: "var(--color-agent-outline-variant)" }}
-        >
-          <TemplateRenderer
-            template={customization.template ?? "modern-minimal"}
-            resume={resume}
-            colors={customization.colors ?? DEFAULT_COLORS}
-            fontSize={customization.fontSize ?? "medium"}
-            fontFamily={customization.fontFamily ?? "Inter"}
-          />
+        <div className="bg-agent-inverse-on-surface border-agent-outline-variant overflow-hidden rounded-xl border shadow-md">
+          <div ref={previewViewportRef} className="h-full overflow-auto p-6">
+            <div
+              className="relative mx-auto"
+              style={{ width: scaledWidthPx, minHeight: scaledHeightPx }}
+            >
+              <div
+                className="absolute top-0 left-0 origin-top-left"
+                style={{
+                  transform: `scale(${zoomScale})`,
+                  width: `${A4_WIDTH_MM}mm`,
+                }}
+              >
+                <div
+                  ref={previewPageRef}
+                  className="bg-white text-black shadow-[0_10px_30px_rgba(0,0,0,0.18)]"
+                  style={{
+                    width: `${A4_WIDTH_MM}mm`,
+                    minHeight: `${A4_HEIGHT_MM}mm`,
+                    breakAfter: "page",
+                  }}
+                >
+                  <TemplateRenderer
+                    template={customization.template ?? "modern-minimal"}
+                    resume={resume}
+                    colors={customization.colors ?? DEFAULT_COLORS}
+                    fontSize={customization.fontSize ?? "medium"}
+                    fontFamily={customization.fontFamily ?? "Inter"}
+                  />
+                </div>
+              </div>
+
+              {pageBreakPositions.map((breakPosition, index) => (
+                <div
+                  key={`${breakPosition}-${index}`}
+                  className="pointer-events-none absolute right-0 left-0"
+                  style={{ top: breakPosition * zoomScale }}
+                >
+                  <div
+                    className="flex h-7 items-center gap-3 px-3"
+                    style={{
+                      transform: "translateY(-50%)",
+                      background: "var(--color-agent-surface-lowest)",
+                    }}
+                  >
+                    <div
+                      className="h-px flex-1"
+                      style={{
+                        background:
+                          "linear-gradient(to right, transparent, var(--color-agent-outline), transparent)",
+                      }}
+                    />
+                    <span
+                      className="rounded-full px-2 py-0.5 text-[10px] font-semibold tracking-wide uppercase"
+                      style={{
+                        color: "var(--color-agent-on-surface-variant)",
+                        background: "var(--color-agent-surface-container)",
+                      }}
+                    >
+                      Page Break
+                    </span>
+                    <div
+                      className="h-px flex-1"
+                      style={{
+                        background:
+                          "linear-gradient(to right, transparent, var(--color-agent-outline), transparent)",
+                      }}
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
       </div>
 
@@ -489,23 +702,4 @@ export function FinalReviewExport({
       </aside>
     </div>
   );
-}
-
-function resumeToText(resume: ResumeJSON): string {
-  const lines: string[] = [];
-  const h = resume.header;
-  lines.push(h.name, h.email, h.phone ?? "", h.location ?? "");
-  lines.push(resume.summary ?? "");
-  resume.experience.forEach((e) => {
-    lines.push(
-      `${e.role} at ${e.company} (${e.startDate}–${e.endDate ?? "Present"})`
-    );
-    lines.push(e.description);
-    e.achievements.forEach((a) => lines.push(a));
-  });
-  resume.education.forEach((e) => {
-    lines.push(`${e.degree} in ${e.field}, ${e.institution}`);
-  });
-  lines.push(resume.skills.join(", "));
-  return lines.filter(Boolean).join("\n");
 }

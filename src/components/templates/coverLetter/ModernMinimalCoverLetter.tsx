@@ -4,6 +4,7 @@
  */
 
 import React from "react";
+import { sanitizeHtml, isHtml } from "@/lib/htmlUtils";
 
 import { ResumeJSON, ThemeColors } from "@/types/resume";
 
@@ -95,8 +96,16 @@ export const ModernMinimalCoverLetter: React.FC<
       <div className={`${textSize} mb-6`}>{today}</div>
 
       {/* Cover Letter Content */}
-      <div className={`${textSize} leading-relaxed whitespace-pre-wrap`}>
-        {coverLetter || "Your cover letter content will appear here..."}
+      <div className={`${textSize} leading-relaxed`}>
+        {isHtml(coverLetter) ? (
+          <div
+            dangerouslySetInnerHTML={{ __html: sanitizeHtml(coverLetter) }}
+          />
+        ) : (
+          <div className="whitespace-pre-wrap">
+            {coverLetter || "Your cover letter content will appear here..."}
+          </div>
+        )}
       </div>
 
       {/* Signature */}

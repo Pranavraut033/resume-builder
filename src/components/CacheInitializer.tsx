@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 
 import { createLogger } from "@/lib/logger";
 import { useModelStore } from "@/store/modelStore";
@@ -22,19 +22,18 @@ export function CacheInitializer() {
   const { initializeCache, setCacheTimer, clearCacheTimer, forceFetchModels } =
     useModelStore();
 
+  const initializedRef = useRef(false);
+
   useEffect(() => {
-    // Initialize cache on app load
-    const initCache = async () => {
-      logger.info("Initializing cache on app load");
-      await initializeCache();
-    };
+    if (initializedRef.current) return;
+    initializedRef.current = true;
 
-    initCache();
+    void initializeCache();
 
-    // Set up auto-refresh timer every 6 hours
-    const timerId = setInterval(async () => {
-      logger.info("Auto-refreshing model cache (6 hour interval)");
-      await forceFetchModels();
+    const timerId = setInterval(() => {
+      void forceFetchModels().catch((err) => {
+        logger.error("Cache refresh failed", err);
+      });
     }, CACHE_DURATION_MS);
 
     // Store timer ID in store for cleanup
@@ -42,6 +41,7 @@ export function CacheInitializer() {
 
     // Cleanup timer on unmount
     return () => {
+      clearInterval(timerId);
       clearCacheTimer();
     };
   }, [initializeCache, setCacheTimer, clearCacheTimer, forceFetchModels]);

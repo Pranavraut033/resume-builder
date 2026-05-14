@@ -9,20 +9,17 @@
 "use client";
 
 import Link from "next/link";
-import { useSyncExternalStore } from "react";
 
 import { ModelSelector } from "@/components/ModelSelector";
 import { Icon } from "@/components/ui/Icon";
+import useHydrated from "@/hooks/useHydrated";
 import { useModelStore } from "@/store/modelStore";
 import { ProviderType } from "@/types/llm";
 
 export function SelectedModelCard() {
-  const { activeModelPair: selectedModel, setSelectedModel } = useModelStore();
-  const hydrated = useSyncExternalStore(
-    () => () => {},
-    () => true,
-    () => false
-  );
+  const { setSelectedModel } = useModelStore();
+
+  const hydrated = useHydrated();
 
   const handleModelSelected = (model: string, provider: ProviderType) => {
     setSelectedModel(provider, model);
@@ -61,59 +58,29 @@ export function SelectedModelCard() {
         Selected Model
       </p>
 
-      {selectedModel ? (
-        <>
-          {/* Change Model Button */}
-          <ModelSelector
-            onModelSelected={handleModelSelected}
-            label="Change Model"
-            className="w-full"
-            variant="normal"
-          />
+      <>
+        {/* Change Model Button */}
+        <ModelSelector
+          onModelSelected={handleModelSelected}
+          label="Change Model"
+          className="w-full"
+          variant="normal"
+        />
 
-          {/* Link to Settings */}
-          <Link
-            href="/settings"
-            className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl px-3 py-2 text-xs font-medium transition hover:opacity-90"
-            style={{
-              background: "var(--color-agent-surface-container)",
-              color: "var(--color-agent-on-surface)",
-              border: "1px solid var(--color-agent-outline-variant)",
-            }}
-          >
-            <Icon name="settings" className="h-3.5 w-3.5" />
-            Add Models in Settings
-          </Link>
-        </>
-      ) : (
-        <>
-          {/* Error State */}
-          <div
-            className="mb-4 rounded-xl px-4 py-3"
-            style={{
-              background: "var(--color-agent-error-container)",
-              color: "var(--color-agent-on-error-container)",
-            }}
-          >
-            <p className="text-xs">
-              No model configured. Visit settings to select models.
-            </p>
-          </div>
-
-          {/* Link to Settings */}
-          <Link
-            href="/settings"
-            className="flex w-full items-center justify-center gap-2 rounded-xl px-3 py-2 text-xs font-semibold transition hover:opacity-90"
-            style={{
-              background: "var(--color-agent-primary)",
-              color: "var(--color-agent-on-primary)",
-            }}
-          >
-            <Icon name="settings" className="h-3.5 w-3.5" />
-            Configure Models
-          </Link>
-        </>
-      )}
+        {/* Link to Settings */}
+        <Link
+          href="/settings"
+          className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl px-3 py-2 text-xs font-medium transition hover:opacity-90"
+          style={{
+            background: "var(--color-agent-surface-container)",
+            color: "var(--color-agent-on-surface)",
+            border: "1px solid var(--color-agent-outline-variant)",
+          }}
+        >
+          <Icon name="settings" className="h-3.5 w-3.5" />
+          Add Models in Settings
+        </Link>
+      </>
     </div>
   );
 }

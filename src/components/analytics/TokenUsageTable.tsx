@@ -3,15 +3,18 @@
  * Displays raw token usage records in a sortable table
  */
 
+import { TokenUsage } from "@prisma/client";
 import { useState } from "react";
 
-import { TokenUsageRecord } from "@/actions/tokenUsage";
-
 interface TokenUsageTableProps {
-  records: TokenUsageRecord[];
+  records: TokenUsage[];
 }
 
-type SortField = "createdAt" | "inputTokens" | "outputTokens" | "totalTokens";
+type SortField =
+  | "createdAt"
+  | "promptTokens"
+  | "completionTokens"
+  | "totalTokens";
 type SortDirection = "asc" | "desc";
 
 const SortIcon = ({
@@ -50,12 +53,9 @@ export default function TokenUsageTable({ records }: TokenUsageTableProps) {
     let aValue: number | string;
     let bValue: number | string;
 
-    if (sortField === "totalTokens") {
-      aValue = a.inputTokens + a.outputTokens;
-      bValue = b.inputTokens + b.outputTokens;
-    } else if (sortField === "createdAt") {
-      aValue = a.createdAt;
-      bValue = b.createdAt;
+    if (sortField === "createdAt") {
+      aValue = a.createdAt.getTime();
+      bValue = b.createdAt.getTime();
     } else {
       aValue = a[sortField];
       bValue = b[sortField];
@@ -66,7 +66,7 @@ export default function TokenUsageTable({ records }: TokenUsageTableProps) {
     return 0;
   });
 
-  const formatDate = (dateString: string) => {
+  const formatDate = (dateString: Date | string) => {
     const date = new Date(dateString);
     return date.toLocaleString("en-US", {
       month: "short",
@@ -122,11 +122,11 @@ export default function TokenUsageTable({ records }: TokenUsageTableProps) {
             <th
               scope="col"
               className="text-agent-on-surface-variant hover:text-agent-on-surface cursor-pointer px-6 py-3 text-right text-xs font-semibold tracking-wider uppercase"
-              onClick={() => handleSort("inputTokens")}
+              onClick={() => handleSort("promptTokens")}
             >
               Input{" "}
               <SortIcon
-                field="inputTokens"
+                field="promptTokens"
                 sortField={sortField}
                 sortDirection={sortDirection}
               />
@@ -134,11 +134,11 @@ export default function TokenUsageTable({ records }: TokenUsageTableProps) {
             <th
               scope="col"
               className="text-agent-on-surface-variant hover:text-agent-on-surface cursor-pointer px-6 py-3 text-right text-xs font-semibold tracking-wider uppercase"
-              onClick={() => handleSort("outputTokens")}
+              onClick={() => handleSort("completionTokens")}
             >
               Output{" "}
               <SortIcon
-                field="outputTokens"
+                field="completionTokens"
                 sortField={sortField}
                 sortDirection={sortDirection}
               />
@@ -177,13 +177,15 @@ export default function TokenUsageTable({ records }: TokenUsageTableProps) {
                 </span>
               </td>
               <td className="text-agent-on-surface px-6 py-4 text-right text-sm whitespace-nowrap">
-                {record.inputTokens.toLocaleString()}
+                {record.promptTokens.toLocaleString()}
               </td>
               <td className="text-agent-on-surface px-6 py-4 text-right text-sm whitespace-nowrap">
-                {record.outputTokens.toLocaleString()}
+                {record.completionTokens.toLocaleString()}
               </td>
               <td className="text-agent-on-surface px-6 py-4 text-right text-sm font-medium whitespace-nowrap">
-                {(record.inputTokens + record.outputTokens).toLocaleString()}
+                {(
+                  record.promptTokens + record.completionTokens
+                ).toLocaleString()}
               </td>
             </tr>
           ))}

@@ -5,6 +5,7 @@
  */
 
 import React from "react";
+import { htmlToPlainText, isHtml } from "@/lib/htmlUtils";
 
 import { ResumeJSON, ThemeColors } from "@/types/resume";
 
@@ -44,7 +45,10 @@ export const TechSidebarCoverLetter: React.FC<TechSidebarCoverLetterProps> = ({
   });
 
   // Parse cover letter sections
-  const lines = coverLetter.split("\n");
+  const textContent = isHtml(coverLetter)
+    ? htmlToPlainText(coverLetter)
+    : coverLetter;
+  const lines = textContent.split("\n");
   const recipientLines: string[] = [];
   const bodyLines: string[] = [];
   const closingLines: string[] = [];

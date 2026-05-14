@@ -1,20 +1,23 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useMutation } from "@tanstack/react-query";
+import { useState } from "react";
 
 import {
   updateCoverLetter as updateCoverLetterAction,
   updateCoverLetterCustomization,
 } from "@/actions/job";
-import { useToast } from "@/components/ui/ToastProvider";
-import { getProfile } from "@/actions/profile";
 import { EditorLayout } from "@/components/editor/EditorLayout";
 import { EditorSidePanel } from "@/components/editor/EditorSidePanel";
+import RichTextEditor from "@/components/form/RichTextEditor";
 import { CoverLetterRenderer } from "@/components/templates/coverLetter/CoverLetterRenderer";
 import { Button } from "@/components/ui";
 import { Icon, type IconName } from "@/components/ui/Icon";
-import { useAIContext } from "@/contexts/AIContext";
+import { useToast } from "@/components/ui/ToastProvider";
 import { useEditorContext } from "@/contexts/EditorContext";
+import useGenerateCoverLetter from "@/hooks/useGenerateCoverLetter";
+import { htmlToPlainText, isHtml } from "@/lib/htmlUtils";
+import { useModelStore } from "@/store/modelStore";
 import { DEFAULT_COLORS, TemplateType } from "@/types/resume";
 
 import { ModelSelector } from "./ModelSelector";
@@ -22,89 +25,65 @@ import { ModelSelector } from "./ModelSelector";
 export default function CoverLetterEditorContent() {
   const {
     coverLetter,
-    updateCoverLetter,
     resume,
     job,
     customization,
     updateCustomization,
+    refetch,
   } = useEditorContext();
-  const { generateCoverLetter } = useAIContext();
+
   const jobId: number = job!.id!;
   const { pushToast } = useToast();
+  const activeModelPair = useModelStore((state) => state.activeModelPair);
+  const [editableText, setEditableText] = useState(coverLetter || "");
 
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [editableText, setEditableText] = useState("");
-  const [isSaving, setIsSaving] = useState(false);
-
-  // Sync editable text with cover letter state
-  useEffect(() => {
-    if (coverLetter) {
-      setEditableText(coverLetter);
-    }
-  }, [coverLetter]);
-
-  const handleGenerate = async () => {
-    if (!job?.description) {
-      pushToast({
-        title: "Missing requirements",
-        description:
-          "Please select a model and ensure job description is available.",
-        variant: "error",
-      });
-      return;
-    }
-
-    try {
-      setIsGenerating(true);
-
-      const baseProfile = resume || (await getProfile());
-      const jobRole = job?.details?.job?.job_title || "the position";
-      const company = job?.details?.company?.company_name || "the company";
-
-      const generated = await generateCoverLetter(
-        baseProfile,
-        resume || baseProfile,
-        job.description,
-        jobRole,
-        company
-      );
-
-      updateCoverLetter(generated);
-      setEditableText(generated);
-    } catch (err) {
-      const errorMsg =
-        err instanceof Error ? err.message : "Failed to generate cover letter";
-      console.error("Failed to generate cover letter:", err);
-      pushToast({
-        title: "Generation failed",
-        description: errorMsg,
-        variant: "error",
-      });
-    } finally {
-      setIsGenerating(false);
-    }
-  };
-
-  const handleSave = useCallback(async () => {
-    try {
-      setIsSaving(true);
-      await updateCoverLetterAction(jobId, editableText, customization);
-      updateCoverLetter(editableText);
+  const { mutate: saveCoverLetter, status } = useMutation({
+    mutationFn: (newText: string) =>
+      updateCoverLetterAction(jobId, newText, customization, {
+        provider: activeModelPair ? activeModelPair[0] : undefined,
+        model: activeModelPair ? activeModelPair[1] : undefined,
+      }),
+    onSuccess: () => {
       pushToast({
         title: "Cover letter saved",
         variant: "success",
       });
-    } catch (err) {
+    },
+    onError: (err) => {
+      const errorMsg =
+        err instanceof Error ? err.message : "Failed to save cover letter";
       console.error("Failed to save cover letter:", err);
       pushToast({
         title: "Save failed",
-        description: "Failed to save cover letter.",
+        description: errorMsg,
         variant: "error",
       });
-    } finally {
-      setIsSaving(false);
-    }
-  }, [jobId, editableText, customization, updateCoverLetter]);
+    },
+  });
+
+  const { mutate: generateCoverLetter, status: generateStatus } =
+    useGenerateCoverLetter({
+      onSuccess: (generated) => {
+        saveCoverLetter(generated.result);
+        setEditableText(generated.result);
+        refetch(undefined, "coverLetter");
+      },
+      onError: (err) => {
+        const errorMsg =
+          err instanceof Error
+            ? err.message
+            : "Failed to generate cover letter";
+        console.error("Failed to generate cover letter:", err);
+        pushToast({
+          title: "Generation failed",
+          description: errorMsg,
+          variant: "error",
+        });
+      },
+    });
+
+  const isSaving = status === "pending";
+  const isGenerating = generateStatus === "pending";
 
   const handleCustomizationChange = async (
     updates: Partial<typeof customization>
@@ -126,7 +105,10 @@ export default function CoverLetterEditorContent() {
   };
 
   const handleExportTXT = () => {
-    const blob = new Blob([editableText], { type: "text/plain" });
+    const text = isHtml(editableText)
+      ? htmlToPlainText(editableText)
+      : editableText;
+    const blob = new Blob([text], { type: "text/plain" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
@@ -167,7 +149,12 @@ export default function CoverLetterEditorContent() {
           <div className="flex gap-2">
             <Button
               variant="secondary"
-              onClick={handleGenerate}
+              onClick={() =>
+                generateCoverLetter({
+                  resume: resume,
+                  jobData: job?.details,
+                })
+              }
               disabled={isGenerating}
               icon={<Icon name="sparkle" />}
             >
@@ -175,7 +162,7 @@ export default function CoverLetterEditorContent() {
             </Button>
             <Button
               variant="primary"
-              onClick={handleSave}
+              onClick={() => saveCoverLetter(editableText)}
               disabled={isSaving}
               icon={<Icon name="check" />}
             >
@@ -184,12 +171,13 @@ export default function CoverLetterEditorContent() {
           </div>
         </div>
 
-        <textarea
-          value={editableText}
-          onChange={(e) => setEditableText(e.target.value)}
-          className="h-96 w-full resize-none rounded-lg border border-gray-300 bg-white p-4 text-gray-900 focus:border-transparent focus:ring-2 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-900 dark:text-white"
-          placeholder="Your cover letter will appear here. Click 'Generate' to create one using AI, or type your own..."
-        />
+        <div className="h-96 w-full">
+          <RichTextEditor
+            value={editableText}
+            onChange={setEditableText}
+            placeholder="Your cover letter will appear here. Click 'Generate' to create one using AI, or type your own..."
+          />
+        </div>
       </div>
     </div>
   );
