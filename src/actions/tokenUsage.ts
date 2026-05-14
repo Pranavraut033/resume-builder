@@ -15,6 +15,9 @@ import { PromptPurpose } from "@/lib/llm/prompts";
 import { prisma } from "@/lib/prisma";
 import { ProviderType } from "@/types/llm";
 
+/**
+ * Data structure for recording token usage of LLM calls
+ */
 export interface LLMUsageInfo {
   // Core — all providers
   promptTokens: number; // OpenAI: prompt_tokens / Anthropic: input_tokens

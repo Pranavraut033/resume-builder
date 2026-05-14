@@ -65,7 +65,6 @@ export async function createJob(input: {
   // Create job
   const job = await prisma.job.create({
     data: {
-      createdAt: new Date().toISOString(),
       companyId: company.id,
       contactId,
       role: jobDetails.job.job_title,
@@ -214,7 +213,7 @@ export async function updateResume(
 ) {
   const data: Partial<Resume> = {
     contentJson: JSON.stringify(contentJson),
-    lastEdited: new Date().toISOString(),
+    lastEdited: new Date(),
   };
 
   applyCustomization(customization, data);
