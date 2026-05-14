@@ -10,7 +10,7 @@
 ---
 
 ## TODOs
-- [ ] **update them for base profile page and Token Usage Analytics**
+- [x] **update them for base profile page and Token Usage Analytics**
   - Themes need updating for the base profile page and Token Usage Analytics to improve visual consistency and user experience.
-- [x] **Update settings page**
+- [ ] **Update settings page**
   - Add URL check for Ollama status, update Security Architecture and Anonymous Telemetry sections, and add version check update button.
