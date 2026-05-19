@@ -81,71 +81,75 @@ model Contact {
 }
 
 model Job {
-  id             Int      @id @default(autoincrement())
-  createdAt      DateTime @default(now()) @map("created_at")
-  updatedAt      DateTime @default(now()) @map("updated_at")
-  companyId      Int?     @map("company_id")
-  contactId      Int?     @map("contact_id")
+  id        Int      @id @default(autoincrement())
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @default(now()) @map("updated_at")
+
+  // Core job details
   role           String
   description    String
-  status         String   @default("DRAFT") // constrained at application level
-  jobDetailsJson String? // JSON string containing parsed JobDetails structure with company info, contact, and requirements
-  url            String? // Optional URL source for the job posting
+  status         String  @default("DRAFT") // constrained at application level
+  jobDetailsJson String  @map("job_details_json") // JSON string containing JobDetails structure
+  url            String? @map("url") // Optional URL source for the job posting
 
-  company      Company?      @relation(fields: [companyId], references: [id], onDelete: SetNull)
-  contact      Contact?      @relation(fields: [contactId], references: [id], onDelete: SetNull)
-  resumes      Resume[]
-  coverLetters CoverLetter[]
+  // Relations & Foreign Keys
+  companyId     Int?         @map("company_id")
+  contactId     Int?         @map("contact_id")
+  resumeId      Int?         @unique @map("resume_id")
+  coverLetterId Int?         @unique @map("cover_letter_id")
+  resume        Resume?      @relation(fields: [resumeId], references: [id])
+  coverLetter   CoverLetter? @relation(fields: [coverLetterId], references: [id])
+  company       Company?     @relation(fields: [companyId], references: [id], onDelete: SetNull)
+  contact       Contact?     @relation(fields: [contactId], references: [id], onDelete: SetNull)
 
   @@map("jobs")
 }
 
 model Resume {
   id          Int      @id @default(autoincrement())
-  jobId       Int      @map("job_id")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @default(now()) @map("updated_at")
   contentJson String   @map("content_json") // JSON string containing ResumeJSON structure
-  lastEdited  DateTime @default(now()) @map("last_edited")
 
-  // Resumify integration: template customization options
-  template   String @default("modern-minimal") // tech-sidebar, business-professional, modern-minimal, elegant-timeline, creative-modern, bjet-professional
-  pageFormat String @default("letter") @map("page_format") // letter or a4
-  fontSize   String @default("medium") @map("font_size") // small, medium, large
-  fontFamily String @default("Inter") @map("font_family") // Inter, Georgia, Poppins, etc.
-
-  // Color theme (stored as CSV: primary,secondary,accent,text,background)
-  colors String @default("#3b82f6,#64748b,#8b5cf6,#1f2937,#ffffff")
-
-  job Job @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  customizations  Customization @relation(fields: [customizationId], references: [id])
+  customizationId Int           @unique @map("customization_id")
+  jobs            Job?
 
   @@map("resumes")
 }
 
 model CoverLetter {
   id          Int      @id @default(autoincrement())
-  jobId       Int      @map("job_id")
-  contentText String   @map("content_text")
   createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @default(now()) @map("updated_at")
+  contentText String   @map("content_text")
 
-  // Template customization options
-  template   String @default("professional-block") // professional-block, modern-minimal, executive-formal, creative-modern, tech-clean
-  fontSize   String @default("medium") @map("font_size") // small, medium, large
-  fontFamily String @default("Inter") @map("font_family")
-  lineHeight String @default("normal") @map("line_height") // tight, normal, relaxed
-
-  // Color theme (stored as CSV: primary,secondary,accent,text,background)
-  colors String @default("#3b82f6,#64748b,#8b5cf6,#1f2937,#ffffff")
-
-  // Generation metadata
-  provider     String? // openai, gemini, grok, perplexity, ollama
-  model        String? // model name used for generation
-  customPrompt String? @map("custom_prompt") // user's custom instructions
-  generatedAt  String? @map("generated_at") // timestamp of generation
-  version      Int     @default(1) // version number for history tracking
-  lastEdited   String  @default("1970-01-01T00:00:00Z") @map("last_edited")
-  pageFormat   String  @default("a4") @map("page_format") // letter or a4
-  job          Job     @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  // Relations & Foreign Keys
+  customizations  Customization @relation(fields: [customizationId], references: [id])
+  customizationId Int           @unique @map("customization_id")
+  jobs            Job?
 
   @@map("cover_letters")
+}
+
+model Customization {
+  id        Int      @id @default(autoincrement())
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @default(now()) @map("updated_at")
+
+  // Customization fields
+  template   String // template name
+  fontSize   String @map("font_size") // small, medium, large
+  pageFormat String @map("page_format") // A4, Letter
+  fontFamily String @map("font_family")
+  lineHeight String @map("line_height") // tight, normal, relaxed
+  marginSize String @map("margin_size") // CSV: top,right,bottom,left in inches (e.g. 1,1,1,1)
+  colors     String @default("#3b82f6,#64748b,#8b5cf6,#1f2937,#ffffff")
+
+  resumes     Resume?
+  coverLetter CoverLetter?
+
+  @@map("customizations")
 }
 
 model TokenUsage {
