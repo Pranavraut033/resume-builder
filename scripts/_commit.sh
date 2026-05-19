@@ -3,98 +3,41 @@ set -e
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
 
-# COMMIT 1
-git add src/lib/llm/llmService.ts \
-  src/lib/llm/prompts/index.ts \
-  src/lib/llm/prompts/resolver.ts \
-  src/lib/llm/prompts/templates/cover-letter.ts \
-  src/lib/llm/prompts/templates/education.ts \
-  src/lib/llm/prompts/templates/resume-tailoring.ts \
-  src/lib/llm/providers/perplexity.ts \
-  src/lib/llm/tokenTracker.ts \
-  src/store/modelStore.ts \
-  src/types/resume.ts
-git commit -m "feat(llm): update prompts, providers, and token tracking"
+# COMMIT 1: Migrate to unified job page architecture
+git add src/app/job/\[id\]/page.tsx src/app/job/\[jobId\]/ src/app/cover-letter/\[jobId\]/page.tsx src/app/resume/\[jobId\]/page.tsx src/contexts/JobPageContext.tsx src/hooks/useJobPageDataQuery.ts src/actions/job.ts
+git commit -m "refactor: migrate to unified job page architecture"
 
-# COMMIT 2
-git add src/components/AIAssistPanel.tsx \
-  src/components/CacheInitializer.tsx \
-  src/components/EnhancedCoverLetterEditor.tsx \
-  src/components/EnhancedResumeEditor.tsx \
-  src/components/SelectedModelCard.tsx \
-  src/components/analytics/TokenUsageTable.tsx \
-  src/components/resume/FinalReviewExport.tsx \
-  src/components/templates/coverLetter/BJetProfessionalCoverLetter.tsx \
-  src/components/templates/coverLetter/BusinessProfessionalCoverLetter.tsx \
-  src/components/templates/coverLetter/CreativeModernCoverLetter.tsx \
-  src/components/templates/coverLetter/ElegantTimelineCoverLetter.tsx \
-  src/components/templates/coverLetter/ModernMinimalCoverLetter.tsx \
-  src/components/templates/coverLetter/ProfessionalCoverLetter.tsx \
-  src/components/templates/coverLetter/TechSidebarCoverLetter.tsx \
-  src/components/ui/index.ts
-git commit -m "feat(components): improve resume and cover-letter components"
+# COMMIT 2: Consolidate resume and cover letter editor components
+git add src/components/EnhancedResumeEditor.tsx src/components/EnhancedCoverLetterEditor.tsx src/components/ResumeCustomizationPanel.tsx src/components/ResumeSidePanel.tsx src/components/ResumePreviewModal.tsx src/components/ResumeEditor.tsx src/components/CoverLetterEditor.tsx src/components/EditorLayout/ src/components/ui/SaveButton.tsx
+git commit -m "refactor: consolidate resume and cover letter editor components"
 
-# COMMIT 3
-git add src/app/analytics/tokens/page.tsx \
-  src/app/components/JobTableClient.tsx \
-  src/app/cover-letter/[jobId]/page.tsx \
-  src/app/job/new/page.tsx \
-  src/app/page.tsx \
-  src/app/profile/page.tsx \
-  src/app/resume/[jobId]/layout.tsx \
-  src/contexts/EditorContext.tsx \
-  src/contexts/AIContext.tsx \
-  src/hooks/useProfile.ts
-git commit -m "feat(app): update pages and context for resume flow"
+# COMMIT 3: Extract customization types and update context hooks
+git add src/types/customization.ts src/hooks/useProfileQuery.ts src/hooks/useResolveCustomization.ts src/hooks/useEditorContext.ts src/hooks/useProfile.ts src/contexts/EditorContext.tsx src/contexts/ResumeEditContext.tsx
+git commit -m "refactor: extract customization types and update context hooks"
 
-# COMMIT 4
-git add .vscode/settings.json package-lock.json package.json prisma/schema.prisma
-git commit -m "chore(deps): update package and prisma schema"
+# COMMIT 4: Update templates for new customization system
+git add src/components/templates/BJetProfessionalTemplate.tsx src/components/templates/BusinessProfessionalTemplate.tsx src/components/templates/CreativeModernTemplate.tsx src/components/templates/ElegantTimelineTemplate.tsx src/components/templates/ModernMinimalTemplate.tsx src/components/templates/TechSidebarTemplate.tsx src/components/templates/TemplateRenderer.tsx src/components/templates/coverLetter/
+git commit -m "refactor: update templates for new customization system"
 
-# COMMIT 5
-git add tests/README.md \
-  tests/actions/job.integration.test.ts \
-  tests/actions/job.test.ts \
-  tests/actions/profile.test.ts \
-  tests/actions/tokenUsage.test.ts \
-  tests/actions/urlFetcher.test.ts \
-  tests/config/README.md \
-  tests/config/test.config.ts \
-  tests/debug-db.ts \
-  tests/fixtures/data.ts \
-  tests/integration/llm-e2e.test.ts \
-  tests/lib/clientLLM.test.ts \
-  tests/lib/colorUtils.test.ts \
-  tests/lib/llm/providers/factory.test.ts \
-  tests/lib/llm/providers/gemini.test.ts \
-  tests/lib/llm/providers/grok.test.ts \
-  tests/lib/llm/providers/groq.test.ts \
-  tests/lib/llm/providers/integration.test.ts \
-  tests/lib/llm/providers/ollama.test.ts \
-  tests/lib/llm/providers/openai.test.ts \
-  tests/lib/llm/providers/registration.test.ts \
-  tests/lib/llm/providers/registry.test.ts \
-  tests/lib/prisma.test.ts \
-  tests/lib/prompts/integration.test.ts \
-  tests/lib/prompts/prompts.test.ts \
-  tests/mocks/llm.ts \
-  tests/mocks/prisma.ts \
-  tests/setup.ts \
-  tests/utils/db.ts \
-  tests/utils/factories.ts
-git commit -m "test: remove legacy tests"
+# COMMIT 5: Update utilities and types for resume handling
+git add src/lib/htmlUtils.ts src/lib/resumeToText.ts src/lib/getFulllUrl.ts src/lib/index.ts src/types/resume.ts src/components/form/RichTextEditor.tsx src/components/form/RichTextEditorContent.tsx src/components/editor/README.md
+git commit -m "refactor: update utilities and types for resume handling"
 
-# COMMIT 6
-git add scripts/_commit.sh \
-  src/components/form/RichTextEditor.tsx \
-  src/components/ui/FallbackState.tsx \
-  src/hooks/useEditorContext.ts \
-  src/hooks/useGenerateCoverLetter.ts \
-  src/hooks/useHydrated.ts \
-  src/lib/htmlUtils.ts \
-  src/lib/resumeToText.ts \
-  type-check-output.txt
-git commit -m "feat(ui/hooks): add new editor hooks and utilities"
+# COMMIT 6: Update schema for resume customization support
+git add prisma/schema.prisma
+git commit -m "refactor: update schema for resume customization support"
+
+# COMMIT 7: Update model and font selectors
+git add src/components/ModelSelector.tsx src/components/FontSelector.tsx src/components/SelectedModelCard.tsx src/components/TemplateSelector.tsx
+git commit -m "refactor: update model and font selectors"
+
+# COMMIT 8: Update dependencies
+git add package.json package-lock.json
+git commit -m "chore: update dependencies"
+
+# COMMIT 9: Update app shell and pages for new structure
+git add src/components/AppShell.tsx src/app/components/JobTableClient.tsx src/app/profile/page.tsx src/app/job/new/page.tsx src/styles/
+git commit -m "refactor: update app shell and pages for new structure"
 
 # Self-destruct
 rm -- "$0"
