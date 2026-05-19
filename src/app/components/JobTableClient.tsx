@@ -548,11 +548,11 @@ function CardGrid({
             <IconLink href={`/job/${job.id}`} label="Edit job">
               <Icon name="edit" size={18} />
             </IconLink>
-            <IconLink href={`/resume/${job.id}`} label="Open resume">
+            <IconLink href={`/job/${job.id}/resume`} label="Open resume">
               <Icon name="fileText" size={18} />
             </IconLink>
             <IconLink
-              href={`/cover-letter/${job.id}`}
+              href={`/job/${job.id}/cover-letter`}
               label="Open cover letter"
             >
               <Icon name="fileText" size={18} className="opacity-80" />

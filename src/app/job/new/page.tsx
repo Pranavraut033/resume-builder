@@ -8,7 +8,7 @@ import { createJob } from "@/actions/job";
 import { fetchJobDescriptionFromUrl } from "@/actions/urlFetcher";
 import { SelectedModelCard } from "@/components/SelectedModelCard";
 import { useToast } from "@/components/ui/ToastProvider";
-import { useProfileQuery } from "@/hooks/useProfile";
+import { useProfileQuery } from "@/hooks/useProfileQuery";
 import LLMService from "@/lib/llm/llmService";
 import { createLogger } from "@/lib/logger";
 import { useModelStore } from "@/store/modelStore";

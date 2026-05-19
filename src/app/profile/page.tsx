@@ -21,7 +21,7 @@ import { ProfileActionButtons } from "@/components/ProfileActionButtons";
 import { FallbackState, PageHeader, SurfacePanel } from "@/components/ui";
 import { Button } from "@/components/ui/Button";
 import { useToast } from "@/components/ui/ToastProvider";
-import { useProfileQuery } from "@/hooks/useProfile";
+import { useProfileQuery } from "@/hooks/useProfileQuery";
 import { createLogger } from "@/lib/logger";
 import { ResumeJSON } from "@/types/resume";
 

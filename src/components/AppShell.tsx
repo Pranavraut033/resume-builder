@@ -31,9 +31,11 @@ export default function AppShell({ children }: AppShellProps) {
 
 function AppShellContent({ children }: AppShellProps) {
   const pathname = usePathname();
-  const isResumeEditorRoute = pathname?.startsWith("/resume/");
+  const isEditingDocumentRoute = /\/job\/\d+\/(resume|cover-letter)/.test(
+    pathname
+  );
 
-  if (isResumeEditorRoute) {
+  if (isEditingDocumentRoute) {
     return (
       <div
         className="h-screen overflow-hidden"
