@@ -127,3 +127,31 @@ export function resumeToText(resume: ResumeJSON): string {
 
   return lines.join("\n").trim();
 }
+
+export function coverLetterToText(
+  coverLetter: string,
+  resume: ResumeJSON
+): string {
+  const header = `${resume.header.name}\n${[resume.header.email, resume.header.phone, resume.header.website].filter(Boolean).join(" | ")}`;
+
+  const date = new Date().toLocaleDateString();
+
+  return `${header}\n\n${date}\n\n${htmlToText(coverLetter)}`;
+}
+
+function htmlToText(html: string): string {
+  const tempDiv = document.createElement("div");
+  tempDiv.innerHTML = html;
+
+  // Replace <br> with newlines
+  tempDiv.querySelectorAll("br").forEach((br) => {
+    br.replaceWith("\n");
+  });
+
+  // Handle paragraphs
+  tempDiv.querySelectorAll("p").forEach((p) => {
+    p.replaceWith(`${p.textContent}\n\n`);
+  });
+
+  return tempDiv.textContent?.trim() || "";
+}

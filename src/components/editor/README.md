@@ -11,7 +11,7 @@ Unified context provider for both Resume and Cover Letter editors.
 **Usage:**
 
 ```tsx
-import { EditorProvider, useEditorContext } from "@/contexts/EditorContext";
+import { EditorProvider, useJobContext } from "@/contexts/EditorContext";
 
 function MyEditor() {
   return (
@@ -25,7 +25,7 @@ function MyEditor() {
 
 function EditorContent() {
   const { resume, coverLetter, customization, updateCustomization } =
-    useEditorContext();
+    useJobContext();
   // ...
 }
 ```
