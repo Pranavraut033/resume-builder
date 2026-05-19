@@ -1,6 +1,7 @@
 "use client";
 
 import { analyzeResume } from "@pranavraut033/ats-checker";
+import { Customization } from "@prisma/client";
 import { useState, useEffect, useRef, useCallback } from "react";
 
 import { FontSelector } from "@/components/FontSelector";
@@ -11,95 +12,10 @@ import { Icon } from "@/components/ui/Icon";
 import { generateResumePDF } from "@/lib/pdfExport";
 import { resumeToText } from "@/lib/resumeToText";
 import { generateResumeTXT } from "@/lib/txtExport";
-import {
-  ResumeJSON,
-  ThemeCustomization,
-  ThemeColors,
-  DEFAULT_COLORS,
-  AVAILABLE_TEMPLATES,
-  TemplateType,
-} from "@/types/resume";
+import { AVAILABLE_TEMPLATES, TemplateType } from "@/types/customization";
+import { ResumeJSON } from "@/types/resume";
 
 import { useToast } from "../ui/ToastProvider";
-
-const COLOR_PRESETS: Array<{ name: string; hex: string; colors: ThemeColors }> =
-  [
-    {
-      name: "Blue",
-      hex: "#3b82f6",
-      colors: { ...DEFAULT_COLORS, primary: "#3b82f6", accent: "#8b5cf6" },
-    },
-    {
-      name: "Navy",
-      hex: "#1e40af",
-      colors: {
-        ...DEFAULT_COLORS,
-        primary: "#1e40af",
-        secondary: "#3b82f6",
-        accent: "#1e3a8a",
-      },
-    },
-    {
-      name: "Green",
-      hex: "#10b981",
-      colors: {
-        ...DEFAULT_COLORS,
-        primary: "#10b981",
-        secondary: "#6ee7b7",
-        accent: "#059669",
-      },
-    },
-    {
-      name: "Purple",
-      hex: "#8b5cf6",
-      colors: {
-        ...DEFAULT_COLORS,
-        primary: "#8b5cf6",
-        secondary: "#a78bfa",
-        accent: "#7c3aed",
-      },
-    },
-    {
-      name: "Rose",
-      hex: "#e11d48",
-      colors: {
-        ...DEFAULT_COLORS,
-        primary: "#e11d48",
-        secondary: "#fb7185",
-        accent: "#be123c",
-      },
-    },
-    {
-      name: "Teal",
-      hex: "#14b8a6",
-      colors: {
-        ...DEFAULT_COLORS,
-        primary: "#14b8a6",
-        secondary: "#5eead4",
-        accent: "#0d9488",
-      },
-    },
-    {
-      name: "Orange",
-      hex: "#f97316",
-      colors: {
-        ...DEFAULT_COLORS,
-        primary: "#f97316",
-        secondary: "#fb923c",
-        accent: "#ea580c",
-      },
-    },
-    {
-      name: "Gray",
-      hex: "#6b7280",
-      colors: {
-        ...DEFAULT_COLORS,
-        primary: "#6b7280",
-        secondary: "#9ca3af",
-        accent: "#374151",
-      },
-    },
-  ];
 
 const A4_WIDTH_MM = 210;
 const A4_HEIGHT_MM = 297;
@@ -116,8 +32,8 @@ function clampZoom(zoom: number): number {
 
 interface FinalReviewExportProps {
   resume: ResumeJSON;
-  customization: ThemeCustomization;
-  onCustomizationChange: (updates: Partial<ThemeCustomization>) => void;
+  customization: Customization;
+  onCustomizationChange: (updates: Partial<Customization>) => void;
   jobId: string;
 }
 
@@ -383,9 +299,7 @@ export function FinalReviewExport({
                   <TemplateRenderer
                     template={customization.template ?? "modern-minimal"}
                     resume={resume}
-                    colors={customization.colors ?? DEFAULT_COLORS}
-                    fontSize={customization.fontSize ?? "medium"}
-                    fontFamily={customization.fontFamily ?? "Inter"}
+                    customization={customization}
                   />
                 </div>
               </div>

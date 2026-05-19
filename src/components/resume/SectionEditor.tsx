@@ -17,7 +17,7 @@ import {
 } from "@dnd-kit/sortable";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 
 import { FieldAIHelper } from "@/components/FieldAIHelper";
 import {
@@ -29,13 +29,13 @@ import {
 } from "@/components/form";
 import { Button } from "@/components/ui";
 import { Icon } from "@/components/ui/Icon";
-import { useResumeEditContext } from "@/contexts/ResumeEditContext";
+import { useJobPageContext } from "@/contexts/JobPageContext";
+import { toStableJsonString } from "@/lib";
 import {
   extractSummaryContext,
   extractAchievementsContext,
 } from "@/lib/contextExtractor";
 import {
-  ResumeJSON,
   ContactInfo,
   Experience,
   Education,
@@ -47,9 +47,6 @@ import { SectionId } from "./ResumeSectionNav";
 
 interface SectionEditorProps {
   section: SectionId;
-  resume: ResumeJSON;
-  jobId: string;
-  onResumeChange: (resume: ResumeJSON) => void;
 }
 
 // Sortable wrapper for experience/education/project/cert items
@@ -83,37 +80,19 @@ function SortableItem({
   );
 }
 
-export function SectionEditor({
-  section,
-  resume,
-  jobId,
-  onResumeChange,
-}: SectionEditorProps) {
-  const { job } = useResumeEditContext();
+export function SectionEditor({ section }: SectionEditorProps) {
+  const { resume, updateResume, job } = useJobPageContext();
 
   const sensors = useSensors(
     useSensor(PointerSensor),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
   );
 
-  function saveResume(updated: ResumeJSON) {
-    onResumeChange(updated);
-    const save = async () => {
-      try {
-        const { updateResume } = await import("@/actions/job");
-        await updateResume(parseInt(jobId), updated);
-      } catch (e) {
-        console.error("Error saving resume:", e);
-      }
-    };
-    save();
-  }
-
   // ── Personal Info ─────────────────────────────────────────────────
   if (section === "personal") {
     const h = resume.header;
     const update = (key: keyof ContactInfo, value: string) => {
-      saveResume({ ...resume, header: { ...h, [key]: value } });
+      updateResume({ header: { ...h, [key]: value } });
     };
 
     return (
@@ -130,6 +109,11 @@ export function SectionEditor({
               required
             />
           </div>
+          <TextField
+            label="Headline"
+            value={h.headline || ""}
+            onChange={(v) => update("headline", v)}
+          />
           <TextField
             label="Email"
             value={h.email || ""}
@@ -177,7 +161,7 @@ export function SectionEditor({
           <TextAreaField
             label="Summary"
             value={resume.summary || ""}
-            onChange={(v) => saveResume({ ...resume, summary: v as string })}
+            onChange={(v) => updateResume({ summary: v as string })}
             placeholder="Write a compelling summary of your professional background..."
             rows={6}
           />
@@ -191,9 +175,7 @@ export function SectionEditor({
             <FieldAIHelper
               field="summary"
               context={extractSummaryContext(resume, job?.details || undefined)}
-              onGenerate={(content) =>
-                saveResume({ ...resume, summary: content })
-              }
+              onGenerate={(content) => updateResume({ summary: content })}
               onError={(err) => console.error("AI error:", err)}
             />
           </div>
@@ -206,11 +188,8 @@ export function SectionEditor({
   if (section === "experience") {
     return (
       <ExperienceEditor
-        resume={resume}
-        jobId={jobId}
-        onSave={saveResume}
+        key={toStableJsonString(resume.experience)}
         sensors={sensors}
-        job={job}
       />
     );
   }
@@ -218,7 +197,10 @@ export function SectionEditor({
   // ── Education ─────────────────────────────────────────────────────
   if (section === "education") {
     return (
-      <EducationEditor resume={resume} onSave={saveResume} sensors={sensors} />
+      <EducationEditor
+        key={toStableJsonString(resume.education)}
+        sensors={sensors}
+      />
     );
   }
 
@@ -232,9 +214,7 @@ export function SectionEditor({
         <TagsEditor
           label=""
           tags={resume.skills || []}
-          onTagsChange={(tags) =>
-            saveResume({ ...resume, skills: tags as string[] })
-          }
+          onTagsChange={(tags) => updateResume({ skills: tags as string[] })}
           placeholder="Add a skill and press Enter"
           helpText="Add technologies, languages, and competencies"
         />
@@ -245,18 +225,17 @@ export function SectionEditor({
   // ── Projects ──────────────────────────────────────────────────────
   if (section === "projects") {
     return (
-      <ProjectsEditor resume={resume} onSave={saveResume} sensors={sensors} />
+      <ProjectsEditor
+        key={toStableJsonString(resume.projects)}
+        sensors={sensors}
+      />
     );
   }
 
   // ── Certifications ────────────────────────────────────────────────
   if (section === "certifications") {
     return (
-      <CertificationsEditor
-        resume={resume}
-        onSave={saveResume}
-        sensors={sensors}
-      />
+      <CertificationsEditor key={toStableJsonString(resume.certifications)} />
     );
   }
 
@@ -301,19 +280,9 @@ function SectionShell({
 
 type SensorsType = ReturnType<typeof useSensors>;
 
-function ExperienceEditor({
-  resume,
-  jobId,
-  onSave,
-  sensors,
-  job,
-}: {
-  resume: ResumeJSON;
-  jobId: string;
-  onSave: (r: ResumeJSON) => void;
-  sensors: SensorsType;
-  job: ReturnType<typeof useResumeEditContext>["job"];
-}) {
+function ExperienceEditor({ sensors }: { sensors: SensorsType }) {
+  const { resume, updateResume, job } = useJobPageContext();
+
   const [expandedIndex, setExpandedIndex] = useState<number | null>(
     resume.experience.length > 0 ? 0 : null
   );
@@ -321,9 +290,7 @@ function ExperienceEditor({
     resume.experience.map((_, i) => String(i))
   );
 
-  useEffect(() => {
-    setItems(resume.experience.map((_, i) => String(i)));
-  }, [resume.experience.length]);
+  if (!job || !resume) return null;
 
   function handleDragEnd(event: DragEndEvent) {
     const { active, over } = event;
@@ -333,7 +300,7 @@ function ExperienceEditor({
       const newOrder = arrayMove(items, oldIdx, newIdx);
       setItems(newOrder);
       const reordered = newOrder.map((i) => resume.experience[parseInt(i)]);
-      onSave({ ...resume, experience: reordered });
+      updateResume({ experience: reordered });
     }
   }
 
@@ -347,19 +314,19 @@ function ExperienceEditor({
       achievements: [],
     };
     const updated = [...resume.experience, newExp];
-    onSave({ ...resume, experience: updated });
+    updateResume({ experience: updated });
     setExpandedIndex(updated.length - 1);
   }
 
   function updateExp(index: number, updates: Partial<Experience>) {
     const updated = [...resume.experience];
     updated[index] = { ...updated[index], ...updates };
-    onSave({ ...resume, experience: updated });
+    updateResume({ experience: updated });
   }
 
   function removeExp(index: number) {
     const updated = resume.experience.filter((_, i) => i !== index);
-    onSave({ ...resume, experience: updated });
+    updateResume({ experience: updated });
     if (expandedIndex === index)
       setExpandedIndex(updated.length > 0 ? 0 : null);
   }
@@ -387,8 +354,6 @@ function ExperienceEditor({
                   }
                   onChange={(updates) => updateExp(index, updates)}
                   onRemove={() => removeExp(index)}
-                  resume={resume}
-                  job={job}
                 />
               </SortableItem>
             ))}
@@ -410,8 +375,6 @@ function ExperienceItem({
   onToggle,
   onChange,
   onRemove,
-  resume,
-  job,
 }: {
   exp: Experience;
   index: number;
@@ -419,9 +382,11 @@ function ExperienceItem({
   onToggle: () => void;
   onChange: (updates: Partial<Experience>) => void;
   onRemove: () => void;
-  resume: ResumeJSON;
-  job: ReturnType<typeof useResumeEditContext>["job"];
 }) {
+  const { resume, job } = useJobPageContext();
+
+  if (!resume || !job) return null;
+
   return (
     <div
       className="overflow-hidden rounded-xl border"
@@ -540,23 +505,15 @@ function ExperienceItem({
 
 // ─── Education Editor ─────────────────────────────────────────────────────────
 
-function EducationEditor({
-  resume,
-  onSave,
-  sensors,
-}: {
-  resume: ResumeJSON;
-  onSave: (r: ResumeJSON) => void;
-  sensors: SensorsType;
-}) {
+function EducationEditor({ sensors }: { sensors: SensorsType }) {
+  const { resume, job, updateResume } = useJobPageContext();
+
   const [expandedIndex, setExpandedIndex] = useState<number | null>(
     resume.education.length > 0 ? 0 : null
   );
   const [items, setItems] = useState(resume.education.map((_, i) => String(i)));
 
-  useEffect(() => {
-    setItems(resume.education.map((_, i) => String(i)));
-  }, [resume.education.length]);
+  if (!resume || !job) return null;
 
   function handleDragEnd(event: DragEndEvent) {
     const { active, over } = event;
@@ -565,8 +522,8 @@ function EducationEditor({
       const newIdx = items.indexOf(over.id as string);
       const newOrder = arrayMove(items, oldIdx, newIdx);
       setItems(newOrder);
-      onSave({
-        ...resume,
+
+      updateResume({
         education: newOrder.map((i) => resume.education[parseInt(i)]),
       });
     }
@@ -582,7 +539,7 @@ function EducationEditor({
       gpa: "",
     };
     const updated = [...resume.education, newEdu];
-    onSave({ ...resume, education: updated });
+    updateResume({ education: updated });
     setExpandedIndex(updated.length - 1);
   }
 
@@ -639,8 +596,7 @@ function EducationEditor({
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
-                        onSave({
-                          ...resume,
+                        updateResume({
                           education: resume.education.filter(
                             (_, i) => i !== index
                           ),
@@ -670,7 +626,7 @@ function EducationEditor({
                             ...updated[index],
                             institution: v,
                           };
-                          onSave({ ...resume, education: updated });
+                          updateResume({ education: updated });
                         }}
                         required
                       />
@@ -681,7 +637,7 @@ function EducationEditor({
                           onChange={(v) => {
                             const updated = [...resume.education];
                             updated[index] = { ...updated[index], degree: v };
-                            onSave({ ...resume, education: updated });
+                            updateResume({ education: updated });
                           }}
                         />
                         <TextField
@@ -690,7 +646,7 @@ function EducationEditor({
                           onChange={(v) => {
                             const updated = [...resume.education];
                             updated[index] = { ...updated[index], field: v };
-                            onSave({ ...resume, education: updated });
+                            updateResume({ education: updated });
                           }}
                         />
                       </div>
@@ -701,12 +657,12 @@ function EducationEditor({
                         onStartDateChange={(d) => {
                           const updated = [...resume.education];
                           updated[index] = { ...updated[index], startDate: d };
-                          onSave({ ...resume, education: updated });
+                          updateResume({ education: updated });
                         }}
                         onEndDateChange={(d) => {
                           const updated = [...resume.education];
                           updated[index] = { ...updated[index], endDate: d };
-                          onSave({ ...resume, education: updated });
+                          updateResume({ education: updated });
                         }}
                       />
                       <TextField
@@ -715,7 +671,7 @@ function EducationEditor({
                         onChange={(v) => {
                           const updated = [...resume.education];
                           updated[index] = { ...updated[index], gpa: v };
-                          onSave({ ...resume, education: updated });
+                          updateResume({ education: updated });
                         }}
                       />
                     </div>
@@ -736,23 +692,12 @@ function EducationEditor({
 
 // ─── Projects Editor ──────────────────────────────────────────────────────────
 
-function ProjectsEditor({
-  resume,
-  onSave,
-  sensors,
-}: {
-  resume: ResumeJSON;
-  onSave: (r: ResumeJSON) => void;
-  sensors: SensorsType;
-}) {
+function ProjectsEditor({ sensors }: { sensors: SensorsType }) {
+  const { resume, updateResume } = useJobPageContext();
   const [expandedIndex, setExpandedIndex] = useState<number | null>(
     resume.projects.length > 0 ? 0 : null
   );
   const [items, setItems] = useState(resume.projects.map((_, i) => String(i)));
-
-  useEffect(() => {
-    setItems(resume.projects.map((_, i) => String(i)));
-  }, [resume.projects.length]);
 
   function handleDragEnd(event: DragEndEvent) {
     const { active, over } = event;
@@ -763,8 +708,7 @@ function ProjectsEditor({
         items.indexOf(over.id as string)
       );
       setItems(newOrder);
-      onSave({
-        ...resume,
+      updateResume({
         projects: newOrder.map((i) => resume.projects[parseInt(i)]),
       });
     }
@@ -824,8 +768,7 @@ function ProjectsEditor({
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
-                        onSave({
-                          ...resume,
+                        updateResume({
                           projects: resume.projects.filter(
                             (_, i) => i !== index
                           ),
@@ -852,7 +795,7 @@ function ProjectsEditor({
                         onChange={(v) => {
                           const updated = [...resume.projects];
                           updated[index] = { ...updated[index], name: v };
-                          onSave({ ...resume, projects: updated });
+                          updateResume({ ...resume, projects: updated });
                         }}
                         required
                       />
@@ -865,7 +808,7 @@ function ProjectsEditor({
                             ...updated[index],
                             description: v as string,
                           };
-                          onSave({ ...resume, projects: updated });
+                          updateResume({ ...resume, projects: updated });
                         }}
                         rows={3}
                         placeholder="Describe what you built and your role..."
@@ -879,7 +822,7 @@ function ProjectsEditor({
                             ...updated[index],
                             technologies: tags as string[],
                           };
-                          onSave({ ...resume, projects: updated });
+                          updateResume({ ...resume, projects: updated });
                         }}
                         placeholder="Add technology and press Enter"
                       />
@@ -889,7 +832,7 @@ function ProjectsEditor({
                         onChange={(v) => {
                           const updated = [...resume.projects];
                           updated[index] = { ...updated[index], url: v };
-                          onSave({ ...resume, projects: updated });
+                          updateResume({ ...resume, projects: updated });
                         }}
                       />
                       <DateRangeField
@@ -899,12 +842,12 @@ function ProjectsEditor({
                         onStartDateChange={(d) => {
                           const updated = [...resume.projects];
                           updated[index] = { ...updated[index], startDate: d };
-                          onSave({ ...resume, projects: updated });
+                          updateResume({ ...resume, projects: updated });
                         }}
                         onEndDateChange={(d) => {
                           const updated = [...resume.projects];
                           updated[index] = { ...updated[index], endDate: d };
-                          onSave({ ...resume, projects: updated });
+                          updateResume({ ...resume, projects: updated });
                         }}
                       />
                     </div>
@@ -927,7 +870,7 @@ function ProjectsEditor({
             endDate: "",
           };
           const updated = [...resume.projects, newProj];
-          onSave({ ...resume, projects: updated });
+          updateResume({ projects: updated });
           setExpandedIndex(updated.length - 1);
         }}
       >
@@ -940,15 +883,8 @@ function ProjectsEditor({
 
 // ─── Certifications Editor ─────────────────────────────────────────────────────
 
-function CertificationsEditor({
-  resume,
-  onSave,
-  sensors,
-}: {
-  resume: ResumeJSON;
-  onSave: (r: ResumeJSON) => void;
-  sensors: SensorsType;
-}) {
+function CertificationsEditor() {
+  const { resume, updateResume } = useJobPageContext();
   const certs = resume.certifications || [];
 
   return (
@@ -975,8 +911,7 @@ function CertificationsEditor({
               </p>
               <button
                 onClick={() =>
-                  onSave({
-                    ...resume,
+                  updateResume({
                     certifications: certs.filter((_, i) => i !== index),
                   })
                 }
@@ -993,7 +928,7 @@ function CertificationsEditor({
                 onChange={(v) => {
                   const updated = [...certs];
                   updated[index] = { ...updated[index], name: v };
-                  onSave({ ...resume, certifications: updated });
+                  updateResume({ certifications: updated });
                 }}
                 required
               />
@@ -1003,7 +938,7 @@ function CertificationsEditor({
                 onChange={(v) => {
                   const updated = [...certs];
                   updated[index] = { ...updated[index], issuer: v };
-                  onSave({ ...resume, certifications: updated });
+                  updateResume({ certifications: updated });
                 }}
               />
               <TextField
@@ -1012,7 +947,7 @@ function CertificationsEditor({
                 onChange={(v) => {
                   const updated = [...certs];
                   updated[index] = { ...updated[index], date: v };
-                  onSave({ ...resume, certifications: updated });
+                  updateResume({ certifications: updated });
                 }}
               />
               <TextField
@@ -1021,7 +956,7 @@ function CertificationsEditor({
                 onChange={(v) => {
                   const updated = [...certs];
                   updated[index] = { ...updated[index], url: v };
-                  onSave({ ...resume, certifications: updated });
+                  updateResume({ certifications: updated });
                 }}
               />
             </div>
@@ -1037,7 +972,7 @@ function CertificationsEditor({
             date: "",
             url: "",
           };
-          onSave({ ...resume, certifications: [...certs, newCert] });
+          updateResume({ certifications: [...certs, newCert] });
         }}
       >
         <Icon name="plus" className="h-4 w-4" />
