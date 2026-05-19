@@ -1,81 +1,135 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 
-import { getCoverLetterByJobId, updateCoverLetter } from "@/actions/job";
-import { createLogger } from "@/lib/logger";
+import RichTextEditor from "@/components/form/RichTextEditor";
+import { CoverLetterRenderer } from "@/components/templates/coverLetter/CoverLetterRenderer";
+import { Button } from "@/components/ui";
+import { Icon } from "@/components/ui/Icon";
 import { useToast } from "@/components/ui/ToastProvider";
+import { useJobPageContext } from "@/contexts/JobPageContext";
+import useGenerateCoverLetter from "@/hooks/useGenerateCoverLetter";
 
-const logger = createLogger("CoverLetterEditor");
+import EditorLayout from "./EditorLayout";
+import { ModelSelector } from "./ModelSelector";
 
-export default function CoverLetterEditor({ jobId }: { jobId: string }) {
-  const [coverLetter, setCoverLetter] = useState<string>(
-    "Dear Hiring Manager,\n\nI am writing to express my interest in the position...\n\nSincerely,\n[Your Name]"
-  );
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
+export default function CoverLetterEditorContent() {
+  const {
+    coverLetter,
+    resume,
+    job,
+    customization,
+    saveStatus,
+    refetch,
+    saveToDb,
+  } = useJobPageContext();
+
   const { pushToast } = useToast();
+  const [editableText, setEditableText] = useState(coverLetter || "");
 
-  useEffect(() => {
-    const loadCoverLetter = async () => {
-      try {
-        const data = await getCoverLetterByJobId(parseInt(jobId));
-        if (data) {
-          setCoverLetter(data.contentText);
-        }
-      } catch (error) {
-        logger.error("Error loading cover letter", { error });
-      } finally {
-        setLoading(false);
-      }
-    };
-    loadCoverLetter();
-  }, [jobId]);
+  const { mutate: generateCoverLetter, status: generateStatus } =
+    useGenerateCoverLetter({
+      onSuccess: (generated) => {
+        setEditableText(generated.result);
+        refetch(undefined, "coverLetter");
+        saveToDb("coverLetter", generated.result, customization);
+      },
+      onError: (err) => {
+        const errorMsg =
+          err instanceof Error
+            ? err.message
+            : "Failed to generate cover letter";
+        console.error("Failed to generate cover letter:", err);
+        pushToast({
+          title: "Generation failed",
+          description: errorMsg,
+          variant: "error",
+        });
+      },
+    });
 
-  const handleSave = async () => {
-    setSaving(true);
-    try {
-      await updateCoverLetter(parseInt(jobId), coverLetter);
-      pushToast({
-        title: "Cover letter saved",
-        variant: "success",
-      });
-    } catch (error) {
-      logger.error("Error saving cover letter", { error });
-      pushToast({
-        title: "Save failed",
-        description: "Error saving cover letter.",
-        variant: "error",
-      });
-    } finally {
-      setSaving(false);
-    }
-  };
+  const isSaving = saveStatus === "saving";
+  const isGenerating = generateStatus === "pending";
 
-  if (loading) {
-    return (
-      <div className="container mx-auto p-4">
-        <p>Loading...</p>
+  const leftPanel = (
+    <div className="relative flex h-full flex-col gap-6">
+      <div className="flex justify-between gap-2.5">
+        <div>
+          <ModelSelector
+            label="Change Model"
+            className="w-full"
+            variant="compact"
+          />
+        </div>
+        <div>
+          <Button
+            variant="primary"
+            onClick={() =>
+              generateCoverLetter({ resume, jobData: job?.details })
+            }
+            disabled={isGenerating}
+            icon={
+              isGenerating ? (
+                <span className="animate-spin">
+                  <Icon name="loader-2" />
+                </span>
+              ) : (
+                <Icon name="sparkles" />
+              )
+            }
+            className="from-agent-primary via-agent-primary-container to-agent-tertiary-container w-full justify-center rounded-xl bg-gradient-to-r py-2.5 font-semibold text-white transition-all duration-200 hover:-translate-y-px hover:opacity-90 disabled:animate-pulse disabled:cursor-not-allowed disabled:opacity-70"
+          >
+            {isGenerating
+              ? "Generating your cover letter…"
+              : "Generate with AI"}
+          </Button>
+        </div>
       </div>
-    );
-  }
+
+      {/* Editor */}
+      <div className="border-agent-outline-variant from-agent-surface-lowest to-agent-surface-low relative flex-1 overflow-hidden rounded-xl border bg-linear-to-b shadow-inner">
+        <div className="from-agent-primary via-agent-primary-container to-agent-tertiary-container absolute inset-x-0 top-0 h-0.5 rounded-t-xl bg-linear-to-r" />
+        <RichTextEditor
+          value={editableText}
+          onChange={setEditableText}
+          placeholder="Your compelling story starts here…"
+        />
+      </div>
+
+      {/* Footer */}
+      <div className="border-agent-outline-variant flex items-center justify-between border-t pt-3">
+        <p className="text-agent-on-surface-variant text-xs">
+          {editableText
+            ? `${editableText.length} characters`
+            : "Start typing or generate with AI"}
+        </p>
+        {(isSaving || isGenerating) && (
+          <span className="text-agent-primary inline-flex items-center gap-1.5 text-xs font-medium">
+            <span className="bg-agent-primary h-1.5 w-1.5 animate-pulse rounded-full" />
+            {isSaving ? "Saving" : "Generating"}
+          </span>
+        )}
+      </div>
+    </div>
+  );
+
+  const previewPanel = (
+    <CoverLetterRenderer
+      coverLetter={editableText}
+      resume={resume}
+      customization={customization}
+    />
+  );
 
   return (
-    <div className="container mx-auto p-4">
-      <h1 className="mb-4 text-2xl font-bold">Cover Letter Editor</h1>
-      <textarea
-        value={coverLetter}
-        onChange={(e) => setCoverLetter(e.target.value)}
-        className="h-96 w-full border p-2"
-        placeholder="Write your cover letter here..."
-      />
-      <button
-        onClick={handleSave}
-        disabled={saving}
-        className="mt-4 rounded bg-blue-500 px-4 py-2 text-white disabled:opacity-50"
-      >
-        {saving ? "Saving..." : "Save Cover Letter"}
-      </button>
-    </div>
+    <EditorLayout
+      title={`Cover letter`}
+      onSave={() => saveToDb("coverLetter", editableText, customization)}
+      leftSection={<></>}
+      description={`${job?.company?.name || "your job"} [${job?.role || "your role"}]`}
+      livePreviewContent={previewPanel}
+      exportContent={previewPanel}
+      mainSection={leftPanel}
+    />
   );
 }
