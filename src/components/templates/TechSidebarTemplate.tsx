@@ -4,47 +4,39 @@
 
 import React from "react";
 
-import { ResumeJSON, ThemeColors } from "@/types/resume";
+import useResolveCustomization from "@/hooks/useResolveCustomization";
 
-interface TechSidebarTemplateProps {
-  resume: ResumeJSON;
-  colors: ThemeColors;
-  fontSize: "small" | "medium" | "large";
-  fontFamily: string;
-}
+import { TemplateRendererProps } from "./TemplateRenderer";
 
-const fontSizeMap = {
-  small: "text-xs",
-  medium: "text-sm",
-  large: "text-base",
-};
-
-const headingSizeMap = {
-  small: "text-sm",
-  medium: "text-base",
-  large: "text-lg",
-};
-
-export const TechSidebarTemplate: React.FC<TechSidebarTemplateProps> = ({
+export const TechSidebarTemplate: React.FC<TemplateRendererProps> = ({
   resume,
-  colors,
-  fontSize,
-  fontFamily,
+  customization,
 }) => {
-  const textSize = fontSizeMap[fontSize];
-  const headingSize = headingSizeMap[fontSize];
+  const {
+    primaryColor,
+    secondaryColor,
+    accentColor,
+    textColor,
+    backgroundColor,
+    textSize,
+    fontFamily,
+    today,
+    marginClass,
+    lineHeight,
+    headingSize,
+  } = useResolveCustomization(customization);
 
   return (
     <div
-      className="resume-content mx-auto min-h-[11in] w-[8.5in] bg-white shadow-lg"
+      className="resume-content mx-auto bg-white shadow-lg"
       style={{
         fontFamily: fontFamily,
-        color: colors.text,
-        backgroundColor: colors.background,
+        color: textColor,
+        backgroundColor: backgroundColor,
       }}
     >
       {/* Header */}
-      <div className="p-8 pb-4" style={{ backgroundColor: colors.primary }}>
+      <div className="p-8 pb-4" style={{ backgroundColor: primaryColor }}>
         <h1 className="mb-1 text-3xl font-bold text-white">
           {resume.header.name}
         </h1>
@@ -62,21 +54,21 @@ export const TechSidebarTemplate: React.FC<TechSidebarTemplateProps> = ({
         {/* Left Sidebar - 35% */}
         <div
           className="w-[35%] space-y-6 p-6"
-          style={{ backgroundColor: colors.secondary + "10" }}
+          style={{ backgroundColor: secondaryColor + "10" }}
         >
           {/* Skills */}
           {resume.skills && resume.skills.length > 0 && (
             <section>
               <h2
                 className={`${headingSize} mb-3 font-bold`}
-                style={{ color: colors.primary }}
+                style={{ color: primaryColor }}
               >
                 TECHNICAL SKILLS
               </h2>
               <div className="space-y-1">
                 {resume.skills.map((skill, idx) => (
                   <div key={idx} className={`${textSize} flex items-center`}>
-                    <span className="mr-2" style={{ color: colors.accent }}>
+                    <span className="mr-2" style={{ color: accentColor }}>
                       ▸
                     </span>
                     {skill}
@@ -91,7 +83,7 @@ export const TechSidebarTemplate: React.FC<TechSidebarTemplateProps> = ({
             <section>
               <h2
                 className={`${headingSize} mb-3 font-bold`}
-                style={{ color: colors.primary }}
+                style={{ color: primaryColor }}
               >
                 EDUCATION
               </h2>
@@ -102,7 +94,7 @@ export const TechSidebarTemplate: React.FC<TechSidebarTemplateProps> = ({
                   </div>
                   <div
                     className={`${textSize}`}
-                    style={{ color: colors.secondary }}
+                    style={{ color: secondaryColor }}
                   >
                     {edu.institution}
                   </div>
@@ -120,14 +112,14 @@ export const TechSidebarTemplate: React.FC<TechSidebarTemplateProps> = ({
             <section>
               <h2
                 className={`${headingSize} mb-3 font-bold`}
-                style={{ color: colors.primary }}
+                style={{ color: primaryColor }}
               >
                 CERTIFICATIONS
               </h2>
               {resume.certifications.map((cert, idx) => (
                 <div key={idx} className="mb-2">
                   <div className={`${textSize} font-semibold`}>{cert.name}</div>
-                  <div className="text-xs" style={{ color: colors.secondary }}>
+                  <div className="text-xs" style={{ color: secondaryColor }}>
                     {cert.issuer} • {cert.date}
                   </div>
                 </div>
@@ -143,7 +135,7 @@ export const TechSidebarTemplate: React.FC<TechSidebarTemplateProps> = ({
             <section>
               <h2
                 className={`${headingSize} mb-2 border-b-2 pb-1 font-bold`}
-                style={{ color: colors.primary, borderColor: colors.primary }}
+                style={{ color: primaryColor, borderColor: primaryColor }}
               >
                 PROFESSIONAL SUMMARY
               </h2>
@@ -156,7 +148,7 @@ export const TechSidebarTemplate: React.FC<TechSidebarTemplateProps> = ({
             <section>
               <h2
                 className={`${headingSize} mb-3 border-b-2 pb-1 font-bold`}
-                style={{ color: colors.primary, borderColor: colors.primary }}
+                style={{ color: primaryColor, borderColor: primaryColor }}
               >
                 PROFESSIONAL EXPERIENCE
               </h2>
@@ -167,7 +159,7 @@ export const TechSidebarTemplate: React.FC<TechSidebarTemplateProps> = ({
                       <h3 className={`${textSize} font-bold`}>{exp.role}</h3>
                       <div
                         className={`${textSize}`}
-                        style={{ color: colors.secondary }}
+                        style={{ color: secondaryColor }}
                       >
                         {exp.company}
                       </div>
@@ -183,7 +175,7 @@ export const TechSidebarTemplate: React.FC<TechSidebarTemplateProps> = ({
                     <ul className="mt-2 space-y-1">
                       {exp.achievements.map((achievement, achIdx) => (
                         <li key={achIdx} className={`${textSize} ml-4`}>
-                          <span style={{ color: colors.accent }}>▸</span>{" "}
+                          <span style={{ color: accentColor }}>▸</span>{" "}
                           {achievement}
                         </li>
                       ))}
@@ -199,7 +191,7 @@ export const TechSidebarTemplate: React.FC<TechSidebarTemplateProps> = ({
             <section>
               <h2
                 className={`${headingSize} mb-3 border-b-2 pb-1 font-bold`}
-                style={{ color: colors.primary, borderColor: colors.primary }}
+                style={{ color: primaryColor, borderColor: primaryColor }}
               >
                 KEY PROJECTS
               </h2>
@@ -214,8 +206,8 @@ export const TechSidebarTemplate: React.FC<TechSidebarTemplateProps> = ({
                           key={techIdx}
                           className="rounded px-2 py-0.5 text-xs"
                           style={{
-                            backgroundColor: colors.accent + "20",
-                            color: colors.accent,
+                            backgroundColor: accentColor + "20",
+                            color: accentColor,
                           }}
                         >
                           {tech}

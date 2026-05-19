@@ -4,45 +4,40 @@
  */
 
 import React from "react";
-import { sanitizeHtml, isHtml } from "@/lib/htmlUtils";
 
-import { ResumeJSON, ThemeColors } from "@/types/resume";
+import RichTextEditorContent from "@/components/form/RichTextEditorContent";
+import useResolveCustomization from "@/hooks/useResolveCustomization";
 
-interface ProfessionalCoverLetterProps {
-  coverLetter: string;
-  resume: ResumeJSON | null;
-  colors: ThemeColors;
-  fontSize: "small" | "medium" | "large";
-  fontFamily: string;
-}
+import type { CoverLetterRendererProps } from "./CoverLetterRenderer";
 
-const fontSizeMap = {
-  small: "text-xs",
-  medium: "text-sm",
-  large: "text-base",
-};
-
-export const ProfessionalCoverLetter: React.FC<
-  ProfessionalCoverLetterProps
-> = ({ coverLetter, resume, colors, fontSize, fontFamily }) => {
-  const textSize = fontSizeMap[fontSize];
-  const today = new Date().toLocaleDateString("en-US", {
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-  });
+export const ProfessionalCoverLetter: React.FC<CoverLetterRendererProps> = ({
+  coverLetter,
+  resume,
+  customization,
+}) => {
+  const {
+    primaryColor,
+    secondaryColor: _,
+    accentColor: __,
+    textColor,
+    backgroundColor,
+    textSize,
+    fontFamily,
+    today,
+    marginClass,
+    lineHeight,
+  } = useResolveCustomization(customization);
 
   return (
     <div
-      className="cover-letter-content mx-auto min-h-[11in] w-[8.5in] bg-white shadow-lg"
       style={{
         fontFamily: fontFamily,
-        color: colors.text,
-        backgroundColor: colors.background,
+        color: textColor,
+        backgroundColor: backgroundColor,
       }}
     >
       {/* Header Bar */}
-      <div className="p-8 pb-6" style={{ backgroundColor: colors.primary }}>
+      <div className="p-8 pb-6" style={{ backgroundColor: primaryColor }}>
         <h1 className="mb-2 text-3xl font-bold text-white">
           {resume?.header?.name || "[Your Name]"}
         </h1>
@@ -54,30 +49,15 @@ export const ProfessionalCoverLetter: React.FC<
       </div>
 
       {/* Content */}
-      <div className="p-12 pt-8">
+      <div className={`${marginClass}`}>
         {/* Date */}
         <div className={`${textSize} mb-8`}>{today}</div>
 
         {/* Cover Letter Body */}
-        <div className={`${textSize} leading-relaxed`}>
-          {isHtml(coverLetter) ? (
-            <div
-              dangerouslySetInnerHTML={{ __html: sanitizeHtml(coverLetter) }}
-            />
-          ) : (
-            <div className="whitespace-pre-wrap">
-              {coverLetter || "Your cover letter content will appear here..."}
-            </div>
-          )}
-        </div>
-
-        {/* Signature */}
-        <div className={`${textSize} mt-12`}>
-          <p>Sincerely,</p>
-          <p className="mt-8 font-semibold" style={{ color: colors.primary }}>
-            {resume?.header?.name || "[Your Name]"}
-          </p>
-        </div>
+        <RichTextEditorContent
+          content={coverLetter}
+          className={`${textSize} ${lineHeight}`}
+        />
       </div>
     </div>
   );

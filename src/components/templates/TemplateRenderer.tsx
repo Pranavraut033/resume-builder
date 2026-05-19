@@ -4,7 +4,8 @@
 
 import React from "react";
 
-import { ResumeJSON, TemplateType, ThemeColors } from "@/types/resume";
+import { SanitizedCustomization, TemplateType } from "@/types/customization";
+import { ResumeJSON } from "@/types/resume";
 
 import { BJetProfessionalTemplate } from "./BJetProfessionalTemplate";
 import { BusinessProfessionalTemplate } from "./BusinessProfessionalTemplate";
@@ -13,15 +14,15 @@ import { ElegantTimelineTemplate } from "./ElegantTimelineTemplate";
 import { ModernMinimalTemplate } from "./ModernMinimalTemplate";
 import { TechSidebarTemplate } from "./TechSidebarTemplate";
 
-interface TemplateRendererProps {
-  template: TemplateType;
+export interface TemplateRendererProps {
   resume: ResumeJSON;
-  colors: ThemeColors;
-  fontSize: "small" | "medium" | "large";
-  fontFamily: string;
+  customization: SanitizedCustomization;
 }
 
-const templateMap = {
+const templateMap: Record<
+  TemplateType,
+  React.ComponentType<TemplateRendererProps>
+> = {
   "modern-minimal": ModernMinimalTemplate,
   "tech-sidebar": TechSidebarTemplate,
   "business-professional": BusinessProfessionalTemplate,
@@ -31,20 +32,11 @@ const templateMap = {
 };
 
 export const TemplateRenderer: React.FC<TemplateRendererProps> = ({
-  template,
   resume,
-  colors,
-  fontSize,
-  fontFamily,
+  customization,
 }) => {
+  const template = customization.template as TemplateType;
   const TemplateComponent = templateMap[template] || ModernMinimalTemplate;
 
-  return (
-    <TemplateComponent
-      resume={resume}
-      colors={colors}
-      fontSize={fontSize}
-      fontFamily={fontFamily}
-    />
-  );
+  return <TemplateComponent resume={resume} customization={customization} />;
 };

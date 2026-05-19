@@ -10,7 +10,5 @@ export { BusinessProfessionalCoverLetter } from "./BusinessProfessionalCoverLett
 export { ElegantTimelineCoverLetter } from "./ElegantTimelineCoverLetter";
 export { CreativeModernCoverLetter } from "./CreativeModernCoverLetter";
 export { BJetProfessionalCoverLetter } from "./BJetProfessionalCoverLetter";
-export {
-  CoverLetterRenderer,
-  type CoverLetterTemplate,
-} from "./CoverLetterRenderer";
+
+export { CoverLetterRenderer } from "./CoverLetterRenderer";

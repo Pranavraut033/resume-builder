@@ -4,47 +4,43 @@
  */
 
 import React from "react";
-import { sanitizeHtml, isHtml } from "@/lib/htmlUtils";
 
-import { ResumeJSON, ThemeColors } from "@/types/resume";
+import RichTextEditorContent from "@/components/form/RichTextEditorContent";
+import useResolveCustomization from "@/hooks/useResolveCustomization";
 
-interface CreativeModernCoverLetterProps {
-  coverLetter: string;
-  resume: ResumeJSON | null;
-  colors: ThemeColors;
-  fontSize: "small" | "medium" | "large";
-  fontFamily: string;
-}
+import type { CoverLetterRendererProps } from "./CoverLetterRenderer";
 
-const fontSizeMap = {
-  small: "text-xs",
-  medium: "text-sm",
-  large: "text-base",
-};
-
-export const CreativeModernCoverLetter: React.FC<
-  CreativeModernCoverLetterProps
-> = ({ coverLetter, resume, colors, fontSize, fontFamily }) => {
-  const textSize = fontSizeMap[fontSize];
-  const today = new Date().toLocaleDateString("en-US", {
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-  });
+export const CreativeModernCoverLetter: React.FC<CoverLetterRendererProps> = ({
+  coverLetter,
+  resume,
+  customization,
+}) => {
+  const {
+    primaryColor,
+    secondaryColor,
+    accentColor,
+    textColor,
+    backgroundColor,
+    textSize,
+    fontFamily,
+    today,
+    lineHeight,
+    marginClass,
+  } = useResolveCustomization(customization);
 
   return (
     <div
-      className="cover-letter-content relative mx-auto min-h-[11in] w-[8.5in] overflow-hidden bg-white shadow-lg"
+      className={`${marginClass} overflow-hidden`}
       style={{
         fontFamily: fontFamily,
-        color: colors.text,
-        backgroundColor: colors.background,
+        color: textColor,
+        backgroundColor: backgroundColor,
       }}
     >
       {/* Creative accent stripe */}
       <div
         className="absolute top-0 left-0 h-full w-2"
-        style={{ backgroundColor: colors.accent }}
+        style={{ backgroundColor: accentColor }}
       />
 
       {/* Content with left margin for stripe */}
@@ -53,17 +49,17 @@ export const CreativeModernCoverLetter: React.FC<
         <header className="mb-8">
           <h1
             className="mb-1 text-4xl font-bold"
-            style={{ color: colors.primary }}
+            style={{ color: primaryColor }}
           >
             {resume?.header?.name || "[Your Name]"}
           </h1>
           <div
             className="mb-4 h-1 w-24"
-            style={{ backgroundColor: colors.accent }}
+            style={{ backgroundColor: accentColor }}
           />
           <div
             className={`${textSize} space-y-1`}
-            style={{ color: colors.secondary }}
+            style={{ color: secondaryColor }}
           >
             <div className="flex flex-wrap gap-4">
               {resume?.header?.email && <span>✉ {resume.header.email}</span>}
@@ -77,7 +73,7 @@ export const CreativeModernCoverLetter: React.FC<
                 <a
                   href={resume.header.linkedin}
                   className="hover:underline"
-                  style={{ color: colors.accent }}
+                  style={{ color: accentColor }}
                 >
                   LinkedIn
                 </a>
@@ -86,7 +82,7 @@ export const CreativeModernCoverLetter: React.FC<
                 <a
                   href={resume.header.github}
                   className="hover:underline"
-                  style={{ color: colors.accent }}
+                  style={{ color: accentColor }}
                 >
                   GitHub
                 </a>
@@ -95,7 +91,7 @@ export const CreativeModernCoverLetter: React.FC<
                 <a
                   href={resume.header.website}
                   className="hover:underline"
-                  style={{ color: colors.accent }}
+                  style={{ color: accentColor }}
                 >
                   Website
                 </a>
@@ -105,34 +101,20 @@ export const CreativeModernCoverLetter: React.FC<
         </header>
 
         {/* Date */}
-        <div className={`${textSize} mb-6`} style={{ color: colors.secondary }}>
+        <div className={`${textSize} mb-6`} style={{ color: secondaryColor }}>
           {today}
         </div>
 
         {/* Cover Letter Content */}
-        <div className={`${textSize} leading-relaxed`}>
-          {isHtml(coverLetter) ? (
-            <div
-              dangerouslySetInnerHTML={{ __html: sanitizeHtml(coverLetter) }}
-            />
-          ) : (
-            <div className="whitespace-pre-wrap">
-              {coverLetter || "Your cover letter content will appear here..."}
-            </div>
-          )}
-        </div>
+        <RichTextEditorContent
+          content={coverLetter}
+          className={`${textSize} ${lineHeight}`}
+        />
 
-        {/* Signature with creative styling */}
-        <div className={`${textSize} mt-8`}>
-          <p>Sincerely,</p>
-          <p className="mt-4 font-bold" style={{ color: colors.primary }}>
-            {resume?.header?.name || "[Your Name]"}
-          </p>
-          <div
-            className="mt-2 h-0.5 w-32"
-            style={{ backgroundColor: colors.accent }}
-          />
-        </div>
+        <div
+          className="mt-2 h-0.5 w-32"
+          style={{ backgroundColor: accentColor }}
+        />
       </div>
     </div>
   );

@@ -4,54 +4,43 @@
 
 import React from "react";
 
-import { ResumeJSON, ThemeColors } from "@/types/resume";
+import useResolveCustomization from "@/hooks/useResolveCustomization";
 
-interface ModernMinimalTemplateProps {
-  resume: ResumeJSON;
-  colors: ThemeColors;
-  fontSize: "small" | "medium" | "large";
-  fontFamily: string;
-}
+import { TemplateRendererProps } from "./TemplateRenderer";
 
-const fontSizeMap = {
-  small: "text-xs",
-  medium: "text-sm",
-  large: "text-base",
-};
-
-const headingSizeMap = {
-  small: "text-lg",
-  medium: "text-xl",
-  large: "text-2xl",
-};
-
-export const ModernMinimalTemplate: React.FC<ModernMinimalTemplateProps> = ({
+export const ModernMinimalTemplate: React.FC<TemplateRendererProps> = ({
   resume,
-  colors,
-  fontSize,
-  fontFamily,
+  customization,
 }) => {
-  const textSize = fontSizeMap[fontSize];
-  const headingSize = headingSizeMap[fontSize];
+  const {
+    primaryColor,
+    secondaryColor,
+    accentColor,
+    textColor,
+    backgroundColor,
+    textSize,
+    fontFamily,
+    today,
+    marginClass,
+    lineHeight,
+    headingSize,
+  } = useResolveCustomization(customization);
 
   return (
     <div
-      className="resume-content mx-auto min-h-[11in] w-[8.5in] bg-white p-12 shadow-lg"
+      className="resume-content mx-auto bg-white p-12 shadow-lg"
       style={{
         fontFamily: fontFamily,
-        color: colors.text,
-        backgroundColor: colors.background,
+        color: textColor,
+        backgroundColor: backgroundColor,
       }}
     >
       {/* Header */}
       <header
         className="mb-8 border-b-2 pb-4"
-        style={{ borderColor: colors.primary }}
+        style={{ borderColor: primaryColor }}
       >
-        <h1
-          className="mb-2 text-4xl font-bold"
-          style={{ color: colors.primary }}
-        >
+        <h1 className="mb-2 text-4xl font-bold" style={{ color: primaryColor }}>
           {resume.header.name}
         </h1>
         <div className={`${textSize} space-y-1 text-gray-600`}>
@@ -65,7 +54,7 @@ export const ModernMinimalTemplate: React.FC<ModernMinimalTemplateProps> = ({
               <a
                 href={resume.header.linkedin}
                 className="hover:underline"
-                style={{ color: colors.accent }}
+                style={{ color: accentColor }}
               >
                 LinkedIn
               </a>
@@ -74,7 +63,7 @@ export const ModernMinimalTemplate: React.FC<ModernMinimalTemplateProps> = ({
               <a
                 href={resume.header.github}
                 className="hover:underline"
-                style={{ color: colors.accent }}
+                style={{ color: accentColor }}
               >
                 GitHub
               </a>
@@ -83,7 +72,7 @@ export const ModernMinimalTemplate: React.FC<ModernMinimalTemplateProps> = ({
               <a
                 href={resume.header.website}
                 className="hover:underline"
-                style={{ color: colors.accent }}
+                style={{ color: accentColor }}
               >
                 Website
               </a>
@@ -97,7 +86,7 @@ export const ModernMinimalTemplate: React.FC<ModernMinimalTemplateProps> = ({
         <section className="mb-6">
           <h2
             className={`${headingSize} mb-3 border-b pb-1 font-semibold`}
-            style={{ color: colors.primary, borderColor: colors.secondary }}
+            style={{ color: primaryColor, borderColor: secondaryColor }}
           >
             Professional Summary
           </h2>
@@ -112,7 +101,7 @@ export const ModernMinimalTemplate: React.FC<ModernMinimalTemplateProps> = ({
         <section className="mb-6">
           <h2
             className={`${headingSize} mb-3 border-b pb-1 font-semibold`}
-            style={{ color: colors.primary, borderColor: colors.secondary }}
+            style={{ color: primaryColor, borderColor: secondaryColor }}
           >
             Work Experience
           </h2>
@@ -123,7 +112,7 @@ export const ModernMinimalTemplate: React.FC<ModernMinimalTemplateProps> = ({
                   <div>
                     <h3
                       className="font-semibold"
-                      style={{ color: colors.accent }}
+                      style={{ color: accentColor }}
                     >
                       {exp.role}
                     </h3>
@@ -156,20 +145,20 @@ export const ModernMinimalTemplate: React.FC<ModernMinimalTemplateProps> = ({
         <section className="mb-6">
           <h2
             className={`${headingSize} mb-3 border-b pb-1 font-semibold`}
-            style={{ color: colors.primary, borderColor: colors.secondary }}
+            style={{ color: primaryColor, borderColor: secondaryColor }}
           >
             Projects
           </h2>
           <div className="space-y-3">
             {resume.projects.map((project, index) => (
               <div key={index}>
-                <h3 className="font-semibold" style={{ color: colors.accent }}>
+                <h3 className="font-semibold" style={{ color: accentColor }}>
                   {project.name}
                   {project.url && (
                     <a
                       href={project.url}
                       className={`${textSize} ml-2 hover:underline`}
-                      style={{ color: colors.secondary }}
+                      style={{ color: secondaryColor }}
                     >
                       [Link]
                     </a>
@@ -193,7 +182,7 @@ export const ModernMinimalTemplate: React.FC<ModernMinimalTemplateProps> = ({
         <section className="mb-6">
           <h2
             className={`${headingSize} mb-3 border-b pb-1 font-semibold`}
-            style={{ color: colors.primary, borderColor: colors.secondary }}
+            style={{ color: primaryColor, borderColor: secondaryColor }}
           >
             Skills
           </h2>
@@ -208,7 +197,7 @@ export const ModernMinimalTemplate: React.FC<ModernMinimalTemplateProps> = ({
         <section className="mb-6">
           <h2
             className={`${headingSize} mb-3 border-b pb-1 font-semibold`}
-            style={{ color: colors.primary, borderColor: colors.secondary }}
+            style={{ color: primaryColor, borderColor: secondaryColor }}
           >
             Education
           </h2>
@@ -219,7 +208,7 @@ export const ModernMinimalTemplate: React.FC<ModernMinimalTemplateProps> = ({
                   <div>
                     <h3
                       className="font-semibold"
-                      style={{ color: colors.accent }}
+                      style={{ color: accentColor }}
                     >
                       {edu.degree} in {edu.field}
                     </h3>
@@ -245,14 +234,14 @@ export const ModernMinimalTemplate: React.FC<ModernMinimalTemplateProps> = ({
         <section>
           <h2
             className={`${headingSize} mb-3 border-b pb-1 font-semibold`}
-            style={{ color: colors.primary, borderColor: colors.secondary }}
+            style={{ color: primaryColor, borderColor: secondaryColor }}
           >
             Certifications
           </h2>
           <div className="space-y-2">
             {resume.certifications.map((cert, index) => (
               <div key={index}>
-                <h3 className="font-semibold" style={{ color: colors.accent }}>
+                <h3 className="font-semibold" style={{ color: accentColor }}>
                   {cert.name}
                 </h3>
                 <p className={`${textSize} text-gray-600`}>
@@ -261,7 +250,7 @@ export const ModernMinimalTemplate: React.FC<ModernMinimalTemplateProps> = ({
                     <a
                       href={cert.url}
                       className="ml-2 hover:underline"
-                      style={{ color: colors.secondary }}
+                      style={{ color: secondaryColor }}
                     >
                       [Verify]
                     </a>

@@ -4,57 +4,51 @@
  */
 
 import React from "react";
-import { sanitizeHtml, isHtml } from "@/lib/htmlUtils";
 
-import { ResumeJSON, ThemeColors } from "@/types/resume";
+import RichTextEditorContent from "@/components/form/RichTextEditorContent";
+import useResolveCustomization from "@/hooks/useResolveCustomization";
 
-interface BusinessProfessionalCoverLetterProps {
-  coverLetter: string;
-  resume: ResumeJSON | null;
-  colors: ThemeColors;
-  fontSize: "small" | "medium" | "large";
-  fontFamily: string;
-}
-
-const fontSizeMap = {
-  small: "text-xs",
-  medium: "text-sm",
-  large: "text-base",
-};
+import { CoverLetterRendererProps } from "./CoverLetterRenderer";
 
 export const BusinessProfessionalCoverLetter: React.FC<
-  BusinessProfessionalCoverLetterProps
-> = ({ coverLetter, resume, colors, fontSize, fontFamily }) => {
-  const textSize = fontSizeMap[fontSize];
-  const today = new Date().toLocaleDateString("en-US", {
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-  });
+  CoverLetterRendererProps
+> = ({ coverLetter, resume, customization }) => {
+  const {
+    primaryColor,
+    secondaryColor,
+    accentColor: _,
+    textColor,
+    backgroundColor,
+    textSize,
+    fontFamily,
+    today,
+    marginClass,
+    lineHeight,
+  } = useResolveCustomization(customization);
 
   return (
     <div
-      className="cover-letter-content mx-auto min-h-[11in] w-[8.5in] bg-white p-16 shadow-lg"
+      className={`${marginClass}`}
       style={{
         fontFamily: fontFamily,
-        color: colors.text,
-        backgroundColor: colors.background,
+        color: textColor,
+        backgroundColor: backgroundColor,
       }}
     >
       {/* Header - Centered */}
       <header
         className="mb-8 border-b pb-6 text-center"
-        style={{ borderColor: colors.secondary }}
+        style={{ borderColor: secondaryColor }}
       >
         <h1
           className="mb-2 font-serif text-3xl font-bold"
-          style={{ color: colors.primary }}
+          style={{ color: primaryColor }}
         >
           {resume?.header?.name || "[Your Name]"}
         </h1>
         <div
           className={`${textSize} space-y-1`}
-          style={{ color: colors.secondary }}
+          style={{ color: secondaryColor }}
         >
           <div className="flex justify-center gap-3">
             {resume?.header?.email && <span>{resume.header.email}</span>}
@@ -73,28 +67,10 @@ export const BusinessProfessionalCoverLetter: React.FC<
       <div className={`${textSize} mb-6`}>{today}</div>
 
       {/* Cover Letter Content */}
-      <div className={`${textSize} text-justify leading-relaxed`}>
-        {isHtml(coverLetter) ? (
-          <div
-            dangerouslySetInnerHTML={{ __html: sanitizeHtml(coverLetter) }}
-          />
-        ) : (
-          <div className="whitespace-pre-wrap">
-            {coverLetter || "Your cover letter content will appear here..."}
-          </div>
-        )}
-      </div>
-
-      {/* Signature */}
-      <div className={`${textSize} mt-8`}>
-        <p>Sincerely,</p>
-        <p
-          className="mt-4 font-serif font-semibold"
-          style={{ color: colors.primary }}
-        >
-          {resume?.header?.name || "[Your Name]"}
-        </p>
-      </div>
+      <RichTextEditorContent
+        content={coverLetter}
+        className={`${textSize} ${lineHeight}`}
+      />
     </div>
   );
 };

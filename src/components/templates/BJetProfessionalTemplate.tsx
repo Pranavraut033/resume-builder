@@ -4,49 +4,44 @@
 
 import React from "react";
 
-import { ResumeJSON, ThemeColors } from "@/types/resume";
+import useResolveCustomization from "@/hooks/useResolveCustomization";
 
-interface BJetProfessionalTemplateProps {
-  resume: ResumeJSON;
-  colors: ThemeColors;
-  fontSize: "small" | "medium" | "large";
-  fontFamily: string;
-}
+import { TemplateRendererProps } from "./TemplateRenderer";
 
-const fontSizeMap = {
-  small: "text-xs",
-  medium: "text-sm",
-  large: "text-base",
-};
-
-const _headingSizeMap = {
-  small: "text-sm",
-  medium: "text-base",
-  large: "text-lg",
-};
-
-export const BJetProfessionalTemplate: React.FC<
-  BJetProfessionalTemplateProps
-> = ({ resume, colors, fontSize, fontFamily }) => {
-  const textSize = fontSizeMap[fontSize];
+export const BJetProfessionalTemplate: React.FC<TemplateRendererProps> = ({
+  resume,
+  customization,
+}) => {
+  const {
+    primaryColor,
+    secondaryColor,
+    accentColor,
+    textColor,
+    backgroundColor,
+    textSize,
+    fontFamily,
+    today,
+    marginClass,
+    lineHeight,
+  } = useResolveCustomization(customization);
 
   return (
     <div
       className="resume-content mx-auto min-h-264 w-204 bg-white p-10 shadow-lg"
       style={{
         fontFamily: fontFamily,
-        color: colors.text,
-        backgroundColor: colors.background,
+        color: textColor,
+        backgroundColor: backgroundColor,
       }}
     >
       {/* Header Table */}
       <table
         className="mb-6 w-full border-2"
-        style={{ borderColor: colors.primary }}
+        style={{ borderColor: primaryColor }}
       >
         <tbody>
           <tr>
-            <td className="p-4" style={{ backgroundColor: colors.primary }}>
+            <td className="p-4" style={{ backgroundColor: primaryColor }}>
               <h1 className="text-2xl font-bold text-white">
                 {resume.header.name}
               </h1>
@@ -55,7 +50,7 @@ export const BJetProfessionalTemplate: React.FC<
           <tr>
             <td
               className="border-t p-3"
-              style={{ borderColor: colors.secondary }}
+              style={{ borderColor: secondaryColor }}
             >
               <div className={`${textSize} space-y-1`}>
                 {resume.header.email && (
@@ -81,7 +76,7 @@ export const BJetProfessionalTemplate: React.FC<
                     <a
                       href={resume.header.linkedin}
                       className="hover:underline"
-                      style={{ color: colors.accent }}
+                      style={{ color: accentColor }}
                     >
                       LinkedIn
                     </a>
@@ -90,7 +85,7 @@ export const BJetProfessionalTemplate: React.FC<
                     <a
                       href={resume.header.github}
                       className="hover:underline"
-                      style={{ color: colors.accent }}
+                      style={{ color: accentColor }}
                     >
                       GitHub
                     </a>
@@ -99,7 +94,7 @@ export const BJetProfessionalTemplate: React.FC<
                     <a
                       href={resume.header.website}
                       className="hover:underline"
-                      style={{ color: colors.accent }}
+                      style={{ color: accentColor }}
                     >
                       Website
                     </a>
@@ -115,15 +110,15 @@ export const BJetProfessionalTemplate: React.FC<
       {resume.summary && (
         <table
           className="mb-4 w-full border-2"
-          style={{ borderColor: colors.primary }}
+          style={{ borderColor: primaryColor }}
         >
           <tbody>
             <tr>
               <td
                 className="p-2 font-bold"
                 style={{
-                  backgroundColor: colors.secondary + "30",
-                  color: colors.primary,
+                  backgroundColor: secondaryColor + "30",
+                  color: primaryColor,
                 }}
               >
                 PROFESSIONAL SUMMARY
@@ -132,7 +127,7 @@ export const BJetProfessionalTemplate: React.FC<
             <tr>
               <td
                 className="border-t p-3"
-                style={{ borderColor: colors.secondary }}
+                style={{ borderColor: secondaryColor }}
               >
                 <p className={`${textSize} leading-relaxed`}>
                   {resume.summary}
@@ -147,15 +142,15 @@ export const BJetProfessionalTemplate: React.FC<
       {resume.experience && resume.experience.length > 0 && (
         <table
           className="mb-4 w-full border-2"
-          style={{ borderColor: colors.primary }}
+          style={{ borderColor: primaryColor }}
         >
           <tbody>
             <tr>
               <td
                 className="p-2 font-bold"
                 style={{
-                  backgroundColor: colors.secondary + "30",
-                  color: colors.primary,
+                  backgroundColor: secondaryColor + "30",
+                  color: primaryColor,
                 }}
               >
                 PROFESSIONAL EXPERIENCE
@@ -165,7 +160,7 @@ export const BJetProfessionalTemplate: React.FC<
               <tr key={idx}>
                 <td
                   className="border-t p-3"
-                  style={{ borderColor: colors.secondary }}
+                  style={{ borderColor: secondaryColor }}
                 >
                   <div className="mb-1 flex justify-between">
                     <div>
@@ -175,7 +170,7 @@ export const BJetProfessionalTemplate: React.FC<
                       <span className="mx-2">•</span>
                       <span
                         className={`${textSize} font-semibold`}
-                        style={{ color: colors.secondary }}
+                        style={{ color: secondaryColor }}
                       >
                         {exp.company}
                       </span>
@@ -210,15 +205,15 @@ export const BJetProfessionalTemplate: React.FC<
       {resume.education && resume.education.length > 0 && (
         <table
           className="mb-4 w-full border-2"
-          style={{ borderColor: colors.primary }}
+          style={{ borderColor: primaryColor }}
         >
           <tbody>
             <tr>
               <td
                 className="p-2 font-bold"
                 style={{
-                  backgroundColor: colors.secondary + "30",
-                  color: colors.primary,
+                  backgroundColor: secondaryColor + "30",
+                  color: primaryColor,
                 }}
               >
                 EDUCATION
@@ -228,7 +223,7 @@ export const BJetProfessionalTemplate: React.FC<
               <tr key={idx}>
                 <td
                   className="border-t p-3"
-                  style={{ borderColor: colors.secondary }}
+                  style={{ borderColor: secondaryColor }}
                 >
                   <div className="flex justify-between">
                     <div>
@@ -237,7 +232,7 @@ export const BJetProfessionalTemplate: React.FC<
                       </div>
                       <div
                         className={`${textSize}`}
-                        style={{ color: colors.secondary }}
+                        style={{ color: secondaryColor }}
                       >
                         {edu.institution}
                         {edu.field && ` • ${edu.field}`}
@@ -259,15 +254,15 @@ export const BJetProfessionalTemplate: React.FC<
       {resume.skills && resume.skills.length > 0 && (
         <table
           className="mb-4 w-full border-2"
-          style={{ borderColor: colors.primary }}
+          style={{ borderColor: primaryColor }}
         >
           <tbody>
             <tr>
               <td
                 className="p-2 font-bold"
                 style={{
-                  backgroundColor: colors.secondary + "30",
-                  color: colors.primary,
+                  backgroundColor: secondaryColor + "30",
+                  color: primaryColor,
                 }}
               >
                 CORE COMPETENCIES
@@ -276,7 +271,7 @@ export const BJetProfessionalTemplate: React.FC<
             <tr>
               <td
                 className="border-t p-3"
-                style={{ borderColor: colors.secondary }}
+                style={{ borderColor: secondaryColor }}
               >
                 <div className="grid grid-cols-3 gap-2">
                   {resume.skills.map((skill, idx) => (
@@ -295,15 +290,15 @@ export const BJetProfessionalTemplate: React.FC<
       {resume.projects && resume.projects.length > 0 && (
         <table
           className="mb-4 w-full border-2"
-          style={{ borderColor: colors.primary }}
+          style={{ borderColor: primaryColor }}
         >
           <tbody>
             <tr>
               <td
                 className="p-2 font-bold"
                 style={{
-                  backgroundColor: colors.secondary + "30",
-                  color: colors.primary,
+                  backgroundColor: secondaryColor + "30",
+                  color: primaryColor,
                 }}
               >
                 KEY PROJECTS
@@ -313,17 +308,14 @@ export const BJetProfessionalTemplate: React.FC<
               <tr key={idx}>
                 <td
                   className="border-t p-3"
-                  style={{ borderColor: colors.secondary }}
+                  style={{ borderColor: secondaryColor }}
                 >
                   <div className={`${textSize} mb-1 font-bold`}>
                     {project.name}
                   </div>
                   <p className={`${textSize} mb-1`}>{project.description}</p>
                   {project.technologies && project.technologies.length > 0 && (
-                    <div
-                      className="text-xs"
-                      style={{ color: colors.secondary }}
-                    >
+                    <div className="text-xs" style={{ color: secondaryColor }}>
                       <span className="font-semibold">Technologies:</span>{" "}
                       {project.technologies.join(", ")}
                     </div>
@@ -339,15 +331,15 @@ export const BJetProfessionalTemplate: React.FC<
       {resume.certifications && resume.certifications.length > 0 && (
         <table
           className="w-full border-2"
-          style={{ borderColor: colors.primary }}
+          style={{ borderColor: primaryColor }}
         >
           <tbody>
             <tr>
               <td
                 className="p-2 font-bold"
                 style={{
-                  backgroundColor: colors.secondary + "30",
-                  color: colors.primary,
+                  backgroundColor: secondaryColor + "30",
+                  color: primaryColor,
                 }}
               >
                 CERTIFICATIONS
@@ -357,16 +349,13 @@ export const BJetProfessionalTemplate: React.FC<
               <tr key={idx}>
                 <td
                   className="border-t p-3"
-                  style={{ borderColor: colors.secondary }}
+                  style={{ borderColor: secondaryColor }}
                 >
                   <div className="flex justify-between">
                     <span className={`${textSize} font-semibold`}>
                       {cert.name}
                     </span>
-                    <span
-                      className="text-xs"
-                      style={{ color: colors.secondary }}
-                    >
+                    <span className="text-xs" style={{ color: secondaryColor }}>
                       {cert.issuer} • {cert.date}
                     </span>
                   </div>

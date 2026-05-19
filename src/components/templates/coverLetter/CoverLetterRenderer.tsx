@@ -5,7 +5,8 @@
 
 import React from "react";
 
-import { ResumeJSON, ThemeColors, TemplateType } from "@/types/resume";
+import { SanitizedCustomization, TemplateType } from "@/types/customization";
+import { ResumeJSON } from "@/types/resume";
 
 import { BJetProfessionalCoverLetter } from "./BJetProfessionalCoverLetter";
 import { BusinessProfessionalCoverLetter } from "./BusinessProfessionalCoverLetter";
@@ -14,34 +15,22 @@ import { ElegantTimelineCoverLetter } from "./ElegantTimelineCoverLetter";
 import { ModernMinimalCoverLetter } from "./ModernMinimalCoverLetter";
 import { TechSidebarCoverLetter } from "./TechSidebarCoverLetter";
 
-export type CoverLetterTemplate = TemplateType;
-
-interface CoverLetterRendererProps {
-  template: CoverLetterTemplate;
+export interface CoverLetterRendererProps {
   coverLetter: string;
   resume: ResumeJSON | null;
-  colors: ThemeColors;
-  fontSize: "small" | "medium" | "large";
-  fontFamily: string;
+  customization: SanitizedCustomization;
 }
 
 export const CoverLetterRenderer: React.FC<CoverLetterRendererProps> = ({
-  template,
   coverLetter,
   resume,
-  colors,
-  fontSize,
-  fontFamily,
+  customization,
 }) => {
+  const template = customization.template as TemplateType;
+
   const templateComponents: Record<
     TemplateType,
-    React.ComponentType<{
-      coverLetter: string;
-      resume: ResumeJSON | null;
-      colors: ThemeColors;
-      fontSize: "small" | "medium" | "large";
-      fontFamily: string;
-    }>
+    React.ComponentType<CoverLetterRendererProps>
   > = {
     "modern-minimal": ModernMinimalCoverLetter,
     "tech-sidebar": TechSidebarCoverLetter,
@@ -59,9 +48,7 @@ export const CoverLetterRenderer: React.FC<CoverLetterRendererProps> = ({
     <TemplateComponent
       coverLetter={coverLetter}
       resume={resume}
-      colors={colors}
-      fontSize={fontSize}
-      fontFamily={fontFamily}
+      customization={customization}
     />
   );
 };

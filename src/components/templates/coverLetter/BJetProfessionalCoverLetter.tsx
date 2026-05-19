@@ -4,48 +4,42 @@
  */
 
 import React from "react";
-import { sanitizeHtml, isHtml } from "@/lib/htmlUtils";
 
-import { ResumeJSON, ThemeColors } from "@/types/resume";
+import RichTextEditorContent from "@/components/form/RichTextEditorContent";
+import useResolveCustomization from "@/hooks/useResolveCustomization";
 
-interface BJetProfessionalCoverLetterProps {
-  coverLetter: string;
-  resume: ResumeJSON | null;
-  colors: ThemeColors;
-  fontSize: "small" | "medium" | "large";
-  fontFamily: string;
-}
-
-const fontSizeMap = {
-  small: "text-xs",
-  medium: "text-sm",
-  large: "text-base",
-};
+import { CoverLetterRendererProps } from "./CoverLetterRenderer";
 
 export const BJetProfessionalCoverLetter: React.FC<
-  BJetProfessionalCoverLetterProps
-> = ({ coverLetter, resume, colors, fontSize, fontFamily }) => {
-  const textSize = fontSizeMap[fontSize];
-  const today = new Date().toLocaleDateString("en-US", {
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-  });
+  CoverLetterRendererProps
+> = ({ coverLetter, resume, customization }) => {
+  const {
+    primaryColor,
+    secondaryColor,
+    accentColor,
+    textColor,
+    backgroundColor,
+    textSize,
+    fontFamily,
+    today,
+    marginClass,
+    lineHeight,
+  } = useResolveCustomization(customization);
 
   return (
     <div
-      className="cover-letter-content mx-auto min-h-[11in] w-[8.5in] bg-white shadow-lg"
+      className="cover-letter-content mx-auto bg-white shadow-lg"
       style={{
         fontFamily: fontFamily,
-        color: colors.text,
-        backgroundColor: colors.background,
+        color: textColor, // text color
+        backgroundColor: backgroundColor, // background color
       }}
     >
       {/* Professional Header with gradient effect */}
       <header
         className="p-8 pb-6"
         style={{
-          background: `linear-gradient(135deg, ${colors.primary} 0%, ${colors.secondary} 100%)`,
+          background: `linear-gradient(135deg, ${primaryColor} 0%, ${secondaryColor} 100%)`,
         }}
       >
         <h1 className="mb-2 text-3xl font-bold text-white">
@@ -70,40 +64,24 @@ export const BJetProfessionalCoverLetter: React.FC<
       </header>
 
       {/* Content */}
-      <div className="p-8">
+      <div className={`${marginClass}`}>
         {/* Date */}
-        <div className={`${textSize} mb-6`} style={{ color: colors.secondary }}>
+        <div className={`${textSize} mb-6`} style={{ color: secondaryColor }}>
           {today}
         </div>
 
         {/* Cover Letter Content */}
-        <div className={`${textSize} leading-relaxed`}>
-          {isHtml(coverLetter) ? (
-            <div
-              dangerouslySetInnerHTML={{ __html: sanitizeHtml(coverLetter) }}
-            />
-          ) : (
-            <div className="whitespace-pre-wrap">
-              {coverLetter || "Your cover letter content will appear here..."}
-            </div>
-          )}
-        </div>
+        <RichTextEditorContent
+          content={coverLetter}
+          className={`${textSize} ${lineHeight}`}
+        />
 
-        {/* Signature */}
-        <div className={`${textSize} mt-8`}>
-          <p>Sincerely,</p>
-          <div className="mt-4">
-            <p className="font-bold" style={{ color: colors.primary }}>
-              {resume?.header?.name || "[Your Name]"}
-            </p>
-            <div
-              className="mt-1 h-1 w-20"
-              style={{
-                background: `linear-gradient(90deg, ${colors.primary} 0%, ${colors.accent} 100%)`,
-              }}
-            />
-          </div>
-        </div>
+        <div
+          className="mt-1 h-1 w-20"
+          style={{
+            background: `linear-gradient(90deg, ${primaryColor} 0%, ${accentColor} 100%)`,
+          }}
+        />
       </div>
     </div>
   );

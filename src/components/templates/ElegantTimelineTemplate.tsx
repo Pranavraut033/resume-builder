@@ -4,53 +4,48 @@
 
 import React from "react";
 
-import { ResumeJSON, ThemeColors } from "@/types/resume";
+import useResolveCustomization from "@/hooks/useResolveCustomization";
 
-interface ElegantTimelineTemplateProps {
-  resume: ResumeJSON;
-  colors: ThemeColors;
-  fontSize: "small" | "medium" | "large";
-  fontFamily: string;
-}
+import { TemplateRendererProps } from "./TemplateRenderer";
 
-const fontSizeMap = {
-  small: "text-xs",
-  medium: "text-sm",
-  large: "text-base",
-};
-
-const headingSizeMap = {
-  small: "text-base",
-  medium: "text-lg",
-  large: "text-xl",
-};
-
-export const ElegantTimelineTemplate: React.FC<
-  ElegantTimelineTemplateProps
-> = ({ resume, colors, fontSize, fontFamily }) => {
-  const textSize = fontSizeMap[fontSize];
-  const headingSize = headingSizeMap[fontSize];
+export const ElegantTimelineTemplate: React.FC<TemplateRendererProps> = ({
+  resume,
+  customization,
+}) => {
+  const {
+    primaryColor,
+    secondaryColor,
+    accentColor,
+    textColor,
+    backgroundColor,
+    textSize,
+    fontFamily,
+    today,
+    marginClass,
+    lineHeight,
+    headingSize,
+  } = useResolveCustomization(customization);
 
   return (
     <div
-      className="resume-content mx-auto min-h-[11in] w-[8.5in] bg-white p-12 shadow-lg"
+      className="resume-content mx-auto bg-white p-12 shadow-lg"
       style={{
         fontFamily: fontFamily,
-        color: colors.text,
-        backgroundColor: colors.background,
+        color: textColor,
+        backgroundColor: backgroundColor,
       }}
     >
       {/* Header - Centered */}
       <header className="mb-8 text-center">
         <h1
           className="mb-2 text-4xl font-light"
-          style={{ color: colors.primary }}
+          style={{ color: primaryColor }}
         >
           {resume.header.name}
         </h1>
         <div
           className={`${textSize} mb-2 flex flex-wrap justify-center gap-3`}
-          style={{ color: colors.secondary }}
+          style={{ color: secondaryColor }}
         >
           {resume.header.email && <span>✉ {resume.header.email}</span>}
           {resume.header.phone && <span>📞 {resume.header.phone}</span>}
@@ -61,7 +56,7 @@ export const ElegantTimelineTemplate: React.FC<
             <a
               href={resume.header.linkedin}
               className="hover:underline"
-              style={{ color: colors.accent }}
+              style={{ color: accentColor }}
             >
               LinkedIn
             </a>
@@ -70,7 +65,7 @@ export const ElegantTimelineTemplate: React.FC<
             <a
               href={resume.header.github}
               className="hover:underline"
-              style={{ color: colors.accent }}
+              style={{ color: accentColor }}
             >
               GitHub
             </a>
@@ -79,7 +74,7 @@ export const ElegantTimelineTemplate: React.FC<
             <a
               href={resume.header.website}
               className="hover:underline"
-              style={{ color: colors.accent }}
+              style={{ color: accentColor }}
             >
               Portfolio
             </a>
@@ -92,7 +87,7 @@ export const ElegantTimelineTemplate: React.FC<
         <section className="mb-8 text-center">
           <h2
             className={`${headingSize} mb-3 font-semibold uppercase`}
-            style={{ color: colors.primary }}
+            style={{ color: primaryColor }}
           >
             Professional Summary
           </h2>
@@ -107,14 +102,14 @@ export const ElegantTimelineTemplate: React.FC<
         <section className="mb-8">
           <h2
             className={`${headingSize} mb-4 text-center font-semibold uppercase`}
-            style={{ color: colors.primary }}
+            style={{ color: primaryColor }}
           >
             Experience
           </h2>
           <div className="relative">
             <div
               className="absolute left-1/2 h-full w-0.5 -translate-x-1/2 transform"
-              style={{ backgroundColor: colors.accent }}
+              style={{ backgroundColor: accentColor }}
             />
             <div className="space-y-8">
               {resume.experience.map((exp, idx) => (
@@ -131,14 +126,14 @@ export const ElegantTimelineTemplate: React.FC<
                           idx % 2 === 0 ? "-right-[3.75rem]" : "-left-[3.75rem]"
                         }`}
                         style={{
-                          backgroundColor: colors.background,
-                          borderColor: colors.accent,
+                          backgroundColor: backgroundColor,
+                          borderColor: accentColor,
                         }}
                       />
                       <h3 className={`${textSize} font-bold`}>{exp.role}</h3>
                       <div
                         className={`${textSize} font-medium`}
-                        style={{ color: colors.secondary }}
+                        style={{ color: secondaryColor }}
                       >
                         {exp.company}
                       </div>
@@ -169,7 +164,7 @@ export const ElegantTimelineTemplate: React.FC<
         <section className="mb-8 text-center">
           <h2
             className={`${headingSize} mb-3 font-semibold uppercase`}
-            style={{ color: colors.primary }}
+            style={{ color: primaryColor }}
           >
             Education
           </h2>
@@ -179,7 +174,7 @@ export const ElegantTimelineTemplate: React.FC<
                 <h3 className={`${textSize} font-bold`}>{edu.degree}</h3>
                 <div
                   className={`${textSize}`}
-                  style={{ color: colors.secondary }}
+                  style={{ color: secondaryColor }}
                 >
                   {edu.institution}
                   {edu.field && ` • ${edu.field}`}
@@ -199,7 +194,7 @@ export const ElegantTimelineTemplate: React.FC<
         <section className="mb-8">
           <h2
             className={`${headingSize} mb-3 text-center font-semibold uppercase`}
-            style={{ color: colors.primary }}
+            style={{ color: primaryColor }}
           >
             Core Skills
           </h2>
@@ -209,8 +204,8 @@ export const ElegantTimelineTemplate: React.FC<
                 key={idx}
                 className="rounded-full px-3 py-1 text-xs"
                 style={{
-                  backgroundColor: colors.accent + "20",
-                  color: colors.accent,
+                  backgroundColor: accentColor + "20",
+                  color: accentColor,
                 }}
               >
                 {skill}
@@ -225,7 +220,7 @@ export const ElegantTimelineTemplate: React.FC<
         <section className="mb-8">
           <h2
             className={`${headingSize} mb-4 text-center font-semibold uppercase`}
-            style={{ color: colors.primary }}
+            style={{ color: primaryColor }}
           >
             Key Projects
           </h2>
@@ -241,8 +236,8 @@ export const ElegantTimelineTemplate: React.FC<
                         key={techIdx}
                         className="rounded px-2 py-0.5 text-xs"
                         style={{
-                          backgroundColor: colors.accent + "20",
-                          color: colors.accent,
+                          backgroundColor: accentColor + "20",
+                          color: accentColor,
                         }}
                       >
                         {tech}
@@ -261,14 +256,14 @@ export const ElegantTimelineTemplate: React.FC<
         <section className="text-center">
           <h2
             className={`${headingSize} mb-3 font-semibold uppercase`}
-            style={{ color: colors.primary }}
+            style={{ color: primaryColor }}
           >
             Certifications
           </h2>
           {resume.certifications.map((cert, idx) => (
             <div key={idx} className="mb-2">
               <span className={`${textSize} font-semibold`}>{cert.name}</span>
-              <div className="text-xs" style={{ color: colors.secondary }}>
+              <div className="text-xs" style={{ color: secondaryColor }}>
                 {cert.issuer} • {cert.date}
               </div>
             </div>
