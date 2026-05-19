@@ -176,7 +176,3 @@ export function useResumeEditContext() {
   }
   return context;
 }
-
-export function useOptionalResumeEditContext() {
-  return useContext(ResumeEditContext);
-}
