@@ -18,12 +18,17 @@
 
 "use client";
 
-import { Combobox, Transition } from "@headlessui/react";
+import {
+  Combobox,
+  ComboboxOption,
+  ComboboxOptions,
+  Transition,
+} from "@headlessui/react";
 import { Fragment, useState, useMemo } from "react";
 
 import { Icon } from "@/components/ui/Icon";
 import { loadGoogleFont } from "@/lib/fontLoader";
-import { AVAILABLE_FONTS } from "@/types/resume";
+import { AVAILABLE_FONTS } from "@/types/customization";
 
 interface FontSelectorProps {
   value: string;
@@ -112,16 +117,18 @@ export function FontSelector({
       >
         <div className="relative">
           {/* Trigger Button with Preview and Search Input */}
-          <div className="relative flex w-full">
+          <div className="relative flex w-full items-center">
             <Combobox.Input
-              className="w-full rounded-l-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 placeholder-gray-400 transition-all focus:border-transparent focus:ring-2 focus:ring-blue-500 focus:outline-none dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:placeholder-gray-300"
+              className={`w-full rounded-l-lg border-[1px] border-[var(--color-agent-outline)] bg-[var(--color-agent-surface-lowest)] px-3 py-2 text-sm text-[var(--color-agent-on-surface)] placeholder-gray-400 shadow-[var(--shadow-agent-card)] transition-all focus:ring-2 focus:outline-none`}
               displayValue={(font: string) => font}
               onChange={(event) => setQuery(event.target.value)}
               placeholder="Search fonts..."
               style={{ fontFamily: value }}
             />
-            <Combobox.Button className="pointer-events-auto absolute inset-y-0 right-0 flex cursor-pointer items-center pr-3 transition-colors hover:text-gray-600 dark:hover:text-gray-300">
-              <Icon name="chevronDown" className="h-4 w-4 text-gray-400" />
+            <Combobox.Button className="pointer-events-auto absolute inset-y-0 right-0 flex cursor-pointer items-center pr-3 transition-colors">
+              <div className="rounded-r-lg px-2 py-1 text-[var(--color-agent-primary)]">
+                <Icon name="chevronDown" className="h-4 w-4" />
+              </div>
             </Combobox.Button>
           </div>
 
@@ -133,10 +140,10 @@ export function FontSelector({
             leaveTo="opacity-0"
             afterLeave={() => setQuery("")}
           >
-            <Combobox.Options className="absolute top-full right-0 left-0 z-50 mt-2 overflow-hidden rounded-lg border border-gray-300 bg-white shadow-lg focus:outline-none dark:border-gray-600 dark:bg-gray-700">
+            <ComboboxOptions className="absolute top-full right-0 left-0 z-50 mt-2 overflow-hidden rounded-lg border-[1px] border-[var(--color-agent-outline-variant)] bg-[var(--color-agent-surface)] shadow-[var(--shadow-agent-modal)] focus:outline-none">
               {/* Search Results Info */}
               {query && (
-                <div className="sticky top-0 border-b border-gray-200 bg-gray-50 px-3 py-2 text-xs font-semibold text-gray-500 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-400">
+                <div className="sticky top-0 border-b-[1px] border-[var(--color-agent-outline-variant)] bg-[var(--color-agent-surface-high)] px-3 py-2 text-xs font-semibold text-[var(--color-agent-on-surface-variant)]">
                   {allFilteredFonts.length} result
                   {allFilteredFonts.length !== 1 ? "s" : ""} for "{query}"
                 </div>
@@ -148,25 +155,21 @@ export function FontSelector({
                   fontGroups.map((group) => (
                     <div key={group.category}>
                       {/* Category Header - Sticky */}
-                      <div className="sticky top-0 bg-gray-50 px-3 py-2 text-xs font-semibold text-gray-500 dark:bg-gray-800 dark:text-gray-400">
+                      <div className="sticky top-0 bg-[var(--color-agent-surface-high)] px-3 py-2 text-xs font-semibold text-[var(--color-agent-on-surface-variant)]">
                         {group.category}
                       </div>
 
                       {/* Fonts in Category */}
                       {group.fonts.map((font) => (
-                        <Combobox.Option
+                        <ComboboxOption
                           key={font}
                           value={font}
                           className={({ active }) =>
                             `relative cursor-pointer py-2 pr-3 pl-8 transition-colors select-none ${
                               active
-                                ? "bg-blue-50 dark:bg-blue-900"
-                                : "text-gray-900 dark:text-gray-100"
-                            } ${
-                              value === font
-                                ? "bg-blue-50 dark:bg-blue-900"
-                                : ""
-                            }`
+                                ? "bg-[var(--color-agent-primary-container)] text-[var(--color-agent-on-primary)]"
+                                : "text-[var(--color-agent-on-surface)]"
+                            } ${value === font ? "bg-[var(--color-agent-primary-container)]" : ""}`
                           }
                         >
                           {({ selected }) => (
@@ -174,7 +177,7 @@ export function FontSelector({
                               <span
                                 className={`block truncate text-sm ${
                                   selected || value === font
-                                    ? "font-semibold text-blue-900 dark:text-blue-100"
+                                    ? "font-semibold text-[var(--color-agent-on-primary)]"
                                     : "font-normal"
                                 }`}
                                 style={{ fontFamily: font }}
@@ -184,17 +187,17 @@ export function FontSelector({
                               {(selected || value === font) && (
                                 <Icon
                                   name="check"
-                                  className="h-4 w-4 shrink-0 text-blue-500 dark:text-blue-300"
+                                  className="h-4 w-4 shrink-0 text-[var(--color-agent-tertiary)]"
                                 />
                               )}
                             </div>
                           )}
-                        </Combobox.Option>
+                        </ComboboxOption>
                       ))}
                     </div>
                   ))
                 ) : (
-                  <div className="px-3 py-4 text-center text-sm text-gray-500 dark:text-gray-400">
+                  <div className="px-3 py-4 text-center text-sm text-[var(--color-agent-on-surface-variant)]">
                     No fonts found matching "{query}"
                   </div>
                 )}
@@ -202,19 +205,19 @@ export function FontSelector({
 
               {/* Preview Section - Sticky Bottom */}
               {allFilteredFonts.length > 0 && (
-                <div className="sticky bottom-0 border-t border-gray-200 bg-gray-50 p-3 dark:border-gray-600 dark:bg-gray-800">
-                  <p className="mb-2 text-xs text-gray-600 dark:text-gray-400">
+                <div className="sticky bottom-0 rounded-t-md border-t-[1px] border-[var(--color-agent-outline-variant)] bg-[var(--color-agent-surface-lowest)] p-3">
+                  <p className="mb-2 text-xs text-[var(--color-agent-on-surface-variant)]">
                     Preview
                   </p>
                   <div
-                    className="rounded border border-gray-200 bg-white p-2 text-sm text-gray-900 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100"
+                    className={`rounded border-[1px] border-[var(--color-agent-outline-variant)] bg-[var(--color-agent-surface-highest)] p-2 text-sm text-[var(--color-agent-on-surface)] shadow-[var(--shadow-agent-card)]`}
                     style={{ fontFamily: value }}
                   >
                     The quick brown fox jumps
                   </div>
                 </div>
               )}
-            </Combobox.Options>
+            </ComboboxOptions>
           </Transition>
         </div>
       </Combobox>

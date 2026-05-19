@@ -13,17 +13,9 @@ import Link from "next/link";
 import { ModelSelector } from "@/components/ModelSelector";
 import { Icon } from "@/components/ui/Icon";
 import useHydrated from "@/hooks/useHydrated";
-import { useModelStore } from "@/store/modelStore";
-import { ProviderType } from "@/types/llm";
 
 export function SelectedModelCard() {
-  const { setSelectedModel } = useModelStore();
-
   const hydrated = useHydrated();
-
-  const handleModelSelected = (model: string, provider: ProviderType) => {
-    setSelectedModel(provider, model);
-  };
 
   if (!hydrated) {
     return (
@@ -61,7 +53,6 @@ export function SelectedModelCard() {
       <>
         {/* Change Model Button */}
         <ModelSelector
-          onModelSelected={handleModelSelected}
           label="Change Model"
           className="w-full"
           variant="normal"

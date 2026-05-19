@@ -22,7 +22,7 @@ import { ProviderType } from "@/types/llm";
 
 interface ModelSelectorProps {
   /** Callback when user selects a model. Emits {model, provider} */
-  onModelSelected: (model: string, provider: ProviderType) => void;
+  onModelSelected?: (model: string, provider: ProviderType) => void;
   label?: string;
   className?: string;
   variant?: "normal" | "compact";
@@ -83,7 +83,7 @@ export function ModelSelector({
 
   const handleModelClick = (model: string, provider: ProviderType) => {
     setSelectedModel(provider, model);
-    onModelSelected(model, provider);
+    onModelSelected?.(model, provider);
     setIsOpen(false);
   };
 

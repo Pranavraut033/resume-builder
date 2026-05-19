@@ -7,7 +7,7 @@
 import { Check } from "lucide-react";
 import React from "react";
 
-import { AVAILABLE_TEMPLATES, TemplateType } from "@/types/resume";
+import { TemplateType, AVAILABLE_TEMPLATES } from "@/types/customization";
 
 import { Card } from "./ui/Card";
 
