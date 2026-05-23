@@ -5,6 +5,7 @@
 
 import React from "react";
 
+import { simpleI32HashString, toStableJsonString } from "@/lib";
 import { SanitizedCustomization, TemplateType } from "@/types/customization";
 import { ResumeJSON } from "@/types/resume";
 
@@ -44,8 +45,11 @@ export const CoverLetterRenderer: React.FC<CoverLetterRendererProps> = ({
   const TemplateComponent =
     templateComponents[template] || templateComponents["modern-minimal"];
 
+  const rerenderHash = simpleI32HashString(toStableJsonString(customization));
+
   return (
     <TemplateComponent
+      key={rerenderHash}
       coverLetter={coverLetter}
       resume={resume}
       customization={customization}

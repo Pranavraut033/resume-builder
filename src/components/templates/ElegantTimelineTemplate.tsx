@@ -20,19 +20,24 @@ export const ElegantTimelineTemplate: React.FC<TemplateRendererProps> = ({
     backgroundColor,
     textSize,
     fontFamily,
-    today,
+    today: _today,
     marginClass,
     lineHeight,
     headingSize,
   } = useResolveCustomization(customization);
 
+  const pageFormatClass =
+    customization.pageFormat === "letter"
+      ? "min-h-[11in] w-[8.5in]"
+      : "min-h-264 w-204";
+
   return (
     <div
-      className="resume-content mx-auto bg-white p-12 shadow-lg"
+      className={`resume-content mx-auto bg-white p-12 shadow-lg ${marginClass} ${pageFormatClass}`}
       style={{
-        fontFamily: fontFamily,
+        fontFamily,
         color: textColor,
-        backgroundColor: backgroundColor,
+        backgroundColor,
       }}
     >
       {/* Header - Centered */}
@@ -43,15 +48,25 @@ export const ElegantTimelineTemplate: React.FC<TemplateRendererProps> = ({
         >
           {resume.header.name}
         </h1>
+        {resume.header.headline && (
+          <div
+            className={`${textSize} ${lineHeight} mb-2 font-medium`}
+            style={{ color: accentColor }}
+          >
+            {resume.header.headline}
+          </div>
+        )}
         <div
-          className={`${textSize} mb-2 flex flex-wrap justify-center gap-3`}
+          className={`${textSize} ${lineHeight} mb-2 flex flex-wrap justify-center gap-3`}
           style={{ color: secondaryColor }}
         >
           {resume.header.email && <span>✉ {resume.header.email}</span>}
           {resume.header.phone && <span>📞 {resume.header.phone}</span>}
           {resume.header.location && <span>📍 {resume.header.location}</span>}
         </div>
-        <div className={`${textSize} flex flex-wrap justify-center gap-3`}>
+        <div
+          className={`${textSize} ${lineHeight} flex flex-wrap justify-center gap-3`}
+        >
           {resume.header.linkedin && (
             <a
               href={resume.header.linkedin}
@@ -91,7 +106,9 @@ export const ElegantTimelineTemplate: React.FC<TemplateRendererProps> = ({
           >
             Professional Summary
           </h2>
-          <p className={`${textSize} mx-auto max-w-3xl leading-relaxed`}>
+          <p
+            className={`${textSize} ${lineHeight} mx-auto max-w-3xl leading-relaxed`}
+          >
             {resume.summary}
           </p>
         </section>
@@ -126,13 +143,13 @@ export const ElegantTimelineTemplate: React.FC<TemplateRendererProps> = ({
                           idx % 2 === 0 ? "-right-[3.75rem]" : "-left-[3.75rem]"
                         }`}
                         style={{
-                          backgroundColor: backgroundColor,
+                          backgroundColor,
                           borderColor: accentColor,
                         }}
                       />
                       <h3 className={`${textSize} font-bold`}>{exp.role}</h3>
                       <div
-                        className={`${textSize} font-medium`}
+                        className={`${textSize} ${lineHeight} font-medium`}
                         style={{ color: secondaryColor }}
                       >
                         {exp.company}
@@ -141,10 +158,12 @@ export const ElegantTimelineTemplate: React.FC<TemplateRendererProps> = ({
                         {exp.startDate} - {exp.endDate || "Present"}
                       </div>
                       {exp.description && (
-                        <p className={`${textSize} mb-2`}>{exp.description}</p>
+                        <p className={`${textSize} ${lineHeight} mb-2`}>
+                          {exp.description}
+                        </p>
                       )}
                       {exp.achievements && exp.achievements.length > 0 && (
-                        <ul className="space-y-1 text-xs">
+                        <ul className={`space-y-1 text-xs ${lineHeight}`}>
                           {exp.achievements.map((achievement, achIdx) => (
                             <li key={achIdx}>• {achievement}</li>
                           ))}
@@ -173,7 +192,7 @@ export const ElegantTimelineTemplate: React.FC<TemplateRendererProps> = ({
               <div key={idx}>
                 <h3 className={`${textSize} font-bold`}>{edu.degree}</h3>
                 <div
-                  className={`${textSize}`}
+                  className={`${textSize} ${lineHeight}`}
                   style={{ color: secondaryColor }}
                 >
                   {edu.institution}
@@ -228,7 +247,27 @@ export const ElegantTimelineTemplate: React.FC<TemplateRendererProps> = ({
             {resume.projects.map((project, idx) => (
               <div key={idx} className="text-center">
                 <h3 className={`${textSize} font-bold`}>{project.name}</h3>
-                <p className={`${textSize} mt-1`}>{project.description}</p>
+                {(project.startDate || project.endDate) && (
+                  <div className="text-xs">
+                    {project.startDate || ""}
+                    {project.startDate || project.endDate ? " - " : ""}
+                    {project.endDate || "Present"}
+                  </div>
+                )}
+                <p className={`${textSize} ${lineHeight} mt-1`}>
+                  {project.description}
+                </p>
+                {project.url && (
+                  <div className="mt-1 text-xs">
+                    <a
+                      href={project.url}
+                      className="hover:underline"
+                      style={{ color: accentColor }}
+                    >
+                      Project Link
+                    </a>
+                  </div>
+                )}
                 {project.technologies && project.technologies.length > 0 && (
                   <div className="mt-2 flex flex-wrap justify-center gap-1">
                     {project.technologies.map((tech, techIdx) => (
@@ -253,7 +292,7 @@ export const ElegantTimelineTemplate: React.FC<TemplateRendererProps> = ({
 
       {/* Certifications */}
       {resume.certifications && resume.certifications.length > 0 && (
-        <section className="text-center">
+        <section className="mb-8 text-center">
           <h2
             className={`${headingSize} mb-3 font-semibold uppercase`}
             style={{ color: primaryColor }}
@@ -266,8 +305,113 @@ export const ElegantTimelineTemplate: React.FC<TemplateRendererProps> = ({
               <div className="text-xs" style={{ color: secondaryColor }}>
                 {cert.issuer} • {cert.date}
               </div>
+              {cert.url && (
+                <div className="mt-1 text-xs">
+                  <a
+                    href={cert.url}
+                    className="hover:underline"
+                    style={{ color: accentColor }}
+                  >
+                    Credential Link
+                  </a>
+                </div>
+              )}
             </div>
           ))}
+        </section>
+      )}
+
+      {/* Publications */}
+      {resume.publications && resume.publications.length > 0 && (
+        <section className="mb-8 text-center">
+          <h2
+            className={`${headingSize} mb-3 font-semibold uppercase`}
+            style={{ color: primaryColor }}
+          >
+            Publications
+          </h2>
+          {resume.publications.map((publication, idx) => (
+            <div key={idx} className="mb-3">
+              <h3 className={`${textSize} font-bold`}>{publication.title}</h3>
+              <div className={`${textSize} ${lineHeight} mt-1`}>
+                {publication.authors.join(", ")}
+              </div>
+              <div className="text-xs" style={{ color: secondaryColor }}>
+                {publication.venue} • {publication.date}
+                {publication.doi && ` • DOI: ${publication.doi}`}
+              </div>
+              {publication.url && (
+                <div className="mt-1 text-xs">
+                  <a
+                    href={publication.url}
+                    className="hover:underline"
+                    style={{ color: accentColor }}
+                  >
+                    Publication Link
+                  </a>
+                </div>
+              )}
+            </div>
+          ))}
+        </section>
+      )}
+
+      {/* Languages */}
+      {resume.languages && resume.languages.length > 0 && (
+        <section className="mb-8 text-center">
+          <h2
+            className={`${headingSize} mb-3 font-semibold uppercase`}
+            style={{ color: primaryColor }}
+          >
+            Languages
+          </h2>
+          <div className="flex flex-wrap justify-center gap-2">
+            {resume.languages.map((language, idx) => (
+              <span
+                key={idx}
+                className="rounded-full px-3 py-1 text-xs"
+                style={{
+                  backgroundColor: accentColor + "20",
+                  color: accentColor,
+                }}
+              >
+                {language.name} • {language.proficiency}
+              </span>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* Volunteer */}
+      {resume.volunteer && resume.volunteer.length > 0 && (
+        <section className="text-center">
+          <h2
+            className={`${headingSize} mb-3 font-semibold uppercase`}
+            style={{ color: primaryColor }}
+          >
+            Volunteer Experience
+          </h2>
+          <div className="space-y-3">
+            {resume.volunteer.map((item, idx) => (
+              <div key={idx}>
+                <h3 className={`${textSize} font-bold`}>{item.role}</h3>
+                <div
+                  className={`${textSize} ${lineHeight}`}
+                  style={{ color: secondaryColor }}
+                >
+                  {item.organization}
+                </div>
+                <div className="text-xs">
+                  {item.startDate} - {item.endDate || "Present"}
+                </div>
+                {item.description && (
+                  <p className={`${textSize} ${lineHeight} mt-1`}>
+                    {item.description}
+                  </p>
+                )}
+              </div>
+            ))}
+          </div>
         </section>
       )}
     </div>

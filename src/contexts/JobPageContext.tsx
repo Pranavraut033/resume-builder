@@ -10,7 +10,9 @@
 
 "use client";
 
+import { Customization } from "@prisma/client";
 import { RefetchOptions, useMutation } from "@tanstack/react-query";
+import { deepClone } from "fast-json-patch";
 import {
   createContext,
   useContext,
@@ -19,12 +21,14 @@ import {
   ReactNode,
   useMemo,
   useEffect,
+  useRef,
 } from "react";
 
 import { JobData } from "@/actions/job";
 import {
   updateCoverLetter as updateCoverLetterAction,
   updateResume as updateResumeAction,
+  saveAtsAnalysis as saveAtsAnalysisAction,
 } from "@/actions/job";
 import { Button } from "@/components/ui/Button";
 import { FallbackState } from "@/components/ui/FallbackState";
@@ -32,17 +36,31 @@ import { useToast } from "@/components/ui/ToastProvider";
 import { JobPageData, useJobPageDataQuery } from "@/hooks/useJobPageDataQuery";
 import { areJsonValuesEqual } from "@/lib";
 import { loadGoogleFont } from "@/lib/fontLoader";
+import { ResumeHistory } from "@/lib/llm/ResumeHistory";
+import logger from "@/lib/logger";
 import { coverLetterToText, resumeToText } from "@/lib/resumeToText";
 import {
   DEFAULT_CUSTOMIZATION,
   SanitizedCustomization,
 } from "@/types/customization";
-import { ResumeJSON } from "@/types/resume";
+import { ATSAnalysisJSON, ResumeJSON } from "@/types/resume";
 
 export type EditorContentType = "resume" | "coverLetter";
 type SanitizedFields = "id" | "createdAt" | "updatedAt";
 
 export type Sanitize<T> = Omit<T, SanitizedFields>;
+type SaveToDbArgs =
+  | [
+      contentType: "resume",
+      data: ResumeJSON,
+      customization: SanitizedCustomization,
+    ]
+  | [
+      contentType: "coverLetter",
+      data: string,
+      customization: SanitizedCustomization,
+    ]
+  | [contentType: "ats", data: ATSAnalysisJSON];
 
 export interface JobPageContextType {
   contentType: EditorContentType;
@@ -50,23 +68,23 @@ export interface JobPageContextType {
   customization: SanitizedCustomization;
   job: JobData;
   profile: ResumeJSON;
+  historyRef: React.RefObject<ResumeHistory | null>;
   resume: ResumeJSON;
-  updateCoverLetter: (text: string) => void;
-  updateCustomization: (
-    updates: Partial<Sanitize<SanitizedCustomization>>
+  atsAnalysis: ATSAnalysisJSON | null;
+  setAtsAnalysis: (analysis: ATSAnalysisJSON) => void;
+  updateCoverLetterState: (text: string) => void;
+  updateCustomizationState: (updates: Partial<Sanitize<Customization>>) => void;
+  updateResumeState: (
+    updates: Partial<Sanitize<ResumeJSON>>,
+    note?: string
   ) => void;
-  updateResume: (updates: Partial<Sanitize<ResumeJSON>>) => void;
   refetch: (options?: RefetchOptions, ...fields: (keyof JobPageData)[]) => void;
   isExportingPdf: boolean;
   isExportingTxt: boolean;
   onPDFExport: () => void;
   onTXTExport: () => void;
   onCopyText: () => void;
-  saveToDb: <T extends EditorContentType>(
-    contentType: T,
-    data: T extends "resume" ? ResumeJSON : string,
-    customization: SanitizedCustomization
-  ) => void;
+  saveToDb: (...args: SaveToDbArgs) => void;
   saveStatus: "idle" | "saving" | "saved" | "error";
   isDirtyCoverLetter: boolean;
   isDirtyResume: boolean;
@@ -80,7 +98,6 @@ interface JobPageProviderProps {
   serverData: JobPageData;
   jobId: number;
 }
-
 export function JobPageProvider({
   children,
   contentType,
@@ -95,12 +112,14 @@ export function JobPageProvider({
   const [isExportingTxt, setIsExportingTxt] = useState(false);
   const [isExportingPdf, setIsExportingPdf] = useState(false);
 
-  const [resume, setResumeState] = useState<ResumeJSON>(
-    data?.resume?.contentJson ??
-      (JSON.parse(JSON.stringify(data?.profile ?? {})) as ResumeJSON) // Deep clone to prevent direct mutations
-  );
+  const resumeInitial = data?.resume?.contentJson ?? data!.profile;
 
-  const [coverLetter, updateCoverLetter] = useState<string>(
+  const [resume, setResumeState] = useState<ResumeJSON>(
+    resumeInitial ? deepClone(resumeInitial) : ({} as ResumeJSON)
+  );
+  const historyRef = useRef<ResumeHistory>(new ResumeHistory(resumeInitial));
+
+  const [coverLetter, updateCoverLetterState] = useState<string>(
     data?.coverLetter?.contentText || ""
   );
 
@@ -110,17 +129,29 @@ export function JobPageProvider({
       : data?.resume && data.resume?.customizations) ?? DEFAULT_CUSTOMIZATION
   );
 
+  const [atsAnalysis, setAtsAnalysis] = useState<ATSAnalysisJSON | null>(
+    data?.resume?.atsAnalysis ?? data?.job?.baseProfileAnalysis ?? null
+  );
+
   const { pushToast } = useToast();
 
-  const updateResume = useCallback((updates: Partial<Sanitize<ResumeJSON>>) => {
-    setResumeState((prev) => {
-      const updated = { ...prev, ...updates };
+  const updateResumeState = useCallback(
+    (updates: Partial<Sanitize<ResumeJSON>>, note?: string) => {
+      setResumeState((prev) => {
+        const updated = { ...prev, ...updates };
 
-      return updated;
-    });
-  }, []);
+        historyRef.current.addEntry(
+          { ...updated, ...updates },
+          note ?? "Resume updated"
+        );
 
-  const updateCustomization = useCallback(
+        return updated;
+      });
+    },
+    []
+  );
+
+  const updateCustomizationState = useCallback(
     (updates: Partial<SanitizedCustomization>) =>
       setCustomization((prev) => ({ ...prev, ...updates })),
     []
@@ -168,14 +199,15 @@ export function JobPageProvider({
     }, 2000);
   };
 
-  const onCopyText = () => {
+  const onCopyText = useCallback(() => {
     navigator.clipboard.writeText(generateContentText());
 
     pushToast({
       title: "Content copied to clipboard",
       variant: "success",
     });
-  };
+  }, [generateContentText, pushToast]);
+
   const { mutate: saveCoverLetter, status: coverLetterStatus } = useMutation({
     mutationFn: (data: {
       coverLetter: string;
@@ -218,17 +250,36 @@ export function JobPageProvider({
     },
   });
 
-  const saveToDb = useCallback(
-    <T extends EditorContentType>(
-      contentType: T,
-      data: T extends "resume" ? ResumeJSON : string,
-      customization: SanitizedCustomization
-    ) => {
-      if (contentType === "coverLetter")
-        saveCoverLetter({ coverLetter: data as string, customization });
-      else saveResume({ resume: data as ResumeJSON, customization });
+  const saveAtsAnalysisMutation = useMutation({
+    mutationFn: (data: { atsAnalysis: ATSAnalysisJSON }) =>
+      saveAtsAnalysisAction(jobId, data.atsAnalysis),
+    onSuccess: () => {
+      refetch(undefined, "resume");
+      logger.info("JobPageContext", "ATS analysis saved successfully");
     },
-    [saveCoverLetter, saveResume]
+    onError: (err) => {
+      const errorMsg =
+        err instanceof Error ? err.message : "Failed to save ATS analysis";
+      logger.error("JobPageContext", "Failed to save ATS analysis:", err);
+      pushToast({
+        title: "Save failed",
+        description: errorMsg,
+        variant: "error",
+      });
+    },
+  });
+
+  const saveToDb = useCallback(
+    (...args: SaveToDbArgs) => {
+      const [contentType, data, customization] = args;
+      if (contentType === "coverLetter")
+        saveCoverLetter({ coverLetter: data, customization });
+      else if (contentType === "resume")
+        saveResume({ resume: data, customization });
+      else if (contentType === "ats")
+        saveAtsAnalysisMutation.mutate({ atsAnalysis: data });
+    },
+    [saveCoverLetter, saveResume, saveAtsAnalysisMutation]
   );
 
   useEffect(() => {
@@ -272,33 +323,44 @@ export function JobPageProvider({
   }
 
   const job = data.job;
+  const saveStatus =
+    coverLetterStatus === "pending" ||
+    resumeStatus === "pending" ||
+    saveAtsAnalysisMutation.status === "pending"
+      ? "saving"
+      : coverLetterStatus === "error" ||
+          resumeStatus === "error" ||
+          saveAtsAnalysisMutation.status === "error"
+        ? "error"
+        : coverLetterStatus === "success" ||
+            resumeStatus === "success" ||
+            saveAtsAnalysisMutation.status === "success"
+          ? "saved"
+          : "idle";
+
   const value: JobPageContextType = {
+    atsAnalysis,
     contentType,
     coverLetter,
     customization,
-    job,
-    profile: data.profile,
-    resume: resume,
-    updateCoverLetter,
-    updateCustomization,
-    updateResume,
-    refetch,
-    isExportingPdf,
-    isExportingTxt,
-    onPDFExport,
-    onTXTExport,
-    onCopyText,
+    historyRef,
     isDirtyCoverLetter,
     isDirtyResume,
-    saveStatus:
-      coverLetterStatus === "pending" || resumeStatus === "pending"
-        ? "saving"
-        : coverLetterStatus === "error" || resumeStatus === "error"
-          ? "error"
-          : coverLetterStatus === "success" || resumeStatus === "success"
-            ? "saved"
-            : "idle",
+    isExportingPdf,
+    isExportingTxt,
+    job,
+    onCopyText,
+    onPDFExport,
+    onTXTExport,
+    profile: data.profile,
+    refetch,
+    resume,
+    saveStatus,
     saveToDb,
+    setAtsAnalysis,
+    updateCoverLetterState,
+    updateCustomizationState,
+    updateResumeState,
   };
 
   return (

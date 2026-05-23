@@ -81,7 +81,7 @@ function SortableItem({
 }
 
 export function SectionEditor({ section }: SectionEditorProps) {
-  const { resume, updateResume, job } = useJobPageContext();
+  const { resume, updateResumeState: updateResume, job } = useJobPageContext();
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -94,6 +94,7 @@ export function SectionEditor({ section }: SectionEditorProps) {
     const update = (key: keyof ContactInfo, value: string) => {
       updateResume({ header: { ...h, [key]: value } });
     };
+    if (!h) return null;
 
     return (
       <SectionShell
@@ -281,7 +282,7 @@ function SectionShell({
 type SensorsType = ReturnType<typeof useSensors>;
 
 function ExperienceEditor({ sensors }: { sensors: SensorsType }) {
-  const { resume, updateResume, job } = useJobPageContext();
+  const { resume, updateResumeState: updateResume, job } = useJobPageContext();
 
   const [expandedIndex, setExpandedIndex] = useState<number | null>(
     resume.experience.length > 0 ? 0 : null
@@ -506,7 +507,7 @@ function ExperienceItem({
 // ─── Education Editor ─────────────────────────────────────────────────────────
 
 function EducationEditor({ sensors }: { sensors: SensorsType }) {
-  const { resume, job, updateResume } = useJobPageContext();
+  const { resume, job, updateResumeState: updateResume } = useJobPageContext();
 
   const [expandedIndex, setExpandedIndex] = useState<number | null>(
     resume.education.length > 0 ? 0 : null
@@ -693,7 +694,7 @@ function EducationEditor({ sensors }: { sensors: SensorsType }) {
 // ─── Projects Editor ──────────────────────────────────────────────────────────
 
 function ProjectsEditor({ sensors }: { sensors: SensorsType }) {
-  const { resume, updateResume } = useJobPageContext();
+  const { resume, updateResumeState: updateResume } = useJobPageContext();
   const [expandedIndex, setExpandedIndex] = useState<number | null>(
     resume.projects.length > 0 ? 0 : null
   );
@@ -884,7 +885,7 @@ function ProjectsEditor({ sensors }: { sensors: SensorsType }) {
 // ─── Certifications Editor ─────────────────────────────────────────────────────
 
 function CertificationsEditor() {
-  const { resume, updateResume } = useJobPageContext();
+  const { resume, updateResumeState: updateResume } = useJobPageContext();
   const certs = resume.certifications || [];
 
   return (

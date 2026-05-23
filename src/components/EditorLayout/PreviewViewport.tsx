@@ -1,19 +1,14 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
-import {
-  AVAILABLE_TEMPLATES,
-  SanitizedCustomization,
-  TemplateType,
-} from "@/types/customization";
+import { useJobPageContext } from "@/contexts/JobPageContext";
+import { simpleI32HashString, toStableJsonString } from "@/lib";
+import { AVAILABLE_TEMPLATES, TemplateType } from "@/types/customization";
 
 import { Button, Icon, Select } from "../ui";
 
 type Props = {
   previewContent: React.ReactNode;
-  onCopyText: () => void;
-  rerender?: number | string; // Used to trigger re-measurement when content changes
-  customization?: SanitizedCustomization; // Include customization in dependencies to trigger re-measurement when it changes
-  updateCustomization?: (updates: Partial<SanitizedCustomization>) => void; // Include in dependencies if it can change
+  showTemplateSelector?: boolean;
 };
 
 const A4_WIDTH_MM = 210;
@@ -31,11 +26,24 @@ function clampZoom(zoom: number): number {
 
 const PreviewViewport: React.FC<Props> = ({
   previewContent,
-  onCopyText,
-  rerender,
-  customization, // Include customization in dependencies to trigger re-measurement when it changes
-  updateCustomization,
+  showTemplateSelector = false,
 }) => {
+  const {
+    customization,
+    onCopyText,
+    contentType,
+    coverLetter,
+    resume,
+    updateCustomizationState: updateCustomization,
+  } = useJobPageContext();
+
+  const rerenderHash = simpleI32HashString(
+    toStableJsonString(customization) +
+      (contentType === "coverLetter"
+        ? toStableJsonString(coverLetter)
+        : toStableJsonString(resume))
+  );
+
   const [zoomScale, setZoomScale] = useState(1);
   const [isFitMode, setIsFitMode] = useState(true);
   const [renderHeightPx, setRenderHeightPx] = useState(A4_HEIGHT_PX);
@@ -56,7 +64,7 @@ const PreviewViewport: React.FC<Props> = ({
     const observer = new ResizeObserver(measureHeight);
     observer.observe(pageEl);
     return () => observer.disconnect();
-  }, [rerender]);
+  }, [rerenderHash]);
 
   const zoomPercent = Math.round(zoomScale * 100);
   const scaledWidthPx = A4_WIDTH_PX * zoomScale;
@@ -97,19 +105,19 @@ const PreviewViewport: React.FC<Props> = ({
 
   return (
     <div
-      className="flex min-w-0 flex-1 flex-col overflow-y-auto border-r p-6"
+      className="flex h-full flex-1 flex-col overflow-y-auto p-6"
       style={{ borderColor: "var(--color-agent-outline-variant)" }}
     >
       <div className="mb-4 flex items-center justify-between">
         <div className="flex items-center gap-2">
-          {customization && updateCustomization && (
+          {showTemplateSelector && (
             <Select
               value={customization.template}
               options={AVAILABLE_TEMPLATES.map((t) => t.id)}
               onChange={(value) =>
                 updateCustomization({ template: value as TemplateType })
               }
-            ></Select>
+            />
           )}
           <div className="flex-1" />
           <Button

@@ -4,6 +4,7 @@
 
 import React from "react";
 
+import { simpleI32HashString, toStableJsonString } from "@/lib";
 import { SanitizedCustomization, TemplateType } from "@/types/customization";
 import { ResumeJSON } from "@/types/resume";
 
@@ -38,5 +39,13 @@ export const TemplateRenderer: React.FC<TemplateRendererProps> = ({
   const template = customization.template as TemplateType;
   const TemplateComponent = templateMap[template] || ModernMinimalTemplate;
 
-  return <TemplateComponent resume={resume} customization={customization} />;
+  const rerenderHash = simpleI32HashString(toStableJsonString(customization));
+
+  return (
+    <TemplateComponent
+      key={rerenderHash}
+      resume={resume}
+      customization={customization}
+    />
+  );
 };

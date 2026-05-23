@@ -221,7 +221,7 @@ export function Autocomplete({
             />
           ) : (
             <Icon
-              name={isOpen ? "chevron-up" : "chevron-down"}
+              name={isOpen ? "chevronUp" : "chevronDown"}
               className="h-4 w-4 text-gray-400"
             />
           )}

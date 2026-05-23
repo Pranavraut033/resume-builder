@@ -8,6 +8,7 @@ import { useState } from "react";
 
 import { useJobPageContext } from "@/contexts/JobPageContext";
 
+import { ChatFAB } from "./chat";
 import EditorLayout from "./EditorLayout";
 // import { ResumeChatAssistant } from "./resume/ResumeChatAssistant";
 import { ResumeSectionNav, SectionId } from "./resume/ResumeSectionNav";
@@ -24,41 +25,35 @@ function ResumeEditor() {
   );
 
   return (
-    <EditorLayout
-      title=""
-      description=""
-      onSave={() => saveToDb("resume", resume, customization)}
-      leftSection={
-        <ResumeSectionNav
-          activeSection={activeSection}
-          onSectionChange={setActiveSection}
-        />
-      }
-      livePreviewContent={preview}
-      exportContent={preview}
-      mainSection={
-        <main
-          className="flex min-w-0 flex-1 flex-col overflow-y-auto"
-          style={{ background: "var(--color-agent-surface-low)" }}
-        >
-          <div className="min-h-full px-4 py-4 md:px-6 md:py-5 lg:px-8 lg:py-6">
-            <div className="mx-auto w-full max-w-4xl">
-              <SectionEditor section={activeSection} />
+    <>
+      <EditorLayout
+        title=""
+        description=""
+        onSave={() => saveToDb("resume", resume, customization)}
+        leftSection={
+          <ResumeSectionNav
+            activeSection={activeSection}
+            onSectionChange={setActiveSection}
+          />
+        }
+        livePreviewContent={preview}
+        exportContent={preview}
+        mainSection={
+          <main
+            className="flex min-w-0 flex-1 flex-col overflow-y-auto"
+            style={{ background: "var(--color-agent-surface-low)" }}
+          >
+            <div className="min-h-full px-4 py-4 md:px-6 md:py-5 lg:px-8 lg:py-6">
+              <div className="mx-auto w-full max-w-4xl">
+                <SectionEditor section={activeSection} />
+              </div>
             </div>
-          </div>
-        </main>
-      }
-    />
+          </main>
+        }
+      />
+      <ChatFAB />
+    </>
   );
-  {
-    /*
-      {activeTab === "edit" && (
-        <ResumeChatAssistant
-          resume={resume}
-          onApplyResume={handleResumeChange}
-        />
-      )} */
-  }
 }
 
 export default ResumeEditor;

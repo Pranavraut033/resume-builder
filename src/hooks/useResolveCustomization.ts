@@ -1,9 +1,8 @@
-import { Customization } from "@prisma/client";
-
 import {
   FontSize,
   Leading,
   MarginSize,
+  SanitizedCustomization,
   ThemeColors,
 } from "@/types/customization";
 
@@ -25,7 +24,9 @@ const letterSpacingMap: Record<Leading, string> = {
   large: "tracking-wide",
 };
 
-export default function useResolveCustomization(customization: Customization) {
+export default function useResolveCustomization(
+  customization: SanitizedCustomization
+) {
   const { colors, fontSize, fontFamily, lineHeight, marginSize } =
     customization;
 

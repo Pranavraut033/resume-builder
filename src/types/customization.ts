@@ -50,14 +50,16 @@ export const DEFAULT_CUSTOMIZATION: SanitizedCustomization = {
   marginSize: "normal",
 };
 
-export const AVAILABLE_TEMPLATES: Array<{
+export type Template = {
   id: TemplateType;
   name: string;
   description: string;
   fontFamily: string;
   features: string[];
   bestFor: string;
-}> = [
+};
+
+export const AVAILABLE_TEMPLATES: Array<Template> = [
   {
     id: "tech-sidebar",
     name: "Tech Sidebar",
@@ -138,11 +140,11 @@ export const AVAILABLE_FONTS = [
 const VALID_TEMPLATE_IDS = new Set(
   AVAILABLE_TEMPLATES.map((template) => template.id)
 );
-const VALID_FONT_FAMILIES = new Set(AVAILABLE_FONTS);
-const VALID_PAGE_FORMATS: PageFormat[] = ["letter", "a4"];
-const VALID_FONT_SIZES: FontSize[] = ["small", "medium", "large"];
-const VALID_MARGIN_SIZES: MarginSize[] = ["narrow", "normal", "wide"];
-const VALID_LETTER_SPACINGS: Leading[] = ["small", "medium", "large"];
+export const VALID_FONT_FAMILIES = new Set(AVAILABLE_FONTS);
+export const VALID_PAGE_FORMATS: PageFormat[] = ["letter", "a4"];
+export const VALID_FONT_SIZES: FontSize[] = ["small", "medium", "large"];
+export const VALID_MARGIN_SIZES: MarginSize[] = ["narrow", "normal", "wide"];
+export const VALID_LETTER_SPACINGS: Leading[] = ["small", "medium", "large"];
 
 const HEX_COLOR_REGEX = /^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/;
 

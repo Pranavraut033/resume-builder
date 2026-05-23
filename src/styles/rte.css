@@ -88,7 +88,7 @@
   padding: 0.75rem 1rem;
   outline: none;
   line-height: 1.6;
-  color: hsl(var(--foreground, 222 47% 11%));
+  color: currentColor;
   font-size: 0.9375rem;
 }
 

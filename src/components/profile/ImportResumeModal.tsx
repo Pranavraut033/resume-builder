@@ -28,7 +28,6 @@ export function ImportResumeModal({
   const [importing, setImporting] = useState(false);
   const { pushToast } = useToast();
   const selectedModel = useModelStore((state) => state.activeModelPair);
-  console.log({ selectedModel });
 
   const handleImport = async () => {
     if (!resumeText.trim()) {

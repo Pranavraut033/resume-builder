@@ -12,14 +12,21 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { ReactNode, useMemo, useState } from "react";
 
+import {
+  AnthropicIcon,
+  OpenAIIcon,
+  GrokIcon,
+  GeminiIcon,
+  OllamaIcon,
+  PerplexityIcon,
+} from "@/components/icons";
 import { Icon } from "@/components/ui/Icon";
 import { Modal } from "@/components/ui/Modal";
 import { getAvailableProviders } from "@/lib/llm/providers";
 import { useModelStore } from "@/store/modelStore";
 import { ProviderType } from "@/types/llm";
-
 interface ModelSelectorProps {
   /** Callback when user selects a model. Emits {model, provider} */
   onModelSelected?: (model: string, provider: ProviderType) => void;
@@ -28,14 +35,15 @@ interface ModelSelectorProps {
   variant?: "normal" | "compact";
 }
 
-// Provider color mapping
-const PROVIDER_COLORS: Record<ProviderType, string> = {
-  [ProviderType.OPENAI]: "#10a37f",
-  [ProviderType.GEMINI]: "#4285f4",
-  [ProviderType.GROK]: "#000000",
-  [ProviderType.OLLAMA]: "#fb542b",
-  [ProviderType.PERPLEXITY]: "#0066cc",
-  [ProviderType.ANTHROPIC]: "#ff5c93",
+export const PROVIDER_ICONS: Record<ProviderType, ReactNode> = {
+  [ProviderType.OPENAI]: (
+    <OpenAIIcon className="text-agent-on-primary-container h-4 w-4 scale-150 transform" />
+  ),
+  [ProviderType.GEMINI]: <GeminiIcon className="h-4 w-4" />,
+  [ProviderType.GROK]: <GrokIcon className="h-4 w-4" />,
+  [ProviderType.OLLAMA]: <OllamaIcon className="h-4 w-4" />,
+  [ProviderType.PERPLEXITY]: <PerplexityIcon className="h-4 w-4" />,
+  [ProviderType.ANTHROPIC]: <AnthropicIcon className="h-4 w-4" />,
 };
 
 // Build provider info map
@@ -90,9 +98,6 @@ export function ModelSelector({
   const selectedProviderInfo = activeModelPair
     ? PROVIDER_INFO[activeModelPair[0]]
     : undefined;
-  const selectedProviderColor = activeModelPair
-    ? PROVIDER_COLORS[activeModelPair[0]]
-    : undefined;
   const showButtonTrigger = variant === "compact" || !activeModelPair;
 
   // Show error state if no models configured
@@ -130,14 +135,8 @@ export function ModelSelector({
               border: "1px solid var(--color-agent-outline-variant)",
             }}
           >
-            <div
-              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-white"
-              style={{ background: selectedProviderColor }}
-            >
-              <Icon
-                name={selectedProviderInfo?.icon || "zap"}
-                className="h-4 w-4"
-              />
+            <div className="bg-agent-primary-container flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-white">
+              {PROVIDER_ICONS[activeModelPair[0]]}
             </div>
             <div className="min-w-0 flex-1">
               <p
@@ -154,7 +153,7 @@ export function ModelSelector({
               </p>
             </div>
             <Icon
-              name="chevron-down"
+              name="chevronDown"
               className="text-agent-on-surface-variant h-4 w-4 shrink-0"
             />
           </button>
@@ -183,14 +182,14 @@ export function ModelSelector({
           }}
         >
           <div className="flex items-center gap-2">
-            <Icon name="sliders-horizontal" className="h-4 w-4" />
+            <Icon name="slidersHorizontal" className="h-4 w-4" />
             <span>
               {variant === "compact" && activeModelPair
                 ? `${activeModelPair[0]} - ${activeModelPair[1]}`
                 : label}
             </span>
           </div>
-          <Icon name="chevron-down" className="h-4 w-4 opacity-60" />
+          <Icon name="chevronDown" className="h-4 w-4 opacity-60" />
         </button>
       ) : null}
 
@@ -204,17 +203,13 @@ export function ModelSelector({
         <div className="space-y-5">
           {preselectedByProvider.map(({ provider, models }) => {
             const providerInfo = PROVIDER_INFO[provider];
-            const providerColor = PROVIDER_COLORS[provider];
 
             return (
               <div key={provider}>
                 {/* Provider Header */}
                 <div className="mb-3 flex items-center gap-2">
-                  <div
-                    className="flex h-6 w-6 items-center justify-center rounded-lg text-xs font-semibold text-white"
-                    style={{ background: providerColor }}
-                  >
-                    <Icon name={providerInfo.icon} className="h-3.5 w-3.5" />
+                  <div className="flex h-6 w-6 items-center justify-center rounded-lg text-xs font-semibold text-white">
+                    {PROVIDER_ICONS[provider]}
                   </div>
                   <p
                     className="text-sm font-semibold"

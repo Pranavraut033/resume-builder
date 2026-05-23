@@ -20,19 +20,24 @@ export const ModernMinimalTemplate: React.FC<TemplateRendererProps> = ({
     backgroundColor,
     textSize,
     fontFamily,
-    today,
+    today: _today,
     marginClass,
     lineHeight,
     headingSize,
   } = useResolveCustomization(customization);
 
+  const pageFormatClass =
+    customization.pageFormat === "letter"
+      ? "min-h-[11in] w-[8.5in]"
+      : "min-h-264 w-204";
+
   return (
     <div
-      className="resume-content mx-auto bg-white p-12 shadow-lg"
+      className={`resume-content mx-auto bg-white p-12 shadow-lg ${marginClass} ${pageFormatClass}`}
       style={{
-        fontFamily: fontFamily,
+        fontFamily,
         color: textColor,
-        backgroundColor: backgroundColor,
+        backgroundColor,
       }}
     >
       {/* Header */}
@@ -43,7 +48,15 @@ export const ModernMinimalTemplate: React.FC<TemplateRendererProps> = ({
         <h1 className="mb-2 text-4xl font-bold" style={{ color: primaryColor }}>
           {resume.header.name}
         </h1>
-        <div className={`${textSize} space-y-1 text-gray-600`}>
+        {resume.header.headline && (
+          <div
+            className={`${textSize} ${lineHeight} mb-2 font-medium`}
+            style={{ color: accentColor }}
+          >
+            {resume.header.headline}
+          </div>
+        )}
+        <div className={`${textSize} ${lineHeight} space-y-1 text-gray-600`}>
           <div className="flex flex-wrap gap-4">
             {resume.header.email && <span>✉ {resume.header.email}</span>}
             {resume.header.phone && <span>📞 {resume.header.phone}</span>}
@@ -90,7 +103,9 @@ export const ModernMinimalTemplate: React.FC<TemplateRendererProps> = ({
           >
             Professional Summary
           </h2>
-          <p className={`${textSize} leading-relaxed text-gray-700`}>
+          <p
+            className={`${textSize} ${lineHeight} leading-relaxed text-gray-700`}
+          >
             {resume.summary}
           </p>
         </section>
@@ -108,7 +123,7 @@ export const ModernMinimalTemplate: React.FC<TemplateRendererProps> = ({
           <div className="space-y-4">
             {resume.experience.map((exp, index) => (
               <div key={index}>
-                <div className="mb-1 flex items-start justify-between">
+                <div className="mb-1 flex items-start justify-between gap-4">
                   <div>
                     <h3
                       className="font-semibold"
@@ -116,18 +131,22 @@ export const ModernMinimalTemplate: React.FC<TemplateRendererProps> = ({
                     >
                       {exp.role}
                     </h3>
-                    <p className={`${textSize} text-gray-600`}>{exp.company}</p>
+                    <p className={`${textSize} ${lineHeight} text-gray-600`}>
+                      {exp.company}
+                    </p>
                   </div>
                   <span className={`${textSize} text-gray-500`}>
                     {exp.startDate} - {exp.endDate || "Present"}
                   </span>
                 </div>
-                <p className={`${textSize} mb-2 text-gray-700`}>
-                  {exp.description}
-                </p>
+                {exp.description && (
+                  <p className={`${textSize} ${lineHeight} mb-2 text-gray-700`}>
+                    {exp.description}
+                  </p>
+                )}
                 {exp.achievements.length > 0 && (
                   <ul
-                    className={`${textSize} list-inside list-disc space-y-1 text-gray-700`}
+                    className={`${textSize} ${lineHeight} list-inside list-disc space-y-1 text-gray-700`}
                   >
                     {exp.achievements.map((achievement, i) => (
                       <li key={i}>{achievement}</li>
@@ -164,13 +183,22 @@ export const ModernMinimalTemplate: React.FC<TemplateRendererProps> = ({
                     </a>
                   )}
                 </h3>
-                <p className={`${textSize} mb-1 text-gray-700`}>
+                {(project.startDate || project.endDate) && (
+                  <div className={`${textSize} text-gray-500`}>
+                    {project.startDate || ""}
+                    {project.startDate || project.endDate ? " - " : ""}
+                    {project.endDate || "Present"}
+                  </div>
+                )}
+                <p className={`${textSize} ${lineHeight} mb-1 text-gray-700`}>
                   {project.description}
                 </p>
-                <div className={`${textSize} text-gray-600`}>
-                  <span className="font-medium">Technologies:</span>{" "}
-                  {project.technologies.join(", ")}
-                </div>
+                {project.technologies.length > 0 && (
+                  <div className={`${textSize} text-gray-600`}>
+                    <span className="font-medium">Technologies:</span>{" "}
+                    {project.technologies.join(", ")}
+                  </div>
+                )}
               </div>
             ))}
           </div>
@@ -186,7 +214,7 @@ export const ModernMinimalTemplate: React.FC<TemplateRendererProps> = ({
           >
             Skills
           </h2>
-          <div className={`${textSize} text-gray-700`}>
+          <div className={`${textSize} ${lineHeight} text-gray-700`}>
             {resume.skills.join(" • ")}
           </div>
         </section>
@@ -204,15 +232,16 @@ export const ModernMinimalTemplate: React.FC<TemplateRendererProps> = ({
           <div className="space-y-3">
             {resume.education.map((edu, index) => (
               <div key={index}>
-                <div className="flex items-start justify-between">
+                <div className="flex items-start justify-between gap-4">
                   <div>
                     <h3
                       className="font-semibold"
                       style={{ color: accentColor }}
                     >
-                      {edu.degree} in {edu.field}
+                      {edu.degree}
+                      {edu.field && ` in ${edu.field}`}
                     </h3>
-                    <p className={`${textSize} text-gray-600`}>
+                    <p className={`${textSize} ${lineHeight} text-gray-600`}>
                       {edu.institution}
                     </p>
                   </div>
@@ -231,7 +260,7 @@ export const ModernMinimalTemplate: React.FC<TemplateRendererProps> = ({
 
       {/* Certifications */}
       {resume.certifications.length > 0 && (
-        <section>
+        <section className="mb-6">
           <h2
             className={`${headingSize} mb-3 border-b pb-1 font-semibold`}
             style={{ color: primaryColor, borderColor: secondaryColor }}
@@ -256,6 +285,128 @@ export const ModernMinimalTemplate: React.FC<TemplateRendererProps> = ({
                     </a>
                   )}
                 </p>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* Publications */}
+      {resume.publications && resume.publications.length > 0 && (
+        <section className="mb-6">
+          <h2
+            className={`${headingSize} mb-3 border-b pb-1 font-semibold`}
+            style={{ color: primaryColor, borderColor: secondaryColor }}
+          >
+            Publications
+          </h2>
+          <div className="space-y-3">
+            {resume.publications.map((publication, index) => (
+              <div key={index}>
+                <h3 className="font-semibold" style={{ color: accentColor }}>
+                  {publication.title}
+                </h3>
+                <p className={`${textSize} ${lineHeight} text-gray-700`}>
+                  {publication.authors.join(", ")}
+                </p>
+                <p className={`${textSize} text-gray-600`}>
+                  {publication.venue} • {publication.date}
+                  {publication.doi && ` • DOI: ${publication.doi}`}
+                  {publication.url && (
+                    <a
+                      href={publication.url}
+                      className="ml-2 hover:underline"
+                      style={{ color: secondaryColor }}
+                    >
+                      [View]
+                    </a>
+                  )}
+                </p>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* Languages */}
+      {resume.languages && resume.languages.length > 0 && (
+        <section className="mb-6">
+          <h2
+            className={`${headingSize} mb-3 border-b pb-1 font-semibold`}
+            style={{ color: primaryColor, borderColor: secondaryColor }}
+          >
+            Languages
+          </h2>
+          <div className={`${textSize} ${lineHeight} text-gray-700`}>
+            {resume.languages
+              .map((language) => `${language.name} (${language.proficiency})`)
+              .join(" • ")}
+          </div>
+        </section>
+      )}
+
+      {/* Volunteer */}
+      {resume.volunteer && resume.volunteer.length > 0 && (
+        <section className="mb-6">
+          <h2
+            className={`${headingSize} mb-3 border-b pb-1 font-semibold`}
+            style={{ color: primaryColor, borderColor: secondaryColor }}
+          >
+            Volunteer Experience
+          </h2>
+          <div className="space-y-4">
+            {resume.volunteer.map((item, index) => (
+              <div key={index}>
+                <div className="mb-1 flex items-start justify-between gap-4">
+                  <div>
+                    <h3
+                      className="font-semibold"
+                      style={{ color: accentColor }}
+                    >
+                      {item.role}
+                    </h3>
+                    <p className={`${textSize} ${lineHeight} text-gray-600`}>
+                      {item.organization}
+                    </p>
+                  </div>
+                  <span className={`${textSize} text-gray-500`}>
+                    {item.startDate} - {item.endDate || "Present"}
+                  </span>
+                </div>
+                {item.description && (
+                  <p className={`${textSize} ${lineHeight} text-gray-700`}>
+                    {item.description}
+                  </p>
+                )}
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* Awards */}
+      {resume.awards && resume.awards.length > 0 && (
+        <section>
+          <h2
+            className={`${headingSize} mb-3 border-b pb-1 font-semibold`}
+            style={{ color: primaryColor, borderColor: secondaryColor }}
+          >
+            Awards
+          </h2>
+          <div className="space-y-2">
+            {resume.awards.map((award, index) => (
+              <div key={index}>
+                <h3 className="font-semibold" style={{ color: accentColor }}>
+                  {award.title}
+                </h3>
+                <p className={`${textSize} text-gray-600`}>
+                  {award.issuer} • {award.date}
+                </p>
+                {award.description && (
+                  <p className={`${textSize} ${lineHeight} text-gray-700`}>
+                    {award.description}
+                  </p>
+                )}
               </div>
             ))}
           </div>

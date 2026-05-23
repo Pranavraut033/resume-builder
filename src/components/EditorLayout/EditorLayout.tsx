@@ -1,10 +1,12 @@
 import { useEffect, useRef, useState } from "react";
 
 import { useJobPageContext } from "@/contexts/JobPageContext";
+import { HistoryChangeListener } from "@/lib/llm/ResumeHistory";
 
 import BackButton from "../BackButton";
 import { FinalReviewExportLayout } from "./FinalReviewExportLayoutProps";
 import PreviewViewport from "./PreviewViewport";
+import { Button, Icon } from "../ui";
 import { SaveButton } from "../ui/SaveButton";
 
 type EditorLayoutProps = {
@@ -31,15 +33,9 @@ export default function EditorLayout({
   onSave,
 }: EditorLayoutProps) {
   const {
-    onPDFExport,
-    onTXTExport,
-    onCopyText,
-    customization,
-    isExportingPdf,
-    isExportingTxt,
-    updateCustomization,
     saveStatus,
     isDirtyCoverLetter,
+    historyRef,
     isDirtyResume,
     contentType,
   } = useJobPageContext();
@@ -48,6 +44,29 @@ export default function EditorLayout({
   const [previewWidth, setPreviewWidth] = useState<number>(416);
   const [isResizingPreview, setIsResizingPreview] = useState(false);
   const resizeStartRef = useRef<{ x: number; width: number } | null>(null);
+  const [historyState, setHistoryState] = useState<{
+    canUndo: boolean;
+    canRedo: boolean;
+    redoLabel: string | null;
+    undoLabel: string | null;
+  }>({ canUndo: false, canRedo: false, redoLabel: null, undoLabel: null });
+
+  useEffect(() => {
+    const history = historyRef.current;
+    if (!history) return;
+
+    const listener: HistoryChangeListener = (
+      canUndo,
+      canRedo,
+      redoLabel,
+      undoLabel
+    ) => {
+      setHistoryState({ canUndo, canRedo, redoLabel, undoLabel });
+    };
+    history.addHistoryChangeListener(listener);
+
+    return () => history.removeHistoryChangeListener(listener);
+  }, [historyRef]);
 
   useEffect(() => {
     if (!isResizingPreview) return;
@@ -127,6 +146,26 @@ export default function EditorLayout({
                 >
                   {description}
                 </p>
+              </div>
+              <div className="flex items-center gap-1">
+                <Button
+                  className="rounded-full"
+                  variant="ghost"
+                  title={historyState.undoLabel || "Undo"}
+                  onClick={() => historyRef.current?.undo()}
+                  disabled={!historyState.canUndo}
+                >
+                  <Icon name="undo"></Icon>
+                </Button>
+                <Button
+                  className="rounded-full"
+                  variant="ghost"
+                  title={historyState.redoLabel || "Redo"}
+                  onClick={() => historyRef.current?.redo()}
+                  disabled={!historyState.canRedo}
+                >
+                  <Icon name="redo"></Icon>
+                </Button>
               </div>
               <div className="flex-1" />
 
@@ -233,11 +272,8 @@ export default function EditorLayout({
                       >
                         <div className="origin-top-left">
                           <PreviewViewport
-                            customization={customization}
-                            updateCustomization={updateCustomization}
+                            showTemplateSelector
                             previewContent={livePreviewContent}
-                            onCopyText={onCopyText}
-                            rerender={customization.template} // Re-measure when template changes
                           />
                         </div>
                       </div>
@@ -246,16 +282,7 @@ export default function EditorLayout({
                 </div>
               </div>
             ) : (
-              <FinalReviewExportLayout
-                customization={customization}
-                onCustomizationChange={updateCustomization}
-                onPDFExport={onPDFExport}
-                onTXTExport={onTXTExport}
-                onCopyText={onCopyText}
-                previewContent={livePreviewContent}
-                isExportingPdf={isExportingPdf}
-                isExportingTxt={isExportingTxt}
-              />
+              <FinalReviewExportLayout previewContent={livePreviewContent} />
             )}
           </div>
         </div>
