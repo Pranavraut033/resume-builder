@@ -9,18 +9,35 @@ import {
   LLMResult,
   PromptMessage,
   ProviderType,
+  ToolDefinition,
 } from "@/types/llm";
 
 import { LLMProvider, StructureResult } from "./LLMProvider";
 import { PromptPurpose, ResolvedPrompt } from "../prompts";
 
 const logger = createLogger("Anthropic");
-
 export class AnthropicProvider extends LLMProvider {
-  public readonly providerType = ProviderType.ANTHROPIC;
+  public get providerType(): ProviderType {
+    return ProviderType.ANTHROPIC;
+  }
+  public get streamSupported(): boolean {
+    return true;
+  }
 
   validateConnection(): Promise<{ success: boolean; message: string }> {
     throw new Error("Method not implemented.");
+  }
+
+  // In your Claude adapter
+  private toClaudeTool(tool: ToolDefinition): Anthropic.Tool {
+    return {
+      name: tool.name,
+      description: tool.description,
+      input_schema: {
+        ...tool.parameters,
+        type: "object",
+      } satisfies Anthropic.Tool["input_schema"],
+    };
   }
 
   private client: Anthropic;
@@ -72,13 +89,7 @@ export class AnthropicProvider extends LLMProvider {
   private toAnthropicRequest(
     messages: PromptMessage[],
     options: LLMGenerationOptions
-  ): {
-    model: string;
-    max_tokens: number;
-    messages: Array<{ role: "user" | "assistant"; content: string }>;
-    system?: string;
-    temperature?: number;
-  } {
+  ): Anthropic.Messages.MessageCreateParams {
     const system = messages
       .filter((message) => message.role === "system")
       .map((message) => message.content)
@@ -110,49 +121,131 @@ export class AnthropicProvider extends LLMProvider {
       messages: requestMessages,
       ...(system ? { system } : {}),
       ...(temperature !== undefined ? { temperature } : {}),
+      tools: options.tools?.map((tool) => this.toClaudeTool(tool)),
+      stream: !!options.stream,
     };
   }
 
-  async runLLM<T>(
+  isResponseStream(
+    result: unknown
+  ): result is AsyncIterable<Anthropic.Messages.RawMessageStreamEvent> {
+    return typeof result === "object" && result !== null && "choices" in result;
+  }
+
+  runLLM(
+    messages: PromptMessage[],
+    options: LLMGenerationOptions & { stream: true }
+  ): AsyncGenerator<string>;
+
+  runLLM(
+    messages: PromptMessage[],
+    options: LLMGenerationOptions & { stream?: false; onUsage?: never }
+  ): Promise<LLMResult<string>>;
+
+  runLLM(
     messages: PromptMessage[],
     options: LLMGenerationOptions
-  ): Promise<LLMResult<T>> {
+  ): Promise<LLMResult<string>> | AsyncGenerator<string> {
+    if (options.stream === true) {
+      return this.runStreamedLLM(messages, options);
+    }
     const promptText = messages.map((message) => message.content).join("\n\n");
 
-    try {
-      const response = await this.client.messages.create(
-        this.toAnthropicRequest(messages, options)
-      );
+    return this.client.messages
+      .create({ ...this.toAnthropicRequest(messages, options), stream: false })
+      .then((response) => {
+        const content = this.extractTextResponse(response);
+        const usage = response.usage
+          ? this.normalizeUsage({
+              usage: response.usage,
+              model: options.model,
+              purpose: "generate_text",
+            })
+          : this.estimateTokenUsage({
+              inputPrompt: promptText,
+              outputText: content,
+              model: options.model,
+              purpose: "generate_text",
+              provider: this.providerType,
+            });
 
-      const content = this.extractTextResponse(response);
-      const usage = response.usage
+        return {
+          result: content,
+          usage,
+        };
+      })
+      .catch((err: unknown) => {
+        const error = err as Record<string, unknown>;
+        logger.error("runLLM failed", {
+          error: err,
+          message: error?.message,
+        });
+        throw new Error(
+          `Anthropic runLLM failed: ${String(error?.message) || err}`
+        );
+      });
+  }
+
+  private async *runStreamedLLM(
+    messages: PromptMessage[],
+    options: LLMGenerationOptions
+  ): AsyncGenerator<string> {
+    const promptText = messages.map((message) => message.content).join("\n\n");
+    const stream = this.client.messages.stream({
+      ...this.toAnthropicRequest(messages, options),
+    });
+    const finalUsage: Anthropic.Messages.Usage = {
+      input_tokens: 0,
+      output_tokens: 0,
+      cache_creation: null,
+      cache_creation_input_tokens: null,
+      cache_read_input_tokens: null,
+      inference_geo: null,
+      server_tool_use: null,
+      service_tier: null,
+    };
+
+    for await (const event of stream) {
+      if (event.type === "message_start") {
+        finalUsage.input_tokens = event.message.usage.input_tokens;
+        finalUsage.cache_creation = event.message.usage.cache_creation;
+        finalUsage.cache_creation_input_tokens =
+          event.message.usage.cache_creation_input_tokens;
+        finalUsage.cache_read_input_tokens =
+          event.message.usage.cache_read_input_tokens;
+        finalUsage.inference_geo = event.message.usage.inference_geo;
+        finalUsage.server_tool_use = event.message.usage.server_tool_use;
+        finalUsage.service_tier = event.message.usage.service_tier;
+      }
+
+      if (
+        event.type === "content_block_delta" &&
+        event.delta.type === "text_delta"
+      ) {
+        yield event.delta.text;
+      }
+
+      if (event.type === "message_delta") {
+        finalUsage.output_tokens = event.usage.output_tokens;
+        finalUsage.server_tool_use = event.usage.server_tool_use;
+      }
+    }
+
+    options.onUsage?.(
+      finalUsage
         ? this.normalizeUsage({
-            usage: response.usage,
+            usage: finalUsage,
             model: options.model,
             purpose: "generate_text",
           })
         : this.estimateTokenUsage({
             inputPrompt: promptText,
-            outputText: content,
+            outputText: "",
             model: options.model,
             purpose: "generate_text",
             provider: this.providerType,
-          });
-
-      return {
-        result: content as T,
-        usage,
-      };
-    } catch (err: unknown) {
-      const error = err as Record<string, unknown>;
-      logger.error("runLLM failed", {
-        error: err,
-        message: error?.message,
-      });
-      throw new Error(
-        `Anthropic runLLM failed: ${String(error?.message) || err}`
-      );
-    }
+          })
+    );
   }
 
   async runStructuredLLM<TSchema extends z.ZodType>(
@@ -166,6 +259,7 @@ export class AnthropicProvider extends LLMProvider {
 
     const response = await this.client.messages.parse({
       ...this.toAnthropicRequest(messages, options),
+      stream: false, // Structured parsing doesn't support streaming
       output_config: {
         format: zodOutputFormat(zodSchema),
       },

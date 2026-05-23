@@ -1,4 +1,4 @@
-import { JobDetailsJSON, ResumeJSON } from "@/types/resume";
+import { ATSAnalysisJSON, JobDetailsJSON, ResumeJSON } from "@/types/resume";
 
 import type { ZodSchema } from "zod";
 
@@ -6,6 +6,7 @@ export interface PromptContext {
   baseProfile?: ResumeJSON | null;
   resume?: ResumeJSON | null;
   jobDetails?: JobDetailsJSON | null;
+  atsAnalysis?: ATSAnalysisJSON | null;
   jobDescription?: string;
   resumeText?: string;
   field?: string;

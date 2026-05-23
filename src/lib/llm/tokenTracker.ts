@@ -22,7 +22,6 @@ export async function trackTokenUsage(data: LLMUsageInfo): Promise<void> {
     model: data.model,
     tokens: (data.promptTokens || 0) + (data.completionTokens || 0),
   });
-  console.log({ data });
 
   await createTokenUsage({
     ...data,

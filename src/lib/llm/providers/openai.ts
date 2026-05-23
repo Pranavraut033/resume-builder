@@ -7,10 +7,12 @@ import { OpenAICompatibleProvider } from "./openaiCompatibleProvider";
 const logger = createLogger("OpenAI");
 
 export class OpenAIProvider extends OpenAICompatibleProvider {
-  public readonly providerType = ProviderType.OPENAI;
-
   constructor(apiKey: string) {
     super({ apiKey });
+  }
+
+  get providerType(): ProviderType {
+    return ProviderType.OPENAI;
   }
 
   textGenModelRegex = /^gpt-(3\.5|4(o)?(\.\d+)?|5(o)?(\.\d+)?)(-(mini|nano))?$/;

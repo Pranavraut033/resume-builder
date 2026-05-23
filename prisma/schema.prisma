@@ -13,6 +13,9 @@ datasource db {
 model Profile {
   id Int @id @default(autoincrement())
 
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @default(now()) @map("updated_at")
+
   // Header / Contact Info
   name     String
   email    String
@@ -46,9 +49,6 @@ model Profile {
   // Awards/Honors (optional)
   awardsJson String? @map("awards_json")
 
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @default(now()) @map("updated_at")
-
   @@map("profiles")
 }
 
@@ -75,7 +75,7 @@ model Contact {
   contactPhone             String?  @map("contact_phone")
   contactWhatsappAvailable Boolean? @map("contact_whatsapp_available")
 
-  jobs Job[]
+  jobs Job?
 
   @@map("contacts")
 }
@@ -93,14 +93,16 @@ model Job {
   url            String? @map("url") // Optional URL source for the job posting
 
   // Relations & Foreign Keys
-  companyId     Int?         @map("company_id")
-  contactId     Int?         @map("contact_id")
-  resumeId      Int?         @unique @map("resume_id")
-  coverLetterId Int?         @unique @map("cover_letter_id")
-  resume        Resume?      @relation(fields: [resumeId], references: [id])
-  coverLetter   CoverLetter? @relation(fields: [coverLetterId], references: [id])
-  company       Company?     @relation(fields: [companyId], references: [id], onDelete: SetNull)
-  contact       Contact?     @relation(fields: [contactId], references: [id], onDelete: SetNull)
+  companyId           Int          @map("company_id")
+  contactId           Int?         @unique @map("contact_id")
+  resumeId            Int?         @unique @map("resume_id")
+  coverLetterId       Int?         @unique @map("cover_letter_id")
+  resume              Resume?      @relation(fields: [resumeId], references: [id], onDelete: Cascade)
+  coverLetter         CoverLetter? @relation(fields: [coverLetterId], references: [id], onDelete: Cascade)
+  company             Company      @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  contact             Contact?     @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  baseProfileAnalysis ATSAnalysis? @relation(fields: [aTSAnalysisId], references: [id], onDelete: Cascade)
+  aTSAnalysisId       Int?         @unique @map("ats_analysis_id")
 
   @@map("jobs")
 }
@@ -111,9 +113,11 @@ model Resume {
   updatedAt   DateTime @default(now()) @map("updated_at")
   contentJson String   @map("content_json") // JSON string containing ResumeJSON structure
 
-  customizations  Customization @relation(fields: [customizationId], references: [id])
+  customizations  Customization @relation(fields: [customizationId], references: [id], onDelete: Cascade)
   customizationId Int           @unique @map("customization_id")
   jobs            Job?
+  atsAnalysis     ATSAnalysis?  @relation(fields: [aTSAnalysisId], references: [id], onDelete: Cascade)
+  aTSAnalysisId   Int?          @unique @map("ats_analysis_id")
 
   @@map("resumes")
 }
@@ -125,7 +129,7 @@ model CoverLetter {
   contentText String   @map("content_text")
 
   // Relations & Foreign Keys
-  customizations  Customization @relation(fields: [customizationId], references: [id])
+  customizations  Customization @relation(fields: [customizationId], references: [id], onDelete: Cascade)
   customizationId Int           @unique @map("customization_id")
   jobs            Job?
 
@@ -184,4 +188,13 @@ model TokenUsage {
   @@index([purpose])
   @@index([requestId])
   @@map("token_usage")
+}
+
+model ATSAnalysis {
+  id          Int      @id @default(autoincrement())
+  createdAt   DateTime @default(now()) @map("created_at")
+  contentJson String   @map("content_json") // JSON string containing ATSAnalysisJSON structure
+
+  jobs   Job?
+  resume Resume?
 }

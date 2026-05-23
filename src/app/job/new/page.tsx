@@ -90,27 +90,19 @@ export default function NewJobPage() {
         return;
       }
 
-      const jobDetails = await LLMService.parseJob(description, {
+      const result = await LLMService.generateApplicationMaterials({
+        jobDescription: description,
         model: currentSelectedModel,
         provider: currentSelectedProvider,
+        profile,
       });
 
-      const [resume, coverLetter] = await Promise.all([
-        LLMService.generateTailoredResume(profile, jobDetails.result, {
-          model: currentSelectedModel,
-          provider: currentSelectedProvider,
-        }),
-        LLMService.generateCoverLetter(profile, jobDetails.result, {
-          model: currentSelectedModel,
-          provider: currentSelectedProvider,
-        }),
-      ]);
-
       await createJob({
-        jobDetails: jobDetails.result,
+        jobDetails: result.jobDetails.result,
         url: inputMode === "url" && url.trim() ? url : undefined,
-        tailoredResume: resume.result,
-        coverLetterText: coverLetter.result,
+        tailoredResume: result.resume.result,
+        coverLetterText: result.coverLetter.result,
+        atsAnalysis: result.atsAnalysis.result,
       });
 
       router.push("/");

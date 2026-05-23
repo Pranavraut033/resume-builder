@@ -14,8 +14,15 @@ import { LLMUsageInfo } from "@/actions/tokenUsage";
 import { ProviderFactory } from "@/lib/llm/providers/factory";
 import { generateRequestId, trackTokenUsage } from "@/lib/llm/tokenTracker";
 import { createLogger } from "@/lib/logger";
-import { ProviderType, LLMResult } from "@/types/llm";
-import { ResumeJSON, JobDetailsJSON } from "@/types/resume";
+import {
+  ProviderType,
+  LLMResult,
+  JobParsingResult,
+  ResumeParsingResult,
+  CoverLetterGenerationResult,
+  ATSAnalysisResult,
+} from "@/types/llm";
+import { ResumeJSON, JobDetailsJSON, ATSAnalysisJSON } from "@/types/resume";
 
 import {
   PromptPurpose,
@@ -41,7 +48,7 @@ type RequiredKeysByPurpose = {
   generate_skills: "resume" | "jobDetails";
   generate_projects: "resume" | "jobDetails";
   generate_education: "resume" | "jobDetails";
-  generate_tailored_resume: "baseProfile" | "jobDetails";
+  generate_tailored_resume: "baseProfile" | "jobDetails" | "atsAnalysis";
   generate_cover_letter: "resume" | "jobDetails";
   parse_job: "jobDescription";
   parse_resume: "resumeText";
@@ -122,7 +129,7 @@ class LLMService {
           ({ result, usage } = await provider.generateText(
             prompt.systemPrompt,
             prompt.userPrompt,
-            options
+            { ...options, stream: false }
           ));
           break;
         }
@@ -144,6 +151,7 @@ class LLMService {
             {
               baseProfile: context.baseProfile!,
               jobDetails: context.jobDetails!,
+              atsAnalysis: context.atsAnalysis ?? null,
             },
             options
           ));
@@ -274,11 +282,12 @@ class LLMService {
   static async generateTailoredResume(
     baseProfile: ResumeJSON,
     jobDetails: JobDetailsJSON,
+    atsAnalysis: ATSAnalysisJSON | null,
     options: LLMServiceOptions
   ): Promise<LLMResult<ResumeJSON>> {
     return this.executeCall(
       "generate_tailored_resume",
-      { baseProfile, jobDetails },
+      { baseProfile, jobDetails, atsAnalysis },
       options
     );
   }
@@ -287,7 +296,7 @@ class LLMService {
     resume: ResumeJSON,
     jobDetails: JobDetailsJSON,
     options: LLMServiceOptions
-  ): Promise<LLMResult<string>> {
+  ): Promise<LLMResult<ATSAnalysisJSON>> {
     return this.executeCall("analyze_ats", { resume, jobDetails }, options);
   }
 
@@ -299,6 +308,51 @@ class LLMService {
     context: PromptContext
   ): ResolvedPrompt {
     return PromptSystem.generatePrompt(purpose, context);
+  }
+
+  static async generateApplicationMaterials({
+    profile,
+    jobDescription,
+    model,
+    provider,
+  }: {
+    profile: ResumeJSON;
+    jobDescription: string;
+    model: string;
+    provider: ProviderType;
+  }): Promise<{
+    jobDetails: JobParsingResult;
+    resume: ResumeParsingResult;
+    coverLetter: CoverLetterGenerationResult;
+    atsAnalysis: ATSAnalysisResult;
+  }> {
+    const jobDetails = await this.parseJob(jobDescription, {
+      model,
+      provider,
+    });
+
+    const atsAnalysis = await this.analyzeATS(profile, jobDetails.result, {
+      model,
+      provider,
+    });
+
+    const [resume, coverLetter] = await Promise.all([
+      this.generateTailoredResume(
+        profile,
+        jobDetails.result,
+        atsAnalysis.result,
+        {
+          model,
+          provider,
+        }
+      ),
+      this.generateCoverLetter(profile, jobDetails.result, {
+        model,
+        provider,
+      }),
+    ]);
+
+    return { jobDetails, resume, coverLetter, atsAnalysis };
   }
 }
 

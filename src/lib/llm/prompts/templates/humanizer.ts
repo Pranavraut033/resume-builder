@@ -51,7 +51,7 @@ TASK:
 2. Rewrite each flagged phrase — simpler verb, tighter structure, varied rhythm — without altering any fact
 3. Verify: every metric, technology, and outcome from the input is present and unchanged in the output
 
-Return ONLY valid JSON matching the HumanizerJSON schema.`,
+Return ONLY valid JSON matching the HumanizerSchema.`,
 
   outputSchema: HumanizerSchema,
 };

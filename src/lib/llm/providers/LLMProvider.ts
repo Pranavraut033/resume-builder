@@ -21,14 +21,14 @@ import {
   PromptMessage,
   ResumeGenerationResult,
   ResumeParsingResult,
-  TextGenerationResult,
   HumanizeContentResult,
+  ATSAnalysisPromptInput,
 } from "@/types/llm";
 import {
-  ResumeGenerationSchema,
   JobDetailsSchema,
   ATSAnalysisSchema,
   ATSAnalysisJSON,
+  ResumeSchema,
 } from "@/types/resume";
 
 import { ProviderRegistry, ProviderMetadata } from "./registry";
@@ -39,14 +39,26 @@ export type StructureResult<TSchema extends ZodTypeAny> = {
 };
 
 export abstract class LLMProvider {
-  abstract fetchModels(): Promise<string[]>;
+  abstract get providerType(): ProviderType;
+  abstract get streamSupported(): boolean;
 
+  abstract fetchModels(): Promise<string[]>;
   abstract validateConnection(): Promise<{ success: boolean; message: string }>;
 
-  abstract runLLM<T>(
+  abstract runLLM(
+    messages: PromptMessage[],
+    options: LLMGenerationOptions & { stream: true }
+  ): AsyncGenerator<string>;
+
+  abstract runLLM(
+    messages: PromptMessage[],
+    options: LLMGenerationOptions & { stream?: false; onUsage?: never }
+  ): Promise<LLMResult<string>>;
+
+  abstract runLLM(
     messages: PromptMessage[],
     options: LLMGenerationOptions
-  ): Promise<LLMResult<T>>;
+  ): Promise<LLMResult<string>> | AsyncGenerator<string>;
 
   abstract runStructuredLLM<TSchema extends ZodTypeAny>(
     template: ResolvedPrompt,
@@ -64,15 +76,15 @@ export abstract class LLMProvider {
     const { result, usage } = await this.runStructuredLLM(
       resolvedPrompt,
       options,
-      ResumeGenerationSchema,
-      "GeneratedResume"
+      ResumeSchema,
+      "ResumeSchema"
     );
 
     return { result, usage };
   }
 
   analyzeATS(
-    input: CoverLetterPromptInput,
+    input: ATSAnalysisPromptInput,
     options: LLMGenerationOptions
   ): Promise<LLMResult<ATSAnalysisJSON>> {
     const prompt = PromptSystem.generatePrompt("analyze_ats", input);
@@ -81,18 +93,18 @@ export abstract class LLMProvider {
       prompt,
       options,
       ATSAnalysisSchema,
-      "ATSAnalysisResult"
+      "ATSAnalysisSchema"
     );
   }
 
   async generateCoverLetter(
     input: CoverLetterPromptInput,
-    options: LLMGenerationOptions
+    options: Omit<LLMGenerationOptions, "stream" | "onUsage">
   ): Promise<CoverLetterGenerationResult> {
     const resolvedPrompt = this.getGenerateCoverLetterPromptTemplate(input);
     const messages = this.toPromptMessages(resolvedPrompt);
 
-    const { result, usage } = await this.runLLM<string>(messages, options);
+    const { result, usage } = await this.runLLM(messages, options);
 
     return { result, usage };
   }
@@ -107,7 +119,7 @@ export abstract class LLMProvider {
       template,
       options,
       JobDetailsSchema,
-      "ParsedJobDetails"
+      "JobDetailsSchema"
     );
     return { result, usage };
   }
@@ -120,8 +132,8 @@ export abstract class LLMProvider {
     const { result, usage } = await this.runStructuredLLM(
       template,
       options,
-      ResumeGenerationSchema,
-      "ParsedResume"
+      ResumeSchema,
+      "ResumeSchema"
     );
     return { result, usage };
   }
@@ -135,7 +147,7 @@ export abstract class LLMProvider {
       template,
       options,
       HumanizerSchema,
-      "HumanizerResult"
+      "HumanizerSchema"
     );
     return { result, usage };
   }
@@ -197,17 +209,29 @@ export abstract class LLMProvider {
     return resolved === undefined ? {} : { temperature: resolved };
   }
 
+  generateText(
+    systemPrompt: string,
+    userPrompt: string,
+    options: LLMGenerationOptions & { stream: true }
+  ): AsyncGenerator<string>;
+
+  generateText(
+    systemPrompt: string,
+    userPrompt: string,
+    options: LLMGenerationOptions & { stream?: false; onUsage?: never }
+  ): Promise<LLMResult<string>>;
+
   /**
    * Generate text from system and user prompts
    * Default implementation uses runPrompt - override for custom behavior
    */
-  async generateText(
+  generateText(
     systemPrompt: string,
     userPrompt: string,
     options: LLMGenerationOptions
-  ): Promise<TextGenerationResult> {
+  ): Promise<LLMResult<string>> | AsyncGenerator<string> {
     // Default implementation using runPrompt - providers can override
-    const response = await this.runLLM<string>(
+    return this.runLLM(
       [
         { role: "system", content: systemPrompt },
         { role: "user", content: userPrompt },
@@ -217,23 +241,7 @@ export abstract class LLMProvider {
         ...this.getTemperatureConfig(options.model, options.temperature),
       }
     );
-
-    return {
-      ...response,
-
-      usage:
-        response.usage ??
-        this.estimateTokenUsage({
-          inputPrompt: systemPrompt + userPrompt,
-          outputText: response.result,
-          model: options.model,
-          purpose: "generate_text",
-          provider: this.providerType, // Assuming each provider implementation sets this.providerType
-        }),
-    };
   }
-
-  abstract providerType: ProviderType;
 
   /**
    * Normalize token usage from provider-specific format to LLMUsageInfo

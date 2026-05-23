@@ -190,7 +190,7 @@ export const AwardSchema = z.object({
   description: z.string().nullable(),
 });
 
-export const ResumeParsingSchema = z.object({
+export const ResumeSchema = z.object({
   header: ContactInfoSchema,
   summary: z.string(),
   experience: z.array(ExperienceSchema),
@@ -204,7 +204,13 @@ export const ResumeParsingSchema = z.object({
   awards: z.array(AwardSchema).nullable(),
 });
 
-export type ResumeJSON = z.infer<typeof ResumeParsingSchema>;
+export type ResumeJSON = z.infer<typeof ResumeSchema>;
+
+export type ResumeField = keyof typeof ResumeSchema.shape;
+
+export const RESUME_FIELD_NAMES = Object.keys(
+  ResumeSchema.shape
+) as ResumeField[];
 
 export type ContactInfo = z.infer<typeof ContactInfoSchema>;
 export type Experience = z.infer<typeof ExperienceSchema>;
@@ -215,21 +221,6 @@ export type Publication = z.infer<typeof PublicationSchema>;
 export type Language = z.infer<typeof LanguageSchema>;
 export type Volunteer = z.infer<typeof VolunteerSchema>;
 export type Award = z.infer<typeof AwardSchema>;
-
-// Schema for resume generation (same structure as parsing, used for structured output)
-export const ResumeGenerationSchema = z.object({
-  header: ContactInfoSchema,
-  summary: z.string(),
-  experience: z.array(ExperienceSchema),
-  projects: z.array(ProjectSchema),
-  skills: z.array(z.string()),
-  education: z.array(EducationSchema),
-  certifications: z.array(CertificationSchema),
-  publications: z.array(PublicationSchema).nullable(),
-  languages: z.array(LanguageSchema).nullable(),
-  volunteer: z.array(VolunteerSchema).nullable(),
-  awards: z.array(AwardSchema).nullable(),
-});
 
 export const ATSAnalysisSchema = z.object({
   keyword_analysis: z.array(
@@ -265,6 +256,32 @@ export const ATSAnalysisSchema = z.object({
 });
 
 export type ATSAnalysisJSON = z.infer<typeof ATSAnalysisSchema>;
+
+export function atsAnalysisToCompactPositional(
+  atsAnalysis: ATSAnalysisJSON
+): string {
+  return `
+ATSKeyword_analysis:
+${atsAnalysis.keyword_analysis
+  .map((ka) => `${ka.keyword}|${ka.match_type}|${ka.match_status}`)
+  .join("\n")}
+${atsAnalysis.missing_keywords.join("|")}
+ATSFormatting_issues:
+${atsAnalysis.formatting_issues
+  .map((fi) => `${fi.section}|${fi.description}|${fi.severity}`)
+  .join("\n")}
+ATSscores:
+${[atsAnalysis.scores.keyword_match_score, atsAnalysis.scores.formatting_score, atsAnalysis.scores.content_quality_score, atsAnalysis.scores.composite_score].join("|")}
+ATSImprovements:
+${atsAnalysis.improvements
+  .map(
+    (imp) =>
+      `${imp.section}|${imp.issue}|${imp.recommended_fix}|${imp.estimated_score_delta}`
+  )
+  .join("\n")}
+ATSAnalysisSummary:
+${atsAnalysis.summary}`;
+}
 
 export function resumeJsonToCompactPositional(resume: ResumeJSON): string {
   return `

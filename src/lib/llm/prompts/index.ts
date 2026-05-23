@@ -29,6 +29,7 @@ export { templateRegistry } from "./registry";
 import {
   resumeJsonToCompactPositional,
   jobDetailsToCompactPositional,
+  atsAnalysisToCompactPositional,
 } from "@/types/resume";
 
 import { templateRegistry } from "./registry";
@@ -62,6 +63,9 @@ function normalizedFieldsToString(
     resume: context.resume ? resumeJsonToCompactPositional(context.resume) : "",
     jobDetails: context.jobDetails
       ? jobDetailsToCompactPositional(context.jobDetails)
+      : "",
+    atsAnalysis: context.atsAnalysis
+      ? atsAnalysisToCompactPositional(context.atsAnalysis)
       : "",
   };
 }

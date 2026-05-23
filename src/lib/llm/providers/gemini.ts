@@ -1,7 +1,13 @@
-import { GoogleGenAI } from "@google/genai";
+import {
+  GenerateContentResponse,
+  GenerateContentResponseUsageMetadata,
+  GoogleGenAI,
+  Schema,
+  Type as SchemaType,
+} from "@google/genai";
 import z, { ZodTypeAny } from "zod";
-import { zodToJsonSchema } from "zod-to-json-schema";
 
+import { LLMUsageInfo } from "@/actions/tokenUsage";
 import { createLogger } from "@/lib/logger";
 import {
   ProviderType,
@@ -11,13 +17,11 @@ import {
 } from "@/types/llm";
 
 import { LLMProvider, StructureResult } from "./LLMProvider";
-import { ResolvedPrompt } from "../prompts";
+import { PromptPurpose, ResolvedPrompt } from "../prompts";
 
 const logger = createLogger("Gemini");
 
 export class GeminiProvider extends LLMProvider {
-  public readonly providerType = ProviderType.GEMINI;
-
   private client: GoogleGenAI;
   private apiKey: string;
 
@@ -30,40 +34,221 @@ export class GeminiProvider extends LLMProvider {
   private textGenModelRegex =
     /^models\/gemini-\d+(\.\d+)?-(pro|flash)(-(latest|lite|preview)){0,2}$/;
 
-  async runLLM<T>(
+  get providerType(): ProviderType {
+    return ProviderType.GEMINI;
+  }
+
+  get streamSupported(): boolean {
+    return false; // Gemini's streaming API is not stable, so we disable it for now
+  }
+
+  runLLM(
+    messages: PromptMessage[],
+    options: LLMGenerationOptions & { stream: true }
+  ): AsyncGenerator<string>;
+
+  runLLM(
+    messages: PromptMessage[],
+    options: LLMGenerationOptions & { stream?: false; onUsage?: never }
+  ): Promise<LLMResult<string>>;
+
+  runLLM(
     messages: PromptMessage[],
     options: LLMGenerationOptions
-  ): Promise<LLMResult<T>> {
+  ): Promise<LLMResult<string>> | AsyncGenerator<string> {
     // Gemini doesn't have separate system messages, combine them
-    const promptText = messages.map((m) => m.content).join("\n\n");
 
-    try {
-      const response = await this.client.models.generateContent({
-        model: options.model,
-        contents: promptText,
-      });
-
-      const content = response.text || "";
-      const usage = this.estimateTokenUsage({
-        inputPrompt: promptText,
-        outputText: content,
-        model: options.model,
-        purpose: "generate_text",
-        provider: this.providerType,
-      });
-
-      return {
-        result: content as T,
-        usage,
-      };
-    } catch (err: unknown) {
-      const error = err as Record<string, unknown>;
-      logger.error("runLLM failed", {
-        error: err,
-        message: error?.message,
-      });
-      throw new Error(`Gemini runLLM failed: ${String(error?.message) || err}`);
+    if (options.stream) {
+      return this.runStreamedLLM(messages, options);
     }
+
+    return this.client.models
+      .generateContent({
+        model: options.model,
+        contents: this.toGeminiMessages(messages),
+      })
+      .then((response) => {
+        const content = response.text || "";
+        const usage = response.usageMetadata
+          ? this.normalizeUsage({
+              usage: response.usageMetadata,
+              model: options.model,
+              purpose: "generate_text",
+            })
+          : this.estimateTokenUsage({
+              inputPrompt: this.toGeminiMessages(messages),
+              outputText: content,
+              model: options.model,
+              purpose: "generate_text",
+              provider: this.providerType,
+            });
+
+        return { result: content, usage };
+      })
+      .catch((err: unknown) => {
+        const error = err as Record<string, unknown>;
+        logger.error("runLLM failed", { error: err, message: error?.message });
+        throw new Error(
+          `Gemini runLLM failed: ${String(error?.message) || err}`
+        );
+      });
+  }
+
+  toGeminiSchema(zodSchema: ZodTypeAny): Schema {
+    const jsonSchema = z.toJSONSchema(zodSchema);
+    return this.convertJsonSchemaToGemini(jsonSchema);
+  }
+
+  private convertJsonSchemaToGemini(schema: Record<string, unknown>): Schema {
+    // Handle $ref, allOf, anyOf, oneOf — not supported by Gemini, flatten if possible
+    if (
+      schema.allOf &&
+      Array.isArray(schema.allOf) &&
+      schema.allOf.length === 1
+    ) {
+      return this.convertJsonSchemaToGemini(
+        schema.allOf[0] as Record<string, unknown>
+      );
+    }
+
+    const geminiSchema: Schema = {};
+
+    if (schema.description) {
+      geminiSchema.description = schema.description as string;
+    }
+
+    if (schema.enum) {
+      geminiSchema.type = SchemaType.STRING;
+      geminiSchema.enum = (schema.enum as unknown[]).map(String);
+      return geminiSchema;
+    }
+
+    switch (schema.type) {
+      case "string":
+        geminiSchema.type = SchemaType.STRING;
+        if (schema.enum) geminiSchema.enum = schema.enum as string[];
+        break;
+
+      case "number":
+      case "integer":
+        geminiSchema.type =
+          schema.type === "integer" ? SchemaType.INTEGER : SchemaType.NUMBER;
+        break;
+
+      case "boolean":
+        geminiSchema.type = SchemaType.BOOLEAN;
+        break;
+
+      case "array":
+        geminiSchema.type = SchemaType.ARRAY;
+        if (schema.items) {
+          geminiSchema.items = this.convertJsonSchemaToGemini(
+            schema.items as Record<string, unknown>
+          );
+        }
+        break;
+
+      case "object":
+        geminiSchema.type = SchemaType.OBJECT;
+        if (schema.properties) {
+          geminiSchema.properties = Object.fromEntries(
+            Object.entries(schema.properties as Record<string, unknown>).map(
+              ([key, value]) => [
+                key,
+                this.convertJsonSchemaToGemini(
+                  value as Record<string, unknown>
+                ),
+              ]
+            )
+          );
+        }
+        if (Array.isArray(schema.required)) {
+          geminiSchema.required = schema.required as string[];
+        }
+        if (!schema.properties) {
+          // Treat as free-form object — Gemini doesn't support additionalProperties,
+          // so we omit properties entirely and leave type as OBJECT
+        }
+        break;
+
+      case "null":
+        // Gemini has no null type — fall back to string
+        geminiSchema.type = SchemaType.STRING;
+        break;
+
+      default:
+        // Unknown or missing type (e.g. anyOf, oneOf, $ref not resolved) — fall back to string
+        geminiSchema.type = SchemaType.STRING;
+        break;
+    }
+
+    return geminiSchema;
+  }
+
+  normalizeUsage({
+    usage,
+    model,
+    purpose,
+  }: {
+    usage: GenerateContentResponseUsageMetadata;
+    model: string;
+    purpose: string;
+  }): LLMUsageInfo {
+    return {
+      promptTokens: usage.promptTokenCount ?? 0,
+      completionTokens:
+        (usage.totalTokenCount ?? 0) - (usage.promptTokenCount ?? 0),
+      totalTokens: usage.totalTokenCount ?? 0,
+      provider: this.providerType,
+      model,
+      purpose: purpose as PromptPurpose,
+    };
+  }
+
+  toGeminiMessages(messages: PromptMessage[]): string {
+    return messages.map((m) => `${m.role}: ${m.content}`).join("\n\n");
+  }
+
+  private async *runStreamedLLM(
+    messages: PromptMessage[],
+    options: LLMGenerationOptions
+  ): AsyncGenerator<string> {
+    const response = await this.client.models.generateContentStream({
+      model: options.model,
+      contents: this.toGeminiMessages(messages),
+      config: {
+        temperature: options.temperature,
+        maxOutputTokens: options.maxTokens,
+      },
+    });
+
+    let outputText = "";
+    let finalUsage: GenerateContentResponse["usageMetadata"] | undefined;
+
+    for await (const chunk of response) {
+      if (chunk.usageMetadata) finalUsage = chunk.usageMetadata;
+      const text = chunk.text;
+      if (text) {
+        outputText += text;
+        yield text;
+      }
+    }
+
+    options.onUsage?.(
+      finalUsage
+        ? this.normalizeUsage({
+            usage: finalUsage,
+            model: options.model,
+            purpose: "generate_text",
+          })
+        : this.estimateTokenUsage({
+            inputPrompt: this.toGeminiMessages(messages),
+            outputText,
+            model: options.model,
+            purpose: "generate_text",
+            provider: this.providerType,
+          })
+    );
   }
 
   async fetchModels(): Promise<string[]> {
@@ -107,9 +292,7 @@ export class GeminiProvider extends LLMProvider {
         contents: promptText,
         config: {
           responseMimeType: "application/json",
-          // @ts-expect-error - zodToJsonSchema types are not fully compatible
-          // with Gemini's expected schema format, but works for simple cases
-          responseSchema: zodToJsonSchema(zodSchema),
+          responseSchema: this.toGeminiSchema(zodSchema),
         },
       });
 

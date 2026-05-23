@@ -1,9 +1,13 @@
-type JsonPrimitive = string | number | boolean | null;
+type JsonPrimitive = string | number | boolean | null | Date;
 type JsonValue = JsonPrimitive | JsonValue[] | { [key: string]: JsonValue };
 
 function sortObjectKeys<T extends JsonValue>(value: T): T {
   if (Array.isArray(value)) {
     return value.map(sortObjectKeys) as T;
+  }
+
+  if (value instanceof Date) {
+    return value.toISOString() as T;
   }
 
   if (value !== null && typeof value === "object") {
@@ -26,4 +30,14 @@ export function toStableJsonString(value: JsonValue): string {
 
 export function areJsonValuesEqual(a: JsonValue, b: JsonValue): boolean {
   return toStableJsonString(a) === toStableJsonString(b);
+}
+
+export function simpleI32HashString(input: string): number {
+  let hash = 5381;
+
+  for (let i = 0; i < input.length; i++) {
+    hash = (hash * 33) ^ input.charCodeAt(i);
+  }
+
+  return hash >>> 0;
 }

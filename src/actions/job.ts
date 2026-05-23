@@ -1,6 +1,13 @@
 "use server";
 
-import { CoverLetter, Customization, Resume } from "@prisma/client";
+import {
+  Company,
+  Contact,
+  CoverLetter,
+  Customization,
+  Job,
+  Resume,
+} from "@prisma/client";
 import { revalidatePath } from "next/cache";
 
 import { prisma } from "@/lib/prisma";
@@ -10,7 +17,7 @@ import {
   validateCustomization,
 } from "@/types/customization";
 import { JobStatus, JOB_STATUSES } from "@/types/job";
-import { ResumeJSON, JobDetailsJSON } from "@/types/resume";
+import { ResumeJSON, JobDetailsJSON, ATSAnalysisJSON } from "@/types/resume";
 
 /**
  * Create a new job with parsed details, resume, and cover letter
@@ -20,9 +27,12 @@ export async function createJob(input: {
   jobDetails: JobDetailsJSON;
   tailoredResume?: ResumeJSON;
   coverLetterText?: string;
+  atsAnalysis?: ATSAnalysisJSON | null;
   url?: string;
 }): Promise<{ jobId: number }> {
-  const { jobDetails, tailoredResume, coverLetterText, url } = input;
+  const { jobDetails, tailoredResume, coverLetterText, atsAnalysis, url } =
+    input;
+
   const data: Parameters<typeof prisma.job.create>[0]["data"] = {
     role: jobDetails.job.job_title,
     description: jobDetails.raw_description,
@@ -60,6 +70,12 @@ export async function createJob(input: {
         contactPhone: jobDetails.contact.contact_phone,
         contactWhatsappAvailable: jobDetails.contact.contact_whatsapp_available,
       },
+    };
+  }
+
+  if (atsAnalysis) {
+    data.baseProfileAnalysis = {
+      create: { contentJson: JSON.stringify(atsAnalysis) },
     };
   }
 
@@ -107,35 +123,52 @@ export async function getJobById(id: number) {
   return job;
 }
 
+export type JobData = Omit<Job, "baseProfileAnalysis"> & {
+  details: JobDetailsJSON;
+  baseProfileAnalysis: ATSAnalysisJSON | null;
+  contact: Contact | null;
+  company: Company;
+};
+
 /**
  * Get full job context with all details for resume editing
  * Includes parsed job details for LLM-assisted generation
  */
 export async function getJob(jobId: number) {
-  const job = await prisma.job.findUnique({
+  const job = await prisma.job.findUniqueOrThrow({
     where: { id: jobId },
     include: {
       company: true,
       contact: true,
+      baseProfileAnalysis: true,
     },
   });
 
-  if (!job) {
-    return null;
+  let jobDetails: JobDetailsJSON;
+  try {
+    jobDetails = JSON.parse(job.jobDetailsJson) as JobDetailsJSON;
+  } catch {
+    throw new Error(`Failed to parse jobDetailsJson for job ${jobId}`);
   }
 
-  let jobDetails: JobDetailsJSON | null = null;
-  if (job.jobDetailsJson) {
+  let baseProfileAnalysis: ATSAnalysisJSON | null = null;
+  if (job.baseProfileAnalysis?.contentJson) {
     try {
-      jobDetails = JSON.parse(job.jobDetailsJson) as JobDetailsJSON;
+      baseProfileAnalysis = JSON.parse(
+        job.baseProfileAnalysis.contentJson
+      ) as ATSAnalysisJSON;
     } catch {
-      console.error("Failed to parse jobDetailsJson for job", jobId);
+      console.error(
+        "Failed to parse baseProfileAnalysis contentJson for job",
+        jobId
+      );
     }
   }
 
   return {
     ...job,
     details: jobDetails,
+    baseProfileAnalysis: baseProfileAnalysis,
   };
 }
 
@@ -174,12 +207,15 @@ export async function getResumeByJobId(jobId: number): Promise<
   Omit<Resume, "contentJson"> & {
     contentJson: ResumeJSON;
     customizations: Customization;
+    atsAnalysis: ATSAnalysisJSON | null;
   }
 > {
   return await prisma.job
     .findFirstOrThrow({
       where: { id: jobId },
-      select: { resume: { include: { customizations: true } } },
+      select: {
+        resume: { include: { customizations: true, atsAnalysis: true } },
+      },
     })
     .then((job) => {
       if (!job.resume) {
@@ -189,6 +225,9 @@ export async function getResumeByJobId(jobId: number): Promise<
       return {
         ...job.resume,
         contentJson: JSON.parse(job.resume.contentJson) as ResumeJSON,
+        atsAnalysis: job.resume.atsAnalysis?.contentJson
+          ? (JSON.parse(job.resume.atsAnalysis.contentJson) as ATSAnalysisJSON)
+          : null,
       };
     });
 }
@@ -217,6 +256,43 @@ export async function updateResume(
   ]);
 
   revalidatePath(`/job/${jobId}/resume`);
+  return { success: true };
+}
+
+export async function saveAtsAnalysis(
+  jobId: number,
+  atsAnalysis: ATSAnalysisJSON
+) {
+  const resume = await getResumeByJobId(jobId);
+
+  if (!resume)
+    throw new Error(
+      `Cannot save ATS analysis: Resume not found for job ${jobId}`
+    );
+
+  const now = new Date();
+  const result = await prisma.resume.update({
+    where: { id: resume.id },
+    data: {
+      updatedAt: now,
+      atsAnalysis: {
+        ...(resume.aTSAnalysisId
+          ? { update: { contentJson: JSON.stringify(atsAnalysis) } }
+          : { create: { contentJson: JSON.stringify(atsAnalysis) } }),
+      },
+    },
+  });
+
+  console.log({ result, updated: now === result.updatedAt });
+
+  revalidatePath(`/job/${jobId}/resume`);
+  return { success: true };
+}
+
+export async function deleteJobById(id: number) {
+  await prisma.job.delete({ where: { id } });
+  revalidatePath("/");
+  revalidatePath(`/job/${id}`, "layout");
   return { success: true };
 }
 
@@ -281,5 +357,3 @@ export async function updateOrCreateCustomization({
     },
   });
 }
-
-export type JobData = Awaited<ReturnType<typeof getJob>>;

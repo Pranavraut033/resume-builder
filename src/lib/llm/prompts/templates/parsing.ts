@@ -3,7 +3,7 @@
  * Job description and resume parsing with structured output
  */
 
-import { JobDetailsSchema, ResumeParsingSchema } from "@/types/resume";
+import { JobDetailsSchema, ResumeSchema } from "@/types/resume";
 
 import { templateRegistry } from "../registry";
 import { PromptTemplate } from "../types";
@@ -42,10 +42,7 @@ CLEANING RULES:
 JOB DESCRIPTION:
 {{jobDescription}}
 
-Return JSON that strictly matches the provided Zod schema.
-Output ONLY JSON.
-`,
-
+Return ONLY valid JSON matching the JobDetailsSchema.`,
   outputSchema: JobDetailsSchema,
 };
 
@@ -79,9 +76,8 @@ NORMALIZATION RULES:
 RESUME:
 {{resumeText}}
 
-Return ONLY valid JSON that matches the provided Zod schema exactly.`,
-
-  outputSchema: ResumeParsingSchema,
+Return ONLY valid JSON matching the ResumeSchema.`,
+  outputSchema: ResumeSchema,
 };
 
 // Auto-register on module load

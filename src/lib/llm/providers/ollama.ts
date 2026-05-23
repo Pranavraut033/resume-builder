@@ -1,5 +1,4 @@
 import z from "zod";
-import zodToJsonSchema from "zod-to-json-schema";
 
 import { ResolvedPrompt } from "@/lib/llm/prompts";
 import { createLogger } from "@/lib/logger";
@@ -81,38 +80,51 @@ Begin your response with { and end with }`;
     return data.response;
   }
 
-  async runLLM<T>(
+  get streamSupported(): boolean {
+    return false; // Ollama's streaming API is not stable, so we disable it for now
+  }
+
+  runLLM(
+    messages: PromptMessage[],
+    options: LLMGenerationOptions & { stream: true }
+  ): AsyncGenerator<string>;
+
+  runLLM(
+    messages: PromptMessage[],
+    options: LLMGenerationOptions & { stream?: false; onUsage?: never }
+  ): Promise<LLMResult<string>>;
+
+  runLLM(
     messages: PromptMessage[],
     options: LLMGenerationOptions
-  ): Promise<LLMResult<T>> {
+  ): Promise<LLMResult<string>> | AsyncGenerator<string> {
     // Ollama doesn't have separate system messages, combine them
     const promptText = messages.map((m) => m.content).join("\n\n");
 
-    try {
-      const content = await this.callOllama(promptText, options.model);
+    return this.callOllama(promptText, options.model)
+      .then((content) => {
+        if (!content) throw new Error("No response from Ollama");
 
-      if (!content) throw new Error("No response from Ollama");
+        const usage = this.estimateTokenUsage({
+          inputPrompt: promptText,
+          outputText: content,
+          model: options.model,
+          purpose: "generate_text",
+          provider: this.providerType,
+        });
 
-      const usage = this.estimateTokenUsage({
-        inputPrompt: promptText,
-        outputText: content,
-        model: options.model,
-        purpose: "generate_text",
-        provider: this.providerType,
+        return { result: content, usage };
+      })
+      .catch((err) => {
+        const error = err as Record<string, unknown>;
+        logger.error("runLLM failed", {
+          error: err,
+          message: error?.message,
+        });
+        throw new Error(
+          `Ollama runLLM failed: ${String(error?.message) || err}`
+        );
       });
-
-      return {
-        result: content as T,
-        usage,
-      };
-    } catch (err: unknown) {
-      const error = err as Record<string, unknown>;
-      logger.error("runLLM failed", {
-        error: err,
-        message: error?.message,
-      });
-      throw new Error(`Ollama runLLM failed: ${String(error?.message) || err}`);
-    }
   }
 
   async runStructuredLLM<TSchema extends z.ZodTypeAny>(
@@ -122,9 +134,7 @@ Begin your response with { and end with }`;
   ): Promise<StructureResult<TSchema>> {
     let promptText = this.combinePromptText(template);
 
-    // Inject schema for better structured output
-    // @ts-expect-error - zodToJsonSchema types are not fully compatible with our ZodTypeAny, but it works at runtime
-    const schemaJson = zodToJsonSchema(zodSchema);
+    const schemaJson = z.toJSONSchema(zodSchema);
 
     promptText = this.injectSchemaIntoPrompt(promptText, schemaJson);
 

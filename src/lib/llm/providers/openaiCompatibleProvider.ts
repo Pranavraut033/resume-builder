@@ -16,6 +16,8 @@ import type {
   LLMGenerationOptions,
   LLMResult,
   PromptMessage,
+  ToolCall,
+  ToolDefinition,
 } from "@/types/llm";
 import type { ChatCompletionMessageParam } from "openai/resources/chat/completions";
 import type { ZodTypeAny } from "zod";
@@ -24,6 +26,10 @@ export type OpenAIClientConfig = {
   apiKey: string;
   baseURL?: string;
 };
+
+export type OpenAITool = OpenAI.Chat.Completions.ChatCompletionTool;
+export type OpenAIMessageTool =
+  OpenAI.Chat.Completions.ChatCompletionMessageToolCall;
 
 export abstract class OpenAICompatibleProvider extends LLMProvider {
   protected readonly client: OpenAI;
@@ -35,6 +41,10 @@ export abstract class OpenAICompatibleProvider extends LLMProvider {
       baseURL: config.baseURL,
       dangerouslyAllowBrowser: true,
     });
+  }
+
+  get streamSupported(): boolean {
+    return true;
   }
 
   protected normalizeUsage(
@@ -62,42 +72,125 @@ export abstract class OpenAICompatibleProvider extends LLMProvider {
     }));
   }
 
-  async runLLM<T>(
+  isResponseStream(
+    result: unknown
+  ): result is AsyncIterable<OpenAI.Chat.Completions.ChatCompletionChunk> {
+    return typeof result === "object" && result !== null && "choices" in result;
+  }
+
+  runLLM(
+    messages: PromptMessage[],
+    options: LLMGenerationOptions & { stream: true }
+  ): AsyncGenerator<string>;
+  runLLM(
+    messages: PromptMessage[],
+    options: LLMGenerationOptions & { stream?: false; onUsage?: never }
+  ): Promise<LLMResult<string>>;
+
+  runLLM(
     messages: PromptMessage[],
     options: LLMGenerationOptions
-  ): Promise<LLMResult<T>> {
+  ): Promise<LLMResult<string>> | AsyncGenerator<string> {
     const model = options.model;
     const temperature = this.resolveTemperature(model, options.temperature);
 
-    try {
-      const completion = await this.client.chat.completions.create({
+    if (options.stream === true) {
+      return this.runStreamedLLM(messages, options);
+    }
+
+    return this.client.chat.completions
+      .create({
         model,
         messages: this.toChatMessages(messages),
         temperature,
         max_tokens: options.maxTokens,
-      });
+        tools: options.tools?.map((tool) => this.toOpenAITool(tool)),
+      })
+      .then((completion) => {
+        const content = completion.choices[0]?.message?.content ?? "";
+        let toolCall: OpenAIMessageTool | undefined = undefined;
 
-      const content = completion.choices[0]?.message?.content ?? "";
-      const usage = completion.usage
-        ? this.normalizeUsage(completion.usage, model, "generate_text")
+        if (
+          completion.choices[0]?.message?.tool_calls?.[0]?.type === "function"
+        ) {
+          toolCall = completion.choices[0]?.message?.tool_calls?.[0];
+        }
+        const usage = completion.usage
+          ? this.normalizeUsage(completion.usage, model, "generate_text")
+          : this.estimateTokenUsage({
+              inputPrompt: messages.map((m) => m.content).join("\n"),
+              outputText: content,
+              model,
+              purpose: "generate_text",
+              provider: this.providerType,
+            });
+
+        return {
+          result: content,
+          toolCalls: toolCall ? [this.fromOpenAIToolCall(toolCall)] : undefined,
+          usage,
+        };
+      })
+      .catch((err: unknown) => {
+        const error =
+          err instanceof Error
+            ? err
+            : new Error(`OpenAI-compatible runLLM failed: ${String(err)}`);
+
+        throw error;
+      });
+  }
+
+  fromOpenAIToolCall(raw: OpenAIMessageTool): ToolCall {
+    if (raw.type !== "function")
+      throw new Error(`Unexpected tool call type: ${raw.type}`);
+
+    return {
+      id: raw.id,
+      name: raw.function.name,
+      arguments: JSON.parse(raw.function.arguments),
+    };
+  }
+
+  private async *runStreamedLLM(
+    messages: PromptMessage[],
+    options: LLMGenerationOptions
+  ): AsyncGenerator<string> {
+    const model = options.model;
+    const temperature = this.resolveTemperature(model, options.temperature);
+
+    const stream = this.client.chat.completions.stream({
+      model,
+      messages: this.toChatMessages(messages),
+      temperature,
+      max_tokens: options.maxTokens,
+      tools: options.tools?.map((tool) => this.toOpenAITool(tool)),
+      stream_options: { include_usage: true },
+    });
+
+    let finalUsage: OpenAI.CompletionUsage | undefined;
+    let outputText = "";
+
+    for await (const part of stream) {
+      if (part.usage) finalUsage = part.usage;
+      const chunk = part.choices[0]?.delta?.content;
+      if (chunk) {
+        outputText += chunk;
+        yield chunk;
+      }
+    }
+
+    options.onUsage?.(
+      finalUsage
+        ? this.normalizeUsage(finalUsage, model, "generate_text")
         : this.estimateTokenUsage({
             inputPrompt: messages.map((m) => m.content).join("\n"),
-            outputText: content,
+            outputText,
             model,
             purpose: "generate_text",
             provider: this.providerType,
-          });
-
-      return {
-        result: content as T,
-        usage,
-      };
-    } catch (err: unknown) {
-      const error = err as Record<string, unknown>;
-      throw new Error(
-        `OpenAI-compatible runLLM failed: ${String(error?.message) || err}`
-      );
-    }
+          })
+    );
   }
 
   async runStructuredLLM<TSchema extends ZodTypeAny>(
@@ -138,6 +231,20 @@ export abstract class OpenAICompatibleProvider extends LLMProvider {
     return { result: parsed, usage };
   }
 
+  toOpenAITool(tool: ToolDefinition): OpenAITool {
+    return {
+      type: "function",
+      function: {
+        name: tool.name,
+        description: tool.description,
+        strict: tool.strict ?? false,
+        parameters: {
+          ...tool.parameters,
+          additionalProperties: tool.strict ? false : undefined,
+        },
+      },
+    };
+  }
   /**
    * Validate connection by making a simple API call
    */
