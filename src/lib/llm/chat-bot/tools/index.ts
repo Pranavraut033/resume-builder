@@ -1,5 +1,6 @@
 import z from "zod";
 
+import logger from "@/lib/logger";
 import { JSONSchemaProperty, ToolDefinition } from "@/types/llm";
 import { RESUME_FIELD_NAMES, ResumeField, ResumeSchema } from "@/types/resume";
 
@@ -10,6 +11,11 @@ export interface FieldEdit {
   updated_content: unknown;
 }
 
+export type EditToolResult = {
+  edits: FieldEdit[];
+  change_summary?: string;
+};
+
 function buildEditFieldsTool(): ToolDefinition {
   const fieldSchemas = RESUME_FIELD_NAMES.map((key) => {
     const schema = ResumeSchema.shape[key];
@@ -17,7 +23,7 @@ function buildEditFieldsTool(): ToolDefinition {
       ? (z.toJSONSchema(schema) as JSONSchemaProperty)
       : { type: "object" as const };
     return { title: key, ...jsonSchema };
-  });
+  }).filter(Boolean);
 
   return {
     name: "edit_fields",
@@ -67,7 +73,13 @@ export const RESUME_TOOLS = {
 
 export function validateEditFieldArgs(
   args: unknown
-): asserts args is { edits: FieldEdit[] } {
+): asserts args is EditToolResult {
+  logger.info(
+    "validateEditFieldArgs",
+    "Validating edit_fields tool arguments:",
+    args
+  );
+
   if (args === null || typeof args !== "object") {
     throw new Error(
       `Invalid tool call arguments: expected object, got ${args === null ? "null" : typeof args}`

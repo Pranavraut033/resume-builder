@@ -1,12 +1,7 @@
 import { LLMUsageInfo } from "@/actions/tokenUsage";
 import { ProviderFactory } from "@/lib/llm/providers";
 import logger from "@/lib/logger";
-import {
-  ProviderType,
-  LLMResult,
-  PromptMessage,
-  ToolChoice,
-} from "@/types/llm";
+import { ProviderType, LLMResult, PromptMessage } from "@/types/llm";
 import {
   ATSAnalysisJSON,
   JobDetailsJSON,
@@ -17,11 +12,14 @@ import {
 } from "@/types/resume";
 
 import {
+  buildEditFieldPrompt,
   INTENT_CLASSIFIER_PROMPT,
-  EDIT_FIELD_PROMPT,
   INTERVIEW_PROMPT,
   QUESTION_PROMPT,
 } from "./prompts";
+import { PromptSystem } from "../prompts";
+import { mergeLLMUsageInfo } from "../tokenTracker";
+import { EditFieldOutputSchema } from "./prompts/extractFieldsToEdit";
 import {
   IntentLabel,
   isToolIntent,
@@ -47,7 +45,12 @@ export type ChatStreamEvent =
   | {
       type: "tool_result";
       intent: Extract<ToolIntent, "regenerate" | "tailor" | "edit">;
-      args: { updatedResume: ResumeJSON; usage: LLMUsageInfo; note: string };
+      args: {
+        updatedResume: ResumeJSON;
+        usage: LLMUsageInfo;
+        note: string;
+        summary?: string;
+      };
     }
   | { type: "error"; message: string }
   | { type: "done" };
@@ -163,15 +166,12 @@ class ResumeChatBot {
   private buildSystemPromptMap() {
     const resume = resumeJsonToCompactPositional(this.resume);
     const jd = jobDetailsToCompactPositional(this.jobDetails);
+
     function replacePlaceholders(template: string) {
       return template.replace("{{resume}}", resume).replace("{{jd}}", jd);
     }
 
     return {
-      [IntentLabel.Edit]: EDIT_FIELD_PROMPT.replace(
-        "{{resume}}",
-        JSON.stringify(this.resume)
-      ),
       [IntentLabel.Interview]: replacePlaceholders(INTERVIEW_PROMPT),
       [IntentLabel.Question]: replacePlaceholders(QUESTION_PROMPT),
       [IntentLabel.Other]: replacePlaceholders(QUESTION_PROMPT),
@@ -247,132 +247,7 @@ class ResumeChatBot {
 
       // 2a. tool-calling intents — no text goes to chat
       if (isToolIntent(intent)) {
-        if (
-          intent === IntentLabel.Regenerate ||
-          intent === IntentLabel.Tailor
-        ) {
-          logger.info(
-            "ResumeChatBot",
-            `Generating resume — intent: ${intent}, baseProfile: ${intent === IntentLabel.Regenerate ? "original" : "current"}`
-          );
-
-          const { result, usage } = await this.provider.generateResume(
-            {
-              baseProfile:
-                intent === IntentLabel.Regenerate
-                  ? this.baseProfile
-                  : this.resume,
-              jobDetails: this.jobDetails,
-              atsAnalysis: null,
-            },
-            { model: options.model }
-          );
-
-          this.pushToHistory("chat", userMessage, {
-            role: "assistant",
-            content: `[${intent} applied]`,
-          });
-
-          logger.info(
-            "ResumeChatBot",
-            `Resume generated — usage: ${JSON.stringify(usage)}`
-          );
-
-          yield {
-            type: "tool_result",
-            intent: intent,
-            args: {
-              updatedResume: result,
-              usage,
-              note: `Resume ${intent === IntentLabel.Regenerate ? "Regenerated based on original profile" : "Tailored based on current profile"}`,
-            },
-          };
-          yield { type: "done" };
-          return;
-        } else if (intent === IntentLabel.Ats) {
-          logger.info(
-            "ResumeChatBot",
-            `Providing ATS advice — intent: ${intent}`
-          );
-
-          const { result, usage } = await this.provider.analyzeATS(
-            {
-              resume: this.resume,
-              jobDetails: this.jobDetails,
-            },
-            { model: options.model }
-          );
-
-          this.pushToHistory("chat", userMessage, {
-            role: "assistant",
-            content: `[${intent} applied]`,
-          });
-
-          logger.info(
-            "ResumeChatBot",
-            `ATS advice provided — usage: ${JSON.stringify(usage)}`
-          );
-
-          yield {
-            type: "tool_result",
-            intent: intent,
-            args: { atsAnalysis: result, usage },
-          };
-          yield { type: "done" };
-          return;
-        }
-
-        // now intent = IntentLabel.Edit so we fall through to the edit flow which requires
-        // an LLM call to get tool args, then another call to apply the tool result
-        const tool = RESUME_TOOLS[intent];
-
-        messages.unshift({ role: "system", content: map[intent] });
-
-        logger.info("ResumeChatBot", `Calling LLM with tool: ${tool.name}`);
-
-        // For edit_field we need to run the LLM to get the tool args, then apply the tool result to update resume state
-        const { toolCalls, usage } = await this.provider.runLLM(messages, {
-          model: options.model,
-          tools: [tool],
-          toolChoice: { type: "tool", name: tool.name } satisfies ToolChoice,
-        });
-
-        if (!toolCalls || toolCalls.length === 0) {
-          logger.error("ResumeChatBot", "LLM returned no tool calls");
-          throw new Error(
-            "LLM did not return any tool calls for an intent that requires it"
-          );
-        }
-
-        const args = toolCalls?.[0].arguments;
-
-        validateEditFieldArgs(args);
-
-        logger.info(
-          "ResumeChatBot",
-          `Tool call received — ${args.edits.length} fields: ${String(args.edits.map((a) => a.field).join(", "))}`
-        );
-
-        const { resume: updatedResume } = this.applyEdits(
-          this.resume,
-          args.edits
-        );
-
-        const note = `Edit applied to resume field: ${String(args.edits.map((a) => a.field).join(", "))}`;
-
-        logger.info("ResumeChatBot", note);
-        yield {
-          type: "tool_result",
-          intent,
-          args: { updatedResume, usage, note },
-        };
-
-        this.pushToHistory("chat", userMessage, {
-          role: "assistant",
-          content: `[${intent} applied]`,
-        });
-
-        yield { type: "done" };
+        yield* this.runToolIntent(intent, userMessage, options, messages);
         return;
       }
 
@@ -445,6 +320,183 @@ class ResumeChatBot {
       };
     }
   }
+
+  private async *runToolIntent(
+    intent: ToolIntent,
+    userMessage: PromptMessage,
+    options: ChatBotOptions,
+    messages: PromptMessage[] = []
+  ): AsyncGenerator<ChatStreamEvent> {
+    this.isSessionInitialized();
+
+    switch (intent) {
+      case "regenerate":
+      case "tailor": {
+        logger.info(
+          "ResumeChatBot",
+          `Generating resume — intent: ${intent}, baseProfile: ${intent === IntentLabel.Regenerate ? "original" : "current"}`
+        );
+
+        const { result, usage } = await this.provider.generateResume(
+          {
+            baseProfile:
+              intent === IntentLabel.Regenerate
+                ? this.baseProfile
+                : this.resume,
+            jobDetails: this.jobDetails,
+            atsAnalysis: null,
+          },
+          { model: options.model }
+        );
+
+        this.pushToHistory("chat", userMessage, {
+          role: "assistant",
+          content: `[${intent} applied]`,
+        });
+
+        logger.info(
+          "ResumeChatBot",
+          `Resume generated — usage: ${JSON.stringify(usage)}`
+        );
+
+        yield {
+          type: "tool_result",
+          intent: intent,
+          args: {
+            updatedResume: result,
+            usage,
+            note: `Resume ${intent === IntentLabel.Regenerate ? "Regenerated based on original profile" : "Tailored based on current profile"}`,
+          },
+        };
+        yield { type: "done" };
+        return;
+      }
+      case "ats": {
+        logger.info(
+          "ResumeChatBot",
+          `Providing ATS advice — intent: ${intent}`
+        );
+
+        const { result, usage } = await this.provider.analyzeATS(
+          {
+            resume: this.resume,
+            jobDetails: this.jobDetails,
+          },
+          { model: options.model }
+        );
+
+        this.pushToHistory("chat", userMessage, {
+          role: "assistant",
+          content: `[${intent} applied]`,
+        });
+
+        logger.info(
+          "ResumeChatBot",
+          `ATS advice provided — usage: ${JSON.stringify(usage)}`
+        );
+
+        yield {
+          type: "tool_result",
+          intent: intent,
+          args: { atsAnalysis: result, usage },
+        };
+        yield { type: "done" };
+        return;
+      }
+      case "edit": {
+        yield* this.runEditIntent(messages, userMessage, options);
+        return;
+      }
+    }
+  }
+
+  private async *runEditIntent(
+    messages: PromptMessage[],
+    userMessage: PromptMessage,
+    options: ChatBotOptions
+  ): AsyncGenerator<ChatStreamEvent> {
+    this.isSessionInitialized();
+    // now intent = IntentLabel.Edit so we fall through to the edit flow which requires
+    // an LLM call to get tool args, then another call to apply the tool result
+    const tool = RESUME_TOOLS.edit;
+
+    logger.info("ResumeChatBot", `Calling LLM with tool: ${tool.name}`);
+    const prompt = PromptSystem.generatePrompt("extract_fields_to_edit", {
+      userInput: userMessage.content,
+    });
+
+    // First we run the LLM to extract which fields to edit based on the user instruction
+    const { result, usage: extractUsage } =
+      await this.provider.runStructuredLLM(
+        prompt,
+        { model: options.model, maxTokens: 500 },
+        EditFieldOutputSchema,
+        "EditFieldOutputSchema"
+      );
+
+    const systemPrompt = buildEditFieldPrompt(
+      this.resume,
+      result,
+      jobDetailsToCompactPositional(this.jobDetails)
+    );
+
+    messages.unshift({ role: "system", content: systemPrompt });
+
+    // For edit_field we need to run the LLM to get the tool args, then apply the tool result to update resume state
+    const { toolCalls, usage: editUsage } = await this.provider.runLLM(
+      messages,
+      {
+        model: options.model,
+        tools: [tool],
+        toolChoice: {
+          type: "tool",
+          name: tool.name,
+        },
+      }
+    );
+
+    if (!toolCalls || toolCalls.length === 0) {
+      logger.error("ResumeChatBot", "LLM returned no tool calls");
+      throw new Error(
+        "LLM did not return any tool calls for an intent that requires it"
+      );
+    }
+
+    const args = toolCalls?.[0].arguments;
+
+    validateEditFieldArgs(args);
+
+    logger.info(
+      "ResumeChatBot",
+      `Tool call received — ${args.edits.length} fields: ${String(args.edits.map((a) => a.field).join(", "))}`
+    );
+
+    const { resume: updatedResume } = this.applyEdits(this.resume, args.edits);
+
+    const note = `Edit applied to resume field: ${String(args.edits.map((a) => a.field).join(", "))}`;
+
+    logger.info("ResumeChatBot", note);
+    yield {
+      type: "tool_result",
+      intent: IntentLabel.Edit,
+      args: {
+        updatedResume,
+        usage: mergeLLMUsageInfo(extractUsage, editUsage),
+        note,
+        summary: args.change_summary,
+      },
+    };
+
+    this.pushToHistory("chat", userMessage, {
+      role: "assistant",
+      content: `[${IntentLabel.Edit} applied]`,
+    });
+
+    yield { type: "done" };
+    return;
+  }
 }
+
+// TODO: yield LLM usage separately. Right now we merge the usage from the initial prompt to extract tool args and the final tool call that applies the edits, but it would be good to yield them separately so we can track how much usage is coming from the "thinking" part of the LLM vs the actual "doing" part of calling the tool.
 
 export default ResumeChatBot;
