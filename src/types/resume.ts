@@ -212,6 +212,9 @@ export const RESUME_FIELD_NAMES = Object.keys(
   ResumeSchema.shape
 ) as ResumeField[];
 
+export function getResumeSchemaForPrompt(): string {
+  return JSON.stringify(z.toJSONSchema(ResumeSchema), null, 2);
+}
 export type ContactInfo = z.infer<typeof ContactInfoSchema>;
 export type Experience = z.infer<typeof ExperienceSchema>;
 export type Project = z.infer<typeof ProjectSchema>;
