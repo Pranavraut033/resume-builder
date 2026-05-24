@@ -15,6 +15,8 @@ import { PromptPurpose } from "@/lib/llm/prompts";
 import { prisma } from "@/lib/prisma";
 import { ProviderType } from "@/types/llm";
 
+export type MultiPurpose = PromptPurpose[]; // then join when you need the string
+
 /**
  * Data structure for recording token usage of LLM calls
  */
@@ -38,7 +40,7 @@ export interface LLMUsageInfo {
   // Metadata
   provider: ProviderType;
   model: string;
-  purpose: PromptPurpose;
+  purpose: PromptPurpose | MultiPurpose;
   requestId?: string;
   durationMs?: number;
 }
@@ -92,6 +94,9 @@ export async function createTokenUsage(
   return prisma.tokenUsage.create({
     data: {
       ...data,
+      purpose: Array.isArray(data.purpose)
+        ? data.purpose.join(",")
+        : data.purpose, // Store as comma-separated string if it's an array
       totalTokens:
         data.totalTokens || data.promptTokens + data.completionTokens || 0,
       costMicrocents: data.costUSD ? data.costUSD * 1_000_000 : undefined, // Store as cents to avoid floating point issues
