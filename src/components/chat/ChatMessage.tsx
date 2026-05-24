@@ -23,6 +23,7 @@ export function ChatMessageItem({ message }: ChatMessageProps) {
     return (
       <div className="px-4 py-1">
         <ChatToolResult
+          content={message.content}
           intent={message.toolResult.intent}
           args={message.toolResult.args}
         />
@@ -37,7 +38,7 @@ export function ChatMessageItem({ message }: ChatMessageProps) {
   if (isUser) {
     return (
       <div className="flex flex-col items-end px-4 py-1">
-        <p className="text-agent-on-surface bg-agent-surface max-w-[82%] rounded-t-full rounded-l-full px-4 py-2 font-sans text-sm leading-relaxed">
+        <p className="text-agent-on-surface bg-agent-surface max-w-[82%] rounded-xl rounded-br-xs! px-3 py-2 font-sans text-sm leading-relaxed">
           {message.content}
         </p>
         <p className="text-agent-on-surface-variant/50 mt-0.5 text-[10px] tabular-nums">

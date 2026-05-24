@@ -177,7 +177,8 @@ export function ChatFAB() {
                 .concat({
                   id: toolId,
                   role: "tool",
-                  content: "",
+                  content:
+                    event.intent !== "ats" ? (event.args.summary ?? "") : "",
                   toolResult: { intent: event.intent, args: event.args },
                   timestamp: now(),
                 })
