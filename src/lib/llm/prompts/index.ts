@@ -84,6 +84,7 @@ export class PromptSystem {
     parse_resume: "Resume Parsing",
     humanize_content: "Content Humanization",
     generate_text: "General Text Generation",
+    extract_fields_to_edit: "Extract Fields to Edit",
   };
 
   /**

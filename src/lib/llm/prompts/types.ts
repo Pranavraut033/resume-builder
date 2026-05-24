@@ -38,6 +38,7 @@ export const PROMPT_PURPOSES = [
   "parse_resume",
   "analyze_ats",
   "humanize_content",
+  "extract_fields_to_edit",
 ] as const;
 
 export type PromptPurpose = (typeof PROMPT_PURPOSES)[number];
