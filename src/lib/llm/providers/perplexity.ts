@@ -61,8 +61,8 @@ OpenAICompatibleProvider.register(
   {
     name: "Perplexity",
     requiresAuth: true,
-    icon: "perplexity",
-    description: "Perplexity AI models",
+    description:
+      "AI-powered answer engine that combines web search with LLM responses, citing sources in real time. Positioned as a search engine replacement rather than a pure chat assistant.",
     defaultModels: ["sonar-pro", "sonar-reasoning-pro", "sonar"],
   },
   (apiKey?: string) => {

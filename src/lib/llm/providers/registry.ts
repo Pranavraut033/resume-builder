@@ -13,7 +13,6 @@ export interface ProviderMetadata {
   name: string;
   requiresAuth: boolean;
   isLocal?: boolean;
-  icon?: string;
   description?: string;
   defaultModels?: string[];
 }

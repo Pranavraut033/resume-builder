@@ -356,8 +356,8 @@ LLMProvider.register(
   {
     name: "Google Gemini",
     requiresAuth: true,
-    icon: "gemini",
-    description: "Google Gemini models",
+    description:
+      "Google's flagship AI family, deeply integrated with Search, Docs, and Android. Gemini 2.5 Pro leads on long-context reasoning and multimodal tasks across image, audio, and video.",
   },
   (apiKey?: string) => {
     if (!apiKey) {

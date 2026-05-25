@@ -40,10 +40,10 @@ export class GrokProvider extends OpenAICompatibleProvider {
 LLMProvider.register(
   ProviderType.GROK,
   {
-    name: "Grok (X.AI)",
+    name: "xAI Grok",
     requiresAuth: true,
-    icon: "grok",
-    description: "Grok models from X.AI",
+    description:
+      "Elon Musk's AI lab xAI built Grok with real-time access to X (Twitter) data and a less filtered, more irreverent personality. Grok 3 competes directly with frontier models on coding and reasoning.",
   },
   (apiKey?: string) => {
     if (!apiKey) {

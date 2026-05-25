@@ -51,8 +51,8 @@ LLMProvider.register(
   {
     name: "OpenAI",
     requiresAuth: true,
-    icon: "openai",
-    description: "OpenAI GPT models",
+    description:
+      "Created ChatGPT and the GPT series, widely seen as the company that kicked off the modern AI boom. Offers the GPT-4o and o-series reasoning models for consumers and via API.",
   },
   (apiKey?: string) => {
     if (!apiKey) {

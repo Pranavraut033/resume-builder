@@ -215,8 +215,8 @@ LLMProvider.register(
     name: "Ollama",
     requiresAuth: false,
     isLocal: true,
-    icon: "ollama",
-    description: "Local Ollama models",
+    description:
+      "Open-source tool for running LLMs locally on your own machine — no cloud, no data sharing, no API costs. Supports models like Llama 3, Mistral, Gemma, and many others via a simple CLI.",
   },
   (baseUrl) => new OllamaProvider(baseUrl)
 );

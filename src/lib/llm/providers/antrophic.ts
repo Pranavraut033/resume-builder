@@ -308,10 +308,10 @@ export class AnthropicProvider extends LLMProvider {
 LLMProvider.register(
   ProviderType.ANTHROPIC,
   {
-    name: "Anthropic",
+    name: "Anthropic (Claude)",
     requiresAuth: true,
-    icon: "anthropic",
-    description: "Anthropic Claude models",
+    description:
+      "Safety-focused AI lab behind Claude, emphasizing Constitutional AI and responsible deployment. Current models include Claude Opus 4.6 and Sonnet 4.6 — strong at reasoning, coding, and nuanced writing.",
   },
   (apiKey?: string) => {
     if (!apiKey) {
