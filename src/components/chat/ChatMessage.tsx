@@ -1,7 +1,6 @@
 import ReactMarkdown from "react-markdown";
 
 import cn from "@/lib/cn";
-import "@/styles/rte.css";
 
 import { ChatToolResult } from "./ChatToolResult";
 import { INTENT_META, type ChatMessage } from "./types";

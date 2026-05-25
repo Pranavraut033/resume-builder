@@ -1,47 +1,56 @@
 "use client";
 
-import { KeyboardEvent, useEffect, useRef, useState } from "react";
+import { KeyboardEvent, useCallback, useEffect, useRef, useState } from "react";
 
 import { ModelSelector } from "@/components/ModelSelector";
 import { Icon } from "@/components/ui/Icon";
+import { useJobPageContext } from "@/contexts/JobPageContext";
 import cn from "@/lib/cn";
-import { useModelStore } from "@/store/modelStore";
-import { ATSAnalysisJSON } from "@/types/resume";
 
+import { useChatContext } from "./ChatContext";
 import { ChatMessageItem } from "./ChatMessage";
-import { type ChatMessage } from "./types";
-import ATSAnalysisPanel from "../ATSAnalysisPanel";
+import ATSAnalysisPanel from "../job/ATSAnalysisPanel";
 import { Button } from "../ui";
 
 export type ViewMode = "chat" | "settings" | "ats";
 
 interface ChatPanelProps {
-  messages: ChatMessage[];
-  isLoading: boolean;
-  isProviderReady: boolean;
-  input: string;
-  atsAnalysis: ATSAnalysisJSON | null;
-  onInputChange: (value: string) => void;
-  onSend: () => void;
-  onClose: () => void;
-  defaultView?: ViewMode;
+  onClose?: () => void;
 }
 
-export function ChatPanel({
-  messages,
-  isLoading,
-  isProviderReady,
-  input,
-  atsAnalysis,
-  onInputChange,
-  onSend,
-  onClose,
-  defaultView = "chat",
-}: ChatPanelProps) {
+export function ChatPanel({ onClose: _close }: ChatPanelProps) {
+  const { chatSnapPosition: snapPosition, setChatSnapPosition } =
+    useJobPageContext();
+
+  const {
+    defaultView,
+    messages,
+    isLoading,
+    isProviderReady,
+    input,
+    atsAnalysis,
+    setInput: onInputChange,
+    handleSend: onSend,
+    resetSession,
+  } = useChatContext();
+
+  const isDocked = snapPosition !== undefined && snapPosition !== "undocked";
   const [view, setView] = useState<ViewMode>(defaultView);
   const bottomRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const activeModelPair = useModelStore((state) => state.activeModelPair);
+
+  const onClose = useCallback(() => {
+    if (_close) _close();
+    resetSession();
+  }, [_close, resetSession]);
+
+  const onSnapPositionChange = useCallback(
+    (pos: "left" | "right" | "undocked") => {
+      setChatSnapPosition(pos);
+      if (pos === "undocked" && onClose) onClose();
+    },
+    [onClose, setChatSnapPosition]
+  );
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -62,22 +71,30 @@ export function ChatPanel({
 
   const canSend = !isLoading && isProviderReady && input.trim().length > 0;
 
-  function handleKeyDown(e: KeyboardEvent<HTMLTextAreaElement>) {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
-      if (canSend) onSend();
-    }
-  }
+  const handleKeyDown = useCallback(
+    (e: KeyboardEvent<HTMLTextAreaElement>) => {
+      if (e.key === "Enter" && !e.shiftKey) {
+        e.preventDefault();
+        if (canSend) onSend();
+      }
+    },
+    [canSend, onSend]
+  );
 
   return (
     <div
-      className="flex flex-col overflow-hidden rounded-xl"
+      className="flex flex-col overflow-hidden"
       style={{
-        width: 360,
-        height: 520,
+        ...(isDocked
+          ? { width: "100%", height: "100%" }
+          : {
+              width: 360,
+              height: 520,
+              borderRadius: "0.75rem",
+              border: "1px solid var(--color-agent-outline-variant)",
+              boxShadow: "var(--shadow-agent-modal)",
+            }),
         background: "var(--color-agent-surface-lowest)",
-        border: "1px solid var(--color-agent-outline-variant)",
-        boxShadow: "var(--shadow-agent-modal)",
       }}
     >
       {/* ── Header ──────────────────────────────────────────────────────── */}
@@ -97,12 +114,57 @@ export function ChatPanel({
         >
           Resume AI
         </span>
+        {/* Snap position controls — only shown when the snap prop is wired up */}
+        <>
+          <button
+            type="button"
+            title="Snap left"
+            onClick={() => onSnapPositionChange("left")}
+            className={cn(
+              "flex h-7 w-7 items-center justify-center rounded-md transition-colors",
+              {
+                "bg-agent-primary text-agent-on-primary":
+                  snapPosition === "left",
+                "text-agent-on-surface-variant bg-transparent":
+                  snapPosition !== "left",
+              }
+            )}
+          >
+            <Icon name="panelLeft" className="h-3.5 w-3.5" />
+          </button>
+          <button
+            type="button"
+            title="Snap right"
+            onClick={() => onSnapPositionChange("right")}
+            className={cn(
+              "flex h-7 w-7 items-center justify-center rounded-md transition-colors",
+              {
+                "bg-agent-primary text-agent-on-primary":
+                  snapPosition === "right",
+                "text-agent-on-surface-variant bg-transparent":
+                  snapPosition !== "right",
+              }
+            )}
+          >
+            <Icon name="panelRight" className="h-3.5 w-3.5" />
+          </button>
+          {isDocked && (
+            <button
+              type="button"
+              title="Undock panel"
+              onClick={() => onSnapPositionChange("undocked")}
+              className="text-agent-on-surface-variant hover:bg-agent-surface-high flex h-7 w-7 items-center justify-center rounded-md transition-colors"
+            >
+              <Icon name="panelLeftClose" className="h-3.5 w-3.5" />
+            </button>
+          )}
+        </>
         {/*Ats analysis result is present, show an "ATS Analysis" badge in the header*/}
         {atsAnalysis && (
           <button
             type="button"
             title="View ATS analysis"
-            onClick={() => setView("ats")}
+            onClick={() => setView((prev) => (prev === "ats" ? "chat" : "ats"))}
             className={cn(
               "flex h-7 w-7 items-center justify-center rounded-md transition-colors",
               {
@@ -134,15 +196,17 @@ export function ChatPanel({
         </button>
 
         {/* Close */}
-        <button
-          type="button"
-          title="Close"
-          onClick={onClose}
-          className="hover:bg-agent-surface-high flex h-7 w-7 items-center justify-center rounded-md transition-colors"
-          style={{ color: "var(--color-agent-on-surface-variant)" }}
-        >
-          <Icon name="x" className="h-3.5 w-3.5" />
-        </button>
+        {onClose && (
+          <button
+            type="button"
+            title="Close"
+            onClick={onClose}
+            className="hover:bg-agent-surface-high flex h-7 w-7 items-center justify-center rounded-md transition-colors"
+            style={{ color: "var(--color-agent-on-surface-variant)" }}
+          >
+            <Icon name="x" className="h-3.5 w-3.5" />
+          </button>
+        )}
       </div>
       {view === "ats" && atsAnalysis && (
         <div className="flex-1 overflow-y-auto">
@@ -158,7 +222,7 @@ export function ChatPanel({
           >
             Model
           </p>
-          <ModelSelector variant="compact" className="w-full" />
+          <ModelSelector className="w-full" />
 
           <p
             className="mt-6 mb-4 text-xs leading-relaxed"
@@ -168,15 +232,14 @@ export function ChatPanel({
             session. Switch back to chat to start talking.
           </p>
 
-          <button
+          <Button
             type="button"
+            className="w-full"
             onClick={() => setView("chat")}
-            className="mt-2 flex items-center gap-1.5 text-xs font-medium transition-opacity hover:opacity-80"
-            style={{ color: "var(--color-agent-primary)" }}
           >
-            <Icon name="arrowLeft" className="h-3 w-3" />
-            Back to chat
-          </button>
+            Start Chatting
+            <Icon name="sparkles" className="h-3 w-3" />
+          </Button>
         </div>
       )}
 
@@ -216,14 +279,8 @@ export function ChatPanel({
           >
             {isProviderReady ? (
               <p className="text-agent-on-surface-variant mb-2 text-[10px]">
-                Using {activeModelPair?.[1]} [{activeModelPair?.[0]}]{" "}
-                <Button
-                  size="sm"
-                  onClick={() => setView("settings")}
-                  className="p-0.5 px-1 text-[10px]"
-                >
-                  switch
-                </Button>
+                Using <ModelSelector variant="minimal" />. Type your message and
+                hit enter to send.
               </p>
             ) : (
               <p className="text-agent-on-surface-variant mb-2 text-[10px]">
