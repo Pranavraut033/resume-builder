@@ -31,9 +31,7 @@ export default function AppShell({ children }: AppShellProps) {
 
 function AppShellContent({ children }: AppShellProps) {
   const pathname = usePathname();
-  const isEditingDocumentRoute = /\/job\/\d+\/(resume|cover-letter)/.test(
-    pathname
-  );
+  const isEditingDocumentRoute = pathname.startsWith("/job/");
 
   if (isEditingDocumentRoute) {
     return (

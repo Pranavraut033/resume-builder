@@ -3,32 +3,48 @@ import clsx from "clsx";
 import { useState } from "react";
 
 import { MultiSelect } from "@/components/ui";
+import { PROVIDER_ICONS, PROVIDER_INFO } from "@/lib/llm/providerMetaInfo";
+import { useModelStore } from "@/store/modelStore";
+import { ProviderType } from "@/types/llm";
 
-import { ProviderCardProps } from "../../app/settings/page";
+export interface ProviderCardProps {
+  apiKey: string;
+  isSaving: boolean;
+  isValidating?: boolean;
+  onApiKeyChange: (v: string) => void;
+  onSave: () => void;
+  onValidate: () => void;
+  providerType: ProviderType;
+  validationMessage?: string;
+  validationSuccess?: boolean | null;
+}
 
 export function ProviderCard({
-  name,
-  tagline,
-  avatarLetter,
-  avatarColor,
   apiKey,
+  isSaving,
+  isValidating = false,
   onApiKeyChange,
   onSave,
   onValidate,
-  isSaving,
-  isConnected,
-  modelOptions: _modelOptions,
-  selectedModels,
-  onModelsChange,
-  isLoadingModels,
-  isValidating = false,
+  providerType,
   validationMessage = "",
   validationSuccess = null,
 }: ProviderCardProps) {
+  const {
+    selectedModelsByProvider,
+    isLoading,
+    modelsByProvider,
+    setProviderModels,
+  } = useModelStore();
+  const _modelOptions = modelsByProvider[providerType] ?? [];
   const [showKey, setShowKey] = useState(false);
   const hasFallback = _modelOptions[0] === "fallback";
   const modelOptions = hasFallback ? _modelOptions.slice(1) : _modelOptions;
+  const meta = PROVIDER_INFO[providerType];
+  const selectedModels = selectedModelsByProvider[providerType] ?? [];
+  const isConnected = _modelOptions?.length > 0;
 
+  const Icon = PROVIDER_ICONS[providerType];
   return (
     <div
       className="flex flex-col gap-4 rounded-2xl p-5"
@@ -63,25 +79,24 @@ export function ProviderCard({
       )}
       {/* Header */}
       <div className="flex items-center gap-3">
-        <div
-          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-sm font-bold text-white"
-          style={{ background: avatarColor }}
-        >
-          {avatarLetter}
+        <div className="flex size-9 items-center justify-center rounded-lg text-xs font-semibold text-white">
+          <Icon className="size-5" />
         </div>
         <div className="min-w-0 flex-1">
           <p
             className="text-sm leading-tight font-semibold"
             style={{ color: "var(--color-agent-on-surface)" }}
           >
-            {name}
+            {meta.name}
           </p>
-          <p
-            className="truncate text-xs"
-            style={{ color: "var(--color-agent-on-surface-variant)" }}
-          >
-            {tagline}
-          </p>
+          {meta.description && (
+            <p
+              className="truncate text-xs"
+              style={{ color: "var(--color-agent-on-surface-variant)" }}
+            >
+              {meta.description}
+            </p>
+          )}
         </div>
         <span
           className={clsx(
@@ -174,10 +189,10 @@ export function ProviderCard({
         <div className="min-w-0 flex-1">
           <MultiSelect
             value={selectedModels}
-            onChange={onModelsChange}
+            onChange={(models) => setProviderModels(providerType, models)}
             options={modelOptions}
-            placeholder={isLoadingModels ? "Loading models…" : "Select Models"}
-            disabled={isLoadingModels}
+            placeholder={isLoading ? "Loading models…" : "Select Models"}
+            disabled={isLoading}
           />
         </div>
         <button

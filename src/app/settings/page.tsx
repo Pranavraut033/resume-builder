@@ -26,27 +26,6 @@ import { ProviderCard } from "../../components/settings/ProviderCard";
 
 const logger = createLogger("SettingsPage");
 
-export interface ProviderCardProps {
-  name: string;
-  providerType: string;
-  tagline: string;
-  avatarLetter: string;
-  avatarColor: string;
-  apiKey: string;
-  onApiKeyChange: (v: string) => void;
-  onSave: () => void;
-  onValidate: () => void;
-  isSaving: boolean;
-  isConnected: boolean;
-  modelOptions: string[];
-  selectedModels: string[];
-  onModelsChange: (models: string[]) => void;
-  isLoadingModels: boolean;
-  isValidating?: boolean;
-  validationMessage?: string;
-  validationSuccess?: boolean | null;
-}
-
 export default function SettingsPage() {
   const [keys, setKeys] = useState<Record<string, string>>({});
   const [savingProvider, setSavingProvider] = useState<string | null>(null);
@@ -63,10 +42,9 @@ export default function SettingsPage() {
   const {
     modelsByProvider,
     selectedModelsByProvider,
-    isLoading,
     error,
+    isLoading,
     loadModels,
-    setProviderModels,
     refreshModels,
     clearError,
   } = useModelStore();
@@ -136,43 +114,6 @@ export default function SettingsPage() {
     (p) => p.requiresAuth && !p.isLocal
   );
 
-  const providerMeta: Record<
-    ProviderType,
-    { tagline: string; avatarLetter: string; avatarColor: string }
-  > = {
-    openai: {
-      tagline: "Models from openai like gpt-4, gpt-5, and more",
-      avatarLetter: "O",
-      avatarColor: "#10a37f",
-    },
-    gemini: {
-      tagline: "Google's Gemini models, including Gemini Pro and Gemini 1.5",
-      avatarLetter: "G",
-      avatarColor: "#4285f4",
-    },
-    grok: {
-      tagline: "Grok models, including Grok-1 and Grok-Beta",
-      avatarLetter: "X",
-      avatarColor: "#1a1a1a",
-    },
-    perplexity: {
-      tagline: "Perplexity models, including Sonar and Llama 3 API",
-      avatarLetter: "P",
-      avatarColor: "#20b2aa",
-    },
-    anthropic: {
-      tagline:
-        "Anthropic's Claude models, including Claude Sonnet and Claude Haiku",
-      avatarLetter: "A",
-      avatarColor: "#ff5c8c",
-    },
-    ollama: {
-      tagline: "Your local LLM service for private, air-gapped processing",
-      avatarLetter: "O",
-      avatarColor: "#10a37f",
-    },
-  };
-
   return (
     <div className="text-agent-on-surface min-h-full px-6 py-8">
       <PageHeader
@@ -207,20 +148,10 @@ export default function SettingsPage() {
         <PageSection title="Cloud LLM Providers">
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
             {cloudProviders.map((provider) => {
-              const meta = providerMeta[provider.type] ?? {
-                tagline: provider.description ?? "",
-                avatarLetter: provider.name[0].toUpperCase(),
-                avatarColor: "var(--color-agent-primary)",
-              };
-
               return (
                 <ProviderCard
                   key={provider.type}
-                  name={provider.name}
                   providerType={provider.type}
-                  tagline={meta.tagline}
-                  avatarLetter={meta.avatarLetter}
-                  avatarColor={meta.avatarColor}
                   apiKey={keys[provider.type] || ""}
                   onApiKeyChange={(v) =>
                     setKeys((prev) => ({ ...prev, [provider.type]: v }))
@@ -228,13 +159,6 @@ export default function SettingsPage() {
                   onSave={() => handleSaveKey(provider.type)}
                   onValidate={() => handleValidate(provider.type)}
                   isSaving={savingProvider === provider.type}
-                  isConnected={!!modelsByProvider[provider.type]?.length}
-                  modelOptions={modelsByProvider[provider.type] ?? []}
-                  selectedModels={selectedModelsByProvider[provider.type] ?? []}
-                  onModelsChange={(models) =>
-                    setProviderModels(provider.type, models)
-                  }
-                  isLoadingModels={isLoading}
                   isValidating={validatingProvider === provider.type}
                   validationMessage={
                     validationResults[provider.type]?.message ?? ""
@@ -300,9 +224,7 @@ export default function SettingsPage() {
                 </p>
                 <MultiSelect
                   value={selectedModelsByProvider.ollama ?? []}
-                  onChange={(models) =>
-                    setProviderModels(ProviderType.OLLAMA, models)
-                  }
+                  onChange={(models) => (ProviderType.OLLAMA, models)}
                   options={modelsByProvider.ollama ?? []}
                   placeholder={isLoading ? "Loading…" : "Select Ollama models"}
                   disabled={isLoading}

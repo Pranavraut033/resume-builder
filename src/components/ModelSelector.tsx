@@ -12,65 +12,27 @@
 "use client";
 
 import Link from "next/link";
-import { ReactNode, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 
-import {
-  AnthropicIcon,
-  OpenAIIcon,
-  GrokIcon,
-  GeminiIcon,
-  OllamaIcon,
-  PerplexityIcon,
-} from "@/components/icons";
-import { Icon } from "@/components/ui/Icon";
+import { Button, Icon } from "@/components/ui";
 import { Modal } from "@/components/ui/Modal";
-import { getAvailableProviders } from "@/lib/llm/providers";
+import { PROVIDER_INFO, PROVIDER_ICONS } from "@/lib/llm/providerMetaInfo";
 import { useModelStore } from "@/store/modelStore";
 import { ProviderType } from "@/types/llm";
+
 interface ModelSelectorProps {
   /** Callback when user selects a model. Emits {model, provider} */
   onModelSelected?: (model: string, provider: ProviderType) => void;
   label?: string;
   className?: string;
-  variant?: "normal" | "compact";
+  variant?: "normal" | "compact" | "minimal";
 }
-
-export const PROVIDER_ICONS: Record<ProviderType, ReactNode> = {
-  [ProviderType.OPENAI]: (
-    <OpenAIIcon className="text-agent-on-primary-container h-4 w-4 scale-150 transform" />
-  ),
-  [ProviderType.GEMINI]: <GeminiIcon className="h-4 w-4" />,
-  [ProviderType.GROK]: <GrokIcon className="h-4 w-4" />,
-  [ProviderType.OLLAMA]: <OllamaIcon className="h-4 w-4" />,
-  [ProviderType.PERPLEXITY]: <PerplexityIcon className="h-4 w-4" />,
-  [ProviderType.ANTHROPIC]: <AnthropicIcon className="h-4 w-4" />,
-};
-
-// Build provider info map
-function buildProviderInfo(): Record<
-  ProviderType,
-  { name: string; icon: string }
-> {
-  const info = {} as Record<ProviderType, { name: string; icon: string }>;
-  const providers = getAvailableProviders();
-
-  for (const provider of providers) {
-    info[provider.type as ProviderType] = {
-      name: provider.name,
-      icon: provider.icon || "zap",
-    };
-  }
-
-  return info;
-}
-
-const PROVIDER_INFO = buildProviderInfo();
 
 export function ModelSelector({
   onModelSelected,
   label = "Select Model",
   className = "",
-  variant = "compact",
+  variant = "normal",
 }: ModelSelectorProps) {
   const { selectedModelsByProvider, activeModelPair, setSelectedModel } =
     useModelStore();
@@ -98,10 +60,9 @@ export function ModelSelector({
   const selectedProviderInfo = activeModelPair
     ? PROVIDER_INFO[activeModelPair[0]]
     : undefined;
-  const showButtonTrigger = variant === "compact" || !activeModelPair;
 
   // Show error state if no models configured
-  if (preselectedByProvider.length === 0) {
+  if (preselectedByProvider.length === 0 || !activeModelPair) {
     return (
       <div
         className={`rounded-xl px-4 py-3 ${className}`}
@@ -120,37 +81,40 @@ export function ModelSelector({
       </div>
     );
   }
+  const ActiveIcon = PROVIDER_ICONS[activeModelPair[0]];
 
+  const getProviderIcon = (provider: ProviderType) => {
+    const IconComponent = PROVIDER_ICONS[provider];
+    return <IconComponent className="h-4 w-4" />;
+  };
   return (
     <>
-      {variant === "normal" && activeModelPair ? (
+      {variant === "normal" ? (
         <>
           {/* Current Model Display */}
           <button
             type="button"
             onClick={() => setIsOpen(true)}
-            className="mb-4 flex w-full items-center gap-3 rounded-xl p-3 text-left transition-all hover:shadow-sm active:scale-[0.99]"
-            style={{
-              background: "var(--color-agent-surface-container)",
-              border: "1px solid var(--color-agent-outline-variant)",
-            }}
+            className="bg-agent-surface-container border-agent-outline-variant mb-4 flex w-full gap-3 rounded-xl border p-3 text-left transition-all hover:shadow-sm active:scale-[0.99]"
           >
-            <div className="bg-agent-primary-container flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-white">
-              {PROVIDER_ICONS[activeModelPair[0]]}
+            <div className="bg-agent-surface-low flex h-10 w-10 shrink-0 items-center justify-center rounded-lg">
+              <ActiveIcon className="size-6" />
             </div>
             <div className="min-w-0 flex-1">
-              <p
-                className="text-xs font-semibold tracking-wide uppercase"
-                style={{ color: "var(--color-agent-on-surface-variant)" }}
-              >
+              <p className="text-agent-on-surface-variant text-xs font-semibold tracking-wide uppercase">
                 {selectedProviderInfo?.name || activeModelPair[0]}
               </p>
               <p
-                className="truncate text-sm font-semibold"
+                className="text-sm font-semibold"
                 style={{ color: "var(--color-agent-on-surface)" }}
               >
                 {activeModelPair[1]}
               </p>
+              {selectedProviderInfo?.description && (
+                <p className="text-agent-on-surface-variant mt-1 text-xs">
+                  {selectedProviderInfo.description}
+                </p>
+              )}
             </div>
             <Icon
               name="chevronDown"
@@ -167,10 +131,7 @@ export function ModelSelector({
             settings.
           </p>
         </>
-      ) : null}
-
-      {/* Trigger Button */}
-      {showButtonTrigger ? (
+      ) : variant === "compact" ? (
         <button
           type="button"
           onClick={() => setIsOpen(true)}
@@ -184,13 +145,24 @@ export function ModelSelector({
           <div className="flex items-center gap-2">
             <Icon name="slidersHorizontal" className="h-4 w-4" />
             <span>
-              {variant === "compact" && activeModelPair
+              {activeModelPair
                 ? `${activeModelPair[0]} - ${activeModelPair[1]}`
                 : label}
             </span>
           </div>
           <Icon name="chevronDown" className="h-4 w-4 opacity-60" />
         </button>
+      ) : variant === "minimal" ? (
+        <>
+          {activeModelPair?.[1]} [{activeModelPair?.[0]}]{" "}
+          <Button
+            size="sm"
+            onClick={() => setIsOpen(true)}
+            className="p-0.5 px-1 text-[10px]"
+          >
+            switch
+          </Button>
+        </>
       ) : null}
 
       {/* Modal Window */}
@@ -209,7 +181,7 @@ export function ModelSelector({
                 {/* Provider Header */}
                 <div className="mb-3 flex items-center gap-2">
                   <div className="flex h-6 w-6 items-center justify-center rounded-lg text-xs font-semibold text-white">
-                    {PROVIDER_ICONS[provider]}
+                    {getProviderIcon(provider)}
                   </div>
                   <p
                     className="text-sm font-semibold"

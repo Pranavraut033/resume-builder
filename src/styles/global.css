@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import "./rte.css";
 
 @theme {
   /* Primary brand color scale (blue) */

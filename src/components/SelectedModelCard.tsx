@@ -52,11 +52,7 @@ export function SelectedModelCard() {
 
       <>
         {/* Change Model Button */}
-        <ModelSelector
-          label="Change Model"
-          className="w-full"
-          variant="normal"
-        />
+        <ModelSelector className="w-full" />
 
         {/* Link to Settings */}
         <Link
