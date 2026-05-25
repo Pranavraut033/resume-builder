@@ -1,5 +1,4 @@
 import { sanitizeHtml } from "@/lib/htmlUtils";
-import "@/styles/rte.css";
 
 type Props = {
   content: string;

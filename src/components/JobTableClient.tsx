@@ -239,11 +239,14 @@ export default function JobTableClient({ jobs }: { jobs: PopulatedJob[] }) {
             <IconLink href={`/job/${row.original.id}`} label="Edit job">
               <Icon name="edit" size={18} />
             </IconLink>
-            <IconLink href={`/resume/${row.original.id}`} label="Open resume">
+            <IconLink
+              href={`/job/${row.original.id}?contentType=resume`}
+              label="Open resume"
+            >
               <Icon name="fileText" size={18} />
             </IconLink>
             <IconLink
-              href={`/cover-letter/${row.original.id}`}
+              href={`/job/${row.original.id}?contentType=coverLetter`}
               label="Open cover letter"
             >
               <Icon name="fileText" size={18} className="opacity-80" />

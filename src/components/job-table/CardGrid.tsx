@@ -99,11 +99,14 @@ export default function CardGrid({
             <IconLink href={`/job/${job.id}`} label="Edit job">
               <Icon name="edit" size={18} />
             </IconLink>
-            <IconLink href={`/job/${job.id}/resume`} label="Open resume">
+            <IconLink
+              href={`/job/${job.id}?contentType=resume`}
+              label="Open resume"
+            >
               <Icon name="fileText" size={18} />
             </IconLink>
             <IconLink
-              href={`/job/${job.id}/cover-letter`}
+              href={`/job/${job.id}?contentType=coverLetter`}
               label="Open cover letter"
             >
               <Icon name="fileText" size={18} className="opacity-80" />
