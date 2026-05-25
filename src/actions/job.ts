@@ -316,6 +316,17 @@ export async function getCoverLetterByJobId(
     });
 }
 
+export async function getAllJob(): Promise<
+  (Job & { company: Company; contact: Contact | null })[]
+> {
+  const jobList = await prisma.job.findMany({
+    orderBy: { createdAt: "desc" },
+    include: { company: true, contact: true },
+  });
+
+  return jobList;
+}
+
 /**
  * Update cover letter for a job
  */

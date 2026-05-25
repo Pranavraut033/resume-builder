@@ -2,11 +2,12 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState, useRef } from "react";
+import { useState } from "react";
 
 import { createJob } from "@/actions/job";
 import { fetchJobDescriptionFromUrl } from "@/actions/urlFetcher";
 import { SelectedModelCard } from "@/components/SelectedModelCard";
+import { BackButton } from "@/components/ui";
 import { useToast } from "@/components/ui/ToastProvider";
 import { useProfileQuery } from "@/hooks/useProfileQuery";
 import LLMService from "@/lib/llm/llmService";
@@ -21,8 +22,8 @@ export default function NewJobPage() {
   const [inputMode, setInputMode] = useState<"text" | "url">("text");
   const [loading, setLoading] = useState(false);
   const [fetchingUrl, setFetchingUrl] = useState(false);
-  const [isDragging, setIsDragging] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  // const [isDragging, setIsDragging] = useState(false);
+  // const fileInputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
   const { data: profile, isLoading } = useProfileQuery();
 
@@ -56,15 +57,15 @@ export default function NewJobPage() {
     }
   };
 
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragging(false);
-    const file = e.dataTransfer.files[0];
-    if (file && file.type === "application/pdf") {
-      // PDF handling placeholder — set description note
-      setDescription(`[PDF uploaded: ${file.name}] — PDF parsing coming soon.`);
-    }
-  };
+  // const handleDrop = (e: React.DragEvent) => {
+  //   e.preventDefault();
+  //   setIsDragging(false);
+  //   const file = e.dataTransfer.files[0];
+  //   if (file && file.type === "application/pdf") {
+  //     // PDF handling placeholder — set description note
+  //     setDescription(`[PDF uploaded: ${file.name}] — PDF parsing coming soon.`);
+  //   }
+  // };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -155,10 +156,11 @@ export default function NewJobPage() {
 
   // ── Main page ─────────────────────────────────────────────────────────────
   return (
-    <div className="flex min-h-full flex-col">
+    <div className="flex min-h-full flex-col overflow-y-auto">
       {/* ── Main content ── */}
       <main className="flex flex-1 items-start justify-center gap-8 px-6 py-10 lg:px-12">
         {/* ── Left column: form ── */}
+        <BackButton />
         <div className="w-full max-w-2xl">
           <h1 className="mb-1 text-3xl font-bold text-(--color-agent-on-surface)">
             Tailor Your Resume
@@ -234,7 +236,7 @@ export default function NewJobPage() {
             </div>
 
             {/* ── PDF upload ── */}
-            <div>
+            {/* <div>
               <p className="text-agent-on-surface-variant mb-2 text-xs font-medium">
                 Or upload the job PDF
               </p>
@@ -285,7 +287,7 @@ export default function NewJobPage() {
                   }}
                 />
               </div>
-            </div>
+            </div> */}
 
             {/* ── Pro tip ── */}
             <div className="border-agent-primary-fixed bg-agent-surface-low flex items-start gap-3 rounded-xl border px-4 py-3">

@@ -5,7 +5,6 @@ import { getCoverLetterByJobId, getJob, getResumeByJobId } from "@/actions/job";
 import { getProfile } from "@/actions/profile";
 import { FallbackState, Button } from "@/components/ui";
 import { JobPageProvider } from "@/contexts/JobPageContext";
-import getFullUrl from "@/lib/getFulllUrl";
 
 export const metadata: Metadata = {
   title: "Editor",
@@ -43,17 +42,10 @@ export default async function EditorLayout({
     );
   }
 
-  const fullUrl = await getFullUrl();
-
-  const contentType: "resume" | "coverLetter" = fullUrl.includes("resume")
-    ? "resume"
-    : "coverLetter";
-
   return (
     <JobPageProvider
       jobId={jobIdNum}
       serverData={{ coverLetter, job, profile, resume }}
-      contentType={contentType}
     >
       {children}
     </JobPageProvider>

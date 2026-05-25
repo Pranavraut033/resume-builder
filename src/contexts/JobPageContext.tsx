@@ -1,18 +1,9 @@
-/**
- * Unified Editor Context Provider
- * Manages both resume and cover letter editing with shared state for:
- * - Content data (resume or cover letter)
- * - Job context
- * - Customization (theme, colors, fonts, template)
- *
- * LLM operations are handled by AIContext to avoid duplication
- */
-
 "use client";
 
 import { Customization } from "@prisma/client";
 import { RefetchOptions, useMutation } from "@tanstack/react-query";
 import { deepClone } from "fast-json-patch";
+import { useSearchParams } from "next/navigation";
 import {
   createContext,
   useContext,
@@ -46,6 +37,7 @@ import {
 import { ATSAnalysisJSON, ResumeJSON } from "@/types/resume";
 
 export type EditorContentType = "resume" | "coverLetter";
+export type ChatSnapPosition = "left" | "right" | "undocked";
 type SanitizedFields = "id" | "createdAt" | "updatedAt";
 
 export type Sanitize<T> = Omit<T, SanitizedFields>;
@@ -88,19 +80,20 @@ export interface JobPageContextType {
   saveStatus: "idle" | "saving" | "saved" | "error";
   isDirtyCoverLetter: boolean;
   isDirtyResume: boolean;
+  chatSnapPosition: ChatSnapPosition;
+  setChatSnapPosition: (position: ChatSnapPosition) => void;
+  setContentType: (type: EditorContentType) => void;
 }
 
 const JobPageContext = createContext<JobPageContextType | null>(null);
 
 interface JobPageProviderProps {
   children: ReactNode;
-  contentType: EditorContentType;
   serverData: JobPageData;
   jobId: number;
 }
 export function JobPageProvider({
   children,
-  contentType,
   serverData,
   jobId,
 }: JobPageProviderProps) {
@@ -108,9 +101,17 @@ export function JobPageProvider({
     jobId,
     serverData
   );
+  const params = useSearchParams();
+  const queryContentType = params.get("contentType");
+
+  const [contentType, setContentType] = useState<EditorContentType>(
+    queryContentType === "coverLetter" ? "coverLetter" : "resume"
+  );
 
   const [isExportingTxt, setIsExportingTxt] = useState(false);
   const [isExportingPdf, setIsExportingPdf] = useState(false);
+  const [chatSnapPosition, setChatSnapPosition] =
+    useState<ChatSnapPosition>("undocked");
 
   const resumeInitial = data?.resume?.contentJson ?? data!.profile;
 
@@ -340,6 +341,7 @@ export function JobPageProvider({
 
   const value: JobPageContextType = {
     atsAnalysis,
+    chatSnapPosition,
     contentType,
     coverLetter,
     customization,
@@ -358,6 +360,8 @@ export function JobPageProvider({
     saveStatus,
     saveToDb,
     setAtsAnalysis,
+    setChatSnapPosition,
+    setContentType,
     updateCoverLetterState,
     updateCustomizationState,
     updateResumeState,
