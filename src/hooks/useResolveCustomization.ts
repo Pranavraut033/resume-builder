@@ -18,10 +18,16 @@ const marginSizeMap: Record<MarginSize, string> = {
   wide: "p-16",
 };
 
-const letterSpacingMap: Record<Leading, string> = {
-  small: "tracking-tight",
-  medium: "tracking-normal",
-  large: "tracking-wide",
+const lineHeightMap: Record<Leading, string> = {
+  small: "leading-snug",
+  medium: "leading-normal",
+  large: "leading-relaxed",
+};
+
+const nameSizeMap: Record<FontSize, string> = {
+  small: "text-2xl",
+  medium: "text-3xl",
+  large: "text-4xl",
 };
 
 export default function useResolveCustomization(
@@ -48,11 +54,11 @@ export default function useResolveCustomization(
     backgroundColor,
   ] = colors.split(",") as ThemeColors;
   const headingSize =
-    textSize === "small"
-      ? "text-lg"
-      : textSize === "medium"
-        ? "text-xl"
-        : "text-2xl";
+    textSize === "text-xs"
+      ? "text-base"
+      : textSize === "text-sm"
+        ? "text-lg"
+        : "text-xl";
   return {
     primaryColor,
     secondaryColor,
@@ -62,9 +68,9 @@ export default function useResolveCustomization(
     textSize,
     fontFamily,
     today,
-    lineHeight:
-      letterSpacingMap[lineHeight as Leading] || letterSpacingMap.medium,
+    lineHeight: lineHeightMap[lineHeight as Leading] || lineHeightMap.medium,
     marginClass,
     headingSize,
+    nameSize: nameSizeMap[fontSize as FontSize] || nameSizeMap.medium,
   };
 }

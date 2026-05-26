@@ -27,9 +27,9 @@ export type ThemeColors = [
 ];
 
 export const DEFAULT_COLORS: ThemeColors = [
-  "#3b82f6",
-  "#64748b",
-  "#8b5cf6",
+  "#1d4ed8",
+  "#475569",
+  "#6d28d9",
   "#1f2937",
   "#ffffff",
 ];
@@ -210,90 +210,42 @@ export const COLOR_PRESETS: Array<{
 }> = [
   {
     name: "Blue",
-    hex: "#3b82f6",
-    colors: [
-      "#3b82f6",
-      DEFAULT_COLORS[1],
-      "#8b5cf6",
-      DEFAULT_COLORS[3],
-      DEFAULT_COLORS[4],
-    ],
+    hex: "#2563eb",
+    colors: ["#1d4ed8", "#475569", "#6d28d9", "#1f2937", "#ffffff"],
   },
   {
     name: "Navy",
-    hex: "#1e40af",
-    colors: [
-      "#1e40af",
-      "#3b82f6",
-      "#1e3a8a",
-      DEFAULT_COLORS[3],
-      DEFAULT_COLORS[4],
-    ],
+    hex: "#1e3a8a",
+    colors: ["#1e40af", "#1e3a8a", "#3730a3", "#1f2937", "#ffffff"],
   },
   {
     name: "Green",
-    hex: "#10b981",
-    colors: [
-      "#10b981",
-      "#6ee7b7",
-      "#059669",
-      DEFAULT_COLORS[3],
-      DEFAULT_COLORS[4],
-    ],
+    hex: "#15803d",
+    colors: ["#15803d", "#166534", "#065f46", "#1f2937", "#ffffff"],
   },
   {
     name: "Purple",
-    hex: "#8b5cf6",
-    colors: [
-      "#8b5cf6",
-      "#a78bfa",
-      "#7c3aed",
-      DEFAULT_COLORS[3],
-      DEFAULT_COLORS[4],
-    ],
+    hex: "#7c3aed",
+    colors: ["#7c3aed", "#5b21b6", "#4c1d95", "#1f2937", "#ffffff"],
   },
   {
     name: "Rose",
-    hex: "#e11d48",
-    colors: [
-      "#e11d48",
-      "#fb7185",
-      "#be123c",
-      DEFAULT_COLORS[3],
-      DEFAULT_COLORS[4],
-    ],
+    hex: "#be123c",
+    colors: ["#be123c", "#9f1239", "#881337", "#1f2937", "#ffffff"],
   },
   {
     name: "Teal",
-    hex: "#14b8a6",
-    colors: [
-      "#14b8a6",
-      "#5eead4",
-      "#0d9488",
-      DEFAULT_COLORS[3],
-      DEFAULT_COLORS[4],
-    ],
+    hex: "#0f766e",
+    colors: ["#0f766e", "#134e4a", "#115e59", "#1f2937", "#ffffff"],
   },
   {
     name: "Orange",
-    hex: "#f97316",
-    colors: [
-      "#f97316",
-      "#fb923c",
-      "#ea580c",
-      DEFAULT_COLORS[3],
-      DEFAULT_COLORS[4],
-    ],
+    hex: "#c2410c",
+    colors: ["#c2410c", "#9a3412", "#7c2d12", "#1f2937", "#ffffff"],
   },
   {
-    name: "Gray",
-    hex: "#6b7280",
-    colors: [
-      "#6b7280",
-      "#9ca3af",
-      "#374151",
-      DEFAULT_COLORS[3],
-      DEFAULT_COLORS[4],
-    ],
+    name: "Charcoal",
+    hex: "#374151",
+    colors: ["#374151", "#4b5563", "#6b7280", "#1f2937", "#ffffff"],
   },
 ];

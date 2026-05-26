@@ -271,7 +271,7 @@ export async function saveAtsAnalysis(
     );
 
   const now = new Date();
-  const result = await prisma.resume.update({
+  await prisma.resume.update({
     where: { id: resume.id },
     data: {
       updatedAt: now,
@@ -282,8 +282,6 @@ export async function saveAtsAnalysis(
       },
     },
   });
-
-  console.log({ result, updated: now === result.updatedAt });
 
   revalidatePath(`/job/${jobId}/resume`);
   return { success: true };
@@ -316,15 +314,19 @@ export async function getCoverLetterByJobId(
     });
 }
 
-export async function getAllJob(): Promise<
-  (Job & { company: Company; contact: Contact | null })[]
-> {
+export type JobRecord = Job & {
+  company: Company;
+  contact: Contact | null;
+  status: JobStatus;
+};
+
+export async function getAllJob(): Promise<JobRecord[]> {
   const jobList = await prisma.job.findMany({
     orderBy: { createdAt: "desc" },
     include: { company: true, contact: true },
   });
 
-  return jobList;
+  return jobList as JobRecord[];
 }
 
 /**

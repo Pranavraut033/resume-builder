@@ -29,6 +29,7 @@ import { areJsonValuesEqual } from "@/lib";
 import { loadGoogleFont } from "@/lib/fontLoader";
 import { ResumeHistory } from "@/lib/llm/ResumeHistory";
 import logger from "@/lib/logger";
+import { generateResumePDF } from "@/lib/pdfExport";
 import { coverLetterToText, resumeToText } from "@/lib/resumeToText";
 import {
   DEFAULT_CUSTOMIZATION,
@@ -83,6 +84,10 @@ export interface JobPageContextType {
   chatSnapPosition: ChatSnapPosition;
   setChatSnapPosition: (position: ChatSnapPosition) => void;
   setContentType: (type: EditorContentType) => void;
+  resumeMeta: {
+    createdAt: Date;
+    updatedAt: Date;
+  };
 }
 
 const JobPageContext = createContext<JobPageContextType | null>(null);
@@ -158,12 +163,20 @@ export function JobPageProvider({
     []
   );
 
-  const onPDFExport = () => {
+  const onPDFExport = useCallback(async () => {
+    const jobData = data?.job;
+    if (!jobData) return;
     setIsExportingPdf(true);
-    setTimeout(() => {
+    try {
+      const filename = `${jobData.company?.name ?? "Resume"} ${resume.header.name} Resume.pdf`;
+      await generateResumePDF(resume, customization, filename);
+    } catch (err) {
+      logger.error("JobPageContext", "PDF export failed:", err);
+      pushToast({ title: "PDF export failed", variant: "error" });
+    } finally {
       setIsExportingPdf(false);
-    }, 2000);
-  };
+    }
+  }, [data?.job, resume, customization, pushToast]);
 
   const generateContentText = useCallback(() => {
     if (contentType === "coverLetter") {
@@ -339,6 +352,31 @@ export function JobPageProvider({
           ? "saved"
           : "idle";
 
+  if (!data) {
+    return (
+      <FallbackState
+        title="Editor context unavailable"
+        description="We couldn’t load your editor data right now. Refresh the app or try again later."
+        action={
+          <Button variant="secondary" onClick={() => window.location.reload()}>
+            Reload
+          </Button>
+        }
+      />
+    );
+  }
+
+  if (isLoading) {
+    return (
+      <FallbackState
+        iconName="loader"
+        title="Loading editor context"
+        description="Fetching your resume and cover letter data. This should only take a moment."
+        action={null}
+      />
+    );
+  }
+
   const value: JobPageContextType = {
     atsAnalysis,
     chatSnapPosition,
@@ -365,6 +403,10 @@ export function JobPageProvider({
     updateCoverLetterState,
     updateCustomizationState,
     updateResumeState,
+    resumeMeta: {
+      createdAt: data.resume!.createdAt,
+      updatedAt: data.resume!.updatedAt,
+    },
   };
 
   return (

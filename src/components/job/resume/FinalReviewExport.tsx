@@ -135,9 +135,11 @@ export function FinalReviewExport({
   const handlePDFExport = async () => {
     setIsExporting(true);
     try {
-      await generateResumePDF(resume);
+      const filename = `${resume.header.name ?? "Resume"}.pdf`;
+      await generateResumePDF(resume, customization, filename);
     } catch (err) {
       console.error("PDF export failed:", err);
+      pushToast({ title: "PDF export failed", variant: "error" });
     } finally {
       setIsExporting(false);
     }

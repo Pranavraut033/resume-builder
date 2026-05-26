@@ -45,6 +45,10 @@ export function useBlockPaginator({
   );
   const heightsRef = useRef<number[]>(Array.from({ length: count }, () => 0));
   const observersRef = useRef<ResizeObserver[]>([]);
+  // Cached per-index callbacks — prevents React from seeing a new function
+  // reference on every render (which would cycle the ref: null → element →
+  // recompute → setState → re-render → repeat).
+  const refCallbacksRef = useRef<RefCallback[]>([]);
 
   // Store dimensions in refs so recompute() can stay stable (no deps).
   const pageContentHeightRef = useRef(pageContentHeight);
@@ -87,6 +91,7 @@ export function useBlockPaginator({
   useEffect(() => {
     observersRef.current.forEach((obs) => obs.disconnect());
     observersRef.current = [];
+    refCallbacksRef.current = []; // invalidate cached callbacks for new count
 
     elemsRef.current = Array.from({ length: count }, () => null);
     heightsRef.current = Array.from({ length: count }, () => 0);
@@ -100,38 +105,46 @@ export function useBlockPaginator({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pageContentHeight, firstPageReserved]);
 
-  // setRef is stable because recompute is stable.
+  // setRef is stable. Each per-index callback is created once and cached so
+  // React always receives the same function reference — avoiding the pattern
+  // where a new function reference causes React to call the old callback with
+  // null (zeroing the height) and the new callback with the element
+  // (triggering recompute), which would produce a setState on every render.
   const setRef = useCallback(
-    (index: number): RefCallback =>
-      (el: HTMLElement | null) => {
-        const prev = elemsRef.current[index];
-        if (prev === el) return;
+    (index: number): RefCallback => {
+      if (!refCallbacksRef.current[index]) {
+        refCallbacksRef.current[index] = (el: HTMLElement | null) => {
+          const prev = elemsRef.current[index];
+          if (prev === el) return;
 
-        if (observersRef.current[index]) {
-          observersRef.current[index].disconnect();
-        }
-
-        elemsRef.current[index] = el;
-
-        if (!el) {
-          heightsRef.current[index] = 0;
-          return;
-        }
-
-        const observer = new ResizeObserver((entries) => {
-          const entry = entries[0];
-          if (!entry) return;
-          const h = entry.contentRect.height;
-          if (heightsRef.current[index] !== h) {
-            heightsRef.current[index] = h;
-            recompute();
+          if (observersRef.current[index]) {
+            observersRef.current[index].disconnect();
           }
-        });
-        observer.observe(el);
-        observersRef.current[index] = observer;
-        heightsRef.current[index] = el.getBoundingClientRect().height;
-        recompute();
-      },
+
+          elemsRef.current[index] = el;
+
+          if (!el) {
+            heightsRef.current[index] = 0;
+            return;
+          }
+
+          const observer = new ResizeObserver((entries) => {
+            const entry = entries[0];
+            if (!entry) return;
+            const h = entry.contentRect.height;
+            if (heightsRef.current[index] !== h) {
+              heightsRef.current[index] = h;
+              recompute();
+            }
+          });
+          observer.observe(el);
+          observersRef.current[index] = observer;
+          heightsRef.current[index] = el.getBoundingClientRect().height;
+          recompute();
+        };
+      }
+      return refCallbacksRef.current[index];
+    },
     [recompute]
   );
 

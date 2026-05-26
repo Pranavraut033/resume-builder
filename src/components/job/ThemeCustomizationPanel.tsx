@@ -22,8 +22,18 @@ const ThemeCustomizationPanel: React.FC<Props> = ({}) => {
     useJobPageContext();
 
   return (
-    <>
-      {/* Finalize & Export */}
+    <div className="relative flex flex-col gap-4 p-4">
+      <div className="bg-agent-surface border-agent-outline-variant sticky top-0 z-10 -mx-4 -mt-4 border-b p-4">
+        <h3
+          className="mb-3 text-sm font-semibold"
+          style={{ color: "var(--color-agent-on-surface)" }}
+        >
+          Finalize &amp; Export
+        </h3>
+        <div className="flex flex-col gap-2">
+          <DownloadButton />
+        </div>
+      </div>
 
       {/* Template selection */}
       <TemplateSelector
@@ -37,7 +47,7 @@ const ThemeCustomizationPanel: React.FC<Props> = ({}) => {
       />
 
       {/* Layout settings */}
-      <Card>
+      <Card className="space-y-2">
         <h3
           className="mb-3 text-sm font-semibold"
           style={{ color: "var(--color-agent-on-surface)" }}
@@ -45,7 +55,7 @@ const ThemeCustomizationPanel: React.FC<Props> = ({}) => {
           Layout Settings
         </h3>
 
-        <div className="mb-4">
+        <div>
           <p
             className="mb-2 text-xs font-medium"
             style={{ color: "var(--color-agent-on-surface-variant)" }}
@@ -76,7 +86,7 @@ const ThemeCustomizationPanel: React.FC<Props> = ({}) => {
           </div>
         </div>
 
-        <div className="mb-4">
+        <div>
           <p
             className="mb-2 text-xs font-medium"
             style={{ color: "var(--color-agent-on-surface-variant)" }}
@@ -107,7 +117,7 @@ const ThemeCustomizationPanel: React.FC<Props> = ({}) => {
           </div>
         </div>
 
-        <div className="mb-4">
+        <div>
           <p
             className="mb-2 text-xs font-medium"
             style={{ color: "var(--color-agent-on-surface-variant)" }}
@@ -139,7 +149,7 @@ const ThemeCustomizationPanel: React.FC<Props> = ({}) => {
         </div>
 
         {/* Color accent */}
-        <div className="mb-4">
+        <div>
           <p
             className="mb-2 text-xs font-medium"
             style={{ color: "var(--color-agent-on-surface-variant)" }}
@@ -181,18 +191,7 @@ const ThemeCustomizationPanel: React.FC<Props> = ({}) => {
           />
         </div>
       </Card>
-      <Card>
-        <h3
-          className="mb-3 text-sm font-semibold"
-          style={{ color: "var(--color-agent-on-surface)" }}
-        >
-          Finalize &amp; Export
-        </h3>
-        <div className="flex flex-col gap-2">
-          <DownloadButton />
-        </div>
-      </Card>
-    </>
+    </div>
   );
 };
 

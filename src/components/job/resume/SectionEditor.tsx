@@ -530,11 +530,21 @@ function EducationEditor({ sensors }: { sensors: SensorsType }) {
                     background: "var(--color-agent-surface-lowest)",
                   }}
                 >
-                  <button
+                  <div
+                    role="button"
+                    tabIndex={0}
                     onClick={() =>
                       setExpandedIndex(expandedIndex === index ? null : index)
                     }
-                    className="flex w-full items-center gap-3 px-4 py-3 text-left"
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        setExpandedIndex(
+                          expandedIndex === index ? null : index
+                        );
+                      }
+                    }}
+                    className="flex w-full cursor-pointer items-center gap-3 px-4 py-3 text-left"
                   >
                     <Icon
                       name="ChevronDown"
@@ -574,7 +584,7 @@ function EducationEditor({ sensors }: { sensors: SensorsType }) {
                     >
                       <Icon name="trash" className="h-3.5 w-3.5" />
                     </button>
-                  </button>
+                  </div>
 
                   {expandedIndex === index && (
                     <div
@@ -701,11 +711,21 @@ function ProjectsEditor({ sensors }: { sensors: SensorsType }) {
                     background: "var(--color-agent-surface-lowest)",
                   }}
                 >
-                  <button
+                  <div
+                    role="button"
+                    tabIndex={0}
                     onClick={() =>
                       setExpandedIndex(expandedIndex === index ? null : index)
                     }
-                    className="flex w-full items-center gap-3 px-4 py-3 text-left"
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        setExpandedIndex(
+                          expandedIndex === index ? null : index
+                        );
+                      }
+                    }}
+                    className="flex w-full cursor-pointer items-center gap-3 px-4 py-3 text-left"
                   >
                     <Icon
                       name="ChevronDown"
@@ -746,7 +766,7 @@ function ProjectsEditor({ sensors }: { sensors: SensorsType }) {
                     >
                       <Icon name="trash" className="h-3.5 w-3.5" />
                     </button>
-                  </button>
+                  </div>
 
                   {expandedIndex === index && (
                     <div

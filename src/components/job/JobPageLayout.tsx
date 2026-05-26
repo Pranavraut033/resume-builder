@@ -8,15 +8,17 @@ import { useJobPageContext } from "@/contexts/JobPageContext";
 import cn from "@/lib/cn";
 import { HistoryChangeListener } from "@/lib/llm/ResumeHistory";
 
-import PreviewViewport from "./PreviewViewport";
-
-import { FinalReviewExportLayout } from ".";
+import {
+  ATSAnalysisPanel,
+  DownloadButton,
+  FinalReviewExportLayout,
+  PreviewViewport,
+} from ".";
 
 type JobPageLayoutProps = {
   leftSection: React.ReactNode;
   mainSection: React.ReactNode;
-  livePreviewContent: React.ReactNode;
-  exportContent: React.ReactNode;
+  templateRenderer: React.ReactNode;
   title: string;
   description: string;
 };
@@ -31,7 +33,7 @@ const CHAT_MAX_WIDTH = 680;
 export default function JobPageLayout({
   leftSection,
   mainSection,
-  livePreviewContent,
+  templateRenderer,
   title,
   description,
 }: JobPageLayoutProps) {
@@ -217,7 +219,7 @@ export default function JobPageLayout({
                         : "text-agent-on-surface-variant"
                     )}
                   >
-                    {tab === "edit" ? "Editor" : "Final Review & Export"}
+                    {tab === "edit" ? "Editor" : "Customize & Export"}
                   </button>
                 ))}
               </div>
@@ -281,63 +283,108 @@ export default function JobPageLayout({
                 </main>
 
                 {/* Right: Draggable live preview */}
-                {isChatSnapped && chatSnapPosition === "left" ? null : (
-                  <div
-                    className={cn(
-                      isChatSnapped && chatSnapPosition === "right"
-                        ? "flex shrink-0"
-                        : "hidden shrink-0 xl:flex"
-                    )}
-                  >
-                    <button
-                      type="button"
-                      aria-label="Resize preview panel"
-                      onMouseDown={(event) => {
-                        event.preventDefault();
-                        resizeStartRef.current = {
-                          x: event.clientX,
-                          width: previewWidth,
-                        };
-                        setIsResizingPreview(true);
-                      }}
-                      className="hover:bg-agent-primary-container/30 bg-agent-outline-variant w-1.5 cursor-col-resize transition-colors"
-                    />
-
-                    <aside
-                      className="border-agent-outline-variant bg-agent-surface-lowest overflow-y-auto border-l"
-                      style={{
-                        width: `${previewWidth}px`,
-                      }}
-                    >
-                      {isChatSnapped && chatSnapPosition === "right" ? (
-                        <ChatPanel
-                          onClose={() => setChatSnapPosition("undocked")}
-                        />
-                      ) : (
-                        <div className="p-4">
-                          <p className="text-agent-on-surface-variant mb-2 text-xs font-medium tracking-wide uppercase">
-                            Live Preview
-                          </p>
-                          <div className="border-agent-outline-variant overflow-hidden rounded-lg border shadow-sm">
-                            <div className="origin-top-left">
-                              <PreviewViewport
-                                showTemplateSelector
-                                previewContent={livePreviewContent}
-                              />
-                            </div>
-                          </div>
-                        </div>
-                      )}
-                    </aside>
-                  </div>
-                )}
+                <RenderRightSection
+                  templateRenderer={templateRenderer}
+                  resizeStartRef={resizeStartRef}
+                  previewWidth={previewWidth}
+                  setIsResizingPreviewAction={setIsResizingPreview}
+                  isChatSnapped={isChatSnapped}
+                />
               </div>
             ) : (
-              <FinalReviewExportLayout previewContent={livePreviewContent} />
+              <FinalReviewExportLayout previewContent={templateRenderer} />
             )}
           </div>
         </div>
       </div>
+    </div>
+  );
+}
+
+type RenderRightSectionProps = {
+  templateRenderer: React.ReactNode;
+  resizeStartRef: React.RefObject<{ x: number; width: number } | null>;
+  previewWidth: number;
+  setIsResizingPreviewAction: React.Dispatch<React.SetStateAction<boolean>>;
+  isChatSnapped: boolean;
+};
+
+export function RenderRightSection({
+  templateRenderer,
+  resizeStartRef,
+  previewWidth,
+  setIsResizingPreviewAction,
+  isChatSnapped,
+}: RenderRightSectionProps) {
+  const { chatSnapPosition, setChatSnapPosition } = useJobPageContext();
+
+  const [rightSectionTab, setRightSectionTab] = useState<
+    "preview" | "atsAnalysis"
+  >("preview");
+
+  return (
+    <div className="flex shrink-0 overflow-hidden">
+      <button
+        type="button"
+        aria-label="Resize preview panel"
+        onMouseDown={(event) => {
+          event.preventDefault();
+          resizeStartRef.current = {
+            x: event.clientX,
+            width: previewWidth,
+          };
+          setIsResizingPreviewAction(true);
+        }}
+        className="hover:bg-agent-primary-container/30 bg-agent-outline-variant w-1.5 cursor-col-resize transition-colors"
+      />
+
+      <aside
+        className="border-agent-outline-variant bg-agent-surface-lowest overflow-y-auto border-l"
+        style={{
+          width: `${previewWidth}px`,
+        }}
+      >
+        {isChatSnapped && chatSnapPosition === "right" ? (
+          <ChatPanel onClose={() => setChatSnapPosition("undocked")} />
+        ) : (
+          <div className="relative flex h-full flex-col">
+            <div className="bg-agent-surface-container sticky top-0 z-10 flex shrink-0 items-center gap-4 px-2 pt-1">
+              <button
+                onClick={() => setRightSectionTab("preview")}
+                className={cn(
+                  "px-4 py-2 text-xs font-medium",
+                  rightSectionTab === "preview"
+                    ? "border-agent-primary text-agent-on-surface border-b-2"
+                    : "text-agent-on-surface-variant"
+                )}
+              >
+                Preview
+              </button>
+              <button
+                onClick={() => setRightSectionTab("atsAnalysis")}
+                className={cn(
+                  "px-4 py-2 text-xs font-medium",
+                  rightSectionTab === "atsAnalysis"
+                    ? "border-agent-primary text-agent-on-surface border-b-2"
+                    : "text-agent-on-surface-variant"
+                )}
+              >
+                ATS Analysis
+              </button>
+            </div>
+            <div className="p-3">
+              {rightSectionTab === "atsAnalysis" ? (
+                <ATSAnalysisPanel />
+              ) : (
+                <div className="origin-top-left space-y-2 pt-2">
+                  <DownloadButton />
+                  <PreviewViewport previewContent={templateRenderer} />
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+      </aside>
     </div>
   );
 }

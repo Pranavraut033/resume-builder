@@ -1,3 +1,5 @@
+"use client";
+
 import { Menu, MenuButton, MenuItem, MenuItems } from "@headlessui/react";
 import { ChevronRightIcon } from "lucide-react";
 
@@ -30,34 +32,32 @@ const DownloadButton: React.FC<Props> = ({}) => {
         >
           {isExportingPdf ? "Generating PDF…" : "Download PDF"}
         </Button>
-        <MenuButton className="bg-agent-primary hover:bg-agent-primary flex items-center rounded-l-lg rounded-r-full px-3 py-2 text-white focus:outline-none">
+        <MenuButton className="bg-agent-primary hover:bg-agent-primary-fixed text-agent-on-primary flex items-center rounded-l-lg rounded-r-full px-3 py-2 focus:outline-none">
           <ChevronRightIcon className="h-4 w-4" aria-hidden="true" />
         </MenuButton>
       </div>
 
-      <MenuItems className="w-ful absolute right-0 z-10 mt-2 origin-top-right overflow-hidden rounded-xl border border-gray-100 bg-white py-1 shadow-lg ring-1 ring-black/5 focus:outline-none">
+      <MenuItems className="w-ful border-agent-outline-variant bg-agent-surface-high shadow-agent-card absolute right-0 z-10 mt-2 origin-top-right overflow-hidden rounded-xl border py-1 ring-1 ring-black/5 focus:outline-none">
         <MenuItem>
-          {({ active }) => (
-            <button
+          {({}) => (
+            <Button
+              variant="ghost"
               onClick={onTXTExport}
+              className="w-full justify-start rounded-none shadow-none"
               disabled={isExportingTxt}
-              className={`flex w-full items-center gap-2 px-4 py-2 text-left text-sm text-gray-700 disabled:opacity-50 ${
-                active ? "bg-gray-50" : ""
-              }`}
             >
               <Icon name="FileTypeCorner" className="mr-2 h-4 w-4" />
               {isExportingTxt ? "Generating TXT…" : "Download Word (TXT)"}
-            </button>
+            </Button>
           )}
         </MenuItem>
 
         <MenuItem>
-          {({ active }) => (
-            <button
+          {({}) => (
+            <Button
+              variant="ghost"
               onClick={onCopyText}
-              className={`flex w-full items-center gap-2 px-4 py-2 text-left text-sm text-gray-700 ${
-                active ? "bg-gray-50" : ""
-              }`}
+              className="w-full justify-start rounded-none shadow-none"
             >
               <Icon
                 name="Clipboard"
@@ -65,7 +65,7 @@ const DownloadButton: React.FC<Props> = ({}) => {
                 className="mr-2 h-4 w-4"
               />
               Copy Text to Clipboard
-            </button>
+            </Button>
           )}
         </MenuItem>
       </MenuItems>

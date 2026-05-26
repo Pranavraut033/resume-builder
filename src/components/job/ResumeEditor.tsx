@@ -32,8 +32,7 @@ function ResumeEditor() {
             onSectionChange={setActiveSection}
           />
         }
-        livePreviewContent={preview}
-        exportContent={preview}
+        templateRenderer={preview}
         mainSection={
           <main
             className="flex min-w-0 flex-1 flex-col overflow-y-auto"

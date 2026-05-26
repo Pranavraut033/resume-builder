@@ -125,8 +125,7 @@ export default function CoverLetterEditorContent() {
       title={`Cover letter`}
       leftSection={<></>}
       description={`${job?.company?.name || "your job"} [${job?.role || "your role"}]`}
-      livePreviewContent={previewPanel}
-      exportContent={previewPanel}
+      templateRenderer={previewPanel}
       mainSection={leftPanel}
     />
   );

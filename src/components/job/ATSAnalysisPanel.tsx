@@ -1,7 +1,7 @@
 import { useMutation } from "@tanstack/react-query";
 import { useMemo } from "react";
 
-import RefreshCwIcon from "@/components/icons/RefreshCwIcon";
+import SparklesIcon from "@/components/icons/SparklesIcon";
 import { Button } from "@/components/ui/Button";
 import { useJobPageContext } from "@/contexts/JobPageContext";
 import { cn } from "@/lib/cn";
@@ -327,15 +327,15 @@ export function ATSAnalysisPanel(props: ATSAnalysisPanelProps) {
           </span>
           <Button
             size="sm"
-            variant="secondary"
+            variant="primary"
             onClick={onGenerate}
             disabled={isPending}
             className="rounded-agent inline-flex items-center gap-2"
           >
-            <RefreshCwIcon
+            <SparklesIcon
               width="14"
               height="14"
-              className={cn(isPending && "animate-spin")}
+              className={cn(isPending && "animate-pulse")}
               aria-hidden
             />
             {isPending ? "Regenerating..." : "Regenerate"}
