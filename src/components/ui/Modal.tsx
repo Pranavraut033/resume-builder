@@ -4,7 +4,7 @@ import { Dialog, Transition } from "@headlessui/react";
 import { ReactNode } from "react";
 import { Fragment } from "react";
 
-import { Button } from "./Button";
+import { Button, ButtonProps } from "./Button";
 import { Icon } from "./Icon";
 
 interface ModalProps {
@@ -12,8 +12,10 @@ interface ModalProps {
   onClose: () => void;
   title: string;
   children: ReactNode;
-  onSave?: () => void;
-  saveLabel?: string;
+  primaryAction?: () => void;
+  primaryActionLabel?: string;
+  primaryActionButtonType?: ButtonProps["variant"];
+  cancelLabel?: string;
   size?: "sm" | "md" | "lg" | "xl";
 }
 
@@ -22,8 +24,10 @@ export function Modal({
   onClose,
   title,
   children,
-  onSave,
-  saveLabel = "Save Changes",
+  primaryAction,
+  primaryActionLabel = "Save Changes",
+  primaryActionButtonType = "primary",
+  cancelLabel = "Cancel",
   size = "md",
 }: ModalProps) {
   const sizes = {
@@ -81,11 +85,14 @@ export function Modal({
 
                 <div className="border-agent-outline-variant bg-agent-surface-lowest flex justify-end gap-3 border-t p-6">
                   <Button variant="secondary" onClick={onClose}>
-                    Cancel
+                    {cancelLabel}
                   </Button>
-                  {onSave && (
-                    <Button variant="primary" onClick={onSave}>
-                      {saveLabel}
+                  {primaryAction && (
+                    <Button
+                      variant={primaryActionButtonType}
+                      onClick={primaryAction}
+                    >
+                      {primaryActionLabel}
                     </Button>
                   )}
                 </div>

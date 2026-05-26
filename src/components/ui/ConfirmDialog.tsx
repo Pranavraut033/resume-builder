@@ -1,8 +1,8 @@
 "use client";
 
 import React from "react";
+
 import { Modal } from "@/components/ui/Modal";
-import { Button } from "@/components/ui/Button";
 
 interface ConfirmDialogProps {
   isOpen: boolean;
@@ -24,17 +24,16 @@ export function ConfirmDialog({
   onCancel,
 }: ConfirmDialogProps) {
   return (
-    <Modal isOpen={isOpen} onClose={onCancel} title={title}>
+    <Modal
+      isOpen={isOpen}
+      onClose={onCancel}
+      cancelLabel={cancelLabel}
+      primaryActionLabel={confirmLabel}
+      primaryAction={onConfirm}
+      title={title}
+    >
       <div className="space-y-4">
         <p className="text-agent-on-surface-variant text-sm">{message}</p>
-        <div className="flex justify-end gap-2">
-          <Button variant="secondary" onClick={onCancel}>
-            {cancelLabel}
-          </Button>
-          <Button variant="danger" onClick={onConfirm}>
-            {confirmLabel}
-          </Button>
-        </div>
       </div>
     </Modal>
   );

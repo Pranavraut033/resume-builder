@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 /**
  * Logger Library
  *
@@ -32,6 +33,16 @@ export interface LoggerConfig {
   /** Custom log handler */
   customHandler?: (entry: LogEntry) => void;
 }
+
+// Capture original console methods before any framework (e.g. Next.js dev overlay)
+// has a chance to monkey-patch them. Using these references avoids the overlay
+// intercepting logger.error calls and misreporting the call site.
+const _console = {
+  debug: console.debug.bind(console),
+  info: console.info.bind(console),
+  warn: console.warn.bind(console),
+  error: console.error.bind(console),
+} as const;
 
 const LOG_LEVELS: Record<LogLevel, number> = {
   debug: 0,
@@ -76,46 +87,106 @@ export class Logger {
     return LOG_LEVELS[level] >= LOG_LEVELS[this.config.minLevel];
   }
 
+  /** Map each log level to the appropriate native console method */
+  private static readonly CONSOLE_METHODS: Record<
+    LogLevel,
+    "debug" | "info" | "warn" | "error"
+  > = {
+    debug: "debug",
+    info: "info",
+    warn: "warn",
+    error: "error",
+    fatal: "error",
+  };
+
+  /** CSS styles used when running in a browser context */
+  private static readonly BROWSER_STYLES: Record<LogLevel, string> = {
+    debug: "color:#06b6d4;font-weight:bold",
+    info: "color:#3b82f6;font-weight:bold",
+    warn: "color:#f59e0b;font-weight:bold",
+    error: "color:#ef4444;font-weight:bold",
+    fatal: "color:#a855f7;font-weight:bold",
+  };
+
+  /** ANSI colour codes used in Node / Tauri backend context */
+  private static readonly ANSI_COLORS: Record<LogLevel, string> = {
+    debug: "\x1b[36m",
+    info: "\x1b[34m",
+    warn: "\x1b[33m",
+    error: "\x1b[31m",
+    fatal: "\x1b[35m",
+  };
+
   /**
-   * Format log entry for console output
+   * Write a log entry to the console using the correct method and formatting
+   * for the current runtime (browser vs Node.js).
    */
-  private formatForConsole(entry: LogEntry): string {
-    const timestamp = this.config.enableTimestamps
-      ? `[${entry.timestamp}] `
-      : "";
-    const tag = `[${entry.tag}]`;
-    const level = entry.level.toUpperCase();
+  private writeToConsole(entry: LogEntry): void {
+    const method = Logger.CONSOLE_METHODS[entry.level];
+    // Use the pre-patched reference so framework overlays don't intercept us.
+    const consoleFn = _console[method];
 
-    if (this.config.prettyPrint) {
-      // Development: colorful, detailed output
-      const colors: Record<LogLevel, string> = {
-        debug: "\x1b[36m", // Cyan
-        info: "\x1b[34m", // Blue
-        warn: "\x1b[33m", // Yellow
-        error: "\x1b[31m", // Red
-        fatal: "\x1b[35m", // Magenta
-      };
+    if (!this.config.prettyPrint) {
+      // Production: single-line JSON — safe for log aggregators
+      consoleFn(
+        JSON.stringify({
+          timestamp: entry.timestamp,
+          level: entry.level,
+          tag: entry.tag,
+          message: entry.message,
+          ...(entry.data !== undefined && { data: entry.data }),
+          environment: entry.environment,
+        })
+      );
+      return;
+    }
+
+    const ts = this.config.enableTimestamps ? `[${entry.timestamp}] ` : "";
+    const levelLabel = entry.level.toUpperCase();
+
+    const isBrowser =
+      typeof window !== "undefined" && typeof window.document !== "undefined";
+
+    if (isBrowser) {
+      // Browser DevTools: use %c CSS directives so colours render correctly
+      // and pass data as a raw value so DevTools can expand objects/errors.
+      const style = Logger.BROWSER_STYLES[entry.level];
+      const args: unknown[] = [
+        `%c${ts}${levelLabel} %c[${entry.tag}]%c ${entry.message}`,
+        style,
+        "color:gray;font-style:italic",
+        "color:inherit",
+      ];
+      if (entry.data !== undefined) {
+        args.push(entry.data);
+      }
+      consoleFn(...args);
+    } else {
+      // Node.js / Tauri native: ANSI escape codes
+      const color = Logger.ANSI_COLORS[entry.level];
       const reset = "\x1b[0m";
-      const color = colors[entry.level];
-
-      let output = `${color}${timestamp}${level}${reset} ${tag} ${entry.message}`;
+      const header = `${color}${ts}${levelLabel}${reset} [${entry.tag}] ${entry.message}`;
 
       if (entry.data !== undefined) {
-        output += `\n${color}Data:${reset} ${JSON.stringify(entry.data, null, 2)}`;
+        consoleFn(header, entry.data);
+      } else {
+        consoleFn(header);
       }
-
-      return output;
-    } else {
-      // Production: compact JSON output
-      return JSON.stringify({
-        timestamp: entry.timestamp,
-        level: entry.level,
-        tag: entry.tag,
-        message: entry.message,
-        ...(entry.data !== undefined && { data: entry.data }),
-        environment: entry.environment,
-      });
     }
+  }
+
+  /**
+   * Capture a trimmed call-stack string, stripping logger-internal frames
+   * so the top frame points to the actual call site.
+   */
+  private static captureStack(): string {
+    const raw = new Error().stack ?? "";
+    const lines = raw.split("\n");
+    // Drop the Error line and any frames that originate inside Logger/ScopedLogger
+    const external = lines.filter(
+      (l) => l && !l.includes("logger.ts") && l !== "Error"
+    );
+    return external.slice(0, 5).join("\n");
   }
 
   /**
@@ -131,37 +202,34 @@ export class Logger {
       return;
     }
 
+    // For error/fatal levels attach a call-stack so the origin is visible
+    // even when `data` is not an Error object.
+    let resolvedData = data;
+    if (level === "error" || level === "fatal") {
+      const stack = Logger.captureStack();
+      if (data instanceof Error) {
+        // Keep the original Error; the stack is already on it
+        resolvedData = data;
+      } else if (data !== undefined) {
+        resolvedData = { data, stack };
+      } else {
+        resolvedData = { stack };
+      }
+    }
+
     const entry: LogEntry = {
       level,
       tag,
       message,
-      data,
+      data: resolvedData,
       timestamp: new Date().toISOString(),
       environment: this.environment,
     };
 
-    // Console output
     if (this.config.enableConsole) {
-      const formatted = this.formatForConsole(entry);
-
-      switch (level) {
-        case "debug":
-          console.warn(formatted);
-          break;
-        case "info":
-          console.warn(formatted);
-          break;
-        case "warn":
-          console.warn(formatted);
-          break;
-        case "error":
-        case "fatal":
-          console.error(formatted);
-          break;
-      }
+      this.writeToConsole(entry);
     }
 
-    // Custom handler
     if (this.config.customHandler) {
       this.config.customHandler(entry);
     }
@@ -217,7 +285,7 @@ export class ScopedLogger {
   constructor(
     private logger: Logger,
     private tag: string
-  ) { }
+  ) {}
 
   debug(message: string, data?: unknown): void {
     this.logger.debug(this.tag, message, data);

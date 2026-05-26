@@ -9,6 +9,7 @@ import OpenAIIcon from "./OpenAIIcon";
 import PerplexityIcon from "./PerplexityIcon";
 import RefreshCwIcon from "./RefreshCwIcon";
 import SendIcon from "./SendIcon";
+import SparklesIcon from "./SparklesIcon";
 import TrendingUpIcon from "./TrendingUpIcon";
 import UploadIcon from "./UploadIcon";
 
@@ -23,6 +24,7 @@ export {
   PerplexityIcon,
   RefreshCwIcon,
   SendIcon,
+  SparklesIcon,
   TrendingUpIcon,
   UploadIcon,
   AnthropicIcon,

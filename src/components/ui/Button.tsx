@@ -2,7 +2,7 @@ import { ReactNode, forwardRef, ButtonHTMLAttributes } from "react";
 
 import { cn } from "@/lib/cn";
 
-interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
+export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   /** Visual variant of the button */
   variant?:
     | "primary"

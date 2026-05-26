@@ -41,3 +41,16 @@ export function simpleI32HashString(input: string): number {
 
   return hash >>> 0;
 }
+
+export function formatStatus(status: string) {
+  return `${status.charAt(0)}${status.slice(1).toLowerCase()}`;
+}
+
+export function formatTimestamp(value: string | Date) {
+  const date = new Date(value);
+  return date.toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
+}
