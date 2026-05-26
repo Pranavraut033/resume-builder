@@ -30,6 +30,7 @@ export const ElegantTimelineTemplate: React.FC<TemplateRendererProps> = ({
     fontFamily,
     lineHeight,
     headingSize,
+    nameSize,
   } = useResolveCustomization(customization);
 
   const { widthMm, widthPx, heightPx, marginPx, contentHeightPx } =
@@ -64,7 +65,7 @@ export const ElegantTimelineTemplate: React.FC<TemplateRendererProps> = ({
       sectionKey: "summary",
       node: (
         <p
-          className={`${textSize} ${lineHeight} mx-auto max-w-3xl text-center leading-relaxed`}
+          className={`${textSize} ${lineHeight} mx-auto max-w-3xl text-center`}
         >
           {resume.summary}
         </p>
@@ -297,7 +298,10 @@ export const ElegantTimelineTemplate: React.FC<TemplateRendererProps> = ({
 
   const headerNode = (
     <header className="mb-8 text-center">
-      <h1 className="mb-2 text-4xl font-light" style={{ color: primaryColor }}>
+      <h1
+        className={`mb-2 ${nameSize} font-light`}
+        style={{ color: primaryColor }}
+      >
         {resume.header.name}
       </h1>
       {resume.header.headline && (
@@ -325,7 +329,7 @@ export const ElegantTimelineTemplate: React.FC<TemplateRendererProps> = ({
             className="hover:underline"
             style={{ color: accentColor }}
           >
-            LinkedIn
+            {resume.header.linkedin}
           </a>
         )}
         {resume.header.github && (
@@ -334,7 +338,7 @@ export const ElegantTimelineTemplate: React.FC<TemplateRendererProps> = ({
             className="hover:underline"
             style={{ color: accentColor }}
           >
-            GitHub
+            {resume.header.github}
           </a>
         )}
         {resume.header.website && (
@@ -343,7 +347,7 @@ export const ElegantTimelineTemplate: React.FC<TemplateRendererProps> = ({
             className="hover:underline"
             style={{ color: accentColor }}
           >
-            Portfolio
+            {resume.header.website}
           </a>
         )}
       </div>

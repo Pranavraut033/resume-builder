@@ -30,6 +30,7 @@ export const BusinessProfessionalTemplate: React.FC<TemplateRendererProps> = ({
     fontFamily,
     lineHeight,
     headingSize,
+    nameSize,
   } = useResolveCustomization(customization);
 
   const { widthMm, widthPx, heightPx, marginPx, contentHeightPx } =
@@ -63,7 +64,7 @@ export const BusinessProfessionalTemplate: React.FC<TemplateRendererProps> = ({
     blocks.push({
       sectionKey: "summary",
       node: (
-        <p className={`${textSize} ${lineHeight} text-justify leading-relaxed`}>
+        <p className={`${textSize} ${lineHeight} text-justify`}>
           {resume.summary}
         </p>
       ),
@@ -340,7 +341,7 @@ export const BusinessProfessionalTemplate: React.FC<TemplateRendererProps> = ({
       style={{ borderColor: secondaryColor }}
     >
       <h1
-        className="mb-2 font-serif text-3xl font-bold"
+        className={`mb-2 font-serif ${nameSize} font-bold`}
         style={{ color: primaryColor }}
       >
         {resume.header.name}
@@ -370,7 +371,7 @@ export const BusinessProfessionalTemplate: React.FC<TemplateRendererProps> = ({
               className="hover:underline"
               style={{ color: accentColor }}
             >
-              LinkedIn
+              {resume.header.linkedin}
             </a>
           )}
           {resume.header.github && (
@@ -379,7 +380,7 @@ export const BusinessProfessionalTemplate: React.FC<TemplateRendererProps> = ({
               className="hover:underline"
               style={{ color: accentColor }}
             >
-              GitHub
+              {resume.header.github}
             </a>
           )}
           {resume.header.website && (
@@ -388,7 +389,7 @@ export const BusinessProfessionalTemplate: React.FC<TemplateRendererProps> = ({
               className="hover:underline"
               style={{ color: accentColor }}
             >
-              Website
+              {resume.header.website}
             </a>
           )}
         </div>

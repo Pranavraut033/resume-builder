@@ -476,7 +476,7 @@ export const BJetProfessionalTemplate: React.FC<TemplateRendererProps> = ({
                     className="hover:underline"
                     style={{ color: accentColor }}
                   >
-                    LinkedIn
+                    {resume.header.linkedin}
                   </a>
                 )}
                 {resume.header.github && (
@@ -485,7 +485,7 @@ export const BJetProfessionalTemplate: React.FC<TemplateRendererProps> = ({
                     className="hover:underline"
                     style={{ color: accentColor }}
                   >
-                    GitHub
+                    {resume.header.github}
                   </a>
                 )}
                 {resume.header.website && (
@@ -494,7 +494,7 @@ export const BJetProfessionalTemplate: React.FC<TemplateRendererProps> = ({
                     className="hover:underline"
                     style={{ color: accentColor }}
                   >
-                    Website
+                    {resume.header.website}
                   </a>
                 )}
               </div>

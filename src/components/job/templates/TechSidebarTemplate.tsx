@@ -32,8 +32,10 @@ export const TechSidebarTemplate: React.FC<TemplateRendererProps> = ({
     headingSize,
   } = useResolveCustomization(customization);
 
-  const { widthMm, widthPx, heightPx, marginPx, contentHeightPx } =
-    getPageDimensions(customization.pageFormat, customization.marginSize);
+  const { widthMm, widthPx, heightPx, contentHeightPx } = getPageDimensions(
+    customization.pageFormat,
+    customization.marginSize
+  );
 
   // Column widths: sidebar 35%, main 65%
   const SIDEBAR_RATIO = 0.35;
@@ -433,17 +435,17 @@ export const TechSidebarTemplate: React.FC<TemplateRendererProps> = ({
         {resume.header.location && <span>📍 {resume.header.location}</span>}
         {resume.header.linkedin && (
           <a href={resume.header.linkedin} className="hover:underline">
-            🔗 LinkedIn
+            🔗 {resume.header.linkedin}
           </a>
         )}
         {resume.header.github && (
           <a href={resume.header.github} className="hover:underline">
-            💻 GitHub
+            💻 {resume.header.github}
           </a>
         )}
         {resume.header.website && (
           <a href={resume.header.website} className="hover:underline">
-            🌐 Website
+            🌐 {resume.header.website}
           </a>
         )}
       </div>

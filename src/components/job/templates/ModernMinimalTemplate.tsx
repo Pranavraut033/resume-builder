@@ -33,6 +33,7 @@ export const ModernMinimalTemplate: React.FC<TemplateRendererProps> = ({
     fontFamily,
     lineHeight,
     headingSize,
+    nameSize,
   } = useResolveCustomization(customization);
 
   const { widthMm, widthPx, heightPx, marginPx, contentHeightPx } =
@@ -67,13 +68,7 @@ export const ModernMinimalTemplate: React.FC<TemplateRendererProps> = ({
   if (resume.summary) {
     blocks.push({
       sectionKey: "summary",
-      node: (
-        <p
-          className={`${textSize} ${lineHeight} leading-relaxed text-gray-700`}
-        >
-          {resume.summary}
-        </p>
-      ),
+      node: <p className={`${textSize} ${lineHeight}`}>{resume.summary}</p>,
     });
   }
 
@@ -87,22 +82,28 @@ export const ModernMinimalTemplate: React.FC<TemplateRendererProps> = ({
               <h3 className="font-semibold" style={{ color: accentColor }}>
                 {exp.role}
               </h3>
-              <p className={`${textSize} ${lineHeight} text-gray-600`}>
+              <p
+                className={`${textSize} ${lineHeight}`}
+                style={{ color: secondaryColor }}
+              >
                 {exp.company}
               </p>
             </div>
-            <span className={`${textSize} shrink-0 text-gray-500`}>
+            <span
+              className={`${textSize} shrink-0`}
+              style={{ color: secondaryColor }}
+            >
               {exp.startDate} - {exp.endDate || "Present"}
             </span>
           </div>
           {exp.description && (
-            <p className={`${textSize} ${lineHeight} mb-2 text-gray-700`}>
+            <p className={`${textSize} ${lineHeight} mb-2`}>
               {exp.description}
             </p>
           )}
           {exp.achievements.length > 0 && (
             <ul
-              className={`${textSize} ${lineHeight} list-inside list-disc space-y-1 text-gray-700`}
+              className={`${textSize} ${lineHeight} list-inside list-disc space-y-1`}
             >
               {exp.achievements.map((a, i) => (
                 <li key={i}>{a}</li>
@@ -132,17 +133,17 @@ export const ModernMinimalTemplate: React.FC<TemplateRendererProps> = ({
             )}
           </h3>
           {(project.startDate || project.endDate) && (
-            <div className={`${textSize} text-gray-500`}>
+            <div className={`${textSize}`} style={{ color: secondaryColor }}>
               {project.startDate || ""}
               {project.startDate || project.endDate ? " - " : ""}
               {project.endDate || "Present"}
             </div>
           )}
-          <p className={`${textSize} ${lineHeight} mb-1 text-gray-700`}>
+          <p className={`${textSize} ${lineHeight} mb-1`}>
             {project.description}
           </p>
           {project.technologies.length > 0 && (
-            <div className={`${textSize} text-gray-600`}>
+            <div className={`${textSize}`} style={{ color: secondaryColor }}>
               <span className="font-medium">Technologies:</span>{" "}
               {project.technologies.join(", ")}
             </div>
@@ -156,7 +157,7 @@ export const ModernMinimalTemplate: React.FC<TemplateRendererProps> = ({
     blocks.push({
       sectionKey: "skills",
       node: (
-        <div className={`${textSize} ${lineHeight} text-gray-700`}>
+        <div className={`${textSize} ${lineHeight}`}>
           {resume.skills.join(" • ")}
         </div>
       ),
@@ -174,16 +175,24 @@ export const ModernMinimalTemplate: React.FC<TemplateRendererProps> = ({
                 {edu.degree}
                 {edu.field && ` in ${edu.field}`}
               </h3>
-              <p className={`${textSize} ${lineHeight} text-gray-600`}>
+              <p
+                className={`${textSize} ${lineHeight}`}
+                style={{ color: secondaryColor }}
+              >
                 {edu.institution}
               </p>
             </div>
-            <span className={`${textSize} shrink-0 text-gray-500`}>
+            <span
+              className={`${textSize} shrink-0`}
+              style={{ color: secondaryColor }}
+            >
               {edu.startDate} - {edu.endDate || "Present"}
             </span>
           </div>
           {edu.gpa && (
-            <p className={`${textSize} text-gray-600`}>GPA: {edu.gpa}</p>
+            <p className={`${textSize}`} style={{ color: secondaryColor }}>
+              GPA: {edu.gpa}
+            </p>
           )}
         </div>
       ),
@@ -198,7 +207,7 @@ export const ModernMinimalTemplate: React.FC<TemplateRendererProps> = ({
           <h3 className="font-semibold" style={{ color: accentColor }}>
             {cert.name}
           </h3>
-          <p className={`${textSize} text-gray-600`}>
+          <p className={`${textSize}`} style={{ color: secondaryColor }}>
             {cert.issuer} • {cert.date}
             {cert.url && (
               <a
@@ -223,10 +232,10 @@ export const ModernMinimalTemplate: React.FC<TemplateRendererProps> = ({
           <h3 className="font-semibold" style={{ color: accentColor }}>
             {pub.title}
           </h3>
-          <p className={`${textSize} ${lineHeight} text-gray-700`}>
+          <p className={`${textSize} ${lineHeight}`}>
             {pub.authors.join(", ")}
           </p>
-          <p className={`${textSize} text-gray-600`}>
+          <p className={`${textSize}`} style={{ color: secondaryColor }}>
             {pub.venue} • {pub.date}
             {pub.doi && ` • DOI: ${pub.doi}`}
             {pub.url && (
@@ -248,7 +257,7 @@ export const ModernMinimalTemplate: React.FC<TemplateRendererProps> = ({
     blocks.push({
       sectionKey: "languages",
       node: (
-        <div className={`${textSize} ${lineHeight} text-gray-700`}>
+        <div className={`${textSize} ${lineHeight}`}>
           {(resume.languages ?? [])
             .map((l) => `${l.name} (${l.proficiency})`)
             .join(" • ")}
@@ -267,18 +276,22 @@ export const ModernMinimalTemplate: React.FC<TemplateRendererProps> = ({
               <h3 className="font-semibold" style={{ color: accentColor }}>
                 {v.role}
               </h3>
-              <p className={`${textSize} ${lineHeight} text-gray-600`}>
+              <p
+                className={`${textSize} ${lineHeight}`}
+                style={{ color: secondaryColor }}
+              >
                 {v.organization}
               </p>
             </div>
-            <span className={`${textSize} shrink-0 text-gray-500`}>
+            <span
+              className={`${textSize} shrink-0`}
+              style={{ color: secondaryColor }}
+            >
               {v.startDate} - {v.endDate || "Present"}
             </span>
           </div>
           {v.description && (
-            <p className={`${textSize} ${lineHeight} text-gray-700`}>
-              {v.description}
-            </p>
+            <p className={`${textSize} ${lineHeight}`}>{v.description}</p>
           )}
         </div>
       ),
@@ -293,13 +306,11 @@ export const ModernMinimalTemplate: React.FC<TemplateRendererProps> = ({
           <h3 className="font-semibold" style={{ color: accentColor }}>
             {award.title}
           </h3>
-          <p className={`${textSize} text-gray-600`}>
+          <p className={`${textSize}`} style={{ color: secondaryColor }}>
             {award.issuer} • {award.date}
           </p>
           {award.description && (
-            <p className={`${textSize} ${lineHeight} text-gray-700`}>
-              {award.description}
-            </p>
+            <p className={`${textSize} ${lineHeight}`}>{award.description}</p>
           )}
         </div>
       ),
@@ -333,7 +344,10 @@ export const ModernMinimalTemplate: React.FC<TemplateRendererProps> = ({
       className="mb-8 border-b-2 pb-4"
       style={{ borderColor: primaryColor }}
     >
-      <h1 className="mb-2 text-4xl font-bold" style={{ color: primaryColor }}>
+      <h1
+        className={`mb-2 ${nameSize} font-bold`}
+        style={{ color: primaryColor }}
+      >
         {resume.header.name}
       </h1>
       {resume.header.headline && (
@@ -344,7 +358,10 @@ export const ModernMinimalTemplate: React.FC<TemplateRendererProps> = ({
           {resume.header.headline}
         </div>
       )}
-      <div className={`${textSize} ${lineHeight} space-y-1 text-gray-600`}>
+      <div
+        className={`${textSize} ${lineHeight} space-y-1`}
+        style={{ color: secondaryColor }}
+      >
         <div className="flex flex-wrap gap-4">
           {resume.header.email && <span>✉ {resume.header.email}</span>}
           {resume.header.phone && <span>📞 {resume.header.phone}</span>}
@@ -357,7 +374,7 @@ export const ModernMinimalTemplate: React.FC<TemplateRendererProps> = ({
               className="hover:underline"
               style={{ color: accentColor }}
             >
-              LinkedIn
+              {resume.header.linkedin}
             </a>
           )}
           {resume.header.github && (
@@ -366,7 +383,7 @@ export const ModernMinimalTemplate: React.FC<TemplateRendererProps> = ({
               className="hover:underline"
               style={{ color: accentColor }}
             >
-              GitHub
+              {resume.header.github}
             </a>
           )}
           {resume.header.website && (
@@ -375,7 +392,7 @@ export const ModernMinimalTemplate: React.FC<TemplateRendererProps> = ({
               className="hover:underline"
               style={{ color: accentColor }}
             >
-              Website
+              {resume.header.website}
             </a>
           )}
         </div>
@@ -388,6 +405,8 @@ export const ModernMinimalTemplate: React.FC<TemplateRendererProps> = ({
     let currentSection = prevLastSection;
     return indices.map((idx) => {
       const block = blocks[idx];
+      // pageGroups can hold stale indices while blocks rebuilds after a resume update
+      if (!block) return null;
       const isNewSection = block.sectionKey !== currentSection;
       currentSection = block.sectionKey;
       return (

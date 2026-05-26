@@ -1,73 +1,73 @@
-import { PDFDocument, rgb } from "pdf-lib";
+import React from "react";
 
+import { SanitizedCustomization } from "@/types/customization";
 import { ResumeJSON } from "@/types/resume";
 
+import {
+  ResolvedPDFStyles,
+  resolvePDFCustomization,
+} from "./pdf/resolveStyles";
+import { BJetProfessionalPDF } from "./pdf/templates/BJetProfessionalPDF";
+import { BusinessProfessionalPDF } from "./pdf/templates/BusinessProfessionalPDF";
+import { CreativeModernPDF } from "./pdf/templates/CreativeModernPDF";
+import { ElegantTimelinePDF } from "./pdf/templates/ElegantTimelinePDF";
+import { ModernMinimalPDF } from "./pdf/templates/ModernMinimalPDF";
+import { TechSidebarPDF } from "./pdf/templates/TechSidebarPDF";
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const TEMPLATE_MAP: Record<string, React.ComponentType<any>> = {
+  "modern-minimal": ModernMinimalPDF,
+  "business-professional": BusinessProfessionalPDF,
+  "tech-sidebar": TechSidebarPDF,
+  "creative-modern": CreativeModernPDF,
+  "elegant-timeline": ElegantTimelinePDF,
+  "bjet-professional": BJetProfessionalPDF,
+};
+
+/**
+ * Generates a template-specific vector PDF via @react-pdf/renderer and triggers
+ * a browser download. Must be called from a client context (browser / Tauri).
+ */
 export async function generateResumePDF(
-  resume: ResumeJSON
-): Promise<Uint8Array> {
-  const pdfDoc = await PDFDocument.create();
-  const page = pdfDoc.addPage();
-  const { height } = page.getSize();
+  resume: ResumeJSON,
+  customization: SanitizedCustomization,
+  filename: string
+): Promise<void> {
+  // Dynamic import keeps the heavy react-pdf bundle out of the server bundle
+  const { pdf } = await import("@react-pdf/renderer");
 
-  let y = height - 50;
-  const fontSize = 12;
-  const lineHeight = fontSize + 5;
+  const styles = resolvePDFCustomization(customization);
+  const TemplateComponent =
+    TEMPLATE_MAP[customization.template] ?? ModernMinimalPDF;
 
-  const drawText = (text: string) => {
-    page.drawText(text, { x: 50, y, size: fontSize, color: rgb(0, 0, 0) });
-    y -= lineHeight;
+  const renderBlob = (pdfStyles: ResolvedPDFStyles): Promise<Blob> => {
+    const el = React.createElement(TemplateComponent, {
+      resume,
+      styles: pdfStyles,
+    });
+    return pdf(el).toBlob();
   };
 
-  // Header
-  drawText(`Name: ${resume.header.name}`);
-  drawText(`Email: ${resume.header.email}`);
-  y -= 10;
+  let blob: Blob;
+  try {
+    blob = await renderBlob(styles);
+  } catch (err) {
+    if (err instanceof RangeError) {
+      // A RangeError from fontkit means the registered font URL failed to load
+      // or contains a glyph outside the loaded subset. Retry with the built-in
+      // Helvetica which needs no network fetch.
+      blob = await renderBlob({ ...styles, fontFamily: "Helvetica" });
+    } else {
+      throw err;
+    }
+  }
 
-  // Summary
-  drawText("Summary:");
-  drawText(resume.summary);
-  y -= 10;
-
-  // Experience
-  drawText("Experience:");
-  resume.experience.forEach((exp) => {
-    drawText(
-      `${exp.role} at ${exp.company} (${exp.startDate} - ${exp.endDate || "Present"})`
-    );
-    drawText(exp.description);
-    y -= 5;
-  });
-  y -= 10;
-
-  // Projects
-  drawText("Projects:");
-  resume.projects.forEach((proj) => {
-    drawText(`${proj.name}: ${proj.description}`);
-    y -= 5;
-  });
-  y -= 10;
-
-  // Skills
-  drawText("Skills:");
-  drawText(resume.skills.join(", "));
-  y -= 10;
-
-  // Education
-  drawText("Education:");
-  resume.education.forEach((edu) => {
-    drawText(
-      `${edu.degree} from ${edu.institution} (${edu.startDate} - ${edu.endDate || "Present"})`
-    );
-    y -= 5;
-  });
-  y -= 10;
-
-  // Certifications
-  drawText("Certifications:");
-  resume.certifications.forEach((cert) => {
-    drawText(`${cert.name} (${cert.date})`);
-    y -= 5;
-  });
-
-  return await pdfDoc.save();
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
 }

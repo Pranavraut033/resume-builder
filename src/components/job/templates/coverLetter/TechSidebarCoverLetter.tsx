@@ -98,7 +98,7 @@ export const TechSidebarCoverLetter: React.FC<CoverLetterRendererProps> = ({
                     className="break-all hover:underline"
                     style={{ color: accentColor }}
                   >
-                    LinkedIn
+                    {resume.header.linkedin}
                   </a>
                 </div>
               )}
@@ -112,7 +112,7 @@ export const TechSidebarCoverLetter: React.FC<CoverLetterRendererProps> = ({
                     className="break-all hover:underline"
                     style={{ color: accentColor }}
                   >
-                    GitHub
+                    {resume.header.github}
                   </a>
                 </div>
               )}
@@ -126,7 +126,7 @@ export const TechSidebarCoverLetter: React.FC<CoverLetterRendererProps> = ({
                     className="break-all hover:underline"
                     style={{ color: accentColor }}
                   >
-                    Website
+                    {resume.header.website}
                   </a>
                 </div>
               )}
