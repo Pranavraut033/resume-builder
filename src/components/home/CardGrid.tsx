@@ -1,12 +1,11 @@
+import { JobRecord } from "@/actions/job";
 import CompanyAvatar from "@/components/CompanyAvatar";
 import { Icon } from "@/components/ui/Icon";
+import { formatTimestamp } from "@/lib";
 import { JobStatus } from "@/types/job";
 
 import { IconButton, IconLink } from "./Buttons";
 import { StatusSelector, StatusBadge } from "./StatusControls";
-import { formatTimestamp } from "./utils";
-
-import type { JobRecord } from "./types";
 
 export default function CardGrid({
   jobs,
@@ -61,7 +60,7 @@ export default function CardGrid({
                   style={{ color: "var(--color-agent-primary)" }}
                 >
                   <Icon name="link" size={12} />
-                  <span className="line-clamp-1">{job.url.length}</span>
+                  <span className="flex-1 truncate">Source</span>
                 </a>
               )}
             </div>
@@ -86,7 +85,7 @@ export default function CardGrid({
               className="text-xs"
               style={{ color: "var(--color-agent-outline)" }}
             >
-              Updated {formatTimestamp(job.createdAt)}
+              Updated {formatTimestamp(job.updatedAt)}
             </span>
           </div>
           <div

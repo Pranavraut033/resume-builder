@@ -1,10 +1,6 @@
-"use client";
-
-import React from "react";
-
 import { Icon } from "@/components/ui/Icon";
 
-import type { ViewMode } from "./types";
+import type { ViewMode } from "./JobTableClient";
 
 export default function ViewToggle({
   value,

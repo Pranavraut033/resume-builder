@@ -1,9 +1,8 @@
-"use client";
-
-import React from "react";
 import { flexRender } from "@tanstack/react-table";
+
+import { JobRecord } from "@/actions/job";
+
 import type { Table as ReactTableType } from "@tanstack/react-table";
-import type { JobRecord } from "./types";
 
 export default function JobsTable({
   table,

@@ -1,11 +1,11 @@
 import Link from "next/link";
 
+import { JobRecord } from "@/actions/job";
 import CompanyAvatar from "@/components/CompanyAvatar";
 import { Icon } from "@/components/ui/Icon";
+import { JobDetailsJSON } from "@/types/resume";
 
 import { StatusBadge } from "./StatusControls";
-
-import type { JobRecord, JobDetailsJSON } from "./types";
 
 function PeekList({
   title,

@@ -1,8 +1,7 @@
-"use client";
-
 import React from "react";
+
+import { formatStatus } from "@/lib";
 import { JOB_STATUSES, type JobStatus } from "@/types/job";
-import { formatStatus } from "./utils";
 
 export function StatusBadge({ status }: { status: JobStatus }) {
   const STATUS_BADGE_STYLES: Record<JobStatus, React.CSSProperties> = {

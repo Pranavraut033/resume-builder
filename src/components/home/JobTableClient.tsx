@@ -12,30 +12,25 @@ import {
 import { useRouter } from "next/navigation";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 
-import { deleteJob, updateJobStatus } from "@/actions/job";
+import { deleteJob, JobRecord, updateJobStatus } from "@/actions/job";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
 import { Icon } from "@/components/ui/Icon";
 import { Modal } from "@/components/ui/Modal";
 import { useToast } from "@/components/ui/ToastProvider";
+import { formatTimestamp } from "@/lib";
+import logger from "@/lib/logger";
 import { isJobStatus, JobStatus } from "@/types/job";
+import { JobDetailsJSON, JobDetailsSchema } from "@/types/resume";
 
-import { IconButton, IconLink } from "./job-table/Buttons";
-import CardGrid from "./job-table/CardGrid";
-import CompanyCell from "./job-table/CompanyCell";
-import EmptyState from "./job-table/EmptyState";
-import JobsTable from "./job-table/JobsTable";
-import PeekContent from "./job-table/PeekContent";
-import SearchInput from "./job-table/SearchInput";
-import { StatusBadge, StatusSelector } from "./job-table/StatusControls";
-import { parseJobDetails, formatTimestamp } from "./job-table/utils";
-import ViewToggle from "./job-table/ViewToggle";
-
-import type {
-  JobDetailsJSON,
-  JobRecord,
-  PopulatedJob,
-  ViewMode,
-} from "./job-table/types";
+import { IconButton, IconLink } from "./Buttons";
+import CardGrid from "./CardGrid";
+import CompanyCell from "./CompanyCell";
+import EmptyState from "./EmptyState";
+import JobsTable from "./JobsTable";
+import PeekContent from "./PeekContent";
+import SearchInput from "./SearchInput";
+import { StatusBadge, StatusSelector } from "./StatusControls";
+import ViewToggle from "./ViewToggle";
 
 const globalJobFilter: FilterFn<JobRecord> = (row, _columnId, filterValue) => {
   const search = String(filterValue).toLowerCase().trim();
@@ -52,7 +47,13 @@ const globalJobFilter: FilterFn<JobRecord> = (row, _columnId, filterValue) => {
   return haystack.includes(search);
 };
 
-export default function JobTableClient({ jobs }: { jobs: PopulatedJob[] }) {
+export type ViewMode = "card" | "table";
+type Props = {
+  jobs: JobRecord[];
+};
+const jobDetailsCache = new Map<number, JobDetailsJSON>();
+
+const JobTableClient: React.FC<Props> = ({ jobs }) => {
   const router = useRouter();
   const { pushToast } = useToast();
   const [viewMode, setViewMode] = useState<ViewMode>("card");
@@ -153,11 +154,37 @@ export default function JobTableClient({ jobs }: { jobs: PopulatedJob[] }) {
     setPendingDeleteId(null);
   }, []);
 
-  const openPeek = useCallback((job: JobRecord) => {
-    setPeekJob(job);
-    setPeekDetails(parseJobDetails(job.jobDetailsJson));
-    setIsPeekOpen(true);
-  }, []);
+  const openPeek = useCallback(
+    (job: JobRecord) => {
+      setPeekJob(job);
+      const cachedDetails = jobDetailsCache.get(job.id);
+      if (cachedDetails) {
+        setPeekDetails(cachedDetails);
+      } else {
+        try {
+          const parsedDetails = JobDetailsSchema.parse(
+            JSON.parse(job.jobDetailsJson)
+          );
+          setPeekDetails(parsedDetails);
+          jobDetailsCache.set(job.id, parsedDetails);
+        } catch (error) {
+          pushToast({
+            title: "Failed to load job details",
+            description:
+              error instanceof Error ? error.message : "Unexpected error",
+            variant: "error",
+          });
+          logger.error("Peek", "Failed to parse job details for job", {
+            jobId: job.id,
+            error,
+          });
+          setPeekDetails(null);
+        }
+      }
+      setIsPeekOpen(true);
+    },
+    [pushToast]
+  );
 
   const closePeek = useCallback(() => {
     setIsPeekOpen(false);
@@ -340,4 +367,6 @@ export default function JobTableClient({ jobs }: { jobs: PopulatedJob[] }) {
       />
     </div>
   );
-}
+};
+
+export default JobTableClient;

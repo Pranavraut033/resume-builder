@@ -7,7 +7,7 @@ import CalendarIcon from "@/components/icons/CalendarIcon";
 import SendIcon from "@/components/icons/SendIcon";
 import TrendingUpIcon from "@/components/icons/TrendingUpIcon";
 
-import JobTableClient from "../components/JobTableClient";
+import JobTableClient from "../components/home/JobTableClient";
 
 export default async function Home() {
   const jobList = await getAllJob();

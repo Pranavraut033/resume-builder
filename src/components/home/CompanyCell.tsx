@@ -1,8 +1,5 @@
-"use client";
-
-import React from "react";
+import { JobRecord } from "@/actions/job";
 import CompanyAvatar from "@/components/CompanyAvatar";
-import type { JobRecord } from "./types";
 
 export default function CompanyCell({ job }: { job: JobRecord }) {
   return (
