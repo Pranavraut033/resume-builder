@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { useJobPageContext } from "@/contexts/JobPageContext";
-import { simpleI32HashString, toStableJsonString } from "@/lib";
+import { getPageDimensions } from "@/lib/pageDimensions";
 import { AVAILABLE_TEMPLATES, TemplateType } from "@/types/customization";
 
 import { Button, Icon, Select } from "../ui";
@@ -13,14 +13,10 @@ type Props = {
   showTemplateSelector?: boolean;
 };
 
-const A4_WIDTH_MM = 210;
-const A4_HEIGHT_MM = 297;
-const CSS_PIXELS_PER_MM = 96 / 25.4;
-const A4_WIDTH_PX = A4_WIDTH_MM * CSS_PIXELS_PER_MM;
-const A4_HEIGHT_PX = A4_HEIGHT_MM * CSS_PIXELS_PER_MM;
 const ZOOM_MIN = 0.25;
 const ZOOM_MAX = 2;
 const ZOOM_STEP = 0.1;
+const PAGE_GAP = 24;
 
 function clampZoom(zoom: number): number {
   return Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, zoom));
@@ -33,61 +29,49 @@ const PreviewViewport: React.FC<Props> = ({
   const {
     customization,
     onCopyText,
-    contentType,
-    coverLetter,
-    resume,
     updateCustomizationState: updateCustomization,
   } = useJobPageContext();
 
-  const rerenderHash = simpleI32HashString(
-    toStableJsonString(customization) +
-      (contentType === "coverLetter"
-        ? toStableJsonString(coverLetter)
-        : toStableJsonString(resume))
+  const { widthPx: PAGE_WIDTH_PX, heightPx: PAGE_HEIGHT_PX } = getPageDimensions(
+    customization.pageFormat,
+    customization.marginSize
   );
 
   const [zoomScale, setZoomScale] = useState(1);
   const [isFitMode, setIsFitMode] = useState(true);
-  const [renderHeightPx, setRenderHeightPx] = useState(A4_HEIGHT_PX);
+  const [pageCount, setPageCount] = useState(1);
   const previewViewportRef = useRef<HTMLDivElement | null>(null);
-  const previewPageRef = useRef<HTMLDivElement | null>(null);
+  const contentContainerRef = useRef<HTMLDivElement | null>(null);
 
+  // Detect page count by watching for [data-resume-page] elements
   useEffect(() => {
-    const pageEl = previewPageRef.current;
-    if (!pageEl) return;
+    const container = contentContainerRef.current;
+    if (!container) return;
 
-    const measureHeight = () => {
-      const measured = pageEl.scrollHeight;
-      setRenderHeightPx(Math.max(A4_HEIGHT_PX, measured));
+    const countPages = () => {
+      setPageCount(Math.max(1, container.querySelectorAll("[data-resume-page]").length));
     };
 
-    measureHeight();
+    countPages();
 
-    const observer = new ResizeObserver(measureHeight);
-    observer.observe(pageEl);
+    const observer = new MutationObserver(countPages);
+    observer.observe(container, { childList: true, subtree: true, attributes: true });
     return () => observer.disconnect();
-  }, [rerenderHash]);
+  }, [previewContent]);
 
   const zoomPercent = Math.round(zoomScale * 100);
-  const scaledWidthPx = A4_WIDTH_PX * zoomScale;
-  const scaledHeightPx = renderHeightPx * zoomScale;
-  const pageBreakPositions = Array.from(
-    { length: Math.max(0, Math.floor((renderHeightPx - 1) / A4_HEIGHT_PX)) },
-    (_, index) => (index + 1) * A4_HEIGHT_PX
-  );
+  const scaledWidthPx = PAGE_WIDTH_PX * zoomScale;
+  const totalUnscaledHeight = pageCount * PAGE_HEIGHT_PX + (pageCount - 1) * PAGE_GAP;
 
   const recalculateFitZoom = useCallback(() => {
     const viewportEl = previewViewportRef.current;
     if (!viewportEl) return;
 
     const horizontalPadding = 48;
-    const availableWidth = Math.max(
-      0,
-      viewportEl.clientWidth - horizontalPadding
-    );
-    const nextZoom = clampZoom(availableWidth / A4_WIDTH_PX);
+    const availableWidth = Math.max(0, viewportEl.clientWidth - horizontalPadding);
+    const nextZoom = clampZoom(availableWidth / PAGE_WIDTH_PX);
     setZoomScale(nextZoom);
-  }, []);
+  }, [PAGE_WIDTH_PX]);
 
   useEffect(() => {
     if (!isFitMode) return;
@@ -210,70 +194,29 @@ const PreviewViewport: React.FC<Props> = ({
 
       <div className="bg-agent-inverse-on-surface border-agent-outline-variant overflow-hidden rounded-xl border shadow-md">
         <div ref={previewViewportRef} className="h-full overflow-auto p-6">
+          {/* Scale container: clips to scaled page size */}
           <div
-            className="relative mx-auto"
-            style={{ width: scaledWidthPx, minHeight: scaledHeightPx }}
+            style={{
+              width: scaledWidthPx,
+              height: totalUnscaledHeight * zoomScale,
+              margin: "0 auto",
+              position: "relative",
+            }}
           >
+            {/* Inner unscaled content */}
             <div
-              className="absolute top-0 left-0 origin-top-left"
+              ref={contentContainerRef}
               style={{
+                transformOrigin: "top left",
                 transform: `scale(${zoomScale})`,
-                width: `${A4_WIDTH_MM}mm`,
+                width: PAGE_WIDTH_PX,
+                position: "absolute",
+                top: 0,
+                left: 0,
               }}
             >
-              <div
-                ref={previewPageRef}
-                className="bg-white text-black shadow-[0_10px_30px_rgba(0,0,0,0.18)]"
-                style={{
-                  width: `${A4_WIDTH_MM}mm`,
-                  minHeight: `${A4_HEIGHT_MM}mm`,
-                  breakAfter: "page",
-                }}
-              >
-                {previewContent}
-              </div>
+              {previewContent}
             </div>
-
-            {/* Page breaks */}
-            {pageBreakPositions.map((breakPosition, index) => (
-              <div
-                key={`${breakPosition}-${index}`}
-                className="pointer-events-none absolute right-0 left-0"
-                style={{ top: breakPosition * zoomScale }}
-              >
-                <div
-                  className="flex h-7 items-center gap-3 px-3"
-                  style={{
-                    transform: "translateY(-50%)",
-                    background: "var(--color-agent-surface-lowest)",
-                  }}
-                >
-                  <div
-                    className="h-px flex-1"
-                    style={{
-                      background:
-                        "linear-gradient(to right, transparent, var(--color-agent-outline), transparent)",
-                    }}
-                  />
-                  <span
-                    className="rounded-full px-2 py-0.5 text-[10px] font-semibold tracking-wide uppercase"
-                    style={{
-                      color: "var(--color-agent-on-surface-variant)",
-                      background: "var(--color-agent-surface-container)",
-                    }}
-                  >
-                    Page Break
-                  </span>
-                  <div
-                    className="h-px flex-1"
-                    style={{
-                      background:
-                        "linear-gradient(to right, transparent, var(--color-agent-outline), transparent)",
-                    }}
-                  />
-                </div>
-              </div>
-            ))}
           </div>
         </div>
       </div>

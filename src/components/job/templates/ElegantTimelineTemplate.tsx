@@ -2,11 +2,19 @@
 // Copyright (c) 2025 M. H. A. Afif
 // Licensed under MIT License
 
-import React from "react";
+"use client";
 
+import React, { useEffect, useRef, useState } from "react";
+
+import { useBlockPaginator } from "@/hooks/useBlockPaginator";
 import useResolveCustomization from "@/hooks/useResolveCustomization";
+import { getPageDimensions } from "@/lib/pageDimensions";
 
+import MeasurementContainer from "./shared/MeasurementContainer";
+import ResumePage from "./shared/ResumePage";
 import { TemplateRendererProps } from "./TemplateRenderer";
+
+type Block = { node: React.ReactNode; sectionKey: string };
 
 export const ElegantTimelineTemplate: React.FC<TemplateRendererProps> = ({
   resume,
@@ -20,400 +28,400 @@ export const ElegantTimelineTemplate: React.FC<TemplateRendererProps> = ({
     backgroundColor,
     textSize,
     fontFamily,
-    today: _today,
-    marginClass,
     lineHeight,
     headingSize,
   } = useResolveCustomization(customization);
 
-  const pageFormatClass =
-    customization.pageFormat === "letter"
-      ? "min-h-[11in] w-[8.5in]"
-      : "min-h-264 w-204";
+  const { widthMm, widthPx, heightPx, marginPx, contentHeightPx } =
+    getPageDimensions(customization.pageFormat, customization.marginSize);
+
+  const sectionHeadingNode = (title: string) => (
+    <h2
+      className={`${headingSize} mb-4 text-center font-semibold uppercase`}
+      style={{ color: primaryColor }}
+    >
+      {title}
+    </h2>
+  );
+
+  const sectionLabels: Record<string, string> = {
+    summary: "Professional Summary",
+    experience: "Experience",
+    education: "Education",
+    skills: "Skills",
+    certifications: "Certifications",
+    projects: "Projects",
+    publications: "Publications",
+    languages: "Languages",
+    volunteer: "Volunteer Experience",
+    awards: "Awards",
+  };
+
+  const blocks: Block[] = [];
+
+  if (resume.summary) {
+    blocks.push({
+      sectionKey: "summary",
+      node: (
+        <p
+          className={`${textSize} ${lineHeight} mx-auto max-w-3xl text-center leading-relaxed`}
+        >
+          {resume.summary}
+        </p>
+      ),
+    });
+  }
+
+  (resume.experience ?? []).forEach((exp, idx) => {
+    blocks.push({
+      sectionKey: "experience",
+      node: (
+        <div className="relative">
+          <div
+            className="absolute top-0 bottom-0 left-1/2 w-0.5 -translate-x-1/2"
+            style={{ backgroundColor: accentColor }}
+          />
+          <div
+            className={`flex ${idx % 2 === 0 ? "justify-start" : "justify-end"}`}
+          >
+            <div
+              className={`w-5/12 ${idx % 2 === 0 ? "pr-8 text-right" : "pl-8 text-left"}`}
+            >
+              <div className="relative">
+                <div
+                  className={`absolute top-2 h-4 w-4 rounded-full border-2 ${
+                    idx % 2 === 0 ? "-right-[3.75rem]" : "-left-[3.75rem]"
+                  }`}
+                  style={{ backgroundColor, borderColor: accentColor }}
+                />
+                <h3 className={`${textSize} font-bold`}>{exp.role}</h3>
+                <div
+                  className={`${textSize} ${lineHeight} font-medium`}
+                  style={{ color: secondaryColor }}
+                >
+                  {exp.company}
+                </div>
+                <div className="mb-2 text-xs">
+                  {exp.startDate} - {exp.endDate || "Present"}
+                </div>
+                {exp.description && (
+                  <p className={`${textSize} ${lineHeight} mb-2`}>
+                    {exp.description}
+                  </p>
+                )}
+                {exp.achievements && exp.achievements.length > 0 && (
+                  <ul className={`space-y-1 text-xs ${lineHeight}`}>
+                    {exp.achievements.map((a, i) => (
+                      <li key={i}>• {a}</li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      ),
+    });
+  });
+
+  (resume.education ?? []).forEach((edu) => {
+    blocks.push({
+      sectionKey: "education",
+      node: (
+        <div className="text-center">
+          <h3 className={`${textSize} font-bold`}>{edu.degree}</h3>
+          <div
+            className={`${textSize} ${lineHeight}`}
+            style={{ color: secondaryColor }}
+          >
+            {edu.institution}
+            {edu.field && ` • ${edu.field}`}
+          </div>
+          <div className="text-xs">
+            {edu.startDate} - {edu.endDate || "Present"}
+          </div>
+          {edu.gpa && <div className="text-xs">GPA: {edu.gpa}</div>}
+        </div>
+      ),
+    });
+  });
+
+  if ((resume.skills ?? []).length > 0) {
+    blocks.push({
+      sectionKey: "skills",
+      node: (
+        <div className="flex flex-wrap justify-center gap-2">
+          {(resume.skills ?? []).map((skill, idx) => (
+            <span
+              key={idx}
+              className="rounded-full px-3 py-1 text-sm"
+              style={{
+                backgroundColor: accentColor + "20",
+                color: accentColor,
+              }}
+            >
+              {skill}
+            </span>
+          ))}
+        </div>
+      ),
+    });
+  }
+
+  (resume.certifications ?? []).forEach((cert) => {
+    blocks.push({
+      sectionKey: "certifications",
+      node: (
+        <div className="text-center">
+          <h3 className={`${textSize} font-semibold`}>{cert.name}</h3>
+          <p className="text-xs" style={{ color: secondaryColor }}>
+            {cert.issuer} • {cert.date}
+          </p>
+        </div>
+      ),
+    });
+  });
+
+  (resume.projects ?? []).forEach((project) => {
+    blocks.push({
+      sectionKey: "projects",
+      node: (
+        <div className="text-center">
+          <h3 className={`${textSize} font-bold`}>{project.name}</h3>
+          <p className={`${textSize} ${lineHeight} mt-1`}>
+            {project.description}
+          </p>
+          {project.technologies && project.technologies.length > 0 && (
+            <div className="mt-1 text-xs" style={{ color: secondaryColor }}>
+              {project.technologies.join(", ")}
+            </div>
+          )}
+        </div>
+      ),
+    });
+  });
+
+  (resume.publications ?? []).forEach((pub) => {
+    blocks.push({
+      sectionKey: "publications",
+      node: (
+        <div className="text-center">
+          <h3 className={`${textSize} font-bold`}>{pub.title}</h3>
+          <div className={`${textSize} ${lineHeight}`}>
+            {pub.authors.join(", ")}
+          </div>
+          <div className="text-xs" style={{ color: secondaryColor }}>
+            {pub.venue} • {pub.date}
+          </div>
+        </div>
+      ),
+    });
+  });
+
+  if ((resume.languages ?? []).length > 0) {
+    blocks.push({
+      sectionKey: "languages",
+      node: (
+        <div className="flex flex-wrap justify-center gap-x-4 gap-y-1">
+          {(resume.languages ?? []).map((l, idx) => (
+            <span key={idx} className={`${textSize} ${lineHeight}`}>
+              {l.name} ({l.proficiency})
+            </span>
+          ))}
+        </div>
+      ),
+    });
+  }
+
+  (resume.volunteer ?? []).forEach((v) => {
+    blocks.push({
+      sectionKey: "volunteer",
+      node: (
+        <div className="text-center">
+          <h3 className={`${textSize} font-bold`}>{v.role}</h3>
+          <div
+            className={`${textSize} ${lineHeight}`}
+            style={{ color: secondaryColor }}
+          >
+            {v.organization}
+          </div>
+          <div className="text-xs">
+            {v.startDate} - {v.endDate || "Present"}
+          </div>
+          {v.description && (
+            <p className={`${textSize} ${lineHeight} mt-1`}>{v.description}</p>
+          )}
+        </div>
+      ),
+    });
+  });
+
+  (resume.awards ?? []).forEach((award) => {
+    blocks.push({
+      sectionKey: "awards",
+      node: (
+        <div className="text-center">
+          <h3 className={`${textSize} font-semibold`}>{award.title}</h3>
+          <p className="text-xs" style={{ color: secondaryColor }}>
+            {award.issuer} • {award.date}
+          </p>
+          {award.description && (
+            <p className={`${textSize} ${lineHeight} mt-1`}>
+              {award.description}
+            </p>
+          )}
+        </div>
+      ),
+    });
+  });
+
+  // Header measurement
+  const headerRef = useRef<HTMLDivElement | null>(null);
+  const [headerHeight, setHeaderHeight] = useState(0);
+  useEffect(() => {
+    const el = headerRef.current;
+    if (!el) return;
+    const obs = new ResizeObserver(([e]) =>
+      setHeaderHeight(e.contentRect.height)
+    );
+    obs.observe(el);
+    setHeaderHeight(el.getBoundingClientRect().height);
+    return () => obs.disconnect();
+  }, []);
+
+  const { setRef, pageGroups } = useBlockPaginator({
+    count: blocks.length,
+    pageContentHeight: contentHeightPx,
+    firstPageReserved: headerHeight,
+  });
+
+  const headerNode = (
+    <header className="mb-8 text-center">
+      <h1 className="mb-2 text-4xl font-light" style={{ color: primaryColor }}>
+        {resume.header.name}
+      </h1>
+      {resume.header.headline && (
+        <div
+          className={`${textSize} ${lineHeight} mb-2 font-medium`}
+          style={{ color: accentColor }}
+        >
+          {resume.header.headline}
+        </div>
+      )}
+      <div
+        className={`${textSize} ${lineHeight} mb-2 flex flex-wrap justify-center gap-3`}
+        style={{ color: secondaryColor }}
+      >
+        {resume.header.email && <span>✉ {resume.header.email}</span>}
+        {resume.header.phone && <span>📞 {resume.header.phone}</span>}
+        {resume.header.location && <span>📍 {resume.header.location}</span>}
+      </div>
+      <div
+        className={`${textSize} ${lineHeight} flex flex-wrap justify-center gap-3`}
+      >
+        {resume.header.linkedin && (
+          <a
+            href={resume.header.linkedin}
+            className="hover:underline"
+            style={{ color: accentColor }}
+          >
+            LinkedIn
+          </a>
+        )}
+        {resume.header.github && (
+          <a
+            href={resume.header.github}
+            className="hover:underline"
+            style={{ color: accentColor }}
+          >
+            GitHub
+          </a>
+        )}
+        {resume.header.website && (
+          <a
+            href={resume.header.website}
+            className="hover:underline"
+            style={{ color: accentColor }}
+          >
+            Portfolio
+          </a>
+        )}
+      </div>
+    </header>
+  );
+
+  const renderPageBlocks = (indices: number[], prevLastSection: string) => {
+    let currentSection = prevLastSection;
+    return indices.map((idx) => {
+      const block = blocks[idx];
+      const isNewSection = block.sectionKey !== currentSection;
+      currentSection = block.sectionKey;
+      return (
+        <div key={idx} className="mb-6">
+          {isNewSection && (
+            <div className="mb-3">
+              {sectionHeadingNode(
+                sectionLabels[block.sectionKey] ?? block.sectionKey
+              )}
+            </div>
+          )}
+          {block.node}
+        </div>
+      );
+    });
+  };
 
   return (
     <div
-      className={`resume-content mx-auto bg-white p-12 shadow-lg ${marginClass} ${pageFormatClass}`}
       style={{
         fontFamily,
         color: textColor,
         backgroundColor,
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "flex-start",
       }}
     >
-      {/* Header - Centered */}
-      <header className="mb-8 text-center">
-        <h1
-          className="mb-2 text-4xl font-light"
-          style={{ color: primaryColor }}
-        >
-          {resume.header.name}
-        </h1>
-        {resume.header.headline && (
-          <div
-            className={`${textSize} ${lineHeight} mb-2 font-medium`}
-            style={{ color: accentColor }}
-          >
-            {resume.header.headline}
-          </div>
-        )}
-        <div
-          className={`${textSize} ${lineHeight} mb-2 flex flex-wrap justify-center gap-3`}
-          style={{ color: secondaryColor }}
-        >
-          {resume.header.email && <span>✉ {resume.header.email}</span>}
-          {resume.header.phone && <span>📞 {resume.header.phone}</span>}
-          {resume.header.location && <span>📍 {resume.header.location}</span>}
+      <MeasurementContainer widthMm={widthMm}>
+        <div style={{ padding: marginPx, paddingBottom: 0 }}>
+          <div ref={headerRef}>{headerNode}</div>
         </div>
-        <div
-          className={`${textSize} ${lineHeight} flex flex-wrap justify-center gap-3`}
-        >
-          {resume.header.linkedin && (
-            <a
-              href={resume.header.linkedin}
-              className="hover:underline"
-              style={{ color: accentColor }}
-            >
-              LinkedIn
-            </a>
-          )}
-          {resume.header.github && (
-            <a
-              href={resume.header.github}
-              className="hover:underline"
-              style={{ color: accentColor }}
-            >
-              GitHub
-            </a>
-          )}
-          {resume.header.website && (
-            <a
-              href={resume.header.website}
-              className="hover:underline"
-              style={{ color: accentColor }}
-            >
-              Portfolio
-            </a>
-          )}
+        <div style={{ paddingLeft: marginPx, paddingRight: marginPx }}>
+          {blocks.map((block, i) => (
+            <div key={i} ref={setRef(i)}>
+              {block.node}
+            </div>
+          ))}
         </div>
-      </header>
+      </MeasurementContainer>
 
-      {/* Professional Summary */}
-      {resume.summary && (
-        <section className="mb-8 text-center">
-          <h2
-            className={`${headingSize} mb-3 font-semibold uppercase`}
-            style={{ color: primaryColor }}
+      {pageGroups.map((group, pageIndex) => {
+        const prevGroup = pageGroups[pageIndex - 1];
+        const prevLastSection =
+          pageIndex === 0
+            ? ""
+            : (blocks[prevGroup[prevGroup.length - 1]]?.sectionKey ?? "");
+        return (
+          <ResumePage
+            key={pageIndex}
+            widthPx={widthPx}
+            heightPx={heightPx}
+            pageIndex={pageIndex}
+            pageCount={pageGroups.length}
           >
-            Professional Summary
-          </h2>
-          <p
-            className={`${textSize} ${lineHeight} mx-auto max-w-3xl leading-relaxed`}
-          >
-            {resume.summary}
-          </p>
-        </section>
-      )}
-
-      {/* Experience with Timeline */}
-      {resume.experience && resume.experience.length > 0 && (
-        <section className="mb-8">
-          <h2
-            className={`${headingSize} mb-4 text-center font-semibold uppercase`}
-            style={{ color: primaryColor }}
-          >
-            Experience
-          </h2>
-          <div className="relative">
             <div
-              className="absolute left-1/2 h-full w-0.5 -translate-x-1/2 transform"
-              style={{ backgroundColor: accentColor }}
-            />
-            <div className="space-y-8">
-              {resume.experience.map((exp, idx) => (
-                <div
-                  key={idx}
-                  className={`flex ${idx % 2 === 0 ? "justify-start" : "justify-end"}`}
-                >
-                  <div
-                    className={`w-5/12 ${idx % 2 === 0 ? "pr-8 text-right" : "pl-8 text-left"}`}
-                  >
-                    <div className="relative">
-                      <div
-                        className={`absolute top-2 h-4 w-4 rounded-full border-2 ${
-                          idx % 2 === 0 ? "-right-[3.75rem]" : "-left-[3.75rem]"
-                        }`}
-                        style={{
-                          backgroundColor,
-                          borderColor: accentColor,
-                        }}
-                      />
-                      <h3 className={`${textSize} font-bold`}>{exp.role}</h3>
-                      <div
-                        className={`${textSize} ${lineHeight} font-medium`}
-                        style={{ color: secondaryColor }}
-                      >
-                        {exp.company}
-                      </div>
-                      <div className="mb-2 text-xs">
-                        {exp.startDate} - {exp.endDate || "Present"}
-                      </div>
-                      {exp.description && (
-                        <p className={`${textSize} ${lineHeight} mb-2`}>
-                          {exp.description}
-                        </p>
-                      )}
-                      {exp.achievements && exp.achievements.length > 0 && (
-                        <ul className={`space-y-1 text-xs ${lineHeight}`}>
-                          {exp.achievements.map((achievement, achIdx) => (
-                            <li key={achIdx}>• {achievement}</li>
-                          ))}
-                        </ul>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              ))}
+              style={{
+                padding: marginPx,
+                height: "100%",
+                boxSizing: "border-box",
+              }}
+            >
+              {pageIndex === 0 && headerNode}
+              {renderPageBlocks(group, pageIndex === 0 ? "" : prevLastSection)}
             </div>
-          </div>
-        </section>
-      )}
-
-      {/* Education */}
-      {resume.education && resume.education.length > 0 && (
-        <section className="mb-8 text-center">
-          <h2
-            className={`${headingSize} mb-3 font-semibold uppercase`}
-            style={{ color: primaryColor }}
-          >
-            Education
-          </h2>
-          <div className="space-y-3">
-            {resume.education.map((edu, idx) => (
-              <div key={idx}>
-                <h3 className={`${textSize} font-bold`}>{edu.degree}</h3>
-                <div
-                  className={`${textSize} ${lineHeight}`}
-                  style={{ color: secondaryColor }}
-                >
-                  {edu.institution}
-                  {edu.field && ` • ${edu.field}`}
-                </div>
-                <div className="text-xs">
-                  {edu.startDate} - {edu.endDate || "Present"}
-                  {edu.gpa && ` • GPA: ${edu.gpa}`}
-                </div>
-              </div>
-            ))}
-          </div>
-        </section>
-      )}
-
-      {/* Skills */}
-      {resume.skills && resume.skills.length > 0 && (
-        <section className="mb-8">
-          <h2
-            className={`${headingSize} mb-3 text-center font-semibold uppercase`}
-            style={{ color: primaryColor }}
-          >
-            Core Skills
-          </h2>
-          <div className="flex flex-wrap justify-center gap-2">
-            {resume.skills.map((skill, idx) => (
-              <span
-                key={idx}
-                className="rounded-full px-3 py-1 text-xs"
-                style={{
-                  backgroundColor: accentColor + "20",
-                  color: accentColor,
-                }}
-              >
-                {skill}
-              </span>
-            ))}
-          </div>
-        </section>
-      )}
-
-      {/* Projects */}
-      {resume.projects && resume.projects.length > 0 && (
-        <section className="mb-8">
-          <h2
-            className={`${headingSize} mb-4 text-center font-semibold uppercase`}
-            style={{ color: primaryColor }}
-          >
-            Key Projects
-          </h2>
-          <div className="space-y-4">
-            {resume.projects.map((project, idx) => (
-              <div key={idx} className="text-center">
-                <h3 className={`${textSize} font-bold`}>{project.name}</h3>
-                {(project.startDate || project.endDate) && (
-                  <div className="text-xs">
-                    {project.startDate || ""}
-                    {project.startDate || project.endDate ? " - " : ""}
-                    {project.endDate || "Present"}
-                  </div>
-                )}
-                <p className={`${textSize} ${lineHeight} mt-1`}>
-                  {project.description}
-                </p>
-                {project.url && (
-                  <div className="mt-1 text-xs">
-                    <a
-                      href={project.url}
-                      className="hover:underline"
-                      style={{ color: accentColor }}
-                    >
-                      Project Link
-                    </a>
-                  </div>
-                )}
-                {project.technologies && project.technologies.length > 0 && (
-                  <div className="mt-2 flex flex-wrap justify-center gap-1">
-                    {project.technologies.map((tech, techIdx) => (
-                      <span
-                        key={techIdx}
-                        className="rounded px-2 py-0.5 text-xs"
-                        style={{
-                          backgroundColor: accentColor + "20",
-                          color: accentColor,
-                        }}
-                      >
-                        {tech}
-                      </span>
-                    ))}
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-        </section>
-      )}
-
-      {/* Certifications */}
-      {resume.certifications && resume.certifications.length > 0 && (
-        <section className="mb-8 text-center">
-          <h2
-            className={`${headingSize} mb-3 font-semibold uppercase`}
-            style={{ color: primaryColor }}
-          >
-            Certifications
-          </h2>
-          {resume.certifications.map((cert, idx) => (
-            <div key={idx} className="mb-2">
-              <span className={`${textSize} font-semibold`}>{cert.name}</span>
-              <div className="text-xs" style={{ color: secondaryColor }}>
-                {cert.issuer} • {cert.date}
-              </div>
-              {cert.url && (
-                <div className="mt-1 text-xs">
-                  <a
-                    href={cert.url}
-                    className="hover:underline"
-                    style={{ color: accentColor }}
-                  >
-                    Credential Link
-                  </a>
-                </div>
-              )}
-            </div>
-          ))}
-        </section>
-      )}
-
-      {/* Publications */}
-      {resume.publications && resume.publications.length > 0 && (
-        <section className="mb-8 text-center">
-          <h2
-            className={`${headingSize} mb-3 font-semibold uppercase`}
-            style={{ color: primaryColor }}
-          >
-            Publications
-          </h2>
-          {resume.publications.map((publication, idx) => (
-            <div key={idx} className="mb-3">
-              <h3 className={`${textSize} font-bold`}>{publication.title}</h3>
-              <div className={`${textSize} ${lineHeight} mt-1`}>
-                {publication.authors.join(", ")}
-              </div>
-              <div className="text-xs" style={{ color: secondaryColor }}>
-                {publication.venue} • {publication.date}
-                {publication.doi && ` • DOI: ${publication.doi}`}
-              </div>
-              {publication.url && (
-                <div className="mt-1 text-xs">
-                  <a
-                    href={publication.url}
-                    className="hover:underline"
-                    style={{ color: accentColor }}
-                  >
-                    Publication Link
-                  </a>
-                </div>
-              )}
-            </div>
-          ))}
-        </section>
-      )}
-
-      {/* Languages */}
-      {resume.languages && resume.languages.length > 0 && (
-        <section className="mb-8 text-center">
-          <h2
-            className={`${headingSize} mb-3 font-semibold uppercase`}
-            style={{ color: primaryColor }}
-          >
-            Languages
-          </h2>
-          <div className="flex flex-wrap justify-center gap-2">
-            {resume.languages.map((language, idx) => (
-              <span
-                key={idx}
-                className="rounded-full px-3 py-1 text-xs"
-                style={{
-                  backgroundColor: accentColor + "20",
-                  color: accentColor,
-                }}
-              >
-                {language.name} • {language.proficiency}
-              </span>
-            ))}
-          </div>
-        </section>
-      )}
-
-      {/* Volunteer */}
-      {resume.volunteer && resume.volunteer.length > 0 && (
-        <section className="text-center">
-          <h2
-            className={`${headingSize} mb-3 font-semibold uppercase`}
-            style={{ color: primaryColor }}
-          >
-            Volunteer Experience
-          </h2>
-          <div className="space-y-3">
-            {resume.volunteer.map((item, idx) => (
-              <div key={idx}>
-                <h3 className={`${textSize} font-bold`}>{item.role}</h3>
-                <div
-                  className={`${textSize} ${lineHeight}`}
-                  style={{ color: secondaryColor }}
-                >
-                  {item.organization}
-                </div>
-                <div className="text-xs">
-                  {item.startDate} - {item.endDate || "Present"}
-                </div>
-                {item.description && (
-                  <p className={`${textSize} ${lineHeight} mt-1`}>
-                    {item.description}
-                  </p>
-                )}
-              </div>
-            ))}
-          </div>
-        </section>
-      )}
+          </ResumePage>
+        );
+      })}
     </div>
   );
 };
