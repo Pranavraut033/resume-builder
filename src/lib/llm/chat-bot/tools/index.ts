@@ -107,6 +107,48 @@ export function validateEditFieldArgs(
     );
   }
 
+  // Pass 1: recover items the LLM placed incorrectly inside the edits array.
+  const cleanEdits: unknown[] = [];
+  for (const item of obj.edits) {
+    if (typeof item !== "string") {
+      cleanEdits.push(item);
+      continue;
+    }
+
+    // Some LLMs append change_summary as a trailing string element inside edits.
+    // Detect by key name; extract the value and promote it to the top level.
+    if (/change_summary/i.test(item)) {
+      if (!("change_summary" in obj)) {
+        const match = item.match(/change_summary[^:]*[:'"]+\s*(.+)/is);
+        if (match) {
+          obj.change_summary = match[1].replace(/['"]\s*$/, "").trim();
+        }
+      }
+      // Either way, discard this item — it is not an edit object.
+      continue;
+    }
+
+    // Try to recover a stringified edit object via JSON.parse.
+    try {
+      const parsed = JSON.parse(item);
+      if (parsed !== null && typeof parsed === "object") {
+        cleanEdits.push(parsed);
+        continue;
+      }
+    } catch {
+      // not recoverable — keep the string so validateSingleEditArg reports a clear error
+    }
+    cleanEdits.push(item);
+  }
+  obj.edits = cleanEdits;
+
+  if (obj.edits.length === 0) {
+    throw new Error(
+      `Invalid tool call arguments: "edits" must contain at least one valid edit object`
+    );
+  }
+
+  // Pass 2: validate each remaining item.
   for (let i = 0; i < obj.edits.length; i++) {
     try {
       validateSingleEditArg(obj.edits[i]);

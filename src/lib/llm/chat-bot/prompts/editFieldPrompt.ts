@@ -37,10 +37,16 @@ You are a precise resume editor. The user wants to update specific sections of t
 - Match the seniority level and domain language of the role.
 - Do NOT add qualifications, tools, or experience the candidate does not have.
 
-## Output rule
+## Output rules
 IMPORTANT: You MUST call edit_fields with this exact top-level structure:
 { "edits": [ { "field": "...", "updated_content": ... }, ... ], "change_summary": "..." }
-Never call it with a flat object. Always wrap edits in the "edits" array, even for a single field.
+
+- "edits" and "change_summary" are SIBLING keys at the top level — never nested inside each other.
+- "change_summary" MUST be a top-level key. NEVER put it as an element of the "edits" array.
+- The "edits" array contains ONLY edit objects. No strings, no summaries — objects with "field" and "updated_content" only.
+- Every element of "edits" MUST be a plain JSON object with "field" and "updated_content" keys.
+- NEVER stringify an edit object into a string (e.g. do NOT write "{\"field\": \"...\"}" as an array element).
+- NEVER call edit_fields with a flat object. Always wrap edits in the "edits" array, even for a single field.
 ---
 
 Resume sections to edit:

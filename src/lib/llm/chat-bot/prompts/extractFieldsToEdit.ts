@@ -6,7 +6,7 @@
 import { z } from "zod";
 
 import { PromptTemplate, templateRegistry } from "@/lib/llm/prompts";
-import { getResumeSchemaForPrompt } from "@/types/resume";
+import { RESUME_FIELD_NAMES } from "@/types/resume";
 
 // Output schema
 export const EditFieldOutputSchema = z
@@ -82,10 +82,7 @@ Output:
 `,
 
   userPrompt: `\
-Resume schema:
-\`\`\`json
-${getResumeSchemaForPrompt()}
-\`\`\`
+Valid resume fields: ${RESUME_FIELD_NAMES.join(", ")}
 
 User instruction:
 {{userInput}}

@@ -279,8 +279,7 @@ export function ChatPanel({ onClose: _close }: ChatPanelProps) {
           >
             {isProviderReady ? (
               <p className="text-agent-on-surface-variant mb-2 text-[10px]">
-                Using <ModelSelector variant="minimal" />. Type your message and
-                hit enter to send.
+                Using <ModelSelector variant="minimal" />.
               </p>
             ) : (
               <p className="text-agent-on-surface-variant mb-2 text-[10px]">
