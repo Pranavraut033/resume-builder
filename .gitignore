@@ -54,3 +54,4 @@ keys.enc
 .env
 /session-docs/
 dev.db
+resume-builder.p12
