@@ -54,9 +54,10 @@ type RequiredKeysByPurpose = {
   parse_resume: "resumeText";
   analyze_ats: "resume" | "jobDetails";
   humanize_content: "userInput";
+  extract_fields_to_edit: never;
 };
 
-// Helper: require those keys when present
+// Helper type to enforce required context fields based on purpose, error here means RequiredKeysByPurpose is not properly defined to match PromptContext keys - this is a compile-time check to ensure our RequiredKeysByPurpose mapping is correct
 type RequiredFor<P extends PromptPurpose> =
   RequiredKeysByPurpose[P] extends never
     ? PromptContext

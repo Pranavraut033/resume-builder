@@ -8,7 +8,7 @@ export * from "./types";
 export * from "./resolver";
 export * from "./registry";
 export * from "./validation";
-export * from "./documentation";
+// export * from "./documentation";
 
 // Import all templates to trigger registration
 import "./templates/field-summary";

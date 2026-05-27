@@ -39,7 +39,7 @@ export async function createLLMClient(
       };
     }> {
       // Use the provider's runLLM method
-      const response = await provider.runLLM<string>(input.messages, {
+      const response = await provider.runLLM(input.messages, {
         model: input.model,
         maxTokens: input.max_tokens,
         temperature: 0, // Deterministic output for ATS suggestions

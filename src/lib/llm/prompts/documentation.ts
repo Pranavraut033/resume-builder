@@ -1,261 +1,263 @@
-/**
- * Schema Documentation Generator
- * Auto-generates API documentation from Zod schemas
- */
+// todo: this file is no longer up-to-date with the current implementation, we should either update it or remove it. It was originally intended to generate documentation for the LLM prompts based on their expected input and output, but our current implementation has evolved in a way that this auto-generation is no longer straightforward. We may want to revisit this in the future if we want to add more structured documentation for our prompts.
 
-import type { ZodType } from "zod";
+// /**
+//  * Schema Documentation Generator
+//  * Auto-generates API documentation from Zod schemas
+//  */
 
-/**
- * Schema field documentation
- */
-export interface FieldDoc {
-  name: string;
-  type: string;
-  required: boolean;
-  description?: string;
-  enum?: string[];
-  properties?: FieldDoc[];
-}
+// import type { ZodType } from "zod";
 
-/**
- * Generated documentation
- */
-export interface SchemaDoc {
-  title: string;
-  description?: string;
-  fields: FieldDoc[];
-  example?: Record<string, unknown>;
-  markdown?: string;
-}
+// /**
+//  * Schema field documentation
+//  */
+// export interface FieldDoc {
+//   name: string;
+//   type: string;
+//   required: boolean;
+//   description?: string;
+//   enum?: string[];
+//   properties?: FieldDoc[];
+// }
 
-/**
- * Extract type name from Zod schema
- */
-function getTypeName(schema: ZodType): string {
-  const schemaRecord = schema as unknown as Record<string, unknown>;
-  const typeName = (schemaRecord._def as Record<string, unknown> | undefined)?.typeName as
-    | string
-    | undefined;
-  const fallbackName = schema.constructor.name;
-  const type = typeName || fallbackName;
+// /**
+//  * Generated documentation
+//  */
+// export interface SchemaDoc {
+//   title: string;
+//   description?: string;
+//   fields: FieldDoc[];
+//   example?: Record<string, unknown>;
+//   markdown?: string;
+// }
 
-  switch (type) {
-    case "ZodString":
-      return "string";
-    case "ZodNumber":
-      return "number";
-    case "ZodBoolean":
-      return "boolean";
-    case "ZodArray": {
-      const def = schemaRecord._def as Record<string, unknown> | undefined;
-      const element = def?.type as ZodType | undefined;
-      const elementType = element ? getTypeName(element) : "unknown";
-      return `${elementType}[]`;
-    }
-    case "ZodObject":
-      return "object";
-    case "ZodUnion":
-      return "union";
-    case "ZodOptional": {
-      const def = schemaRecord._def as Record<string, unknown> | undefined;
-      const wrapped = def?.schema as ZodType | undefined;
-      const wrappedType = wrapped ? getTypeName(wrapped) : "unknown";
-      return `${wrappedType}?`;
-    }
-    case "ZodNullable": {
-      const def = schemaRecord._def as Record<string, unknown> | undefined;
-      const nullWrapped = def?.schema as ZodType | undefined;
-      const nullWrappedType = nullWrapped ? getTypeName(nullWrapped) : "unknown";
-      return `${nullWrappedType} | null`;
-    }
-    default:
-      return type;
-  }
-}
+// /**
+//  * Extract type name from Zod schema
+//  */
+// function getTypeName(schema: ZodType): string {
+//   const schemaRecord = schema as unknown as Record<string, unknown>;
+//   const typeName = (schemaRecord._def as Record<string, unknown> | undefined)?.typeName as
+//     | string
+//     | undefined;
+//   const fallbackName = schema.constructor.name;
+//   const type = typeName || fallbackName;
 
-/**
- * Extract description from Zod schema
- */
-function getDescription(schema: ZodType): string | undefined {
-  return (schema as unknown as Record<string, unknown>)._def?.description as string | undefined;
-}
+//   switch (type) {
+//     case "ZodString":
+//       return "string";
+//     case "ZodNumber":
+//       return "number";
+//     case "ZodBoolean":
+//       return "boolean";
+//     case "ZodArray": {
+//       const def = schemaRecord._def as Record<string, unknown> | undefined;
+//       const element = def?.type as ZodType | undefined;
+//       const elementType = element ? getTypeName(element) : "unknown";
+//       return `${elementType}[]`;
+//     }
+//     case "ZodObject":
+//       return "object";
+//     case "ZodUnion":
+//       return "union";
+//     case "ZodOptional": {
+//       const def = schemaRecord._def as Record<string, unknown> | undefined;
+//       const wrapped = def?.schema as ZodType | undefined;
+//       const wrappedType = wrapped ? getTypeName(wrapped) : "unknown";
+//       return `${wrappedType}?`;
+//     }
+//     case "ZodNullable": {
+//       const def = schemaRecord._def as Record<string, unknown> | undefined;
+//       const nullWrapped = def?.schema as ZodType | undefined;
+//       const nullWrappedType = nullWrapped ? getTypeName(nullWrapped) : "unknown";
+//       return `${nullWrappedType} | null`;
+//     }
+//     default:
+//       return type;
+//   }
+// }
 
-/**
- * Extract enum values from Zod schema
- */
-function getEnumValues(schema: ZodType): string[] | undefined {
-  const values = (schema as unknown as Record<string, unknown>)._def?.values as unknown[] | undefined;
-  if (Array.isArray(values)) {
-    return values.map((v) => String(v));
-  }
-  return undefined;
-}
+// /**
+//  * Extract description from Zod schema
+//  */
+// function getDescription(schema: ZodType): string | undefined {
+//   return (schema as unknown as Record<string, unknown>)._def?.description as string | undefined;
+// }
 
-/**
- * Check if schema is required
- */
-function isRequired(schema: ZodType): boolean {
-  const typeName = (schema as unknown as Record<string, unknown>)._def?.typeName as string | undefined;
-  return typeName !== "ZodOptional" && typeName !== "ZodNullable";
-}
+// /**
+//  * Extract enum values from Zod schema
+//  */
+// function getEnumValues(schema: ZodType): string[] | undefined {
+//   const values = (schema as unknown as Record<string, unknown>)._def?.values as unknown[] | undefined;
+//   if (Array.isArray(values)) {
+//     return values.map((v) => String(v));
+//   }
+//   return undefined;
+// }
 
-/**
- * Extract fields from Zod object schema
- */
-function extractFields(schema: ZodType): FieldDoc[] {
-  const typeName = (schema as unknown as Record<string, unknown>)._def?.typeName as string | undefined;
+// /**
+//  * Check if schema is required
+//  */
+// function isRequired(schema: ZodType): boolean {
+//   const typeName = (schema as unknown as Record<string, unknown>)._def?.typeName as string | undefined;
+//   return typeName !== "ZodOptional" && typeName !== "ZodNullable";
+// }
 
-  if (typeName !== "ZodObject") {
-    return [];
-  }
+// /**
+//  * Extract fields from Zod object schema
+//  */
+// function extractFields(schema: ZodType): FieldDoc[] {
+//   const typeName = (schema as unknown as Record<string, unknown>)._def?.typeName as string | undefined;
 
-  const shapeFunc = (schema as unknown as Record<string, unknown>)._def?.shape as
-    | (() => Record<string, ZodType>)
-    | undefined;
-  const shape = shapeFunc?.();
-  if (!shape) {
-    return [];
-  }
+//   if (typeName !== "ZodObject") {
+//     return [];
+//   }
 
-  return Object.entries(shape).map(([name, fieldSchema]) => {
-    const fs = fieldSchema as ZodType;
-    return {
-      name,
-      type: getTypeName(fs),
-      required: isRequired(fs),
-      description: getDescription(fs),
-      enum: getEnumValues(fs),
-    };
-  });
-}
+//   const shapeFunc = (schema as unknown as Record<string, unknown>)._def?.shape as
+//     | (() => Record<string, ZodType>)
+//     | undefined;
+//   const shape = shapeFunc?.();
+//   if (!shape) {
+//     return [];
+//   }
 
-/**
- * Generate documentation from Zod schema
- */
-export function generateSchemaDoc(
-  schema: ZodType,
-  title: string,
-  description?: string
-): SchemaDoc {
-  const fields = extractFields(schema);
+//   return Object.entries(shape).map(([name, fieldSchema]) => {
+//     const fs = fieldSchema as ZodType;
+//     return {
+//       name,
+//       type: getTypeName(fs),
+//       required: isRequired(fs),
+//       description: getDescription(fs),
+//       enum: getEnumValues(fs),
+//     };
+//   });
+// }
 
-  // Generate example data
-  const example: Record<string, unknown> = {};
-  fields.forEach((field) => {
-    if (field.type === "string") {
-      example[field.name] = "example_value";
-    } else if (field.type === "number") {
-      example[field.name] = 42;
-    } else if (field.type === "boolean") {
-      example[field.name] = true;
-    } else if (field.type.includes("[]")) {
-      example[field.name] = [];
-    } else if (field.type === "object") {
-      example[field.name] = {};
-    }
-  });
+// /**
+//  * Generate documentation from Zod schema
+//  */
+// export function generateSchemaDoc(
+//   schema: ZodType,
+//   title: string,
+//   description?: string
+// ): SchemaDoc {
+//   const fields = extractFields(schema);
 
-  const doc: SchemaDoc = {
-    title,
-    description,
-    fields,
-    example,
-  };
+//   // Generate example data
+//   const example: Record<string, unknown> = {};
+//   fields.forEach((field) => {
+//     if (field.type === "string") {
+//       example[field.name] = "example_value";
+//     } else if (field.type === "number") {
+//       example[field.name] = 42;
+//     } else if (field.type === "boolean") {
+//       example[field.name] = true;
+//     } else if (field.type.includes("[]")) {
+//       example[field.name] = [];
+//     } else if (field.type === "object") {
+//       example[field.name] = {};
+//     }
+//   });
 
-  // Generate markdown
-  doc.markdown = generateMarkdown(doc);
+//   const doc: SchemaDoc = {
+//     title,
+//     description,
+//     fields,
+//     example,
+//   };
 
-  return doc;
-}
+//   // Generate markdown
+//   doc.markdown = generateMarkdown(doc);
 
-/**
- * Generate markdown documentation
- */
-export function generateMarkdown(doc: SchemaDoc): string {
-  let md = `# ${doc.title}\n\n`;
+//   return doc;
+// }
 
-  if (doc.description) {
-    md += `${doc.description}\n\n`;
-  }
+// /**
+//  * Generate markdown documentation
+//  */
+// export function generateMarkdown(doc: SchemaDoc): string {
+//   let md = `# ${doc.title}\n\n`;
 
-  // Fields table
-  md += `## Fields\n\n`;
-  md += `| Field | Type | Required | Description |\n`;
-  md += `|-------|------|----------|-------------|\n`;
+//   if (doc.description) {
+//     md += `${doc.description}\n\n`;
+//   }
 
-  doc.fields.forEach((field) => {
-    const req = field.required ? "Yes" : "No";
-    const desc = field.description || "";
-    const enumStr = field.enum ? ` (values: ${field.enum.join(", ")})` : "";
-    md += `| \`${field.name}\` | \`${field.type}\` | ${req} | ${desc}${enumStr} |\n`;
-  });
+//   // Fields table
+//   md += `## Fields\n\n`;
+//   md += `| Field | Type | Required | Description |\n`;
+//   md += `|-------|------|----------|-------------|\n`;
 
-  md += `\n`;
+//   doc.fields.forEach((field) => {
+//     const req = field.required ? "Yes" : "No";
+//     const desc = field.description || "";
+//     const enumStr = field.enum ? ` (values: ${field.enum.join(", ")})` : "";
+//     md += `| \`${field.name}\` | \`${field.type}\` | ${req} | ${desc}${enumStr} |\n`;
+//   });
 
-  // Example
-  if (doc.example) {
-    md += `## Example\n\n`;
-    md += `\`\`\`json\n`;
-    md += `${JSON.stringify(doc.example, null, 2)}\n`;
-    md += `\`\`\`\n`;
-  }
+//   md += `\n`;
 
-  return md;
-}
+//   // Example
+//   if (doc.example) {
+//     md += `## Example\n\n`;
+//     md += `\`\`\`json\n`;
+//     md += `${JSON.stringify(doc.example, null, 2)}\n`;
+//     md += `\`\`\`\n`;
+//   }
 
-/**
- * Generate TypeScript type definition from schema doc
- */
-export function generateTypeDefinition(doc: SchemaDoc): string {
-  let ts = `/**\n * ${doc.title}\n`;
-  if (doc.description) {
-    ts += ` * ${doc.description}\n`;
-  }
-  ts += ` */\n`;
-  ts += `export interface ${toPascalCase(doc.title)} {\n`;
+//   return md;
+// }
 
-  doc.fields.forEach((field) => {
-    const optional = field.required ? "" : "?";
-    ts += `  /** ${field.description || "Field"} */\n`;
-    ts += `  ${field.name}${optional}: ${field.type};\n`;
-  });
+// /**
+//  * Generate TypeScript type definition from schema doc
+//  */
+// export function generateTypeDefinition(doc: SchemaDoc): string {
+//   let ts = `/**\n * ${doc.title}\n`;
+//   if (doc.description) {
+//     ts += ` * ${doc.description}\n`;
+//   }
+//   ts += ` */\n`;
+//   ts += `export interface ${toPascalCase(doc.title)} {\n`;
 
-  ts += `}\n`;
+//   doc.fields.forEach((field) => {
+//     const optional = field.required ? "" : "?";
+//     ts += `  /** ${field.description || "Field"} */\n`;
+//     ts += `  ${field.name}${optional}: ${field.type};\n`;
+//   });
 
-  return ts;
-}
+//   ts += `}\n`;
 
-/**
- * Convert string to PascalCase
- */
-function toPascalCase(str: string): string {
-  return str
-    .split(/[\s_-]+/)
-    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-    .join("");
-}
+//   return ts;
+// }
 
-/**
- * Get comprehensive schema documentation with all formats
- */
-export function getFullSchemaDocumentation(
-  schema: ZodType,
-  title: string,
-  description?: string
-): {
-  doc: SchemaDoc;
-  markdown: string;
-  typescript: string;
-  json: Record<string, unknown>;
-} {
-  const doc = generateSchemaDoc(schema, title, description);
-  const markdown = doc.markdown || generateMarkdown(doc);
-  const typescript = generateTypeDefinition(doc);
+// /**
+//  * Convert string to PascalCase
+//  */
+// function toPascalCase(str: string): string {
+//   return str
+//     .split(/[\s_-]+/)
+//     .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+//     .join("");
+// }
 
-  return {
-    doc,
-    markdown,
-    typescript,
-    json: doc.example || {},
-  };
-}
+// /**
+//  * Get comprehensive schema documentation with all formats
+//  */
+// export function getFullSchemaDocumentation(
+//   schema: ZodType,
+//   title: string,
+//   description?: string
+// ): {
+//   doc: SchemaDoc;
+//   markdown: string;
+//   typescript: string;
+//   json: Record<string, unknown>;
+// } {
+//   const doc = generateSchemaDoc(schema, title, description);
+//   const markdown = doc.markdown || generateMarkdown(doc);
+//   const typescript = generateTypeDefinition(doc);
+
+//   return {
+//     doc,
+//     markdown,
+//     typescript,
+//     json: doc.example || {},
+//   };
+// }
