@@ -42,6 +42,7 @@ export default function ProfilePage() {
           name: "",
           email: "",
           phone: null,
+          headline: "",
           location: null,
           linkedin: null,
           github: null,

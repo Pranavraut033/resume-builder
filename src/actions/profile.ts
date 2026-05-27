@@ -26,11 +26,13 @@ export async function getProfile(): Promise<ResumeJSON | null> {
   return profileDataToResumeJson(profile);
 }
 
+// TODO: need to handle json parsing errors and validation here, currently assumes data is always valid
 function profileDataToResumeJson(profile: Profile): ResumeJSON {
   return {
     header: {
       name: profile.name,
       email: profile.email,
+      headline: "",
       phone: profile.phone || null,
       location: profile.location || null,
       linkedin: profile.linkedin || null,
@@ -52,6 +54,7 @@ function profileDataToResumeJson(profile: Profile): ResumeJSON {
   } satisfies ResumeJSON;
 }
 
+// TODO: need to handle json parsing errors and validation here, currently assumes data is always valid
 function resumeJsonToProfileData(
   resumeJson: ResumeJSON
 ): Omit<Prisma.ProfileCreateInput, "id" | "createdAt" | "updatedAt"> {
