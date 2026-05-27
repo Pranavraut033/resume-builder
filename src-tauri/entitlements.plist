@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <!-- Allow outbound network connections (for LLM API calls and update checks) -->
+  <key>com.apple.security.network.client</key>
+  <true/>
+  <!-- Allow reading/writing app data to disk (SQLite database) -->
+  <key>com.apple.security.files.user-selected.read-write</key>
+  <true/>
+  <!-- Allow reading/writing app container data -->
+  <key>com.apple.security.app-sandbox</key>
+  <false/>
+</dict>
+</plist>

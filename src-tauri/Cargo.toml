@@ -1,10 +1,10 @@
 [package]
 name = "app"
 version = "0.1.0"
-description = "A Tauri App"
-authors = ["you"]
-license = ""
-repository = ""
+description = "Local-first, AI-powered resume builder"
+authors = ["Pranavraut033"]
+license = "MIT"
+repository = "https://github.com/Pranavraut033/resume-builder"
 edition = "2021"
 rust-version = "1.77.2"
 
@@ -25,6 +25,8 @@ tauri = { version = "2.9.5", features = [] }
 tauri-plugin-log = "2"
 tauri-plugin-stronghold = "2"
 tauri-plugin-fs = "2"
+tauri-plugin-updater = "2"
+tauri-plugin-process = "2"
 argon2 = "0.5.3"
 [profile.dev.package.scrypt]
-opt-level = 3 
+opt-level = 3
