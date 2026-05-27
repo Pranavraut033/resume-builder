@@ -122,9 +122,7 @@ export default function CoverLetterEditorContent() {
 
   return (
     <EditorLayout
-      title={`Cover letter`}
       leftSection={<></>}
-      description={`${job?.company?.name || "your job"} [${job?.role || "your role"}]`}
       templateRenderer={previewPanel}
       mainSection={leftPanel}
     />

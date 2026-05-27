@@ -1,12 +1,20 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 
+import { updateJobStatus, JobRecord } from "@/actions/job";
 import { ChatPanel } from "@/components/chat/ChatPanel";
-import { Button, Icon, BackButton, SaveButton } from "@/components/ui";
-import { useJobPageContext } from "@/contexts/JobPageContext";
+import CompanyAvatar from "@/components/CompanyAvatar";
+import PeekContent from "@/components/home/PeekContent";
+import { StatusSelector } from "@/components/home/StatusControls";
+import { Button, Icon, BackButton, Modal, SaveButton } from "@/components/ui";
+import {
+  EditorContentType,
+  useJobPageContext,
+} from "@/contexts/JobPageContext";
 import cn from "@/lib/cn";
 import { HistoryChangeListener } from "@/lib/llm/ResumeHistory";
+import { JobStatus } from "@/types/job";
 
 import {
   ATSAnalysisPanel,
@@ -19,8 +27,6 @@ type JobPageLayoutProps = {
   leftSection: React.ReactNode;
   mainSection: React.ReactNode;
   templateRenderer: React.ReactNode;
-  title: string;
-  description: string;
 };
 
 type EditorTab = "edit" | "export";
@@ -34,8 +40,6 @@ export default function JobPageLayout({
   leftSection,
   mainSection,
   templateRenderer,
-  title,
-  description,
 }: JobPageLayoutProps) {
   const {
     chatSnapPosition,
@@ -45,6 +49,8 @@ export default function JobPageLayout({
     historyRef,
     isDirtyCoverLetter,
     isDirtyResume,
+    job,
+    refetch,
     resume,
     saveStatus,
     saveToDb,
@@ -65,6 +71,18 @@ export default function JobPageLayout({
     redoLabel: string | null;
     undoLabel: string | null;
   }>({ canUndo: false, canRedo: false, redoLabel: null, undoLabel: null });
+  const [isDetailsOpen, setIsDetailsOpen] = useState(false);
+  const [isPendingStatus, startStatusTransition] = useTransition();
+
+  const handleStatusChange = useCallback(
+    (newStatus: JobStatus) => {
+      startStatusTransition(async () => {
+        await updateJobStatus(job.id, newStatus);
+        refetch(undefined, "job");
+      });
+    },
+    [job.id, refetch]
+  );
 
   const isChatSnapped =
     contentType === "resume" && chatSnapPosition !== "undocked";
@@ -158,85 +176,167 @@ export default function JobPageLayout({
       <div className="relative h-full p-3 md:p-4">
         <div className="border-agent-outline-variant bg-agent-surface-lowest shadow-agent-modal h-full overflow-hidden rounded-2xl border backdrop-blur">
           <div className="bg-agent-surface-lowest flex h-full flex-col overflow-hidden">
-            {/* Top bar */}
-            <header className="bg-agent-surface border-color-agent-outline-variant sticky flex shrink-0 items-center gap-3 border-b px-4 py-3">
-              <BackButton />
-              <Button
-                onClick={() =>
-                  setContentType(
-                    contentType === "coverLetter" ? "resume" : "coverLetter"
-                  )
-                }
-                variant="primary"
-                size="sm"
-                className="ml-4"
-              >
-                {contentType === "coverLetter" ? "Cover Letter" : "Resume"}
-              </Button>
-              <div className="min-w-0">
-                <h1 className="text-agent-on-surface truncate text-base font-semibold">
-                  {title}
-                </h1>
-                <p className="text-agent-on-surface-variant truncate text-xs">
-                  {description}
-                </p>
-              </div>
+            {/* Header */}
+            <header className="bg-agent-surface border-agent-outline-variant sticky shrink-0 border-b">
+              {/* Primary row: job identity + status + document-type switcher + save */}
+              <div className="flex items-center gap-2.5 px-3 py-2">
+                <BackButton />
 
-              <div className="flex-1" />
+                <CompanyAvatar name={job?.company?.name} size={34} />
 
-              {contentType === "resume" && (
-                <div className="flex items-center gap-1">
-                  <Button
-                    className="rounded-full"
-                    variant="ghost"
-                    title={historyState.undoLabel || "Undo"}
-                    onClick={() => historyRef.current?.undo()}
-                    disabled={!historyState.canUndo}
-                  >
-                    <Icon name="undo"></Icon>
-                  </Button>
-                  <Button
-                    className="rounded-full"
-                    variant="ghost"
-                    title={historyState.redoLabel || "Redo"}
-                    onClick={() => historyRef.current?.redo()}
-                    disabled={!historyState.canRedo}
-                  >
-                    <Icon name="redo"></Icon>
-                  </Button>
-                </div>
-              )}
-              {/* Tab switcher */}
-              <div className="bg-agent-surface-container ml-auto flex rounded-lg p-0.5">
-                {(["edit", "export"] as EditorTab[]).map((tab) => (
-                  <button
-                    key={tab}
-                    onClick={() => setActiveTab(tab)}
-                    className={cn(
-                      "rounded-md px-4 py-1.5 text-sm font-medium capitalize transition-all",
-                      activeTab === tab
-                        ? "bg-agent-primary-container text-agent-on-primary-container"
-                        : "text-agent-on-surface-variant"
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-1.5">
+                    <h1 className="text-agent-on-surface truncate text-sm leading-tight font-semibold">
+                      {job?.role || "Untitled Role"}
+                    </h1>
+                    {job?.url && (
+                      <a
+                        href={job.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-agent-primary shrink-0 opacity-60 transition-opacity hover:opacity-100"
+                        aria-label="Open job listing"
+                      >
+                        <Icon name="link" size={12} />
+                      </a>
                     )}
-                  >
-                    {tab === "edit" ? "Editor" : "Customize & Export"}
-                  </button>
-                ))}
-              </div>
-              <div>
-                <SaveButton
-                  onClick={onSave}
-                  status={saveStatus}
-                  isDirty={
-                    contentType === "coverLetter"
-                      ? isDirtyCoverLetter
-                      : isDirtyResume
-                  }
+                  </div>
+                  <p className="text-agent-on-surface-variant truncate text-xs leading-tight">
+                    {job?.company?.name ?? "Unknown company"}
+                    {(job?.company?.locationCity ||
+                      job?.company?.locationCountry) && (
+                      <span className="opacity-60">
+                        {" · "}
+                        {[
+                          job.company?.locationCity,
+                          job.company?.locationCountry,
+                        ]
+                          .filter(Boolean)
+                          .join(", ")}
+                      </span>
+                    )}
+                  </p>
+                </div>
+                <div className="flex-1" />
+
+                <StatusSelector
+                  value={job?.status as JobStatus}
+                  onChange={handleStatusChange}
+                  disabled={isPendingStatus}
                 />
+
+                <button
+                  onClick={() => setIsDetailsOpen(true)}
+                  className="text-agent-on-surface-variant hover:bg-agent-surface-container flex shrink-0 items-center gap-1 rounded-lg px-2 py-1.5 text-xs transition-all"
+                  aria-label="View job details"
+                >
+                  <Icon name="info" size={13} />
+                  <span className="hidden sm:inline">Details</span>
+                </button>
+
+                {/* Document-type switcher — primary control */}
+                <div className="bg-agent-surface-container flex shrink-0 rounded-xl p-1">
+                  {(["resume", "coverLetter"] as EditorContentType[]).map(
+                    (type) => {
+                      const isActive = contentType === type;
+                      const isDirty =
+                        type === "resume" ? isDirtyResume : isDirtyCoverLetter;
+                      return (
+                        <button
+                          key={type}
+                          onClick={() => setContentType(type)}
+                          className={cn(
+                            "relative rounded-lg px-4 py-1.5 text-sm font-medium transition-all duration-150",
+                            isActive
+                              ? "bg-agent-primary text-agent-on-primary shadow-sm"
+                              : "text-agent-on-surface-variant hover:bg-agent-surface-container-high hover:text-agent-on-surface"
+                          )}
+                        >
+                          {type === "resume" ? "Resume" : "Cover Letter"}
+                          {isDirty && !isActive && (
+                            <span className="bg-agent-primary absolute top-1 right-1 h-1.5 w-1.5 rounded-full" />
+                          )}
+                        </button>
+                      );
+                    }
+                  )}
+                </div>
+                <div>
+                  <SaveButton
+                    onClick={onSave}
+                    status={saveStatus}
+                    isDirty={
+                      contentType === "coverLetter"
+                        ? isDirtyCoverLetter
+                        : isDirtyResume
+                    }
+                  />
+                </div>
+              </div>
+
+              {/* Secondary row: undo/redo + editor/export tabs */}
+              <div className="border-agent-outline-variant flex items-center gap-1 border-t px-3 py-1">
+                {contentType === "resume" && (
+                  <div className="flex items-center">
+                    <Button
+                      className="rounded-full"
+                      variant="ghost"
+                      size="sm"
+                      title={historyState.undoLabel || "Undo"}
+                      onClick={() => historyRef.current?.undo()}
+                      disabled={!historyState.canUndo}
+                    >
+                      <Icon name="undo" />
+                    </Button>
+                    <Button
+                      className="rounded-full"
+                      variant="ghost"
+                      size="sm"
+                      title={historyState.redoLabel || "Redo"}
+                      onClick={() => historyRef.current?.redo()}
+                      disabled={!historyState.canRedo}
+                    >
+                      <Icon name="redo" />
+                    </Button>
+                  </div>
+                )}
+
+                <div className="flex-1" />
+
+                {/* Editor / Export switcher — secondary control */}
+                <div className="bg-agent-surface-container flex rounded-lg p-0.5">
+                  {(["edit", "export"] as EditorTab[]).map((tab) => (
+                    <button
+                      key={tab}
+                      onClick={() => setActiveTab(tab)}
+                      className={cn(
+                        "rounded-md px-3 py-1 text-xs font-medium transition-all duration-150",
+                        activeTab === tab
+                          ? "bg-agent-primary-container text-agent-on-primary-container"
+                          : "text-agent-on-surface-variant hover:text-agent-on-surface"
+                      )}
+                    >
+                      {tab === "edit" ? "Editor" : "Customize & Export"}
+                    </button>
+                  ))}
+                </div>
               </div>
             </header>
 
-            {/* Body */}
+            {/* Job details modal */}
+            <Modal
+              isOpen={isDetailsOpen}
+              onClose={() => setIsDetailsOpen(false)}
+              title="Job overview"
+              size="lg"
+            >
+              <PeekContent
+                job={job as unknown as JobRecord}
+                details={job?.details ?? null}
+                onClose={() => setIsDetailsOpen(false)}
+              />
+            </Modal>
+
             {activeTab === "edit" ? (
               <div
                 className={cn("flex min-h-0 flex-1", {

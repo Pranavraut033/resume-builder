@@ -3,7 +3,7 @@
 import { Customization } from "@prisma/client";
 import { RefetchOptions, useMutation } from "@tanstack/react-query";
 import { deepClone } from "fast-json-patch";
-import { useSearchParams } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import {
   createContext,
   useContext,
@@ -29,7 +29,7 @@ import { areJsonValuesEqual } from "@/lib";
 import { loadGoogleFont } from "@/lib/fontLoader";
 import { ResumeHistory } from "@/lib/llm/ResumeHistory";
 import logger from "@/lib/logger";
-import { generateResumePDF } from "@/lib/pdfExport";
+import { generateCoverLetterPDF, generateResumePDF } from "@/lib/pdfExport";
 import { coverLetterToText, resumeToText } from "@/lib/resumeToText";
 import {
   DEFAULT_CUSTOMIZATION,
@@ -108,9 +108,23 @@ export function JobPageProvider({
   );
   const params = useSearchParams();
   const queryContentType = params.get("contentType");
+  const router = useRouter();
+  const pathname = usePathname();
 
   const [contentType, setContentType] = useState<EditorContentType>(
     queryContentType === "coverLetter" ? "coverLetter" : "resume"
+  );
+
+  const handleSetContentType = useCallback(
+    (type: EditorContentType) => {
+      setContentType(type);
+      const newUrl =
+        type === "coverLetter"
+          ? `${pathname}?contentType=coverLetter`
+          : pathname;
+      router.replace(newUrl, { scroll: false });
+    },
+    [pathname, router]
   );
 
   const [isExportingTxt, setIsExportingTxt] = useState(false);
@@ -166,17 +180,29 @@ export function JobPageProvider({
   const onPDFExport = useCallback(async () => {
     const jobData = data?.job;
     if (!jobData) return;
+
     setIsExportingPdf(true);
+
     try {
-      const filename = `${jobData.company?.name ?? "Resume"} ${resume.header.name} Resume.pdf`;
-      await generateResumePDF(resume, customization, filename);
+      if (contentType === "coverLetter") {
+        const filename = `${jobData.company?.name ?? "Cover Letter"} ${resume.header.name} Cover Letter.pdf`;
+        await generateCoverLetterPDF(
+          coverLetter,
+          resume,
+          customization,
+          filename
+        );
+      } else {
+        const filename = `${jobData.company?.name ?? "Resume"} ${resume.header.name} Resume.pdf`;
+        await generateResumePDF(resume, customization, filename);
+      }
     } catch (err) {
       logger.error("JobPageContext", "PDF export failed:", err);
       pushToast({ title: "PDF export failed", variant: "error" });
     } finally {
       setIsExportingPdf(false);
     }
-  }, [data?.job, resume, customization, pushToast]);
+  }, [data?.job, contentType, pushToast, resume, customization, coverLetter]);
 
   const generateContentText = useCallback(() => {
     if (contentType === "coverLetter") {
@@ -193,6 +219,7 @@ export function JobPageProvider({
         description: "Cannot export without job context.",
         variant: "error",
       });
+
     setIsExportingTxt(true);
     const textContent = generateContentText();
     const blob = new Blob([textContent], { type: "text/plain" });
@@ -399,7 +426,7 @@ export function JobPageProvider({
     saveToDb,
     setAtsAnalysis,
     setChatSnapPosition,
-    setContentType,
+    setContentType: handleSetContentType,
     updateCoverLetterState,
     updateCustomizationState,
     updateResumeState,
