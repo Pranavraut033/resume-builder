@@ -7,9 +7,9 @@ type Props = {
 
 const RichTextEditorContent: React.FC<Props> = ({ content, className }) => {
   return (
-    <div className={`${className} w-full min-w-0`}>
+    <div className={`${className} w-full`}>
       <div
-        className="break-normal wrap-anywhere whitespace-pre-wrap"
+        className="rte-content p-0! break-normal wrap-anywhere whitespace-pre-wrap"
         dangerouslySetInnerHTML={{ __html: sanitizeHtml(content) }}
       />
     </div>
