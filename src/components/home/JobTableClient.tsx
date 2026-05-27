@@ -22,7 +22,7 @@ import logger from "@/lib/logger";
 import { isJobStatus, JobStatus } from "@/types/job";
 import { JobDetailsJSON, JobDetailsSchema } from "@/types/resume";
 
-import { IconButton, IconLink } from "./Buttons";
+import { IconButton } from "./Buttons";
 import CardGrid from "./CardGrid";
 import CompanyCell from "./CompanyCell";
 import EmptyState from "./EmptyState";
@@ -263,21 +263,6 @@ const JobTableClient: React.FC<Props> = ({ jobs }) => {
             <IconButton label="Peek job" onClick={() => openPeek(row.original)}>
               <Icon name="eye" size={18} />
             </IconButton>
-            <IconLink href={`/job/${row.original.id}`} label="Edit job">
-              <Icon name="edit" size={18} />
-            </IconLink>
-            <IconLink
-              href={`/job/${row.original.id}?contentType=resume`}
-              label="Open resume"
-            >
-              <Icon name="fileText" size={18} />
-            </IconLink>
-            <IconLink
-              href={`/job/${row.original.id}?contentType=coverLetter`}
-              label="Open cover letter"
-            >
-              <Icon name="fileText" size={18} className="opacity-80" />
-            </IconLink>
             <IconButton
               label="Delete job"
               onClick={() => handleDeleteJob(row.original.id)}
@@ -337,7 +322,7 @@ const JobTableClient: React.FC<Props> = ({ jobs }) => {
           deleteLoadingId={deleteLoadingId}
         />
       ) : (
-        <JobsTable table={table} onRowClick={openPeek} />
+        <JobsTable table={table} />
       )}
 
       <Modal

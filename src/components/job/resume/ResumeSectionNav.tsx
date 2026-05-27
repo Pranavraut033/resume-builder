@@ -1,6 +1,7 @@
 "use client";
 
 import { Icon } from "@/components/ui/Icon";
+import { useJobPageContext } from "@/contexts/JobPageContext";
 
 export type SectionId =
   | "personal"
@@ -30,16 +31,13 @@ const NAV_ITEMS: NavItem[] = [
 interface ResumeSectionNavProps {
   activeSection: SectionId;
   onSectionChange: (section: SectionId) => void;
-  templateName?: string;
-  lastSaved?: string;
 }
 
 export function ResumeSectionNav({
   activeSection,
   onSectionChange,
-  templateName = "Modern Professional",
-  lastSaved,
 }: ResumeSectionNavProps) {
+  const { resumeMeta } = useJobPageContext();
   return (
     <nav
       className="flex w-56 shrink-0 flex-col border-r"
@@ -48,34 +46,21 @@ export function ResumeSectionNav({
         borderColor: "var(--color-agent-outline-variant)",
       }}
     >
-      {/* Template badge */}
+      {/* Header */}
       <div
-        className="flex items-center gap-2 border-b px-4 py-3"
+        className="border-agent-outline-variant flex items-center gap-2 border-b px-4 py-3"
         style={{ borderColor: "var(--color-agent-outline-variant)" }}
       >
-        <Icon
-          name="fileText"
-          className="h-4 w-4 shrink-0"
-          color="var(--color-agent-primary)"
-        />
-        <div className="min-w-0">
+        <Icon name="fileText" className="h-4 w-4" />
+        <div>
           <p
-            className="truncate text-xs font-semibold"
-            style={{ color: "var(--color-agent-on-surface)" }}
+            className="text-xs"
+            style={{ color: "var(--color-agent-on-surface-variant)" }}
           >
-            {templateName}
+            Last edited: {resumeMeta.updatedAt.toLocaleString()}
           </p>
-          {lastSaved && (
-            <p
-              className="truncate text-[10px]"
-              style={{ color: "var(--color-agent-on-surface-variant)" }}
-            >
-              {lastSaved}
-            </p>
-          )}
         </div>
       </div>
-
       {/* Section list */}
       <div className="flex-1 overflow-y-auto py-2">
         {NAV_ITEMS.map((item) => {

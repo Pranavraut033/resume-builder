@@ -1,4 +1,5 @@
 import { flexRender } from "@tanstack/react-table";
+import { useRouter } from "next/navigation";
 
 import { JobRecord } from "@/actions/job";
 
@@ -6,11 +7,11 @@ import type { Table as ReactTableType } from "@tanstack/react-table";
 
 export default function JobsTable({
   table,
-  onRowClick,
 }: {
   table: ReactTableType<JobRecord>;
-  onRowClick: (job: JobRecord) => void;
 }) {
+  const router = useRouter();
+
   return (
     <div
       className="overflow-x-auto rounded-2xl"
@@ -60,7 +61,7 @@ export default function JobsTable({
           {table.getRowModel().rows.map((row) => (
             <tr
               key={row.id}
-              onClick={() => onRowClick(row.original)}
+              onClick={() => router.push(`/job/${row.original.id}`)}
               className="cursor-pointer transition-colors"
               style={{
                 borderTop: "1px solid var(--color-agent-outline-variant)",

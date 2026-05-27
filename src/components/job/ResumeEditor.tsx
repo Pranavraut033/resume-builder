@@ -24,8 +24,6 @@ function ResumeEditor() {
   return (
     <ChatContextProvider>
       <EditorLayout
-        title=""
-        description=""
         leftSection={
           <ResumeSectionNav
             activeSection={activeSection}

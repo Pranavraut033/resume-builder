@@ -1,10 +1,12 @@
+import { useRouter } from "next/navigation";
+
 import { JobRecord } from "@/actions/job";
 import CompanyAvatar from "@/components/CompanyAvatar";
 import { Icon } from "@/components/ui/Icon";
 import { formatTimestamp } from "@/lib";
 import { JobStatus } from "@/types/job";
 
-import { IconButton, IconLink } from "./Buttons";
+import { IconButton } from "./Buttons";
 import { StatusSelector, StatusBadge } from "./StatusControls";
 
 export default function CardGrid({
@@ -22,12 +24,14 @@ export default function CardGrid({
   statusLoadingId: number | null;
   deleteLoadingId: number | null;
 }) {
+  const router = useRouter();
+
   return (
     <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
       {jobs.map((job) => (
         <article
           key={job.id}
-          onClick={() => onPeek(job)}
+          onClick={() => router.push(`/job/${job.id}`)}
           className="cursor-pointer rounded-2xl p-4 transition-all hover:-translate-y-0.5"
           style={{
             background: "var(--color-agent-surface-lowest)",
@@ -95,21 +99,6 @@ export default function CardGrid({
             <IconButton label="Peek job" onClick={() => onPeek(job)}>
               <Icon name="eye" size={18} />
             </IconButton>
-            <IconLink href={`/job/${job.id}`} label="Edit job">
-              <Icon name="edit" size={18} />
-            </IconLink>
-            <IconLink
-              href={`/job/${job.id}?contentType=resume`}
-              label="Open resume"
-            >
-              <Icon name="fileText" size={18} />
-            </IconLink>
-            <IconLink
-              href={`/job/${job.id}?contentType=coverLetter`}
-              label="Open cover letter"
-            >
-              <Icon name="fileText" size={18} className="opacity-80" />
-            </IconLink>
             <IconButton
               label="Delete job"
               onClick={() => onDelete(job.id)}
