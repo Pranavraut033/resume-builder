@@ -8,6 +8,7 @@ import Sidebar from "@/components/Nav";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 
 import { CacheInitializer } from "./CacheInitializer";
+import { UpdatePrompt } from "./UpdatePrompt";
 import { Header } from "./ui";
 import { ToastProvider } from "./ui/ToastProvider";
 
@@ -84,6 +85,7 @@ function AppShellContent({ children }: AppShellProps) {
           }
           right={
             <>
+              <UpdatePrompt />
               <Link
                 href="/docs"
                 className="text-sm font-medium transition-opacity hover:opacity-70"

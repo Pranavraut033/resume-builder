@@ -3,7 +3,9 @@
  * Order: primary, secondary, accent, text, background
  */
 
-import { ThemeColors } from "@/types/resume";
+// TODO: the file is not being used right now, but will be used in the future when we add color customization features
+
+import { ThemeColors } from "@/types/customization";
 
 /**
  * Convert ResumeColors object to CSV string
@@ -11,13 +13,7 @@ import { ThemeColors } from "@/types/resume";
  * @returns CSV string in format: primary,secondary,accent,text,background
  */
 export function colorsToCSV(colors: ThemeColors): string {
-  return [
-    colors.primary,
-    colors.secondary,
-    colors.accent,
-    colors.text,
-    colors.background,
-  ].join(",");
+  return colors.join(",");
 }
 
 /**
@@ -34,13 +30,7 @@ export function colorsFromCSV(csv: string): ThemeColors {
     );
   }
 
-  return {
-    primary: parts[0],
-    secondary: parts[1],
-    accent: parts[2],
-    text: parts[3],
-    background: parts[4],
-  };
+  return parts as ThemeColors;
 }
 
 /**

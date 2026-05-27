@@ -5,13 +5,11 @@
 
 import { useState } from "react";
 
-import {
-  TokenUsageFilters,
-  TokenUsageProvider,
-  TokenUsagePurpose,
-} from "@/actions/tokenUsage";
+import { TokenUsageFilters } from "@/actions/tokenUsage";
 import { Button } from "@/components/ui/Button";
+import { PromptPurpose } from "@/lib/llm/prompts";
 import { getAvailableProviders } from "@/lib/llm/providers";
+import { ProviderType } from "@/types/llm";
 
 interface TokenFiltersProps {
   filters: TokenUsageFilters;
@@ -22,10 +20,10 @@ export default function TokenFilters({
   filters,
   onFilterChange,
 }: TokenFiltersProps) {
-  const [startDate, setStartDate] = useState(filters.startDate || "");
-  const [endDate, setEndDate] = useState(filters.endDate || "");
-  const [provider, setProvider] = useState(filters.provider || "");
-  const [purpose, setPurpose] = useState(filters.purpose || "");
+  const [startDate, setStartDate] = useState(filters.startDate);
+  const [endDate, setEndDate] = useState(filters.endDate);
+  const [provider, setProvider] = useState(filters.provider);
+  const [purpose, setPurpose] = useState(filters.purpose);
 
   const providers = getAvailableProviders().map((p) => p.type);
   const purposes = [
@@ -49,20 +47,20 @@ export default function TokenFilters({
       newFilters.endDate = endDateTime.toISOString();
     }
     if (provider) {
-      newFilters.provider = provider as TokenUsageProvider;
+      newFilters.provider = provider;
     }
     if (purpose) {
-      newFilters.purpose = purpose as TokenUsagePurpose;
+      newFilters.purpose = purpose;
     }
 
     onFilterChange(newFilters);
   };
 
   const handleClearFilters = () => {
-    setStartDate("");
-    setEndDate("");
-    setProvider("");
-    setPurpose("");
+    setStartDate(undefined);
+    setEndDate(undefined);
+    setProvider(undefined);
+    setPurpose(undefined);
     onFilterChange({});
   };
 
@@ -116,7 +114,9 @@ export default function TokenFilters({
           <select
             id="provider"
             value={provider}
-            onChange={(e) => setProvider(e.target.value)}
+            onChange={(e) =>
+              setProvider((e.target.value as ProviderType) || undefined)
+            }
             className="border-agent-outline-variant bg-agent-surface-low text-agent-on-surface focus:border-agent-primary focus:ring-agent-primary mt-1 block w-full rounded-xl border px-3 py-2 text-sm shadow-sm focus:ring-1 focus:outline-none"
           >
             <option value="">All Providers</option>
@@ -139,7 +139,9 @@ export default function TokenFilters({
           <select
             id="purpose"
             value={purpose}
-            onChange={(e) => setPurpose(e.target.value)}
+            onChange={(e) =>
+              setPurpose((e.target.value as PromptPurpose) || undefined)
+            }
             className="border-agent-outline-variant bg-agent-surface-low text-agent-on-surface focus:border-agent-primary focus:ring-agent-primary mt-1 block w-full rounded-xl border px-3 py-2 text-sm shadow-sm focus:ring-1 focus:outline-none"
           >
             <option value="">All Purposes</option>

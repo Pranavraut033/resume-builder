@@ -31,6 +31,7 @@ function getPromptPurpose(fieldType: FieldType): PromptPurpose {
     projects: "generate_projects",
     skills: "generate_skills",
     achievements: "generate_experience",
+    generic: "generate_summary",
   };
 
   return fieldPurposeMap[fieldType] || "generate_summary";
