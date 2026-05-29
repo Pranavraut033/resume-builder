@@ -16,7 +16,6 @@ This guide explains how to build, code-sign, and distribute Resume Builder as a 
 ## 1. Generate a Self-Signed Code Signing Certificate
 
 Run this once on your Mac. The certificate is stored in your login keychain.
-x9Eyxp^|a0!4Jnr|
 ```bash
 # 1. Create a private key
 openssl genrsa -out resume-builder-key.pem 2048
@@ -98,9 +97,20 @@ npm ci
 # Generate Prisma client
 npx prisma generate
 
+# Build and stage the bundled Next standalone server files
+npm run build
+npm run prepare:tauri-server
+
 # Build the app (creates .dmg and .app in src-tauri/target/release/bundle/)
 npm run tauri build
 ```
+
+`npm run prepare:tauri-server` copies:
+- `.next/standalone` into `src-tauri/resources/next`
+- `.next/static` into `src-tauri/resources/next/.next/static`
+- `public` into `src-tauri/resources/next/public`
+
+This is required so the packaged app can run Next.js with Server Actions.
 
 Output locations:
 - `.dmg`: `src-tauri/target/release/bundle/dmg/Resume Builder_0.1.0_x64.dmg`
@@ -202,6 +212,11 @@ This happens when quarantine attributes are set. Run:
 ```bash
 xattr -d com.apple.quarantine /Applications/Resume\ Builder.app
 ```
+
+### App launches but shows a blank page / cannot connect
+
+The packaged app starts a local Next server at `127.0.0.1:3008`.
+Ensure Node.js is installed on the target machine (`node --version`).
 
 ### Updater doesn't detect new versions
 
