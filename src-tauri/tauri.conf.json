@@ -4,14 +4,17 @@
   "version": "0.1.0",
   "identifier": "com.resumebuilder.dev",
   "build": {
-    "frontendDist": "../dist",
+    "frontendDist": "http://127.0.0.1:3008",
     "devUrl": "http://localhost:3008",
     "beforeDevCommand": "npm run dev",
-    "beforeBuildCommand": "npm run build"
+    "beforeBuildCommand": "npm run build && npm run prepare:tauri-server"
   },
   "app": {
     "windows": [
       {
+        "label": "main",
+        "create": false,
+        "url": "http://127.0.0.1:3008",
         "title": "Resume Builder",
         "width": 1280,
         "height": 800,
@@ -35,12 +38,13 @@
       "icons/icon.icns",
       "icons/icon.ico"
     ],
+    "resources": ["resources/next/**/*"],
     "category": "Productivity",
     "shortDescription": "Local-first, AI-powered resume builder",
     "longDescription": "A privacy-focused desktop application for creating tailored resumes and cover letters using AI. All data stays local.",
     "macOS": {
       "minimumSystemVersion": "11.0",
-      "signingIdentity": "Resume Builder Self-Signed",
+      "signingIdentity": "-",
       "entitlements": "entitlements.plist",
       "exceptionDomain": "localhost",
       "frameworks": [],
