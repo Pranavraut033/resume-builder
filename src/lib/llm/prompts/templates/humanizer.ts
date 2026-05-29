@@ -1,7 +1,6 @@
-import { templateRegistry } from "@/lib/prompts/registry";
 import { HumanizerSchema } from "@/types/humanizer";
 
-import { PromptTemplate } from "../types";
+import { templateRegistry, PromptTemplate } from "..";
 
 const humanizerTemplate: PromptTemplate = {
   id: "humanize_content",
