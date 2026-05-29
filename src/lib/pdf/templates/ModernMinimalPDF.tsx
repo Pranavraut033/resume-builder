@@ -3,7 +3,7 @@
 // Licensed under MIT License
 
 import { Document, Link, Page, Text, View } from "@react-pdf/renderer";
-import React from "react";
+import React, { memo } from "react";
 
 import { htmlToPlainText, isHtml } from "@/lib/htmlUtils";
 import { ResumeJSON } from "@/types/resume";
@@ -33,27 +33,15 @@ function buildContactLine(header: ResumeJSON["header"]): string {
     .join("  •  ");
 }
 
-export const ModernMinimalPDF: React.FC<PDFTemplateProps> = ({
-  resume,
-  styles: s,
-}) => {
-  const {
-    primaryColor,
-    secondaryColor,
-    accentColor,
-    textColor,
-    backgroundColor,
-    fontFamily,
-    fontSize,
-    smallFontSize,
-    headingFontSize,
-    nameFontSize,
-    lineHeight,
-    marginPt,
-    pageFormat,
-  } = s;
-
-  const SH = ({ title }: { title: string }) => (
+const SH = memo(function SH({
+  title,
+  s,
+}: {
+  title: string;
+  s: ResolvedPDFStyles;
+}) {
+  const { secondaryColor, fontFamily, headingFontSize, primaryColor } = s;
+  return (
     <View
       style={{
         borderBottomWidth: 1,
@@ -75,6 +63,25 @@ export const ModernMinimalPDF: React.FC<PDFTemplateProps> = ({
       </Text>
     </View>
   );
+});
+
+export const ModernMinimalPDF: React.FC<PDFTemplateProps> = ({
+  resume,
+  styles: s,
+}) => {
+  const {
+    secondaryColor,
+    accentColor,
+    textColor,
+    backgroundColor,
+    fontFamily,
+    fontSize,
+    smallFontSize,
+    nameFontSize,
+    lineHeight,
+    marginPt,
+    pageFormat,
+  } = s;
 
   return (
     <Document>
@@ -113,7 +120,7 @@ export const ModernMinimalPDF: React.FC<PDFTemplateProps> = ({
         {/* ── Summary ────────────────────────────────────────── */}
         {resume.summary ? (
           <View wrap={false}>
-            <SH title="Professional Summary" />
+            <SH s={s} title="Professional Summary" />
             <Text style={{ fontSize, lineHeight, color: "#374151" }}>
               {plain(resume.summary)}
             </Text>
@@ -123,7 +130,7 @@ export const ModernMinimalPDF: React.FC<PDFTemplateProps> = ({
         {/* ── Experience ─────────────────────────────────────── */}
         {resume.experience.length > 0 ? (
           <View>
-            <SH title="Work Experience" />
+            <SH s={s} title="Work Experience" />
             {resume.experience.map((exp, i) => (
               <View key={i} wrap={false} style={{ marginBottom: 9 }}>
                 <View
@@ -187,7 +194,7 @@ export const ModernMinimalPDF: React.FC<PDFTemplateProps> = ({
         {/* ── Projects ───────────────────────────────────────── */}
         {resume.projects.length > 0 ? (
           <View>
-            <SH title="Projects" />
+            <SH s={s} title="Projects" />
             {resume.projects.map((proj, i) => (
               <View key={i} wrap={false} style={{ marginBottom: 9 }}>
                 <View
@@ -240,7 +247,7 @@ export const ModernMinimalPDF: React.FC<PDFTemplateProps> = ({
         {/* ── Skills ─────────────────────────────────────────── */}
         {resume.skills.length > 0 ? (
           <View wrap={false}>
-            <SH title="Skills" />
+            <SH s={s} title="Skills" />
             <Text style={{ fontSize, lineHeight, color: "#374151" }}>
               {resume.skills.join("  •  ")}
             </Text>
@@ -250,7 +257,7 @@ export const ModernMinimalPDF: React.FC<PDFTemplateProps> = ({
         {/* ── Education ──────────────────────────────────────── */}
         {resume.education.length > 0 ? (
           <View>
-            <SH title="Education" />
+            <SH s={s} title="Education" />
             {resume.education.map((edu, i) => (
               <View key={i} wrap={false} style={{ marginBottom: 8 }}>
                 <View
@@ -293,7 +300,7 @@ export const ModernMinimalPDF: React.FC<PDFTemplateProps> = ({
         {/* ── Certifications ─────────────────────────────────── */}
         {resume.certifications.length > 0 ? (
           <View>
-            <SH title="Certifications" />
+            <SH s={s} title="Certifications" />
             {resume.certifications.map((cert, i) => (
               <View key={i} wrap={false} style={{ marginBottom: 6 }}>
                 <Text style={{ fontSize, fontWeight: 700, color: accentColor }}>
@@ -320,7 +327,7 @@ export const ModernMinimalPDF: React.FC<PDFTemplateProps> = ({
         {/* ── Publications ───────────────────────────────────── */}
         {(resume.publications ?? []).length > 0 ? (
           <View>
-            <SH title="Publications" />
+            <SH s={s} title="Publications" />
             {(resume.publications ?? []).map((pub, i) => (
               <View key={i} wrap={false} style={{ marginBottom: 6 }}>
                 <Text style={{ fontSize, fontWeight: 700, color: accentColor }}>
@@ -349,7 +356,7 @@ export const ModernMinimalPDF: React.FC<PDFTemplateProps> = ({
         {/* ── Languages ──────────────────────────────────────── */}
         {(resume.languages ?? []).length > 0 ? (
           <View wrap={false}>
-            <SH title="Languages" />
+            <SH s={s} title="Languages" />
             <Text style={{ fontSize, lineHeight, color: "#374151" }}>
               {(resume.languages ?? [])
                 .map((l) => `${l.name} (${l.proficiency})`)
@@ -361,7 +368,7 @@ export const ModernMinimalPDF: React.FC<PDFTemplateProps> = ({
         {/* ── Volunteer ──────────────────────────────────────── */}
         {(resume.volunteer ?? []).length > 0 ? (
           <View>
-            <SH title="Volunteer Experience" />
+            <SH s={s} title="Volunteer Experience" />
             {(resume.volunteer ?? []).map((v, i) => (
               <View key={i} wrap={false} style={{ marginBottom: 8 }}>
                 <View
@@ -398,7 +405,7 @@ export const ModernMinimalPDF: React.FC<PDFTemplateProps> = ({
         {/* ── Awards ─────────────────────────────────────────── */}
         {(resume.awards ?? []).length > 0 ? (
           <View>
-            <SH title="Awards" />
+            <SH s={s} title="Awards" />
             {(resume.awards ?? []).map((award, i) => (
               <View key={i} wrap={false} style={{ marginBottom: 6 }}>
                 <Text style={{ fontSize, fontWeight: 700, color: accentColor }}>

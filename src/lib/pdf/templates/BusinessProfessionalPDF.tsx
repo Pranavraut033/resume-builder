@@ -3,12 +3,13 @@
 // Licensed under MIT License
 
 import { Document, Link, Page, Text, View } from "@react-pdf/renderer";
-import React from "react";
+import React, { memo } from "react";
 
 import { htmlToPlainText, isHtml } from "@/lib/htmlUtils";
 import { ResumeJSON } from "@/types/resume";
 
 import { PDFTemplateProps } from "./ModernMinimalPDF";
+import { ResolvedPDFStyles } from "../resolveStyles";
 
 const plain = (text: string | null | undefined): string => {
   if (!text) return "";
@@ -26,28 +27,16 @@ function buildContactParts(header: ResumeJSON["header"]): string[] {
   ].filter(Boolean) as string[];
 }
 
-export const BusinessProfessionalPDF: React.FC<PDFTemplateProps> = ({
-  resume,
-  styles: s,
-}) => {
-  const {
-    primaryColor,
-    secondaryColor,
-    accentColor,
-    textColor,
-    backgroundColor,
-    fontFamily,
-    fontSize,
-    smallFontSize,
-    headingFontSize,
-    nameFontSize,
-    lineHeight,
-    marginPt,
-    pageFormat,
-  } = s;
-
-  // Section heading: UPPERCASE, serif-style bold, primary color
-  const SH = ({ title }: { title: string }) => (
+// Section heading: UPPERCASE, serif-style bold, primary color
+const SH = memo(function SH({
+  title,
+  s,
+}: {
+  title: string;
+  s: ResolvedPDFStyles;
+}) {
+  const { primaryColor, fontFamily, headingFontSize } = s;
+  return (
     <View
       style={{
         marginTop: 10,
@@ -71,6 +60,25 @@ export const BusinessProfessionalPDF: React.FC<PDFTemplateProps> = ({
       </Text>
     </View>
   );
+});
+
+export const BusinessProfessionalPDF: React.FC<PDFTemplateProps> = ({
+  resume,
+  styles: s,
+}) => {
+  const {
+    secondaryColor,
+    accentColor,
+    textColor,
+    backgroundColor,
+    fontFamily,
+    fontSize,
+    smallFontSize,
+    nameFontSize,
+    lineHeight,
+    marginPt,
+    pageFormat,
+  } = s;
 
   const contactParts = buildContactParts(resume.header);
 
@@ -125,7 +133,7 @@ export const BusinessProfessionalPDF: React.FC<PDFTemplateProps> = ({
         {/* ── Summary ────────────────────────────────────────── */}
         {resume.summary ? (
           <View wrap={false}>
-            <SH title="Professional Summary" />
+            <SH s={s} title="Professional Summary" />
             <Text style={{ fontSize, lineHeight, textAlign: "justify" }}>
               {plain(resume.summary)}
             </Text>
@@ -135,7 +143,7 @@ export const BusinessProfessionalPDF: React.FC<PDFTemplateProps> = ({
         {/* ── Experience ─────────────────────────────────────── */}
         {(resume.experience ?? []).length > 0 ? (
           <View>
-            <SH title="Professional Experience" />
+            <SH s={s} title="Professional Experience" />
             {(resume.experience ?? []).map((exp, i) => (
               <View key={i} wrap={false} style={{ marginBottom: 9 }}>
                 <View
@@ -187,7 +195,7 @@ export const BusinessProfessionalPDF: React.FC<PDFTemplateProps> = ({
         {/* ── Education ──────────────────────────────────────── */}
         {(resume.education ?? []).length > 0 ? (
           <View>
-            <SH title="Education" />
+            <SH s={s} title="Education" />
             {(resume.education ?? []).map((edu, i) => (
               <View key={i} wrap={false} style={{ marginBottom: 8 }}>
                 <View
@@ -223,7 +231,7 @@ export const BusinessProfessionalPDF: React.FC<PDFTemplateProps> = ({
         {/* ── Skills ─────────────────────────────────────────── */}
         {(resume.skills ?? []).length > 0 ? (
           <View wrap={false}>
-            <SH title="Core Competencies" />
+            <SH s={s} title="Core Competencies" />
             <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 2 }}>
               {(resume.skills ?? []).map((skill, i) => (
                 <Text key={i} style={{ fontSize, lineHeight, marginRight: 16 }}>
@@ -238,7 +246,7 @@ export const BusinessProfessionalPDF: React.FC<PDFTemplateProps> = ({
         {/* ── Projects ───────────────────────────────────────── */}
         {(resume.projects ?? []).length > 0 ? (
           <View>
-            <SH title="Key Projects" />
+            <SH s={s} title="Key Projects" />
             {(resume.projects ?? []).map((proj, i) => (
               <View key={i} wrap={false} style={{ marginBottom: 8 }}>
                 <View
@@ -289,7 +297,7 @@ export const BusinessProfessionalPDF: React.FC<PDFTemplateProps> = ({
         {/* ── Certifications ─────────────────────────────────── */}
         {(resume.certifications ?? []).length > 0 ? (
           <View>
-            <SH title="Certifications" />
+            <SH s={s} title="Certifications" />
             {(resume.certifications ?? []).map((cert, i) => (
               <View key={i} wrap={false} style={{ marginBottom: 5 }}>
                 <Text style={{ fontSize, fontWeight: 600, color: textColor }}>
@@ -317,7 +325,7 @@ export const BusinessProfessionalPDF: React.FC<PDFTemplateProps> = ({
         {/* ── Publications ───────────────────────────────────── */}
         {(resume.publications ?? []).length > 0 ? (
           <View>
-            <SH title="Publications" />
+            <SH s={s} title="Publications" />
             {(resume.publications ?? []).map((pub, i) => (
               <View key={i} wrap={false} style={{ marginBottom: 6 }}>
                 <Text style={{ fontSize, fontWeight: 700, color: textColor }}>
@@ -346,7 +354,7 @@ export const BusinessProfessionalPDF: React.FC<PDFTemplateProps> = ({
         {/* ── Languages ──────────────────────────────────────── */}
         {(resume.languages ?? []).length > 0 ? (
           <View wrap={false}>
-            <SH title="Languages" />
+            <SH s={s} title="Languages" />
             <View style={{ flexDirection: "row", flexWrap: "wrap" }}>
               {(resume.languages ?? []).map((l, i) => (
                 <Text key={i} style={{ fontSize, lineHeight, marginRight: 16 }}>
@@ -361,7 +369,7 @@ export const BusinessProfessionalPDF: React.FC<PDFTemplateProps> = ({
         {/* ── Volunteer ──────────────────────────────────────── */}
         {(resume.volunteer ?? []).length > 0 ? (
           <View>
-            <SH title="Volunteer Experience" />
+            <SH s={s} title="Volunteer Experience" />
             {(resume.volunteer ?? []).map((v, i) => (
               <View key={i} wrap={false} style={{ marginBottom: 8 }}>
                 <View
@@ -404,7 +412,7 @@ export const BusinessProfessionalPDF: React.FC<PDFTemplateProps> = ({
         {/* ── Awards ─────────────────────────────────────────── */}
         {(resume.awards ?? []).length > 0 ? (
           <View>
-            <SH title="Awards" />
+            <SH s={s} title="Awards" />
             {(resume.awards ?? []).map((award, i) => (
               <View key={i} wrap={false} style={{ marginBottom: 5 }}>
                 <Text style={{ fontSize, fontWeight: 600, color: textColor }}>

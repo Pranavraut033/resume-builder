@@ -7,18 +7,52 @@
 // left-aligned timeline with an accent-colored left border per item instead.
 
 import { Document, Link, Page, Text, View } from "@react-pdf/renderer";
-import React from "react";
+import React, { memo } from "react";
 
 import { htmlToPlainText, isHtml } from "@/lib/htmlUtils";
-import { ResumeJSON } from "@/types/resume";
 
-import { withAlpha } from "../resolveStyles";
+import { ResolvedPDFStyles, withAlpha } from "../resolveStyles";
 import { PDFTemplateProps } from "./ModernMinimalPDF";
 
 const plain = (text: string | null | undefined): string => {
   if (!text) return "";
   return isHtml(text) ? htmlToPlainText(text) : text;
 };
+
+// Centered UPPERCASE section heading with decorative line
+const SH = memo(function SH({
+  title,
+  s,
+}: {
+  title: string;
+  s: ResolvedPDFStyles;
+}) {
+  return (
+    <View
+      style={{
+        marginTop: 12,
+        marginBottom: 8,
+        alignItems: "center",
+        borderBottomWidth: 1,
+        borderBottomColor: withAlpha(s.accentColor, "55"),
+        paddingBottom: 3,
+      }}
+    >
+      <Text
+        style={{
+          fontFamily: s.fontFamily,
+          fontSize: s.headingFontSize,
+          fontWeight: 700,
+          color: s.primaryColor,
+          textTransform: "uppercase",
+          letterSpacing: 1.5,
+        }}
+      >
+        {title}
+      </Text>
+    </View>
+  );
+});
 
 export const ElegantTimelinePDF: React.FC<PDFTemplateProps> = ({
   resume,
@@ -33,39 +67,11 @@ export const ElegantTimelinePDF: React.FC<PDFTemplateProps> = ({
     fontFamily,
     fontSize,
     smallFontSize,
-    headingFontSize,
     nameFontSize,
     lineHeight,
     marginPt,
     pageFormat,
   } = s;
-
-  // Centered UPPERCASE section heading with decorative line
-  const SH = ({ title }: { title: string }) => (
-    <View
-      style={{
-        marginTop: 12,
-        marginBottom: 8,
-        alignItems: "center",
-        borderBottomWidth: 1,
-        borderBottomColor: withAlpha(accentColor, "55"),
-        paddingBottom: 3,
-      }}
-    >
-      <Text
-        style={{
-          fontFamily,
-          fontSize: headingFontSize,
-          fontWeight: 700,
-          color: primaryColor,
-          textTransform: "uppercase",
-          letterSpacing: 1.5,
-        }}
-      >
-        {title}
-      </Text>
-    </View>
-  );
 
   const contactParts = [
     resume.header.email,
@@ -137,7 +143,7 @@ export const ElegantTimelinePDF: React.FC<PDFTemplateProps> = ({
         {/* ── Summary ─────────────────────────────────────── */}
         {resume.summary ? (
           <View wrap={false}>
-            <SH title="Profile" />
+            <SH title="Profile" s={s} />
             <Text
               style={{
                 fontSize,
@@ -154,7 +160,7 @@ export const ElegantTimelinePDF: React.FC<PDFTemplateProps> = ({
         {/* ── Experience (left-border timeline) ───────────── */}
         {(resume.experience ?? []).length > 0 ? (
           <View>
-            <SH title="Experience" />
+            <SH title="Experience" s={s} />
             {(resume.experience ?? []).map((exp, i) => (
               <View
                 key={i}
@@ -221,7 +227,7 @@ export const ElegantTimelinePDF: React.FC<PDFTemplateProps> = ({
         {/* ── Projects ────────────────────────────────────── */}
         {(resume.projects ?? []).length > 0 ? (
           <View>
-            <SH title="Projects" />
+            <SH title="Projects" s={s} />
             {(resume.projects ?? []).map((proj, i) => (
               <View
                 key={i}
@@ -285,7 +291,7 @@ export const ElegantTimelinePDF: React.FC<PDFTemplateProps> = ({
         {/* ── Skills (pill tags) ──────────────────────────── */}
         {(resume.skills ?? []).length > 0 ? (
           <View wrap={false}>
-            <SH title="Skills" />
+            <SH title="Skills" s={s} />
             <View
               style={{
                 flexDirection: "row",
@@ -317,7 +323,7 @@ export const ElegantTimelinePDF: React.FC<PDFTemplateProps> = ({
         {/* ── Education ───────────────────────────────────── */}
         {(resume.education ?? []).length > 0 ? (
           <View>
-            <SH title="Education" />
+            <SH title="Education" s={s} />
             {(resume.education ?? []).map((edu, i) => (
               <View
                 key={i}
@@ -368,7 +374,7 @@ export const ElegantTimelinePDF: React.FC<PDFTemplateProps> = ({
         {/* ── Certifications ──────────────────────────────── */}
         {(resume.certifications ?? []).length > 0 ? (
           <View>
-            <SH title="Certifications" />
+            <SH title="Certifications" s={s} />
             {(resume.certifications ?? []).map((cert, i) => (
               <View
                 key={i}
@@ -412,7 +418,7 @@ export const ElegantTimelinePDF: React.FC<PDFTemplateProps> = ({
         {/* ── Publications ────────────────────────────────── */}
         {(resume.publications ?? []).length > 0 ? (
           <View>
-            <SH title="Publications" />
+            <SH title="Publications" s={s} />
             {(resume.publications ?? []).map((pub, i) => (
               <View
                 key={i}
@@ -459,7 +465,7 @@ export const ElegantTimelinePDF: React.FC<PDFTemplateProps> = ({
         {/* ── Languages ───────────────────────────────────── */}
         {(resume.languages ?? []).length > 0 ? (
           <View wrap={false}>
-            <SH title="Languages" />
+            <SH title="Languages" s={s} />
             <Text
               style={{
                 fontSize,
@@ -477,7 +483,7 @@ export const ElegantTimelinePDF: React.FC<PDFTemplateProps> = ({
         {/* ── Volunteer ───────────────────────────────────── */}
         {(resume.volunteer ?? []).length > 0 ? (
           <View>
-            <SH title="Volunteer" />
+            <SH title="Volunteer" s={s} />
             {(resume.volunteer ?? []).map((v, i) => (
               <View
                 key={i}
@@ -527,7 +533,7 @@ export const ElegantTimelinePDF: React.FC<PDFTemplateProps> = ({
         {/* ── Awards ──────────────────────────────────────── */}
         {(resume.awards ?? []).length > 0 ? (
           <View>
-            <SH title="Awards" />
+            <SH title="Awards" s={s} />
             {(resume.awards ?? []).map((award, i) => (
               <View
                 key={i}

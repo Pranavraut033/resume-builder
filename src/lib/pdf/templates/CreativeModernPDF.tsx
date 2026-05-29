@@ -6,12 +6,11 @@
 // CSS gradients. We use the solid primaryColor here instead.
 
 import { Document, Link, Page, Text, View } from "@react-pdf/renderer";
-import React from "react";
+import React, { memo } from "react";
 
 import { htmlToPlainText, isHtml } from "@/lib/htmlUtils";
-import { ResumeJSON } from "@/types/resume";
 
-import { withAlpha } from "../resolveStyles";
+import { ResolvedPDFStyles, withAlpha } from "../resolveStyles";
 import { PDFTemplateProps } from "./ModernMinimalPDF";
 
 const plain = (text: string | null | undefined): string => {
@@ -19,29 +18,15 @@ const plain = (text: string | null | undefined): string => {
   return isHtml(text) ? htmlToPlainText(text) : text;
 };
 
-export const CreativeModernPDF: React.FC<PDFTemplateProps> = ({
-  resume,
-  styles: s,
-}) => {
-  const {
-    primaryColor,
-    secondaryColor,
-    accentColor,
-    textColor,
-    backgroundColor,
-    fontFamily,
-    fontSize,
-    smallFontSize,
-    headingFontSize,
-    nameFontSize,
-    lineHeight,
-    marginPt,
-    pageFormat,
-  } = s;
-
-  const leftBg = withAlpha(primaryColor, "08");
-
-  const LeftSH = ({ title }: { title: string }) => (
+const LeftSH = memo(function LeftSH({
+  title,
+  s,
+}: {
+  title: string;
+  s: ResolvedPDFStyles;
+}) {
+  const { primaryColor, fontFamily, fontSize } = s;
+  return (
     <View
       style={{
         marginTop: 10,
@@ -64,8 +49,17 @@ export const CreativeModernPDF: React.FC<PDFTemplateProps> = ({
       </Text>
     </View>
   );
+});
 
-  const RightSH = ({ title }: { title: string }) => (
+const RightSH = memo(function RightSH({
+  title,
+  s,
+}: {
+  title: string;
+  s: ResolvedPDFStyles;
+}) {
+  const { accentColor, fontFamily, headingFontSize, textColor } = s;
+  return (
     <View
       style={{
         marginTop: 10,
@@ -87,6 +81,27 @@ export const CreativeModernPDF: React.FC<PDFTemplateProps> = ({
       </Text>
     </View>
   );
+});
+export const CreativeModernPDF: React.FC<PDFTemplateProps> = ({
+  resume,
+  styles: s,
+}) => {
+  const {
+    primaryColor,
+    secondaryColor,
+    accentColor,
+    textColor,
+    backgroundColor,
+    fontFamily,
+    fontSize,
+    smallFontSize,
+    nameFontSize,
+    lineHeight,
+    marginPt,
+    pageFormat,
+  } = s;
+
+  const leftBg = withAlpha(primaryColor, "08");
 
   const contactParts = [
     resume.header.email,
@@ -166,7 +181,7 @@ export const CreativeModernPDF: React.FC<PDFTemplateProps> = ({
             {/* Summary / About */}
             {resume.summary ? (
               <View wrap={false}>
-                <LeftSH title="About" />
+                <LeftSH s={s} title="About" />
                 <Text style={{ fontSize, lineHeight }}>
                   {plain(resume.summary)}
                 </Text>
@@ -176,7 +191,7 @@ export const CreativeModernPDF: React.FC<PDFTemplateProps> = ({
             {/* Skills with dot bullets */}
             {(resume.skills ?? []).length > 0 ? (
               <View>
-                <LeftSH title="Skills" />
+                <LeftSH s={s} title="Skills" />
                 {(resume.skills ?? []).map((skill, i) => (
                   <View
                     key={i}
@@ -204,7 +219,7 @@ export const CreativeModernPDF: React.FC<PDFTemplateProps> = ({
             {/* Education */}
             {(resume.education ?? []).length > 0 ? (
               <View>
-                <LeftSH title="Education" />
+                <LeftSH s={s} title="Education" />
                 {(resume.education ?? []).map((edu, i) => (
                   <View key={i} wrap={false} style={{ marginBottom: 8 }}>
                     <Text
@@ -242,7 +257,7 @@ export const CreativeModernPDF: React.FC<PDFTemplateProps> = ({
             {/* Certifications */}
             {(resume.certifications ?? []).length > 0 ? (
               <View>
-                <LeftSH title="Certifications" />
+                <LeftSH s={s} title="Certifications" />
                 {(resume.certifications ?? []).map((cert, i) => (
                   <View key={i} wrap={false} style={{ marginBottom: 6 }}>
                     <Text
@@ -266,7 +281,7 @@ export const CreativeModernPDF: React.FC<PDFTemplateProps> = ({
             {/* Languages */}
             {(resume.languages ?? []).length > 0 ? (
               <View>
-                <LeftSH title="Languages" />
+                <LeftSH s={s} title="Languages" />
                 {(resume.languages ?? []).map((l, i) => (
                   <View key={i} style={{ marginBottom: 3 }}>
                     <Text
@@ -285,7 +300,7 @@ export const CreativeModernPDF: React.FC<PDFTemplateProps> = ({
             {/* Awards */}
             {(resume.awards ?? []).length > 0 ? (
               <View>
-                <LeftSH title="Awards" />
+                <LeftSH s={s} title="Awards" />
                 {(resume.awards ?? []).map((award, i) => (
                   <View key={i} wrap={false} style={{ marginBottom: 6 }}>
                     <Text
@@ -317,7 +332,7 @@ export const CreativeModernPDF: React.FC<PDFTemplateProps> = ({
             {/* Experience */}
             {(resume.experience ?? []).length > 0 ? (
               <View>
-                <RightSH title="Experience" />
+                <RightSH s={s} title="Experience" />
                 {(resume.experience ?? []).map((exp, i) => (
                   <View key={i} wrap={false} style={{ marginBottom: 10 }}>
                     <View
@@ -398,7 +413,7 @@ export const CreativeModernPDF: React.FC<PDFTemplateProps> = ({
             {/* Projects */}
             {(resume.projects ?? []).length > 0 ? (
               <View>
-                <RightSH title="Projects" />
+                <RightSH s={s} title="Projects" />
                 {(resume.projects ?? []).map((proj, i) => (
                   <View key={i} wrap={false} style={{ marginBottom: 10 }}>
                     <View
@@ -464,7 +479,7 @@ export const CreativeModernPDF: React.FC<PDFTemplateProps> = ({
             {/* Volunteer */}
             {(resume.volunteer ?? []).length > 0 ? (
               <View>
-                <RightSH title="Volunteer" />
+                <RightSH s={s} title="Volunteer" />
                 {(resume.volunteer ?? []).map((v, i) => (
                   <View key={i} wrap={false} style={{ marginBottom: 8 }}>
                     <View
@@ -512,7 +527,7 @@ export const CreativeModernPDF: React.FC<PDFTemplateProps> = ({
             {/* Publications */}
             {(resume.publications ?? []).length > 0 ? (
               <View>
-                <RightSH title="Publications" />
+                <RightSH s={s} title="Publications" />
                 {(resume.publications ?? []).map((pub, i) => (
                   <View key={i} wrap={false} style={{ marginBottom: 6 }}>
                     <Text
