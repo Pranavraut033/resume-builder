@@ -8,9 +8,9 @@ import Sidebar from "@/components/Nav";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 
 import { CacheInitializer } from "./CacheInitializer";
-import { UpdatePrompt } from "./UpdatePrompt";
 import { Header } from "./ui";
 import { ToastProvider } from "./ui/ToastProvider";
+import { UpdatePrompt } from "./UpdatePrompt";
 
 interface AppShellProps {
   children: React.ReactNode;

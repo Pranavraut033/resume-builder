@@ -2,7 +2,7 @@ import { Link } from "lucide-react";
 import { Metadata } from "next";
 
 import { getCoverLetterByJobId, getJob, getResumeByJobId } from "@/actions/job";
-import { getProfile } from "@/actions/profile";
+import { getProfileById } from "@/actions/profile";
 import { FallbackState, Button } from "@/components/ui";
 import { JobPageProvider } from "@/contexts/JobPageContext";
 
@@ -21,10 +21,11 @@ export default async function EditorLayout({
   const params = await _p;
   const jobIdNum = parseInt(params.jobId);
 
-  const [coverLetter, job, profile, resume] = await Promise.all([
+  // Load job first to get its profileId, then load the associated profile
+  const job = await getJob(jobIdNum);
+  const [coverLetter, profile, resume] = await Promise.all([
     getCoverLetterByJobId(jobIdNum),
-    getJob(jobIdNum),
-    getProfile(),
+    getProfileById(job.profileId),
     getResumeByJobId(jobIdNum),
   ]);
 

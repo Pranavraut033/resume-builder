@@ -1,8 +1,16 @@
 "use client";
 
+import { useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useState } from "react";
 
+import { ProfileSummary } from "@/actions/profile";
+import { useNavigationOnProfileChange } from "@/hooks/useNavigationOnProfileChange";
+import { useProfileSelection } from "@/hooks/useProfileSelection";
+
+import { CreateProfileModal } from "./CreateProfileModal";
+import { ProfileSelector } from "./ProfileSelector";
 import { Icon } from "./ui/Icon";
 
 const NAV_ITEMS = [
@@ -15,13 +23,30 @@ const NAV_ITEMS = [
 
 export default function Sidebar() {
   const pathname = usePathname();
+  const queryClient = useQueryClient();
+  const { selectedProfileId, setSelectedProfileId } = useProfileSelection();
+  const [showCreateModal, setShowCreateModal] = useState(false);
+
+  // Redirect from job pages when profile changes
+  useNavigationOnProfileChange();
+
+  const handleSelectProfile = (profile: ProfileSummary) => {
+    setSelectedProfileId(profile.id);
+    queryClient.invalidateQueries({ queryKey: ["profile"] });
+  };
+
+  const handleProfileCreated = (id: number) => {
+    setSelectedProfileId(id);
+    queryClient.invalidateQueries({ queryKey: ["profiles"] });
+    queryClient.invalidateQueries({ queryKey: ["profile"] });
+  };
 
   return (
     <aside className="bg-agent-inverse-surface flex h-screen w-60 shrink-0 flex-col">
       {/* Logo */}
       <div className="flex flex-col gap-0.5 px-5 pt-6 pb-4">
         <div className="flex items-center gap-2">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-linear-to-br from-agent-primary to-agent-primary-container">
+          <div className="from-agent-primary to-agent-primary-container flex h-8 w-8 items-center justify-center rounded-lg bg-linear-to-br">
             <Icon name="fileText" size={16} className="text-agent-on-primary" />
           </div>
           <span className="text-agent-inverse-on-surface text-base font-bold tracking-tight">
@@ -37,7 +62,7 @@ export default function Sidebar() {
       <div className="px-4 pb-4">
         <Link
           href="/job/new"
-          className="flex items-center justify-center gap-2 rounded-xl bg-linear-to-br from-agent-primary to-agent-primary-container py-2.5 text-sm font-semibold text-agent-on-primary transition-opacity hover:opacity-90"
+          className="from-agent-primary to-agent-primary-container text-agent-on-primary flex items-center justify-center gap-2 rounded-xl bg-linear-to-br py-2.5 text-sm font-semibold transition-opacity hover:opacity-90"
         >
           <Icon name="plus" size={16} />
           New Resume
@@ -67,20 +92,21 @@ export default function Sidebar() {
         })}
       </nav>
 
-      {/* Bottom section */}
-      <div className="mt-auto border-t border-agent-outline-variant px-4 pt-4 pb-5">
-        <div className="flex items-center gap-3">
-          <div className="bg-agent-primary-fixed-dim text-agent-on-primary-fixed flex h-9 w-9 items-center justify-center rounded-full text-sm font-bold">
-            A
-          </div>
-          <div className="min-w-0 flex-1">
-            <p className="text-agent-inverse-on-surface truncate text-sm font-semibold">
-              Local User
-            </p>
-            <p className="text-agent-outline text-[11px]">Local Plan</p>
-          </div>
-        </div>
+      {/* Bottom section – profile switcher */}
+      <div className="border-agent-outline-variant mt-auto border-t px-3 pt-3 pb-4">
+        <ProfileSelector
+          selectedProfileId={selectedProfileId}
+          onSelect={handleSelectProfile}
+          onCreateNew={() => setShowCreateModal(true)}
+          compact
+        />
       </div>
+
+      <CreateProfileModal
+        isOpen={showCreateModal}
+        onClose={() => setShowCreateModal(false)}
+        onCreated={handleProfileCreated}
+      />
     </aside>
   );
 }

@@ -1,3 +1,6 @@
+"use client";
+
+import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
 
 import { getAllJob } from "@/actions/job";
@@ -6,11 +9,16 @@ import BoltIcon from "@/components/icons/BoltIcon";
 import CalendarIcon from "@/components/icons/CalendarIcon";
 import SendIcon from "@/components/icons/SendIcon";
 import TrendingUpIcon from "@/components/icons/TrendingUpIcon";
+import { useProfileSelection } from "@/hooks/useProfileSelection";
 
 import JobTableClient from "../components/home/JobTableClient";
 
-export default async function Home() {
-  const jobList = await getAllJob();
+export default function Home() {
+  const { selectedProfileId } = useProfileSelection();
+  const { data: jobList = [] } = useQuery({
+    queryKey: ["jobs", selectedProfileId],
+    queryFn: () => getAllJob(selectedProfileId),
+  });
 
   const totalApplied = jobList.filter((j) => j.status !== "DRAFT").length;
   const interviews = jobList.filter((j) => j.status === "INTERVIEW").length;

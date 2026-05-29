@@ -1,15 +1,18 @@
 "use client";
 
+import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 import { createJob } from "@/actions/job";
+import { getAllProfiles } from "@/actions/profile";
 import { fetchJobDescriptionFromUrl } from "@/actions/urlFetcher";
 import { SelectedModelCard } from "@/components/SelectedModelCard";
 import { BackButton } from "@/components/ui";
 import { useToast } from "@/components/ui/ToastProvider";
 import { useProfileQuery } from "@/hooks/useProfileQuery";
+import { useProfileSelection } from "@/hooks/useProfileSelection";
 import LLMService from "@/lib/llm/llmService";
 import { createLogger } from "@/lib/logger";
 import { useModelStore } from "@/store/modelStore";
@@ -22,10 +25,16 @@ export default function NewJobPage() {
   const [inputMode, setInputMode] = useState<"text" | "url">("text");
   const [loading, setLoading] = useState(false);
   const [fetchingUrl, setFetchingUrl] = useState(false);
-  // const [isDragging, setIsDragging] = useState(false);
-  // const fileInputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
-  const { data: profile, isLoading } = useProfileQuery();
+
+  // Use globally selected profile (no override per-job)
+  const { selectedProfileId } = useProfileSelection();
+
+  const { data: profile, isLoading } = useProfileQuery(selectedProfileId);
+  const { data: profiles = [] } = useQuery({
+    queryKey: ["profiles"],
+    queryFn: getAllProfiles,
+  });
 
   const { activeModelPair: selectedModel } = useModelStore();
   const [currentSelectedProvider, currentSelectedModel] = selectedModel ?? [];
@@ -104,6 +113,7 @@ export default function NewJobPage() {
         tailoredResume: result.resume.result,
         coverLetterText: result.coverLetter.result,
         atsAnalysis: result.atsAnalysis.result,
+        profileId: selectedProfileId ?? undefined,
       });
 
       router.push("/");
@@ -120,7 +130,7 @@ export default function NewJobPage() {
   };
 
   // ── No-profile guard ──────────────────────────────────────────────────────
-  if (!isLoading && !profile) {
+  if (!isLoading && !profile && profiles.length === 0) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-(--color-agent-bg)">
         <div className="border-agent-outline-variant max-w-md rounded-2xl border bg-(--color-agent-surface-lowest) p-10 text-center shadow-(--shadow-agent-modal)">
@@ -165,10 +175,20 @@ export default function NewJobPage() {
           <h1 className="mb-1 text-3xl font-bold text-(--color-agent-on-surface)">
             Tailor Your Resume
           </h1>
-          <p className="text-agent-on-surface-variant mb-6 text-sm">
+          <p className="text-agent-on-surface-variant mb-4 text-sm">
             Paste a job description or upload a PDF to let our AI architect a
             resume that highlights your most relevant strengths.
           </p>
+
+          {/* ── Current profile display ── */}
+          <div className="mb-6">
+            <p className="text-agent-outline mb-1.5 text-xs font-medium tracking-widest uppercase">
+              Using Profile
+            </p>
+            <p className="text-agent-on-surface text-sm">
+              {profile?.header?.name || "Unnamed Profile"}
+            </p>
+          </div>
 
           <form onSubmit={handleSubmit} className="space-y-5">
             {/* ── Tab toggle ── */}

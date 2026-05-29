@@ -6,7 +6,7 @@ import {
 import { useCallback } from "react";
 
 import { getCoverLetterByJobId, getJob, getResumeByJobId } from "@/actions/job";
-import { getProfile } from "@/actions/profile";
+import { getProfile, getProfileById } from "@/actions/profile";
 
 type CoverLetter = Awaited<ReturnType<typeof getCoverLetterByJobId>>;
 type Job = Awaited<ReturnType<typeof getJob>>;
@@ -42,6 +42,7 @@ export function useJobPageDataQuery(
 ): JobPageDataQueryResult {
   const queryClient = useQueryClient();
   const isEnabled = Number.isFinite(jobId);
+  const profileId = initialData?.job?.profileId ?? null;
 
   const combined = useQueries({
     queries: [
@@ -58,8 +59,8 @@ export function useJobPageDataQuery(
         initialData: initialData?.job,
       },
       {
-        queryKey: ["profile"] as const,
-        queryFn: getProfile,
+        queryKey: ["profile", profileId ?? "default"] as const,
+        queryFn: () => (profileId ? getProfileById(profileId) : getProfile()),
         initialData: initialData?.profile,
       },
       {

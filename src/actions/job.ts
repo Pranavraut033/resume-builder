@@ -29,9 +29,16 @@ export async function createJob(input: {
   coverLetterText?: string;
   atsAnalysis?: ATSAnalysisJSON | null;
   url?: string;
+  profileId?: number;
 }): Promise<{ jobId: number }> {
-  const { jobDetails, tailoredResume, coverLetterText, atsAnalysis, url } =
-    input;
+  const {
+    jobDetails,
+    tailoredResume,
+    coverLetterText,
+    atsAnalysis,
+    url,
+    profileId,
+  } = input;
 
   const data: Parameters<typeof prisma.job.create>[0]["data"] = {
     role: jobDetails.job.job_title,
@@ -40,6 +47,7 @@ export async function createJob(input: {
     status: "Draft",
     jobDetailsJson: JSON.stringify(jobDetails),
     url: url || null,
+    ...(profileId ? { profile: { connect: { id: profileId } } } : {}),
     company: {
       create: {
         name: jobDetails.company.company_name,
@@ -106,8 +114,9 @@ export async function createJob(input: {
 /**
  * Get all jobs
  */
-export async function getAllJobs() {
+export async function getAllJobs(profileId?: number | null) {
   const jobs = await prisma.job.findMany({
+    where: profileId ? { profileId } : undefined,
     orderBy: { createdAt: "desc" },
   });
   return jobs;
@@ -320,8 +329,11 @@ export type JobRecord = Job & {
   status: JobStatus;
 };
 
-export async function getAllJob(): Promise<JobRecord[]> {
+export async function getAllJob(
+  profileId?: number | null
+): Promise<JobRecord[]> {
   const jobList = await prisma.job.findMany({
+    where: profileId ? { profileId } : undefined,
     orderBy: { createdAt: "desc" },
     include: { company: true, contact: true },
   });

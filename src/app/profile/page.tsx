@@ -1,9 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useEffect, useState } from "react";
 
-import { saveProfile } from "@/actions/profile";
-import { queryClient } from "@/components/AppShell";
+import {
+  updateProfile,
+  deleteProfile,
+  getAllProfiles,
+} from "@/actions/profile";
 import { AwardsSection } from "@/components/profile/AwardsSection";
 import { CertificationsSection } from "@/components/profile/CertificationsSection";
 import { ContactInfoSection } from "@/components/profile/ContactInfoSection";
@@ -22,6 +26,7 @@ import { FallbackState, PageHeader, SurfacePanel } from "@/components/ui";
 import { Button } from "@/components/ui/Button";
 import { useToast } from "@/components/ui/ToastProvider";
 import { useProfileQuery } from "@/hooks/useProfileQuery";
+import { useProfileSelection } from "@/hooks/useProfileSelection";
 import { createLogger } from "@/lib/logger";
 import { ResumeJSON } from "@/types/resume";
 
@@ -29,44 +34,70 @@ const logger = createLogger("ProfilePage");
 
 export default function ProfilePage() {
   const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [showImportModal, setShowImportModal] = useState(false);
   const [showImportJsonModal, setShowImportJsonModal] = useState(false);
   const { pushToast } = useToast();
+  const queryClient = useQueryClient();
 
-  const { data, refetch, isLoading } = useProfileQuery();
+  const { selectedProfileId, setSelectedProfileId, clearProfileSelection } =
+    useProfileSelection();
 
-  const [profile, setProfile] = useState<ResumeJSON>(
-    data ??
-      ({
-        header: {
-          name: "",
-          email: "",
-          phone: null,
-          headline: "",
-          location: null,
-          linkedin: null,
-          github: null,
-          website: null,
-        },
-        summary: "",
-        experience: [],
-        projects: [],
-        skills: [],
-        education: [],
-        certifications: [],
-        publications: [],
-        languages: [],
-        volunteer: [],
-        awards: [],
-      } satisfies ResumeJSON)
-  );
+  const { data: profiles = [] } = useQuery({
+    queryKey: ["profiles"],
+    queryFn: getAllProfiles,
+  });
+
+  // Auto-select first profile when none is selected
+  useEffect(() => {
+    if (selectedProfileId === null && profiles.length > 0) {
+      setSelectedProfileId(profiles[0].id);
+    }
+  }, [profiles, selectedProfileId, setSelectedProfileId]);
+
+  const { data, refetch, isLoading } = useProfileQuery(selectedProfileId);
+
+  const emptyProfile: ResumeJSON = {
+    header: {
+      name: "",
+      email: "",
+      phone: null,
+      headline: "",
+      location: null,
+      linkedin: null,
+      github: null,
+      website: null,
+    },
+    summary: "",
+    experience: [],
+    projects: [],
+    skills: [],
+    education: [],
+    certifications: [],
+    publications: [],
+    languages: [],
+    volunteer: [],
+    awards: [],
+  };
+
+  const [profile, setProfile] = useState<ResumeJSON>(data ?? emptyProfile);
+
+  // Sync local state when profile data changes (profile switch or initial load)
+  useEffect(() => {
+    if (data) setProfile(data);
+  }, [data]);
 
   const handleSave = async () => {
     setSaving(true);
     try {
-      await saveProfile(profile);
+      if (selectedProfileId) {
+        await updateProfile(selectedProfileId, profile);
+      }
       await refetch();
-      queryClient.invalidateQueries({ queryKey: ["profile"] });
+      queryClient.invalidateQueries({
+        queryKey: ["profile", selectedProfileId ?? "default"],
+      });
+      queryClient.invalidateQueries({ queryKey: ["profiles"] });
 
       pushToast({
         title: "Profile saved",
@@ -81,6 +112,30 @@ export default function ProfilePage() {
       });
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!selectedProfileId) return;
+    setDeleting(true);
+    try {
+      const result = await deleteProfile(selectedProfileId);
+      if (!result.success) {
+        pushToast({
+          title: result.error ?? "Cannot delete profile",
+          variant: "error",
+        });
+        return;
+      }
+      clearProfileSelection();
+      queryClient.invalidateQueries({ queryKey: ["profiles"] });
+      queryClient.invalidateQueries({ queryKey: ["profile"] });
+      pushToast({ title: "Profile deleted", variant: "success" });
+    } catch (error) {
+      logger.error("Error deleting profile", { error });
+      pushToast({ title: "Delete failed", variant: "error" });
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -118,7 +173,7 @@ export default function ProfilePage() {
     }
   };
 
-  if (isLoading) {
+  if (isLoading && !data) {
     return (
       <FallbackState
         title="Loading profile..."
@@ -142,7 +197,28 @@ export default function ProfilePage() {
         }
       />
 
-      {isLoading ? (
+      {/* Profile info bar - read-only */}
+      <SurfacePanel>
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-agent-on-surface-variant text-xs tracking-wide uppercase">
+              Current Profile
+            </p>
+            <p className="text-agent-on-surface text-lg font-medium">
+              {data?.header?.name || "Unnamed Profile"}
+            </p>
+          </div>
+          <Button
+            variant="secondary"
+            onClick={handleDelete}
+            disabled={deleting || profiles.length <= 1}
+          >
+            {deleting ? "Deleting…" : "Delete Profile"}
+          </Button>
+        </div>
+      </SurfacePanel>
+
+      {isLoading && !data ? (
         <p className="text-agent-on-surface-variant">Loading...</p>
       ) : (
         <>
