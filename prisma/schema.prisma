@@ -13,6 +13,9 @@ datasource db {
 model Profile {
   id Int @id @default(autoincrement())
 
+  // Display label for this profile (user-provided, e.g. "Senior Engineer", "Career Changer")
+  label String @default("Default Profile") @map("profile_label")
+
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @default(now()) @map("updated_at")
 
@@ -48,6 +51,8 @@ model Profile {
 
   // Awards/Honors (optional)
   awardsJson String? @map("awards_json")
+
+  jobs Job[]
 
   @@map("profiles")
 }
@@ -103,6 +108,10 @@ model Job {
   contact             Contact?     @relation(fields: [contactId], references: [id], onDelete: Cascade)
   baseProfileAnalysis ATSAnalysis? @relation(fields: [aTSAnalysisId], references: [id], onDelete: Cascade)
   aTSAnalysisId       Int?         @unique @map("ats_analysis_id")
+
+  // Profile this job was created from
+  profileId Int?     @map("profile_id")
+  profile   Profile? @relation(fields: [profileId], references: [id])
 
   @@map("jobs")
 }
