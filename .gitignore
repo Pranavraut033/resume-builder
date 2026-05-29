@@ -55,3 +55,5 @@ keys.enc
 /session-docs/
 dev.db
 resume-builder.p12
+docs/DISTRIBUTION.md
+src-tauri/resources/next

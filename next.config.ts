@@ -62,9 +62,7 @@ class SourceIgnoreListPlugin {
 }
 
 const nextConfig: NextConfig = {
-  // output: 'export',
-  // distDir: 'dist',
-  trailingSlash: true,
+  output: "standalone",
   // Turbopack is the default bundler in Next.js 16+.
   // An empty config here silences the "webpack config present but no turbopack config" warning.
   turbopack: {},

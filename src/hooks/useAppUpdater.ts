@@ -3,6 +3,8 @@
 import { check, type Update } from "@tauri-apps/plugin-updater";
 import { useCallback, useEffect, useState } from "react";
 
+import { isTauriContext } from "@/lib/keyStorage";
+
 export type UpdaterState =
   | { status: "idle" }
   | { status: "checking" }
@@ -69,9 +71,7 @@ export function useAppUpdater() {
 
   // Auto-check once on mount (only in Tauri context)
   useEffect(() => {
-    const isTauri =
-      typeof window !== "undefined" && "__TAURI_INTERNALS__" in window;
-    if (!isTauri) return;
+    if (!isTauriContext()) return;
 
     const timer = setTimeout(() => {
       checkForUpdates();

@@ -45,8 +45,16 @@ let keyStore: KeyStore | null = null;
 /**
  * Check if we're in a Tauri/browser context (client-side)
  */
-function isTauriContext(): boolean {
-  return typeof window !== "undefined";
+export function isTauriContext(): boolean {
+  if (typeof window === "undefined") return false;
+
+  // In bundled mode we load the UI from a local HTTP URL.
+  // Ensure the Tauri IPC bridge is present before using plugin APIs.
+  const tauriInternals = (
+    window as unknown as { __TAURI_INTERNALS__?: unknown }
+  ).__TAURI_INTERNALS__;
+
+  return typeof tauriInternals === "object" && tauriInternals !== null;
 }
 
 /**
