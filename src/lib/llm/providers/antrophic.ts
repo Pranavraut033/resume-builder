@@ -65,6 +65,20 @@ export class AnthropicProvider extends LLMProvider {
       .trim();
   }
 
+  private extractToolCalls(
+    response: Anthropic.Message
+  ): import("@/types/llm").ToolCall[] | undefined {
+    const toolUseBlocks = response.content.filter(
+      (block): block is Anthropic.ToolUseBlock => block.type === "tool_use"
+    );
+    if (toolUseBlocks.length === 0) return undefined;
+    return toolUseBlocks.map((block) => ({
+      id: block.id,
+      name: block.name,
+      arguments: block.input as Record<string, unknown>,
+    }));
+  }
+
   private normalizeUsage({
     usage,
     model,
@@ -115,6 +129,14 @@ export class AnthropicProvider extends LLMProvider {
       options.temperature
     );
 
+    const toolChoice = (() => {
+      const tc = options.toolChoice;
+      if (!tc || !options.tools?.length) return undefined;
+      if (tc === "none") return { type: "none" } as const;
+      if (tc === "auto") return { type: "auto" } as const;
+      return { type: "tool", name: tc.name } as const;
+    })();
+
     return {
       model: options.model,
       max_tokens: options.maxTokens ?? 2048,
@@ -122,6 +144,7 @@ export class AnthropicProvider extends LLMProvider {
       ...(system ? { system } : {}),
       ...(temperature !== undefined ? { temperature } : {}),
       tools: options.tools?.map((tool) => this.toClaudeTool(tool)),
+      ...(toolChoice ? { tool_choice: toolChoice } : {}),
       stream: !!options.stream,
     };
   }
@@ -155,6 +178,7 @@ export class AnthropicProvider extends LLMProvider {
       .create({ ...this.toAnthropicRequest(messages, options), stream: false })
       .then((response) => {
         const content = this.extractTextResponse(response);
+        const toolCalls = this.extractToolCalls(response);
         const usage = response.usage
           ? this.normalizeUsage({
               usage: response.usage,
@@ -171,6 +195,7 @@ export class AnthropicProvider extends LLMProvider {
 
         return {
           result: content,
+          toolCalls,
           usage,
         };
       })

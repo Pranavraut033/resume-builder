@@ -17,6 +17,13 @@ export class OpenAIProvider extends OpenAICompatibleProvider {
 
   textGenModelRegex = /^gpt-(3\.5|4(o)?(\.\d+)?|5(o)?(\.\d+)?)(-(mini|nano))?$/;
 
+  protected resolveTokenParam(
+    _model: string,
+    maxTokens: number | undefined
+  ): { max_completion_tokens?: number } {
+    return { max_completion_tokens: maxTokens };
+  }
+
   async fetchModels(): Promise<string[]> {
     try {
       logger.debug("Fetching models from OpenAI API");

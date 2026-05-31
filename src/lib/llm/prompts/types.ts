@@ -39,6 +39,7 @@ export const PROMPT_PURPOSES = [
   "analyze_ats",
   "humanize_content",
   "extract_fields_to_edit",
+  "fix_missing_keywords",
 ] as const;
 
 export type PromptPurpose = (typeof PROMPT_PURPOSES)[number];

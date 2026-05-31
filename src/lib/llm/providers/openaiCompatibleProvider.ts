@@ -78,6 +78,20 @@ export abstract class OpenAICompatibleProvider extends LLMProvider {
     return typeof result === "object" && result !== null && "choices" in result;
   }
 
+  /**
+   * Some OpenAI models (o1, o3, o4 reasoning series) require `max_completion_tokens`
+   * instead of the legacy `max_tokens` parameter.
+   */
+  protected resolveTokenParam(
+    model: string,
+    maxTokens: number | undefined
+  ): { max_completion_tokens?: number } | { max_tokens?: number } {
+    if (/^o\d/i.test(model)) {
+      return { max_completion_tokens: maxTokens };
+    }
+    return { max_tokens: maxTokens };
+  }
+
   runLLM(
     messages: PromptMessage[],
     options: LLMGenerationOptions & { stream: true }
@@ -103,7 +117,7 @@ export abstract class OpenAICompatibleProvider extends LLMProvider {
         model,
         messages: this.toChatMessages(messages),
         temperature,
-        max_tokens: options.maxTokens,
+        ...this.resolveTokenParam(model, options.maxTokens),
         tools: options.tools?.map((tool) => this.toOpenAITool(tool)),
       })
       .then((completion) => {
@@ -163,7 +177,7 @@ export abstract class OpenAICompatibleProvider extends LLMProvider {
       model,
       messages: this.toChatMessages(messages),
       temperature,
-      max_tokens: options.maxTokens,
+      ...this.resolveTokenParam(model, options.maxTokens),
       tools: options.tools?.map((tool) => this.toOpenAITool(tool)),
       stream_options: { include_usage: true },
     });
@@ -207,7 +221,7 @@ export abstract class OpenAICompatibleProvider extends LLMProvider {
       messages: this.toChatMessages(messages),
       response_format: zodResponseFormat(zodSchema, schemaName),
       temperature: this.resolveTemperature(options.model, options.temperature),
-      max_tokens: options.maxTokens,
+      ...this.resolveTokenParam(options.model, options.maxTokens),
     });
 
     const parsed = completion.choices[0]?.message?.parsed;

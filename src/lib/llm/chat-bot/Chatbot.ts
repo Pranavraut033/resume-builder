@@ -25,6 +25,11 @@ import {
   isToolIntent,
   ToolIntent,
 } from "./prompts/intentClassifier";
+import {
+  buildKeywordMappingPrompt,
+  groupMappingsByField,
+  KeywordMappingSchema,
+} from "./prompts/keywordMappingPrompt";
 import { FieldEdit, RESUME_TOOLS, validateEditFieldArgs } from "./tools";
 import { LLMProvider } from "../providers/LLMProvider";
 
@@ -494,6 +499,132 @@ class ResumeChatBot {
 
     yield { type: "done" };
     return;
+  }
+
+  /**
+   * One-click ATS keyword fix: intelligently maps each missing keyword to the
+   * most appropriate resume field(s) based on existing content, then applies
+   * targeted edits via the edit_fields tool — without fabricating experience.
+   *
+   * Flow:
+   *  1. Keyword mapping LLM call  — decides which field each keyword belongs to
+   *  2. Build EditFieldOutput     — groups by field with per-keyword instructions
+   *  3. edit_fields tool call     — applies the edits via buildEditFieldPrompt
+   */
+  async *fixMissingKeywords(
+    keywords: string[],
+    options: ChatBotOptions
+  ): AsyncGenerator<ChatStreamEvent> {
+    this.isSessionInitialized();
+
+    if (keywords.length === 0) {
+      yield { type: "done" };
+      return;
+    }
+
+    try {
+      const jd = jobDetailsToCompactPositional(this.jobDetails);
+
+      // Step 1: Map each keyword to the best field(s) in the resume
+      const mappingPrompt = buildKeywordMappingPrompt(
+        this.resume,
+        keywords,
+        this.jobDetails
+      );
+
+      logger.info(
+        "ResumeChatBot",
+        `fixMissingKeywords — mapping ${keywords.length} keyword(s) to fields`
+      );
+
+      const { result: mapping, usage: mappingUsage } =
+        await this.provider.runStructuredLLM(
+          mappingPrompt,
+          { model: options.model, maxTokens: 800 },
+          KeywordMappingSchema,
+          "KeywordMappingSchema"
+        );
+
+      if (mapping.mappings.length === 0) {
+        logger.warn(
+          "ResumeChatBot",
+          "fixMissingKeywords — no honest keyword anchors found; nothing to edit"
+        );
+        yield { type: "done" };
+        return;
+      }
+
+      logger.info(
+        "ResumeChatBot",
+        `fixMissingKeywords — mapped to fields: ${[...new Set(mapping.mappings.map((m) => m.field))].join(", ")}`
+      );
+
+      // Step 2: Build EditFieldOutput grouped by field (skips extractFieldsToEdit)
+      const fieldEdits = groupMappingsByField(mapping.mappings);
+      const editFieldOutput = { edits: fieldEdits };
+
+      // Step 3: Build system prompt and call the edit_fields tool
+      const systemPrompt = buildEditFieldPrompt(
+        this.resume,
+        editFieldOutput,
+        jd
+      );
+      const tool = RESUME_TOOLS.edit;
+
+      const messages: PromptMessage[] = [
+        { role: "system", content: systemPrompt },
+        {
+          role: "user",
+          content:
+            "Apply the keyword edits as instructed. Return all edited fields in full.",
+        },
+      ];
+
+      const { toolCalls, usage: editUsage } = await this.provider.runLLM(
+        messages,
+        {
+          model: options.model,
+          tools: [tool],
+          toolChoice: { type: "tool", name: tool.name },
+        }
+      );
+
+      if (!toolCalls || toolCalls.length === 0) {
+        throw new Error("LLM did not return any tool calls for keyword fix");
+      }
+
+      const args = toolCalls[0].arguments;
+      validateEditFieldArgs(args);
+
+      const { resume: updatedResume } = this.applyEdits(
+        this.resume,
+        args.edits
+      );
+      const note = `Keyword fix applied to: ${args.edits.map((e) => e.field).join(", ")}`;
+
+      logger.info("ResumeChatBot", note);
+
+      yield {
+        type: "tool_result",
+        intent: IntentLabel.Edit,
+        args: {
+          updatedResume,
+          usage: mergeLLMUsageInfo(mappingUsage, editUsage),
+          note,
+          summary: args.change_summary,
+        },
+      };
+      yield { type: "done" };
+    } catch (err) {
+      logger.error(
+        "ResumeChatBot",
+        `fixMissingKeywords error: ${err instanceof Error ? err.message : String(err)}`
+      );
+      yield {
+        type: "error",
+        message: err instanceof Error ? err.message : "Unknown error",
+      };
+    }
   }
 }
 
