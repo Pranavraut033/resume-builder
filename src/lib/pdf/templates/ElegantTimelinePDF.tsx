@@ -77,9 +77,9 @@ export const ElegantTimelinePDF: React.FC<PDFTemplateProps> = ({
     resume.header.email,
     resume.header.phone,
     resume.header.location,
-    resume.header.linkedin ? "LinkedIn" : null,
-    resume.header.github ? "GitHub" : null,
-    resume.header.website ? "Portfolio" : null,
+    resume.header.linkedin ?? null,
+    resume.header.github ?? null,
+    resume.header.website ?? null,
   ].filter(Boolean);
 
   return (
