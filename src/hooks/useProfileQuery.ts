@@ -5,9 +5,9 @@ import { ResumeJSON } from "@/types/resume";
 
 export function useProfileQuery(
   profileId?: number | null,
-  initialData: ResumeJSON | null = null
+  initialData: (ResumeJSON & { label: string }) | null = null
 ) {
-  return useQuery<ResumeJSON | null>({
+  return useQuery<(ResumeJSON & { label: string }) | null>({
     queryKey: ["profile", profileId ?? "default"],
     queryFn: () => (profileId ? getProfileById(profileId) : getProfile()),
     initialData,

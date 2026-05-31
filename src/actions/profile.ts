@@ -34,7 +34,9 @@ export async function hasProfile(): Promise<boolean> {
 /**
  * Get the first profile (backward-compat helper)
  */
-export async function getProfile(): Promise<ResumeJSON | null> {
+export async function getProfile(): Promise<
+  (ResumeJSON & { label: string }) | null
+> {
   const profile = await prisma.profile.findFirst({
     orderBy: { createdAt: "asc" },
   });
@@ -47,12 +49,13 @@ export async function getProfile(): Promise<ResumeJSON | null> {
  */
 export async function getProfileById(
   id: number | null | undefined
-): Promise<ResumeJSON | null> {
+): Promise<(ResumeJSON & { label: string }) | null> {
   const profile = id
     ? await prisma.profile.findUnique({ where: { id } })
     : await prisma.profile.findFirst({ orderBy: { createdAt: "asc" } });
 
   if (!profile) return null;
+
   return profileDataToResumeJson(profile);
 }
 
@@ -129,8 +132,11 @@ export async function deleteProfile(
 }
 
 // TODO: need to handle json parsing errors and validation here, currently assumes data is always valid
-function profileDataToResumeJson(profile: Profile): ResumeJSON {
+function profileDataToResumeJson(
+  profile: Profile
+): ResumeJSON & { label: string } {
   return {
+    label: profile.label,
     header: {
       name: profile.name,
       email: profile.email,
@@ -153,7 +159,7 @@ function profileDataToResumeJson(profile: Profile): ResumeJSON {
     languages: profile.languagesJson ? JSON.parse(profile.languagesJson) : [],
     volunteer: profile.volunteerJson ? JSON.parse(profile.volunteerJson) : [],
     awards: profile.awardsJson ? JSON.parse(profile.awardsJson) : [],
-  } satisfies ResumeJSON;
+  } satisfies ResumeJSON & { label: string };
 }
 
 // TODO: need to handle json parsing errors and validation here, currently assumes data is always valid

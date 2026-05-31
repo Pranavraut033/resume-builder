@@ -205,7 +205,7 @@ export default function ProfilePage() {
               Current Profile
             </p>
             <p className="text-agent-on-surface text-lg font-medium">
-              {data?.header?.name || "Unnamed Profile"}
+              {data?.label || "Unnamed Profile"}
             </p>
           </div>
           <Button
