@@ -13,6 +13,8 @@ use std::{
 use tauri::Manager;
 use tauri_plugin_stronghold::Builder;
 
+mod browser;
+
 struct NextServerState(Mutex<Option<Child>>);
 
 fn wait_for_local_server(host: &str, port: u16, timeout: Duration) -> bool {
@@ -225,6 +227,14 @@ pub fn run() {
 
             Ok(())
         })
+        .invoke_handler(tauri::generate_handler![
+            browser::browser_create_webview,
+            browser::browser_go_back,
+            browser::browser_reload,
+            browser::browser_get_url,
+            browser::browser_set_bounds,
+            browser::browser_destroy_all,
+        ])
         .build(tauri::generate_context!())
         .unwrap_or_else(|error| {
             eprintln!("error building tauri application: {error}");

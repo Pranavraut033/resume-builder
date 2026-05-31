@@ -137,6 +137,7 @@ dependencies = [
  "tauri-plugin-process",
  "tauri-plugin-stronghold",
  "tauri-plugin-updater",
+ "url",
 ]
 
 [[package]]
