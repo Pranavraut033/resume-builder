@@ -1,5 +1,6 @@
 "use client";
 
+import { isTauri } from "@tauri-apps/api/core";
 import { useEffect, useRef } from "react";
 
 import { createLogger } from "@/lib/logger";
@@ -27,6 +28,27 @@ export function CacheInitializer() {
   useEffect(() => {
     if (initializedRef.current) return;
     initializedRef.current = true;
+
+    // On every app launch / page refresh, evict any child webviews that
+    // survived from a previous JS context (the OS keeps them alive even when
+    // the main webview reloads).  We close everything except the primary
+    // "main" webview that hosts the Next.js app itself.
+    if (isTauri()) {
+      import("@tauri-apps/api/webview")
+        .then(({ getAllWebviews }) => {
+          const views = getAllWebviews();
+          console.log(views);
+          return views;
+        })
+        .then((views) =>
+          Promise.all(
+            views
+              .filter((v) => v.label !== "main")
+              .map((v) => v.close().catch(() => {}))
+          )
+        )
+        .catch((err) => logger.error("Failed to sweep stale webviews", err));
+    }
 
     void initializeCache();
 

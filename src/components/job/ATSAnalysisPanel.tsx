@@ -9,6 +9,7 @@ import LLMService from "@/lib/llm/llmService";
 import { useModelStore } from "@/store/modelStore";
 import { ATSAnalysisJSON } from "@/types/resume";
 
+import { useChatContext } from "../chat/ChatContext";
 import { ModelSelector } from "../ModelSelector";
 import { useToast } from "../ui/ToastProvider";
 
@@ -190,6 +191,32 @@ function EmptyOrLoadingState({
   );
 }
 
+function FixKeywordsButton({
+  isLoading,
+  onClick,
+}: {
+  isLoading: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <Button
+      size="sm"
+      variant="primary"
+      disabled={isLoading}
+      onClick={onClick}
+      className="mt-2 inline-flex w-full items-center justify-center gap-1.5 rounded-lg"
+    >
+      <SparklesIcon
+        width="11"
+        height="11"
+        className={cn(isLoading && "animate-pulse")}
+        aria-hidden
+      />
+      {isLoading ? "Fixing keywords..." : "Fix with AI"}
+    </Button>
+  );
+}
+
 export function ATSAnalysisPanel(props: ATSAnalysisPanelProps) {
   const {
     resume,
@@ -200,6 +227,7 @@ export function ATSAnalysisPanel(props: ATSAnalysisPanelProps) {
     saveStatus,
   } = useJobPageContext();
 
+  const chatCtx = useChatContext(true);
   const [llmProvider, providerModel] = useModelStore(
     (state) => state.activeModelPair ?? []
   );
@@ -440,6 +468,38 @@ export function ATSAnalysisPanel(props: ATSAnalysisPanelProps) {
                         {keyword}
                       </span>
                     ))}
+                    {matchType === "missing" &&
+                      (keywords.length === 0 ? (
+                        <span className="text-agent-on-surface-variant text-xs">
+                          No missing keywords! Great job.
+                        </span>
+                      ) : !props.standalone && chatCtx ? (
+                        <FixKeywordsButton
+                          isLoading={chatCtx.isLoading}
+                          onClick={() =>
+                            chatCtx
+                              .fixMissingKeywords(keywords.map(([, k]) => k))
+                              .then(() =>
+                                pushToast({
+                                  title: "Keywords applied",
+                                  description:
+                                    "Missing keywords have been woven into your resume.",
+                                  variant: "success",
+                                })
+                              )
+                              .catch((e: unknown) =>
+                                pushToast({
+                                  title: "Failed to fix keywords",
+                                  description:
+                                    e instanceof Error
+                                      ? e.message
+                                      : "Unknown error",
+                                  variant: "error",
+                                })
+                              )
+                          }
+                        />
+                      ) : null)}
                   </div>
                 </div>
               )

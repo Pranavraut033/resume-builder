@@ -13,6 +13,7 @@ import {
 import { useJobPageContext } from "@/contexts/JobPageContext";
 import { areJsonValuesEqual } from "@/lib";
 import ResumeChatBot from "@/lib/llm/chat-bot/Chatbot";
+import { trackTokenUsage } from "@/lib/llm/tokenTracker";
 import { useModelStore } from "@/store/modelStore";
 import { ATSAnalysisJSON, ResumeSchema } from "@/types/resume";
 
@@ -38,6 +39,7 @@ interface ChatContextType {
   handleSend: () => void;
   resetSession: () => void;
   setDefaultView: (view: ViewMode) => void;
+  fixMissingKeywords: (keywords: string[]) => Promise<void>;
 }
 
 const ChatContext = createContext<ChatContextType | null>(null);
@@ -121,6 +123,33 @@ export function ChatContextProvider({ children }: { children: ReactNode }) {
       botRef.current?.setResume(updatedResume);
     },
     [updateResumeState]
+  );
+
+  const fixMissingKeywords = useCallback(
+    async (keywords: string[]) => {
+      if (!botRef.current || !activeModelPair || isLoading) return;
+      const [providerType, model] = activeModelPair;
+      setIsLoading(true);
+      try {
+        const stream = botRef.current.fixMissingKeywords(keywords, {
+          provider: providerType,
+          model,
+        });
+        for await (const event of stream) {
+          if (event.type === "tool_result" && event.intent !== "ats") {
+            const usage = event.args.usage;
+            trackTokenUsage(usage);
+            updateResumeStates(event.args.updatedResume, event.args.note);
+          }
+          if (event.type === "error") {
+            throw new Error(event.message);
+          }
+        }
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [activeModelPair, isLoading, updateResumeStates]
   );
 
   const handleSend = useCallback(async () => {
@@ -252,6 +281,7 @@ export function ChatContextProvider({ children }: { children: ReactNode }) {
         handleSend,
         resetSession,
         setDefaultView,
+        fixMissingKeywords,
       }}
     >
       {children}

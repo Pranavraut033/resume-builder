@@ -32,9 +32,10 @@ export default function AppShell({ children }: AppShellProps) {
 
 function AppShellContent({ children }: AppShellProps) {
   const pathname = usePathname();
-  const isEditingDocumentRoute = pathname.startsWith("/job/");
+  const isFullScreenRoute =
+    pathname.startsWith("/job/") || pathname.startsWith("/find-jobs");
 
-  if (isEditingDocumentRoute) {
+  if (isFullScreenRoute) {
     return (
       <div
         className="h-screen overflow-hidden"

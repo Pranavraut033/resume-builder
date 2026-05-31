@@ -62,7 +62,7 @@ export function ModelSelector({
     : undefined;
 
   // Show error state if no models configured
-  if (preselectedByProvider.length === 0 || !activeModelPair) {
+  if (preselectedByProvider.length === 0) {
     return (
       <div
         className={`rounded-xl px-4 py-3 ${className}`}
@@ -81,7 +81,10 @@ export function ModelSelector({
       </div>
     );
   }
-  const ActiveIcon = PROVIDER_ICONS[activeModelPair[0]];
+
+  const ActiveIcon = activeModelPair
+    ? PROVIDER_ICONS[activeModelPair[0]]
+    : undefined;
 
   const getProviderIcon = (provider: ProviderType) => {
     const IconComponent = PROVIDER_ICONS[provider];
@@ -97,25 +100,36 @@ export function ModelSelector({
             onClick={() => setIsOpen(true)}
             className="bg-agent-surface-container border-agent-outline-variant mb-4 flex w-full gap-3 rounded-xl border p-3 text-left transition-all hover:shadow-sm active:scale-[0.99]"
           >
-            <div className="bg-agent-surface-low flex h-10 w-10 shrink-0 items-center justify-center rounded-lg">
-              <ActiveIcon className="size-6" />
-            </div>
-            <div className="min-w-0 flex-1">
-              <p className="text-agent-on-surface-variant text-xs font-semibold tracking-wide uppercase">
-                {selectedProviderInfo?.name || activeModelPair[0]}
-              </p>
-              <p
-                className="text-sm font-semibold"
-                style={{ color: "var(--color-agent-on-surface)" }}
+            {activeModelPair ? (
+              <>
+                <div className="bg-agent-surface-low flex h-10 w-10 shrink-0 items-center justify-center rounded-lg">
+                  {ActiveIcon && <ActiveIcon className="size-6" />}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-agent-on-surface-variant text-xs font-semibold tracking-wide uppercase">
+                    {selectedProviderInfo?.name || activeModelPair[0]}
+                  </p>
+                  <p
+                    className="text-sm font-semibold"
+                    style={{ color: "var(--color-agent-on-surface)" }}
+                  >
+                    {activeModelPair[1]}
+                  </p>
+                  {selectedProviderInfo?.description && (
+                    <p className="text-agent-on-surface-variant mt-1 text-xs">
+                      {selectedProviderInfo.description}
+                    </p>
+                  )}
+                </div>
+              </>
+            ) : (
+              <span
+                className="flex-1 text-sm font-medium"
+                style={{ color: "var(--color-agent-on-surface-variant)" }}
               >
-                {activeModelPair[1]}
-              </p>
-              {selectedProviderInfo?.description && (
-                <p className="text-agent-on-surface-variant mt-1 text-xs">
-                  {selectedProviderInfo.description}
-                </p>
-              )}
-            </div>
+                {label}
+              </span>
+            )}
             <Icon
               name="chevronDown"
               className="text-agent-on-surface-variant h-4 w-4 shrink-0"

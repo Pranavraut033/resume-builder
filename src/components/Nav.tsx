@@ -15,6 +15,7 @@ import { Icon } from "./ui/Icon";
 
 const NAV_ITEMS = [
   { href: "/", label: "Dashboard", icon: "grid" as const },
+  { href: "/find-jobs", label: "Find Jobs", icon: "search" as const },
   { href: "/job/new", label: "Builder", icon: "edit" as const },
   { href: "/profile", label: "Profile", icon: "user" as const },
   { href: "/analytics/tokens", label: "Analytics", icon: "barChart" as const },
