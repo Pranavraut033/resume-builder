@@ -1,0 +1,56 @@
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1024" y2="1024" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#3b82f6"/>
+      <stop offset="0.55" stop-color="#2748c9"/>
+      <stop offset="1" stop-color="#1d2a78"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0.28" cy="0.22" r="0.9">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0.28"/>
+      <stop offset="0.5" stop-color="#ffffff" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="spark" x1="0" y1="0" x2="0" y2="1" gradientUnits="objectBoundingBox">
+      <stop offset="0" stop-color="#fde047"/>
+      <stop offset="1" stop-color="#f59e0b"/>
+    </linearGradient>
+    <linearGradient id="avatar" x1="0" y1="0" x2="0" y2="1" gradientUnits="objectBoundingBox">
+      <stop offset="0" stop-color="#bfdbfe"/>
+      <stop offset="1" stop-color="#60a5fa"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Background squircle -->
+  <rect x="0" y="0" width="1024" height="1024" rx="232" fill="url(#bg)"/>
+  <rect x="0" y="0" width="1024" height="1024" rx="232" fill="url(#glow)"/>
+
+  <!-- Document drop shadow -->
+  <rect x="252" y="196" width="520" height="660" rx="44" fill="#0b173f" opacity="0.28"/>
+  <!-- Document -->
+  <rect x="252" y="182" width="520" height="660" rx="44" fill="#ffffff"/>
+
+  <!-- Header: avatar + name bars -->
+  <circle cx="368" cy="278" r="46" fill="url(#avatar)"/>
+  <rect x="440" y="246" width="184" height="30" rx="15" fill="#1e293b"/>
+  <rect x="440" y="292" width="120" height="20" rx="10" fill="#3b82f6"/>
+
+  <!-- Divider -->
+  <rect x="324" y="378" width="376" height="5" rx="2.5" fill="#e2e8f0"/>
+
+  <!-- Body group 1 -->
+  <rect x="324" y="426" width="376" height="16" rx="8" fill="#cbd5e1"/>
+  <rect x="324" y="468" width="320" height="16" rx="8" fill="#cbd5e1"/>
+  <rect x="324" y="510" width="214" height="16" rx="8" fill="#cbd5e1"/>
+
+  <!-- Section header -->
+  <rect x="324" y="562" width="150" height="20" rx="10" fill="#3b82f6"/>
+
+  <!-- Body group 2 -->
+  <rect x="324" y="606" width="376" height="16" rx="8" fill="#cbd5e1"/>
+  <rect x="324" y="648" width="336" height="16" rx="8" fill="#cbd5e1"/>
+  <rect x="324" y="690" width="232" height="16" rx="8" fill="#cbd5e1"/>
+
+  <!-- AI sparkles -->
+  <path d="M760 110 C760 176 760 176 826 176 C760 176 760 176 760 242 C760 176 760 176 694 176 C760 176 760 176 760 110 Z" fill="url(#spark)"/>
+  <path d="M702 96 C702 122 702 122 728 122 C702 122 702 122 702 148 C702 122 702 122 676 122 C702 122 702 122 702 96 Z" fill="#fde047"/>
+  <circle cx="822" cy="118" r="11" fill="#fcd34d"/>
+</svg>
