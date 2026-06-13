@@ -18,6 +18,7 @@ jobs:
       contents: write
     outputs:
       release_id: ${{ steps.create_release.outputs.result }}
+      tag: ${{ steps.resolve_tag.outputs.tag }}
 
     steps:
       - name: Checkout repository
@@ -42,17 +43,30 @@ jobs:
               repo: context.repo.repo,
               tag_name: '${{ steps.resolve_tag.outputs.tag }}',
               name: 'Resume Builder ${{ steps.resolve_tag.outputs.tag }}',
-              body: `## Resume Builder ${{ steps.resolve_tag.outputs.tag }}\n\n### Installation\n\n1. Download \`Resume-Builder.dmg\` below\n2. Open the downloaded file\n3. Drag **Resume Builder** into **Applications**\n4. On first launch: right-click → Open → Open (to bypass macOS Gatekeeper)\n\n### Changelog\n\nSee [commits since last release](https://github.com/${{ github.repository }}/commits/${{ steps.resolve_tag.outputs.tag }}) for full changes.`,
+              body: `## Resume Builder ${{ steps.resolve_tag.outputs.tag }}\n\n### Installation\n\n**macOS**\n1. Download \`Resume.Builder_*_universal.dmg\` below\n2. Open the downloaded file\n3. Drag **Resume Builder** into **Applications**\n4. On first launch: right-click → Open → Open (to bypass macOS Gatekeeper)\n\n**Windows**\n1. Download the \`*-setup.exe\` installer below\n2. Run it and follow the prompts (Windows SmartScreen may warn about an unsigned app — click **More info → Run anyway**)\n\n**Linux**\n1. Download the \`.AppImage\` (portable) or \`.deb\` (Debian/Ubuntu) below\n2. For AppImage: \`chmod +x *.AppImage && ./*.AppImage\`\n3. For deb: \`sudo dpkg -i *.deb\`\n\n### Changelog\n\nSee [commits since last release](https://github.com/${{ github.repository }}/commits/${{ steps.resolve_tag.outputs.tag }}) for full changes.`,
               draft: true,
               prerelease: false
             });
             return data.id;
 
-  build-macos:
+  build:
     needs: create-release
-    runs-on: macos-latest
     permissions:
       contents: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: macos-latest
+            args: "--target universal-apple-darwin"
+            rust-targets: "aarch64-apple-darwin,x86_64-apple-darwin"
+          - platform: ubuntu-22.04
+            args: ""
+            rust-targets: ""
+          - platform: windows-latest
+            args: ""
+            rust-targets: ""
+    runs-on: ${{ matrix.platform }}
 
     steps:
       - name: Checkout repository
@@ -66,11 +80,19 @@ jobs:
 
       - name: Setup Rust toolchain
         uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.rust-targets }}
 
       - name: Cache Rust dependencies
         uses: Swatinem/rust-cache@v2
         with:
           workspaces: src-tauri
+
+      - name: Install Linux dependencies
+        if: matrix.platform == 'ubuntu-22.04'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf libxdo-dev
 
       - name: Install Node.js dependencies
         run: npm ci
@@ -79,6 +101,7 @@ jobs:
         run: npx prisma generate
 
       - name: Import self-signed certificate
+        if: matrix.platform == 'macos-latest'
         env:
           APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
           APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
@@ -109,37 +132,90 @@ jobs:
           APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
         with:
           releaseId: ${{ needs.create-release.outputs.release_id }}
-          updaterJsonPreferNsis: false
-          updaterJsonKeepUniversal: false
+          args: ${{ matrix.args }}
+          uploadUpdaterJson: false
+
+      - name: Cleanup keychain
+        if: always() && matrix.platform == 'macos-latest'
+        run: security delete-keychain build.keychain || true
+
+      - name: Collect updater info (macOS)
+        if: matrix.platform == 'macos-latest'
+        shell: bash
+        env:
+          TAG: ${{ needs.create-release.outputs.tag }}
+        run: |
+          DMG=$(find src-tauri/target/universal-apple-darwin/release/bundle/dmg -name "*.dmg" | head -1)
+          SIGNATURE=$(cat "${DMG}.sig")
+          FILENAME=$(basename "$DMG" | sed 's/ /./g')
+          URL="https://github.com/${{ github.repository }}/releases/download/${TAG}/${FILENAME}"
+          jq -n --arg url "$URL" --arg sig "$SIGNATURE" \
+            '{"darwin-x86_64": {"url": $url, "signature": $sig}, "darwin-aarch64": {"url": $url, "signature": $sig}}' \
+            > update-info.json
+
+      - name: Collect updater info (Linux)
+        if: matrix.platform == 'ubuntu-22.04'
+        shell: bash
+        env:
+          TAG: ${{ needs.create-release.outputs.tag }}
+        run: |
+          APPIMAGE=$(find src-tauri/target/release/bundle/appimage -name "*.AppImage" | head -1)
+          SIGNATURE=$(cat "${APPIMAGE}.sig")
+          FILENAME=$(basename "$APPIMAGE" | sed 's/ /./g')
+          URL="https://github.com/${{ github.repository }}/releases/download/${TAG}/${FILENAME}"
+          jq -n --arg url "$URL" --arg sig "$SIGNATURE" \
+            '{"linux-x86_64": {"url": $url, "signature": $sig}}' \
+            > update-info.json
+
+      - name: Collect updater info (Windows)
+        if: matrix.platform == 'windows-latest'
+        shell: bash
+        env:
+          TAG: ${{ needs.create-release.outputs.tag }}
+        run: |
+          EXE=$(find src-tauri/target/release/bundle/nsis -name "*.exe" | head -1)
+          SIGNATURE=$(cat "${EXE}.sig")
+          FILENAME=$(basename "$EXE" | sed 's/ /./g')
+          URL="https://github.com/${{ github.repository }}/releases/download/${TAG}/${FILENAME}"
+          jq -n --arg url "$URL" --arg sig "$SIGNATURE" \
+            '{"windows-x86_64": {"url": $url, "signature": $sig}}' \
+            > update-info.json
+
+      - name: Upload updater info
+        uses: actions/upload-artifact@v4
+        with:
+          name: update-info-${{ matrix.platform }}
+          path: update-info.json
+          retention-days: 1
+
+  publish-release:
+    needs: [create-release, build]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Download updater info
+        uses: actions/download-artifact@v4
+        with:
+          pattern: update-info-*
+          path: update-info
+          merge-multiple: false
 
       - name: Generate update manifest
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ needs.create-release.outputs.tag }}
         run: |
-          TAG="${{ github.ref_name }}"
           VERSION="${TAG#v}"
-          REPO="${{ github.repository }}"
           DATE=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
-          DMG_URL="https://github.com/${REPO}/releases/download/${TAG}/Resume.Builder_${VERSION}_x64.dmg"
-          SIGNATURE=$(cat src-tauri/target/release/bundle/dmg/*.dmg.sig 2>/dev/null || echo "")
-
-          cat > update.json <<EOF
-          {
-            "version": "${VERSION}",
-            "notes": "See https://github.com/${REPO}/releases/tag/${TAG} for details.",
-            "pub_date": "${DATE}",
-            "platforms": {
-              "darwin-x86_64": {
-                "url": "${DMG_URL}",
-                "signature": "${SIGNATURE}"
-              },
-              "darwin-aarch64": {
-                "url": "${DMG_URL}",
-                "signature": "${SIGNATURE}"
-              }
-            }
-          }
-          EOF
+          jq -s 'add' update-info/*/update-info.json > platforms.json
+          jq -n \
+            --arg version "$VERSION" \
+            --arg notes "See https://github.com/${{ github.repository }}/releases/tag/${TAG} for details." \
+            --arg pub_date "$DATE" \
+            --slurpfile platforms platforms.json \
+            '{version: $version, notes: $notes, pub_date: $pub_date, platforms: $platforms[0]}' \
+            > update.json
 
       - name: Upload update manifest to release
         uses: actions/github-script@v7
@@ -168,7 +244,3 @@ jobs:
               release_id: process.env.RELEASE_ID,
               draft: false
             });
-
-      - name: Cleanup keychain
-        if: always()
-        run: security delete-keychain build.keychain || true
