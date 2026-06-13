@@ -20,17 +20,17 @@ The header (job info, Resume/Cover Letter tab switcher, save button) and the sec
 
 ## 2. Goals
 
-| Goal | Success Metric |
-|---|---|
-| WYSIWYG: the document canvas output matches the export exactly | No visible difference between canvas render and downloaded PDF |
-| Users edit fields by clicking on them in the rendered document | Zero form-panel visits needed for basic edits |
-| Section order is reorderable by drag-and-drop at the document level | Sections can be dragged and dropped in the preview |
-| AI suggestions appear as inline highlights on the document text | Suggestions visible without opening any panel or modal |
-| The AI chat assistant is visible alongside the document, not behind a FAB | Chat panel is persistently docked next to the canvas in a dedicated column |
-| Cover letter inline editing replaces the separate RTE panel | Full-screen cover letter document with click-to-edit |
-| Template switching is available inline without leaving the editor | One-click switch with instant re-render, no data loss |
-| Customization options (colors, fonts, spacing) are accessible from the editor surface | User can adjust theme without navigating away from the document |
-| No layout regression on the header / tab switching area | Header parity with current design |
+| Goal                                                                                  | Success Metric                                                             |
+| ------------------------------------------------------------------------------------- | -------------------------------------------------------------------------- |
+| WYSIWYG: the document canvas output matches the export exactly                        | No visible difference between canvas render and downloaded PDF             |
+| Users edit fields by clicking on them in the rendered document                        | Zero form-panel visits needed for basic edits                              |
+| Section order is reorderable by drag-and-drop at the document level                   | Sections can be dragged and dropped in the preview                         |
+| AI suggestions appear as inline highlights on the document text                       | Suggestions visible without opening any panel or modal                     |
+| The AI chat assistant is visible alongside the document, not behind a FAB             | Chat panel is persistently docked next to the canvas in a dedicated column |
+| Cover letter inline editing replaces the separate RTE panel                           | Full-screen cover letter document with click-to-edit                       |
+| Template switching is available inline without leaving the editor                     | One-click switch with instant re-render, no data loss                      |
+| Customization options (colors, fonts, spacing) are accessible from the editor surface | User can adjust theme without navigating away from the document            |
+| No layout regression on the header / tab switching area                               | Header parity with current design                                          |
 
 ---
 
@@ -51,24 +51,24 @@ The header (job info, Resume/Cover Letter tab switcher, save button) and the sec
 
 ### Resume Editor
 
-| Aspect | Current | Target |
-|---|---|---|
-| **Primary surface** | Left sidebar (section nav) + center form panel + right preview | Single scrollable WYSIWYG document canvas with inline editing |
-| **Editing model** | Click section in left nav → fill in text fields in center panel | Click any text in the rendered document → editable input appears in-place |
-| **AI suggestions** | Chat response replaces full text blocks | Inline highlights/underlines on specific text in the live document; one-click to accept |
-| **AI chat** | Hidden behind a floating FAB button | Persistently docked in a side column alongside the document canvas |
-| **Section reorder** | Not supported at section level (only items within a section) | Drag handle on each section header to reorder sections |
-| **Item reorder (within section)** | Already works via `@dnd-kit` in SectionEditor | Preserved; drag handles appear on hover within each section |
-| **Left sidebar** | Always-visible section navigation (56px) | Replaced by a **compact section outline panel** that collapses; sections scroll into view when clicked |
-| **Preview** | Separate resizable right panel showing `TemplateRenderer` | The center document canvas IS the template renderer (WYSIWYG) with editing affordances overlaid |
+| Aspect                            | Current                                                         | Target                                                                                                 |
+| --------------------------------- | --------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------ |
+| **Primary surface**               | Left sidebar (section nav) + center form panel + right preview  | Single scrollable WYSIWYG document canvas with inline editing                                          |
+| **Editing model**                 | Click section in left nav → fill in text fields in center panel | Click any text in the rendered document → editable input appears in-place                              |
+| **AI suggestions**                | Chat response replaces full text blocks                         | Inline highlights/underlines on specific text in the live document; one-click to accept                |
+| **AI chat**                       | Hidden behind a floating FAB button                             | Persistently docked in a side column alongside the document canvas                                     |
+| **Section reorder**               | Not supported at section level (only items within a section)    | Drag handle on each section header to reorder sections                                                 |
+| **Item reorder (within section)** | Already works via `@dnd-kit` in SectionEditor                   | Preserved; drag handles appear on hover within each section                                            |
+| **Left sidebar**                  | Always-visible section navigation (56px)                        | Replaced by a **compact section outline panel** that collapses; sections scroll into view when clicked |
+| **Preview**                       | Separate resizable right panel showing `TemplateRenderer`       | The center document canvas IS the template renderer (WYSIWYG) with editing affordances overlaid        |
 
 ### Cover Letter Editor
 
-| Aspect | Current | Target |
-|---|---|---|
+| Aspect              | Current                                                            | Target                                                                                                         |
+| ------------------- | ------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------- |
 | **Primary surface** | Left panel: RTE (rich-text editor) + right panel: rendered preview | Single full-height document canvas showing the rendered cover letter, click body text to enter RTE mode inline |
-| **Generate button** | Top of left panel | Moves to a floating action bar above the document (matching the resume section toolbar pattern) |
-| **Model selector** | Top of left panel | Moves to the same floating action bar |
+| **Generate button** | Top of left panel                                                  | Moves to a floating action bar above the document (matching the resume section toolbar pattern)                |
+| **Model selector**  | Top of left panel                                                  | Moves to the same floating action bar                                                                          |
 
 ---
 
@@ -142,15 +142,16 @@ Section-level drag and drop uses `@dnd-kit` `DndContext` + `SortableContext` at 
 
 Each rendered text node in the template is replaced by an `<InlineField>` component:
 
-| Field type | Rendered as | Edit trigger | Edit widget |
-|---|---|---|---|
-| Short text (name, title, company, etc.) | `<span>` | Click | `<input>` overlay, auto-width |
-| Long text (summary, description) | `<p>` or rich text | Click | `<textarea>` or inline RTE, auto-height |
-| Date range | Two date strings | Click either | Two `<input type="month">` pickers |
-| Skills / tags | Inline chips | Click chip to edit, `+` to add | Chip input (existing `TagsEditor` pattern) |
-| Bullet list items | `<li>` elements | Click bullet | Inline `<textarea>`, `Enter` adds new bullet |
+| Field type                              | Rendered as        | Edit trigger                   | Edit widget                                  |
+| --------------------------------------- | ------------------ | ------------------------------ | -------------------------------------------- |
+| Short text (name, title, company, etc.) | `<span>`           | Click                          | `<input>` overlay, auto-width                |
+| Long text (summary, description)        | `<p>` or rich text | Click                          | `<textarea>` or inline RTE, auto-height      |
+| Date range                              | Two date strings   | Click either                   | Two `<input type="month">` pickers           |
+| Skills / tags                           | Inline chips       | Click chip to edit, `+` to add | Chip input (existing `TagsEditor` pattern)   |
+| Bullet list items                       | `<li>` elements    | Click bullet                   | Inline `<textarea>`, `Enter` adds new bullet |
 
 `InlineField` rules:
+
 - When not focused: renders exactly as the template renders it (no visual difference)
 - When focused: light highlight ring, cursor blink, escape cancels, blur/enter commits
 - Commits call `updateResumeState()` from context (same as today)
@@ -198,18 +199,18 @@ For the **cover letter**, the same template picker switches the cover letter tem
 
 The customization drawer (§5.4) exposes:
 
-| Control | Field | Effect |
-|---|---|---|
-| Primary color | `primaryColor` | Accent bars, headings, links |
-| Secondary color | `secondaryColor` | Subheadings, dividers |
-| Accent color | `accentColor` | Highlights, chips |
-| Background | `backgroundColor` | Page background |
-| Text color | `textColor` | Body text |
-| Font family | `fontFamily` | All text in document |
-| Text size | `textSize` | Base font size class |
-| Line height | `lineHeight` | Body line spacing |
-| Margin | `marginSize` | Page margin preset |
-| Page format | `pageFormat` | A4 / US Letter |
+| Control         | Field             | Effect                       |
+| --------------- | ----------------- | ---------------------------- |
+| Primary color   | `primaryColor`    | Accent bars, headings, links |
+| Secondary color | `secondaryColor`  | Subheadings, dividers        |
+| Accent color    | `accentColor`     | Highlights, chips            |
+| Background      | `backgroundColor` | Page background              |
+| Text color      | `textColor`       | Body text                    |
+| Font family     | `fontFamily`      | All text in document         |
+| Text size       | `textSize`        | Base font size class         |
+| Line height     | `lineHeight`      | Body line spacing            |
+| Margin          | `marginSize`      | Page margin preset           |
+| Page format     | `pageFormat`      | A4 / US Letter               |
 
 All fields map directly to existing `SanitizedCustomization` properties — no new data model additions needed. Changes propagate through `updateCustomizationState()` and re-render the canvas in real time.
 
@@ -250,25 +251,25 @@ Positioned above the document (sticky at top of canvas area, below the shared to
 
 ### New Components
 
-| Component | Location | Purpose |
-|---|---|---|
-| `DocumentCanvas` | `src/components/job/DocumentCanvas.tsx` | Scrollable WYSIWYG canvas wrapping the template renderer with inline edit overlays and AI suggestion highlights |
-| `EditableSection` | `src/components/job/resume/EditableSection.tsx` | Sortable section container with hover affordances and drag handle |
-| `InlineField` | `src/components/job/resume/InlineField.tsx` | Click-to-edit wrapper for any text node |
-| `InlineSuggestion` | `src/components/job/resume/InlineSuggestion.tsx` | Highlight + accept/dismiss tooltip anchored to an `InlineField` |
-| `SectionOutlinePanel` | `src/components/job/resume/SectionOutlinePanel.tsx` | Collapsible left outline replacing `ResumeSectionNav` |
-| `CoverLetterActionBar` | `src/components/job/CoverLetterActionBar.tsx` | Floating action bar for generate + model select |
-| `TemplatePicker` | `src/components/job/TemplatePicker.tsx` | Toolbar popover with thumbnail cards for all available templates |
-| `CustomizationDrawer` | `src/components/job/CustomizationDrawer.tsx` | Slide-in right drawer wrapping the existing `ThemeCustomizationPanel` |
+| Component              | Location                                            | Purpose                                                                                                         |
+| ---------------------- | --------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
+| `DocumentCanvas`       | `src/components/job/DocumentCanvas.tsx`             | Scrollable WYSIWYG canvas wrapping the template renderer with inline edit overlays and AI suggestion highlights |
+| `EditableSection`      | `src/components/job/resume/EditableSection.tsx`     | Sortable section container with hover affordances and drag handle                                               |
+| `InlineField`          | `src/components/job/resume/InlineField.tsx`         | Click-to-edit wrapper for any text node                                                                         |
+| `InlineSuggestion`     | `src/components/job/resume/InlineSuggestion.tsx`    | Highlight + accept/dismiss tooltip anchored to an `InlineField`                                                 |
+| `SectionOutlinePanel`  | `src/components/job/resume/SectionOutlinePanel.tsx` | Collapsible left outline replacing `ResumeSectionNav`                                                           |
+| `CoverLetterActionBar` | `src/components/job/CoverLetterActionBar.tsx`       | Floating action bar for generate + model select                                                                 |
+| `TemplatePicker`       | `src/components/job/TemplatePicker.tsx`             | Toolbar popover with thumbnail cards for all available templates                                                |
+| `CustomizationDrawer`  | `src/components/job/CustomizationDrawer.tsx`        | Slide-in right drawer wrapping the existing `ThemeCustomizationPanel`                                           |
 
 ### Modified Components
 
-| Component | Change |
-|---|---|
-| `ResumeEditor.tsx` | Replace `EditorLayout` + `ResumeSectionNav` + `SectionEditor` with `DocumentCanvas` + `SectionOutlinePanel` |
-| `CoverLetterEditor.tsx` | Replace left-panel layout with `DocumentCanvas` + `CoverLetterActionBar`; body area activates inline RTE |
-| `JobPageLayout.tsx` | Remove resizable right preview panel from "edit" tab; keep it in "export" tab. Add template picker + customize button to toolbar row. Wire `CustomizationDrawer` open/close state. Replace `ChatFAB` with a persistently docked `ChatPanel` column in the edit tab layout. |
-| `SectionEditor.tsx` | Logic extracted into `InlineField`/`EditableSection` — file may be deprecated or repurposed for fallback |
+| Component               | Change                                                                                                                                                                                                                                                                     |
+| ----------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `ResumeEditor.tsx`      | Replace `EditorLayout` + `ResumeSectionNav` + `SectionEditor` with `DocumentCanvas` + `SectionOutlinePanel`                                                                                                                                                                |
+| `CoverLetterEditor.tsx` | Replace left-panel layout with `DocumentCanvas` + `CoverLetterActionBar`; body area activates inline RTE                                                                                                                                                                   |
+| `JobPageLayout.tsx`     | Remove resizable right preview panel from "edit" tab; keep it in "export" tab. Add template picker + customize button to toolbar row. Wire `CustomizationDrawer` open/close state. Replace `ChatFAB` with a persistently docked `ChatPanel` column in the edit tab layout. |
+| `SectionEditor.tsx`     | Logic extracted into `InlineField`/`EditableSection` — file may be deprecated or repurposed for fallback                                                                                                                                                                   |
 
 ### Unchanged Components
 
@@ -312,7 +313,7 @@ User clicks text
 
 ## 11. Visual Design Principles
 
-1. **True WYSIWYG**: The document canvas is pixel-identical to the exported PDF. There is no "preview" — the canvas *is* the output. Template, fonts, colors, spacing, and page margins all render exactly as they will in the download.
+1. **True WYSIWYG**: The document canvas is pixel-identical to the exported PDF. There is no "preview" — the canvas _is_ the output. Template, fonts, colors, spacing, and page margins all render exactly as they will in the download.
 2. **Work directly in the document**: There is no separate "editor mode" vs "preview mode". The template render IS the editor. Clicking any text activates it for editing in place.
 3. **Instant reflection**: Every keystroke in an inline field updates the document in real time. No save-to-preview step, no refresh.
 4. **AI suggestions live on the text**: When the AI identifies an improvement, it marks it directly on the affected text in the document — not in a side panel response. The highlight is unobtrusive until the user hovers; then accept/dismiss controls appear.
@@ -327,6 +328,7 @@ User clicks text
 ## 12. Implementation Phases
 
 ### Phase 1 — WYSIWYG Document Canvas (core)
+
 - `DocumentCanvas` component wrapping `TemplateRenderer` (WYSIWYG baseline)
 - `EditableSection` with section-level DnD
 - `InlineField` for short text fields (name, title, company, dates)
@@ -334,26 +336,31 @@ User clicks text
 - Remove right preview panel from edit tab, keep in export tab
 
 ### Phase 2 — Chat alongside
+
 - Promote `ChatPanel` from FAB-hidden to persistently docked column in edit tab layout
 - Define minimum canvas width threshold at which chat panel auto-collapses
 
 ### Phase 3 — Template & Customization in editor
+
 - `TemplatePicker` popover in toolbar with thumbnail cards
 - `CustomizationDrawer` slide-in panel wrapping `ThemeCustomizationPanel`
 - Real-time canvas re-render on template/theme change
 
 ### Phase 4 — Resume Editor completeness
+
 - `InlineField` for bullet lists, tags/skills, long text / RTE
 - Add / remove item controls within sections
 - Section visibility toggle
 
 ### Phase 5 — Cover Letter Editor
+
 - `DocumentCanvas` for cover letter
 - `CoverLetterActionBar` (generate + model selector)
 - Inline RTE activation on body click
 - Template picker + customization drawer wired to cover letter canvas
 
 ### Phase 6 — Inline AI Suggestions
+
 - `InlineSuggestion` component: highlight + accept/dismiss tooltip on `InlineField`
 - Define annotation schema for structured field-path + suggested-value in AI chat responses
 - Wire AI chat response annotations to `DocumentCanvas` suggestion highlights

@@ -119,7 +119,7 @@ export default function FontSelector({
           {/* Trigger Button with Preview and Search Input */}
           <div className="relative flex w-full items-center">
             <Combobox.Input
-              className={`border-agent-outline w-full rounded-l-lg border bg-agent-surface-lowest px-3 py-2 text-sm text-agent-on-surface placeholder-gray-400 shadow-agent-card transition-all focus:ring-2 focus:outline-none`}
+              className={`border-agent-outline bg-agent-surface-lowest text-agent-on-surface shadow-agent-card w-full rounded-l-lg border px-3 py-2 text-sm placeholder-gray-400 transition-all focus:ring-2 focus:outline-none`}
               displayValue={(font: string) => font}
               onChange={(event) => setQuery(event.target.value)}
               placeholder="Search fonts..."
@@ -140,7 +140,7 @@ export default function FontSelector({
             leaveTo="opacity-0"
             afterLeave={() => setQuery("")}
           >
-            <ComboboxOptions className="border-agent-outline-variant bg-agent-surface absolute top-full right-0 left-0 z-50 mt-2 overflow-hidden rounded-lg border shadow-agent-modal focus:outline-none">
+            <ComboboxOptions className="border-agent-outline-variant bg-agent-surface shadow-agent-modal absolute top-full right-0 left-0 z-50 mt-2 overflow-hidden rounded-lg border focus:outline-none">
               {/* Search Results Info */}
               {query && (
                 <div className="border-agent-outline-variant bg-agent-surface-high text-agent-on-surface-variant sticky top-0 border-b px-3 py-2 text-xs font-semibold">

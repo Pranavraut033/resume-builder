@@ -10,6 +10,7 @@
 ---
 
 ## TODOs
+
 - [x] **update them for base profile page and Token Usage Analytics**
   - Themes need updating for the base profile page and Token Usage Analytics to improve visual consistency and user experience.
 - [ ] **Update settings page**

@@ -9,6 +9,7 @@ This guide documents the reusable design system components extracted from the Se
 Top-level page heading component for all main routes. Combines title, optional description, badge/metadata, and action slots.
 
 **Props:**
+
 - `title` _(string)_ — Main heading text
 - `description` _(string, optional)_ — Subtitle or tagline
 - `badge` _(ReactNode, optional)_ — Element rendered inline with the title (e.g., `<Badge />`)
@@ -16,6 +17,7 @@ Top-level page heading component for all main routes. Combines title, optional d
 - `className` _(string, optional)_ — Additional Tailwind classes
 
 **Example:**
+
 ```tsx
 import { PageHeader, Badge } from "@/components/ui";
 
@@ -25,9 +27,7 @@ export function MyPage() {
       title="Settings"
       description="Configure your application."
       badge={
-        <Badge icon={<LockIcon size={11} />}>
-          Stored Locally & Encrypted
-        </Badge>
+        <Badge icon={<LockIcon size={11} />}>Stored Locally & Encrypted</Badge>
       }
       actions={<Button onClick={handleSave}>Save</Button>}
     />
@@ -36,6 +36,7 @@ export function MyPage() {
 ```
 
 **Design Notes:**
+
 - Title is always bold, 2xl size.
 - Description uses `text-agent-on-surface-variant` for subtle contrast.
 - Badge renders inline with the title for emphasis.
@@ -48,12 +49,14 @@ export function MyPage() {
 Semantic section wrapper with a consistent heading style. Pairs well with `SurfacePanel` for layout organization.
 
 **Props:**
+
 - `title` _(string)_ — Section heading
 - `icon` _(ReactNode, optional)_ — Icon rendered before the title (colored with `text-agent-primary`)
 - `children` _(ReactNode)_ — Section content
 - `className` _(string, optional)_ — Additional Tailwind classes
 
 **Example:**
+
 ```tsx
 import { PageSection, SurfacePanel } from "@/components/ui";
 
@@ -73,11 +76,13 @@ export function MyPage() {
 Rounded container with `bg-agent-surface-low` background. Use inside `PageSection` for grouped content areas.
 
 **Props:**
+
 - `children` _(ReactNode)_ — Panel content
 - `stack` _(boolean, optional)_ — If `true`, applies `space-y-5` for vertical spacing between children
 - `className` _(string, optional)_ — Additional Tailwind classes
 
 **Example:**
+
 ```tsx
 <PageSection title="Preferences">
   <SurfacePanel stack>
@@ -89,6 +94,7 @@ Rounded container with `bg-agent-surface-low` background. Use inside `PageSectio
 ```
 
 **Design Notes:**
+
 - Provides subtle visual grouping with soft background.
 - Use `stack` when children are independent rows; omit for custom layouts.
 
@@ -99,12 +105,14 @@ Rounded container with `bg-agent-surface-low` background. Use inside `PageSectio
 Inline pill badge for status, labels, and metadata. Supports five color variants.
 
 **Props:**
+
 - `children` _(ReactNode)_ — Badge text
 - `variant` _(enum, default: `"default"`)_ — One of: `"default"`, `"success"`, `"warning"`, `"error"`, `"info"`
 - `icon` _(ReactNode, optional)_ — Icon rendered before text
 - `className` _(string, optional)_ — Additional Tailwind classes
 
 **Variants:**
+
 - `default` — Gray surface-low background
 - `success` — Green secondary-container
 - `warning` — Yellow (tailored for light/dark modes)
@@ -112,6 +120,7 @@ Inline pill badge for status, labels, and metadata. Supports five color variants
 - `info` — Blue primary-container
 
 **Example:**
+
 ```tsx
 import { Badge } from "@/components/ui";
 
@@ -127,6 +136,7 @@ import { Badge } from "@/components/ui";
 ```
 
 **Design Notes:**
+
 - Always rounded-full for pill shape.
 - Use for quick visual identification of state or category.
 - Icons are center-aligned and shrink to prevent layout shift.
@@ -138,12 +148,14 @@ import { Badge } from "@/components/ui";
 Dismissible inline banner for feedback messages (errors, warnings, success, info).
 
 **Props:**
+
 - `children` _(ReactNode)_ — Alert message content
 - `variant` _(enum, default: `"info"`)_ — One of: `"error"`, `"warning"`, `"success"`, `"info"`
 - `onDismiss` _(function, optional)_ — Callback when dismiss button is clicked. If omitted, no dismiss button shown.
 - `className` _(string, optional)_ — Additional Tailwind classes
 
 **Example:**
+
 ```tsx
 import { Alert } from "@/components/ui";
 
@@ -156,15 +168,14 @@ return (
         Error loading models: {error}
       </Alert>
     )}
-    
-    <Alert variant="success">
-      Settings saved successfully!
-    </Alert>
+
+    <Alert variant="success">Settings saved successfully!</Alert>
   </>
 );
 ```
 
 **Design Notes:**
+
 - Alert has `role="alert"` for accessibility.
 - Dismiss button is always aligned right with minimal styling.
 - Use at the top of a section or page for visibility.
@@ -177,6 +188,7 @@ return (
 Accessible on/off switch with `role="switch"` and ARIA attributes.
 
 **Props:**
+
 - `checked` _(boolean)_ — Current on/off state
 - `onChange` _(function)_ — Callback `(checked: boolean) => void`
 - `label` _(string, optional)_ — Accessible label (used for `aria-label`)
@@ -184,6 +196,7 @@ Accessible on/off switch with `role="switch"` and ARIA attributes.
 - `className` _(string, optional)_ — Additional Tailwind classes
 
 **Example:**
+
 ```tsx
 import { Toggle } from "@/components/ui";
 
@@ -199,6 +212,7 @@ return (
 ```
 
 **Design Notes:**
+
 - Height: 6 (1.5rem), Width: 11 (2.75rem).
 - Thumb (inner circle) moves 22px when checked.
 - Focus ring is 2px with `ring-offset-2`.
@@ -211,6 +225,7 @@ return (
 Generic tabbed control for selecting one value from a set of options. Fully type-safe with TypeScript.
 
 **Props:**
+
 - `options` _(SegmentOption<T>[])_ — Array of `{ value: T, label: string, icon?: ReactNode }`
 - `value` _(T)_ — Currently selected value
 - `onChange` _(function)_ — Callback `(value: T) => void`
@@ -218,9 +233,11 @@ Generic tabbed control for selecting one value from a set of options. Fully type
 - `className` _(string, optional)_ — Additional Tailwind classes
 
 **Generic Type:**
+
 - `T` — Literal string type of option values
 
 **Example:**
+
 ```tsx
 import { SegmentedControl } from "@/components/ui";
 
@@ -254,6 +271,7 @@ return (
 ```
 
 **Design Notes:**
+
 - Renders as a compact inline group with `bg-agent-surface-container` background.
 - Active option has `bg-agent-surface-lowest` with subtle shadow.
 - Inactive options are transparent with `text-agent-on-surface-variant`.
@@ -267,12 +285,14 @@ return (
 Horizontal layout for a settings row: label + description (left), control (right).
 
 **Props:**
+
 - `label` _(string)_ — Row title
 - `description` _(string, optional)_ — Subtitle or explanation
 - `control` _(ReactNode)_ — Interactive element (button, toggle, select, etc.)
 - `className` _(string, optional)_ — Additional Tailwind classes
 
 **Example:**
+
 ```tsx
 import { SettingsRow, Toggle, SegmentedControl } from "@/components/ui";
 
@@ -285,7 +305,7 @@ return (
         <Toggle checked={telemetry} onChange={setTelemetry} />
       }
     />
-    
+
     <SettingsRow
       label="Interface Theme"
       description="Switch between Light and Dark mode"
@@ -298,6 +318,7 @@ return (
 ```
 
 **Design Notes:**
+
 - Flex layout: label (flex-grow) on left, control (shrink-0) on right.
 - Description is `text-xs` gray with reduced visual weight.
 - Ensures controls don't wrap on narrower viewports via `min-w-0` on label side.
@@ -311,6 +332,7 @@ return (
 Enhanced with new variants and padding option.
 
 **Props:**
+
 - `children` _(ReactNode)_ — Card content
 - `padding` _(enum, default: `"md"`)_ — One of: `"sm"`, `"md"`, `"lg"`, `"none"`
 - `shadow` _(boolean, default: `true`)_ — If `true`, applies card shadow
@@ -318,6 +340,7 @@ Enhanced with new variants and padding option.
 - `className` _(string, optional)_ — Additional Tailwind classes
 
 **New in this release:**
+
 - `surface-low` variant for softer, less prominent cards
 - `none` padding option for custom layouts
 
@@ -328,6 +351,7 @@ Enhanced with new variants and padding option.
 Enhanced with gradient variant.
 
 **Props:**
+
 - `children` _(ReactNode)_ — Button text
 - `variant` _(enum, default: `"primary"`)_ — One of: `"primary"`, `"secondary"`, `"danger"`, `"ghost"`, `"gradient"`, `"blocky"`
 - `size` _(enum, default: `"md"`)_ — One of: `"sm"`, `"md"`, `"lg"`
@@ -336,9 +360,11 @@ Enhanced with gradient variant.
 - Standard `<button>` attributes (onClick, disabled, etc.)
 
 **New in this release:**
+
 - `gradient` variant: diagonal gradient from primary to primary-container with smooth hover opacity transition
 
 **Example:**
+
 ```tsx
 <Button variant="gradient" size="sm" icon={<RefreshIcon />}>
   Test Connection
@@ -352,6 +378,7 @@ Enhanced with gradient variant.
 ### Color System
 
 All components use the Material Design 3 color system via CSS variables:
+
 - `--color-agent-primary`, `--color-agent-on-primary`
 - `--color-agent-surface`, `--color-agent-on-surface`
 - `--color-agent-surface-container`, `--color-agent-surface-low`
@@ -374,6 +401,7 @@ All components use the Material Design 3 color system via CSS variables:
 ### Accessibility
 
 All interactive components include:
+
 - Semantic ARIA roles (`role="switch"`, `role="group"`, `role="alert"`)
 - `aria-checked`, `aria-pressed`, `aria-label` attributes
 - Focus indicators with consistent `focus:ring-2` pattern
@@ -484,6 +512,7 @@ export { Toggle } from "./Toggle";
 ```
 
 **Import pattern:**
+
 ```tsx
 import {
   PageHeader,

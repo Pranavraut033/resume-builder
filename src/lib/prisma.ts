@@ -7,7 +7,8 @@ const globalForPrisma = globalThis as unknown as {
 };
 
 // Create adapter with better-sqlite3
-const dbPath = process.env.DATABASE_URL?.replace("file:", "") || "./prisma/dev.db";
+const dbPath =
+  process.env.DATABASE_URL?.replace("file:", "") || "./prisma/dev.db";
 const _db = new Database(dbPath);
 const adapter = new PrismaBetterSqlite3(
   { url: `file:${dbPath}` },

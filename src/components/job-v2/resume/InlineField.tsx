@@ -136,7 +136,7 @@ export function InlineField({
         // Render as plain inline text so it flows exactly like the value it
         // replaces — inline-block here collapses to min-width inside the
         // templates' block layout and breaks wrapping.
-        "box-decoration-clone cursor-text rounded-sm transition-all duration-100",
+        "cursor-text rounded-sm box-decoration-clone transition-all duration-100",
         !disabled &&
           "hover:ring-agent-primary/40 hover:bg-agent-primary/5 hover:ring-1",
         !value && "text-agent-on-surface-variant opacity-50",

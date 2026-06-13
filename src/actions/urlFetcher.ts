@@ -1,4 +1,4 @@
-'use server';
+"use server";
 
 /**
  * Server action to fetch and extract job description content from a URL
@@ -27,24 +27,24 @@ export async function fetchJobDescriptionFromUrl(
     } catch {
       return {
         success: false,
-        error: 'Invalid URL format. Please enter a valid URL.',
+        error: "Invalid URL format. Please enter a valid URL.",
       };
     }
 
     // Only allow http/https protocols
-    if (!['http:', 'https:'].includes(validatedUrl.protocol)) {
+    if (!["http:", "https:"].includes(validatedUrl.protocol)) {
       return {
         success: false,
-        error: 'Only HTTP and HTTPS URLs are supported.',
+        error: "Only HTTP and HTTPS URLs are supported.",
       };
     }
 
     // Fetch the URL content
     const response = await fetch(url, {
-      method: 'GET',
+      method: "GET",
       headers: {
-        'User-Agent':
-          'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+        "User-Agent":
+          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
       },
       signal: AbortSignal.timeout(10000), // 10 second timeout
     });
@@ -57,13 +57,13 @@ export async function fetchJobDescriptionFromUrl(
     }
 
     // Get the content type
-    const contentType = response.headers.get('content-type') || '';
+    const contentType = response.headers.get("content-type") || "";
 
     // Check if it's HTML
-    if (!contentType.includes('text/html')) {
+    if (!contentType.includes("text/html")) {
       return {
         success: false,
-        error: 'URL does not point to an HTML page.',
+        error: "URL does not point to an HTML page.",
       };
     }
 
@@ -72,29 +72,29 @@ export async function fetchJobDescriptionFromUrl(
     // Basic text extraction - remove script/style tags and strip HTML
     const textContent = html
       // Remove script tags and their content
-      .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
+      .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, "")
       // Remove style tags and their content
-      .replace(/<style\b[^<]*(?:(?!<\/style>)<[^<]*)*<\/style>/gi, '')
+      .replace(/<style\b[^<]*(?:(?!<\/style>)<[^<]*)*<\/style>/gi, "")
       // Remove HTML comments
-      .replace(/<!--[\s\S]*?-->/g, '')
+      .replace(/<!--[\s\S]*?-->/g, "")
       // Remove all HTML tags
-      .replace(/<[^>]+>/g, ' ')
+      .replace(/<[^>]+>/g, " ")
       // Decode common HTML entities
-      .replace(/&nbsp;/g, ' ')
-      .replace(/&amp;/g, '&')
-      .replace(/&lt;/g, '<')
-      .replace(/&gt;/g, '>')
+      .replace(/&nbsp;/g, " ")
+      .replace(/&amp;/g, "&")
+      .replace(/&lt;/g, "<")
+      .replace(/&gt;/g, ">")
       .replace(/&quot;/g, '"')
       .replace(/&#39;/g, "'")
       // Remove multiple spaces
-      .replace(/\s+/g, ' ')
+      .replace(/\s+/g, " ")
       // Trim
       .trim();
 
     if (!textContent || textContent.length < 50) {
       return {
         success: false,
-        error: 'Could not extract meaningful content from the URL.',
+        error: "Could not extract meaningful content from the URL.",
       };
     }
 
@@ -103,13 +103,13 @@ export async function fetchJobDescriptionFromUrl(
       content: textContent,
     };
   } catch (error) {
-    console.error('Error fetching URL:', error);
+    console.error("Error fetching URL:", error);
 
     if (error instanceof Error) {
-      if (error.name === 'TimeoutError') {
+      if (error.name === "TimeoutError") {
         return {
           success: false,
-          error: 'Request timed out. Please try again.',
+          error: "Request timed out. Please try again.",
         };
       }
       return {
@@ -120,7 +120,7 @@ export async function fetchJobDescriptionFromUrl(
 
     return {
       success: false,
-      error: 'An unknown error occurred while fetching the URL.',
+      error: "An unknown error occurred while fetching the URL.",
     };
   }
 }

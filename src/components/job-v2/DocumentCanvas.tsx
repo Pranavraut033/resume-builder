@@ -206,10 +206,7 @@ export function DocumentCanvas({
         {/* The actual template — rendered as-is (WYSIWYG output).
             InlineEditProvider makes every wired field click-to-edit. */}
         <div className="shadow-agent-modal rounded-sm bg-white ring-1 ring-black/5">
-          <InlineEditProvider
-            resume={resume}
-            updateResume={updateResumeState}
-          >
+          <InlineEditProvider resume={resume} updateResume={updateResumeState}>
             <TemplateRenderer resume={resume} customization={customization} />
           </InlineEditProvider>
         </div>

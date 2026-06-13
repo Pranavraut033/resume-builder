@@ -9,30 +9,34 @@ npm run lint:fix && npm run format && npm run type-check
 
 ## 📋 Commands
 
-| Command | Description |
-|---------|-------------|
-| `npm run lint` | Check for code quality issues |
-| `npm run lint:fix` | Auto-fix ESLint issues |
-| `npm run format` | Format code with Prettier |
+| Command                | Description                       |
+| ---------------------- | --------------------------------- |
+| `npm run lint`         | Check for code quality issues     |
+| `npm run lint:fix`     | Auto-fix ESLint issues            |
+| `npm run format`       | Format code with Prettier         |
 | `npm run format:check` | Verify formatting without changes |
-| `npm run type-check` | Check TypeScript types |
+| `npm run type-check`   | Check TypeScript types            |
 
 ## 🔧 VS Code Setup
 
 ### Auto-Format on Save
+
 Already configured! Just save files (Cmd+S)
 
 ### Manual Format
+
 - Format Document: `Cmd+Shift+P` → "Format Document"
 - Format Selection: `Cmd+K Cmd+F`
 
 ### View Problems
+
 - Problems Panel: `Cmd+Shift+M`
 - Inline with Error Lens extension
 
 ## 📝 Common Fixes
 
 ### Remove unused variable
+
 ```typescript
 // ❌ Error: 'foo' is defined but never used
 const foo = 123;
@@ -45,16 +49,18 @@ const _foo = 123;
 ```
 
 ### Replace `any` type
+
 ```typescript
 // ❌ Error: Unexpected any
-function process(data: any) { }
+function process(data: any) {}
 
 // ✅ Fix: Use specific type
-function process(data: string | number) { }
-function process(data: unknown) { } // if type truly unknown
+function process(data: string | number) {}
+function process(data: unknown) {} // if type truly unknown
 ```
 
 ### Fix console statements
+
 ```typescript
 // ❌ Warning: console not allowed
 console.log("Debug info");
@@ -65,21 +71,25 @@ console.error("Error occurred");
 ```
 
 ### Strict equality
+
 ```typescript
 // ❌ Error: Use === instead of ==
-if (value == null) { }
+if (value == null) {
+}
 
 // ✅ Fix: Use ===
-if (value === null) { }
+if (value === null) {
+}
 ```
 
 ### Unused imports
+
 ```typescript
 // ❌ Error: 'useState' is defined but never used
-import { useState, useEffect } from 'react';
+import { useState, useEffect } from "react";
 
 // ✅ Fix: Remove unused import
-import { useEffect } from 'react';
+import { useEffect } from "react";
 ```
 
 ## 🎨 Prettier Rules
@@ -94,12 +104,14 @@ import { useEffect } from 'react';
 ## 🔍 Ignoring Rules
 
 ### Single line
+
 ```typescript
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const data: any = response;
 ```
 
 ### Multiple lines
+
 ```typescript
 /* eslint-disable @typescript-eslint/no-explicit-any */
 const a: any = 1;
@@ -108,6 +120,7 @@ const b: any = 2;
 ```
 
 ### Entire file (avoid!)
+
 ```typescript
 /* eslint-disable @typescript-eslint/no-explicit-any */
 ```
@@ -115,16 +128,19 @@ const b: any = 2;
 ## 🏃 Quick Fixes
 
 ### Auto-fix everything possible
+
 ```bash
 npm run lint:fix && npm run format
 ```
 
 ### Check before committing
+
 ```bash
 npm run lint && npm run format:check && npm run type-check
 ```
 
 ### View what would be formatted
+
 ```bash
 npx prettier --check .
 ```
@@ -137,32 +153,35 @@ npx prettier --check .
 ✅ Prisma  
 ✅ Tauri  
 ✅ Error Lens  
-✅ TypeScript Nightly  
+✅ TypeScript Nightly
 
 ## ⚡ Keyboard Shortcuts
 
-| Action | Shortcut |
-|--------|----------|
+| Action          | Shortcut               |
+| --------------- | ---------------------- |
 | Format Document | `Cmd+Shift+P` → Format |
-| Show Problems | `Cmd+Shift+M` |
-| Quick Fix | `Cmd+.` |
-| Save & Format | `Cmd+S` (automatic) |
+| Show Problems   | `Cmd+Shift+M`          |
+| Quick Fix       | `Cmd+.`                |
+| Save & Format   | `Cmd+S` (automatic)    |
 
 ## 🐛 Troubleshooting
 
 ### ESLint not working
+
 ```bash
 # Reload VS Code
 Cmd+Shift+P → "Reload Window"
 ```
 
 ### Prettier not formatting
+
 ```bash
 # Check default formatter
 Cmd+Shift+P → "Format Document With..." → "Prettier"
 ```
 
 ### Still seeing errors after fix
+
 ```bash
 # Regenerate cache
 rm -rf .next

@@ -34,13 +34,8 @@ export function FloatingActionBar({
   isChatOpen,
   onToggleChat,
 }: FloatingActionBarProps) {
-  const {
-    isExportingPdf,
-    onJSONExport,
-    onPDFExport,
-    redoResume,
-    undoResume,
-  } = useJobPageContext();
+  const { isExportingPdf, onJSONExport, onPDFExport, redoResume, undoResume } =
+    useJobPageContext();
 
   return (
     <div className="pointer-events-none absolute top-4 right-4 z-40 flex items-center gap-1.5">

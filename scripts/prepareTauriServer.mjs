@@ -11,7 +11,7 @@ const outputDir = path.join(root, "src-tauri", "resources", "next");
 async function main() {
   if (!existsSync(standaloneDir)) {
     throw new Error(
-      "Next standalone output not found. Run `next build` with output: \"standalone\" first.",
+      'Next standalone output not found. Run `next build` with output: "standalone" first.'
     );
   }
 

@@ -62,7 +62,8 @@ export async function validateTemplateResponse<T = unknown>(
       const zodErrors = zodError.errors as Array<Record<string, unknown>>;
       zodErrors.forEach((err) => {
         errors.push({
-          path: (Array.isArray(err.path) ? err.path.join(".") : "root") || "root",
+          path:
+            (Array.isArray(err.path) ? err.path.join(".") : "root") || "root",
           message: (err.message as string) || "Unknown error",
           code: (err.code as string) || "unknown",
         });

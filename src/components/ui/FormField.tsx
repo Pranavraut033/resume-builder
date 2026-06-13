@@ -37,7 +37,7 @@ export function FormField({
   return (
     <div className={`space-y-1 ${className}`}>
       {label && (
-        <label className="block text-sm font-medium text-agent-on-surface">
+        <label className="text-agent-on-surface block text-sm font-medium">
           {label}
           {required && <span className="ml-1 text-red-500">*</span>}
         </label>
@@ -65,7 +65,7 @@ export function FormField({
             <button
               type="button"
               onClick={() => setShowPassword(!showPassword)}
-              className="absolute inset-y-0 right-0 mr-3 flex items-center text-agent-on-surface-variant transition-colors hover:text-agent-on-surface"
+              className="text-agent-on-surface-variant hover:text-agent-on-surface absolute inset-y-0 right-0 mr-3 flex items-center transition-colors"
               aria-label={showPassword ? "Hide password" : "Show password"}
             >
               <Icon
@@ -77,9 +77,7 @@ export function FormField({
         </div>
       )}
       {helpText && (
-        <p className="mt-1 text-xs text-agent-on-surface-variant">
-          {helpText}
-        </p>
+        <p className="text-agent-on-surface-variant mt-1 text-xs">{helpText}</p>
       )}
     </div>
   );

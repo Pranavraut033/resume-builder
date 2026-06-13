@@ -29,7 +29,7 @@ export function ProfileActionButtons({
           Actions
         </MenuButton>
 
-        <MenuItems className="absolute right-0 z-10 mt-2 w-48 origin-top-right rounded-lg border border-agent-outline-variant bg-agent-surface shadow-(--shadow-agent-card) focus:outline-none">
+        <MenuItems className="border-agent-outline-variant bg-agent-surface absolute right-0 z-10 mt-2 w-48 origin-top-right rounded-lg border shadow-(--shadow-agent-card) focus:outline-none">
           <div className="py-1">
             <MenuItem>
               {({ active }) => (

@@ -114,10 +114,7 @@ const SECTION_NOUN: Record<ListSectionId, string> = {
 
 const InlineEditContext = createContext<InlineEditContextValue | null>(null);
 
-type UpdateResume = (
-  updates: Partial<ResumeJSON>,
-  note?: string
-) => void;
+type UpdateResume = (updates: Partial<ResumeJSON>, note?: string) => void;
 
 interface InlineEditProviderProps {
   resume: ResumeJSON;
@@ -239,10 +236,7 @@ export function InlineEditProvider({
         const next = [...list];
         const [moved] = next.splice(from, 1);
         next.splice(to, 0, moved);
-        updateResume(
-          { [section]: next },
-          `Reordered ${SECTION_NOUN[section]}`
-        );
+        updateResume({ [section]: next }, `Reordered ${SECTION_NOUN[section]}`);
       },
     };
   }, [resume, updateResume]);

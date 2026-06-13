@@ -12,7 +12,7 @@ const eslintConfig = defineConfig([
       "unused-imports": unusedImports,
       import: importPlugin,
     },
-    ignores:['tests/**', 'src/__tests__/**'],
+    ignores: ["tests/**", "src/__tests__/**"],
     rules: {
       // Import management
       "unused-imports/no-unused-imports": "error",
