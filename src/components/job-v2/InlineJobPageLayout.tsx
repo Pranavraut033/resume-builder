@@ -216,15 +216,17 @@ export function InlineJobPageLayout() {
                     )}
                   </div>
 
-                  <SaveButton
-                    onClick={onSave}
-                    status={saveStatus}
-                    isDirty={
-                      contentType === "coverLetter"
-                        ? isDirtyCoverLetter
-                        : isDirtyResume
-                    }
-                  />
+                  <div className="shrink-0">
+                    <SaveButton
+                      onClick={onSave}
+                      status={saveStatus}
+                      isDirty={
+                        contentType === "coverLetter"
+                          ? isDirtyCoverLetter
+                          : isDirtyResume
+                      }
+                    />
+                  </div>
                 </div>
               </header>
 
