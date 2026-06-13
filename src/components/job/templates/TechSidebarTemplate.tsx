@@ -162,9 +162,7 @@ export const TechSidebarTemplate: React.FC<TemplateRendererProps> = ({
                 {" • "}
                 <EditableText
                   value={edu.field}
-                  onCommit={(v) =>
-                    edit.updateEducation(eduIndex, { field: v })
-                  }
+                  onCommit={(v) => edit.updateEducation(eduIndex, { field: v })}
                   placeholder="Field"
                 />
               </>
@@ -185,9 +183,7 @@ export const TechSidebarTemplate: React.FC<TemplateRendererProps> = ({
           <div className="text-xs">
             <EditableText
               value={edu.startDate}
-              onCommit={(v) =>
-                edit.updateEducation(eduIndex, { startDate: v })
-              }
+              onCommit={(v) => edit.updateEducation(eduIndex, { startDate: v })}
               placeholder="Start"
             />
             {" - "}
@@ -221,9 +217,7 @@ export const TechSidebarTemplate: React.FC<TemplateRendererProps> = ({
           <div className={`${textSize} font-semibold`}>
             <EditableText
               value={cert.name}
-              onCommit={(v) =>
-                edit.updateCertification(certIndex, { name: v })
-              }
+              onCommit={(v) => edit.updateCertification(certIndex, { name: v })}
               placeholder="Certification"
             />
           </div>
@@ -238,9 +232,7 @@ export const TechSidebarTemplate: React.FC<TemplateRendererProps> = ({
             {" • "}
             <EditableText
               value={cert.date}
-              onCommit={(v) =>
-                edit.updateCertification(certIndex, { date: v })
-              }
+              onCommit={(v) => edit.updateCertification(certIndex, { date: v })}
               placeholder="Date"
             />
           </div>
@@ -355,9 +347,7 @@ export const TechSidebarTemplate: React.FC<TemplateRendererProps> = ({
               <h3 className={`${textSize} font-bold`}>
                 <EditableText
                   value={exp.role}
-                  onCommit={(v) =>
-                    edit.updateExperience(expIndex, { role: v })
-                  }
+                  onCommit={(v) => edit.updateExperience(expIndex, { role: v })}
                   placeholder="Role"
                 />
               </h3>
@@ -436,9 +426,7 @@ export const TechSidebarTemplate: React.FC<TemplateRendererProps> = ({
             <h3 className={`${textSize} font-bold`}>
               <EditableText
                 value={project.name}
-                onCommit={(v) =>
-                  edit.updateProject(projectIndex, { name: v })
-                }
+                onCommit={(v) => edit.updateProject(projectIndex, { name: v })}
                 placeholder="Project name"
               />
             </h3>
@@ -573,17 +561,24 @@ export const TechSidebarTemplate: React.FC<TemplateRendererProps> = ({
   // Column content height: page height minus header (page 1 only) minus top+bottom padding
   const columnContentHeight = contentHeightPx;
 
+  const isFirstInSidebarSection = (i: number) =>
+    i === 0 || sidebarBlocks[i].sectionKey !== sidebarBlocks[i - 1].sectionKey;
+  const isFirstInMainSection = (i: number) =>
+    i === 0 || mainBlocks[i].sectionKey !== mainBlocks[i - 1].sectionKey;
+
   const { setRef: setSidebarRef, pageGroups: sidebarPageGroups } =
     useBlockPaginator({
       count: sidebarBlocks.length,
       pageContentHeight: columnContentHeight,
       firstPageReserved: headerHeight,
+      gapPx: 8, // matches the `mb-2` gap between rendered sidebar blocks
     });
 
   const { setRef: setMainRef, pageGroups: mainPageGroups } = useBlockPaginator({
     count: mainBlocks.length,
     pageContentHeight: columnContentHeight,
     firstPageReserved: headerHeight,
+    gapPx: 16, // matches the `mb-4` gap between rendered main-column blocks
   });
 
   const pageCount = Math.max(
@@ -639,8 +634,8 @@ export const TechSidebarTemplate: React.FC<TemplateRendererProps> = ({
             <EditableItem
               id={`${block.sectionKey}-${block.itemIndex}`}
               label={
-                (sidebarLabels[block.sectionKey] ??
-                  mainLabels[block.sectionKey]) ??
+                sidebarLabels[block.sectionKey] ??
+                mainLabels[block.sectionKey] ??
                 block.sectionKey
               }
               onDelete={() =>
@@ -681,8 +676,8 @@ export const TechSidebarTemplate: React.FC<TemplateRendererProps> = ({
             <EditableItem
               id={`${block.sectionKey}-${block.itemIndex}`}
               label={
-                (sidebarLabels[block.sectionKey] ??
-                  mainLabels[block.sectionKey]) ??
+                sidebarLabels[block.sectionKey] ??
+                mainLabels[block.sectionKey] ??
                 block.sectionKey
               }
               onDelete={() =>
@@ -797,6 +792,11 @@ export const TechSidebarTemplate: React.FC<TemplateRendererProps> = ({
         <div style={{ padding: "24px" }}>
           {sidebarBlocks.map((block, i) => (
             <div key={i} ref={setSidebarRef(i)}>
+              {isFirstInSidebarSection(i) && (
+                <div className="mb-2">
+                  {sidebarSectionHeading(block.sectionKey)}
+                </div>
+              )}
               {block.node}
             </div>
           ))}
@@ -807,6 +807,11 @@ export const TechSidebarTemplate: React.FC<TemplateRendererProps> = ({
         <div style={{ padding: "24px" }}>
           {mainBlocks.map((block, i) => (
             <div key={i} ref={setMainRef(i)}>
+              {isFirstInMainSection(i) && (
+                <div className="mb-2">
+                  {mainSectionHeading(block.sectionKey)}
+                </div>
+              )}
               {block.node}
             </div>
           ))}
@@ -890,7 +895,10 @@ export const TechSidebarTemplate: React.FC<TemplateRendererProps> = ({
       collisionDetection={closestCenter}
       onDragEnd={handleItemDragEnd}
     >
-      <SortableContext items={sortableIds} strategy={verticalListSortingStrategy}>
+      <SortableContext
+        items={sortableIds}
+        strategy={verticalListSortingStrategy}
+      >
         {body}
       </SortableContext>
     </DndContext>

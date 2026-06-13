@@ -195,9 +195,7 @@ export const CreativeModernTemplate: React.FC<TemplateRendererProps> = ({
                 {" • "}
                 <EditableText
                   value={edu.field}
-                  onCommit={(v) =>
-                    edit.updateEducation(eduIndex, { field: v })
-                  }
+                  onCommit={(v) => edit.updateEducation(eduIndex, { field: v })}
                   placeholder="Field"
                 />
               </>
@@ -206,9 +204,7 @@ export const CreativeModernTemplate: React.FC<TemplateRendererProps> = ({
           <div className="text-xs">
             <EditableText
               value={edu.startDate}
-              onCommit={(v) =>
-                edit.updateEducation(eduIndex, { startDate: v })
-              }
+              onCommit={(v) => edit.updateEducation(eduIndex, { startDate: v })}
               placeholder="Start"
             />
             {" - "}
@@ -242,9 +238,7 @@ export const CreativeModernTemplate: React.FC<TemplateRendererProps> = ({
           <div className={`${textSize} font-semibold`}>
             <EditableText
               value={cert.name}
-              onCommit={(v) =>
-                edit.updateCertification(certIndex, { name: v })
-              }
+              onCommit={(v) => edit.updateCertification(certIndex, { name: v })}
               placeholder="Certification"
             />
           </div>
@@ -260,9 +254,7 @@ export const CreativeModernTemplate: React.FC<TemplateRendererProps> = ({
           <div className="text-xs">
             <EditableText
               value={cert.date}
-              onCommit={(v) =>
-                edit.updateCertification(certIndex, { date: v })
-              }
+              onCommit={(v) => edit.updateCertification(certIndex, { date: v })}
               placeholder="Date"
             />
           </div>
@@ -394,9 +386,7 @@ export const CreativeModernTemplate: React.FC<TemplateRendererProps> = ({
           >
             <EditableText
               value={exp.company}
-              onCommit={(v) =>
-                edit.updateExperience(expIndex, { company: v })
-              }
+              onCommit={(v) => edit.updateExperience(expIndex, { company: v })}
               placeholder="Company"
             />
           </div>
@@ -448,9 +438,7 @@ export const CreativeModernTemplate: React.FC<TemplateRendererProps> = ({
             <h3 className={`${textSize} font-bold`}>
               <EditableText
                 value={project.name}
-                onCommit={(v) =>
-                  edit.updateProject(projectIndex, { name: v })
-                }
+                onCommit={(v) => edit.updateProject(projectIndex, { name: v })}
                 placeholder="Project name"
               />
             </h3>
@@ -588,10 +576,16 @@ export const CreativeModernTemplate: React.FC<TemplateRendererProps> = ({
   });
 
   // ── Independent paginators ─────────────────────────────────────────────────
+  const isFirstInLeftSection = (i: number) =>
+    i === 0 || leftBlocks[i].sectionKey !== leftBlocks[i - 1].sectionKey;
+  const isFirstInRightSection = (i: number) =>
+    i === 0 || rightBlocks[i].sectionKey !== rightBlocks[i - 1].sectionKey;
+
   const { setRef: setLeftRef, pageGroups: leftPageGroups } = useBlockPaginator({
     count: leftBlocks.length,
     pageContentHeight: contentHeightPx,
     firstPageReserved: headerHeight,
+    gapPx: 16, // matches the `mb-4` gap between rendered left-column blocks
   });
 
   const { setRef: setRightRef, pageGroups: rightPageGroups } =
@@ -599,6 +593,7 @@ export const CreativeModernTemplate: React.FC<TemplateRendererProps> = ({
       count: rightBlocks.length,
       pageContentHeight: contentHeightPx,
       firstPageReserved: headerHeight,
+      gapPx: 20, // matches the `mb-5` gap between rendered right-column blocks
     });
 
   const pageCount = Math.max(leftPageGroups.length, rightPageGroups.length, 1);
@@ -622,8 +617,8 @@ export const CreativeModernTemplate: React.FC<TemplateRendererProps> = ({
             <EditableItem
               id={`${block.sectionKey}-${block.itemIndex}`}
               label={
-                (leftLabels[block.sectionKey] ??
-                  rightLabels[block.sectionKey]) ??
+                leftLabels[block.sectionKey] ??
+                rightLabels[block.sectionKey] ??
                 block.sectionKey
               }
               onDelete={() =>
@@ -662,8 +657,8 @@ export const CreativeModernTemplate: React.FC<TemplateRendererProps> = ({
             <EditableItem
               id={`${block.sectionKey}-${block.itemIndex}`}
               label={
-                (leftLabels[block.sectionKey] ??
-                  rightLabels[block.sectionKey]) ??
+                leftLabels[block.sectionKey] ??
+                rightLabels[block.sectionKey] ??
                 block.sectionKey
               }
               onDelete={() =>
@@ -803,6 +798,9 @@ export const CreativeModernTemplate: React.FC<TemplateRendererProps> = ({
         <div style={{ padding: COLUMN_PADDING }}>
           {leftBlocks.map((block, i) => (
             <div key={i} ref={setLeftRef(i)}>
+              {isFirstInLeftSection(i) && (
+                <div className="mb-2">{leftHeading(block.sectionKey)}</div>
+              )}
               {block.node}
             </div>
           ))}
@@ -812,6 +810,9 @@ export const CreativeModernTemplate: React.FC<TemplateRendererProps> = ({
         <div style={{ padding: COLUMN_PADDING }}>
           {rightBlocks.map((block, i) => (
             <div key={i} ref={setRightRef(i)}>
+              {isFirstInRightSection(i) && (
+                <div className="mb-2">{rightHeading(block.sectionKey)}</div>
+              )}
               {block.node}
             </div>
           ))}

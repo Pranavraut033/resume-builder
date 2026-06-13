@@ -24,15 +24,11 @@ const SectionBlock = ({
   title: string;
   children: React.ReactNode;
   s: PDFTemplateProps["styles"];
-}) => (
-  <View
-    style={{
-      borderWidth: 1,
-      borderColor: primaryColor,
-      marginBottom: 10,
-    }}
-  >
-    {/* Section header row */}
+}) => {
+  const rows = React.Children.toArray(children);
+  const [firstRow, ...restRows] = rows;
+
+  const headerRow = (
     <View
       style={{
         backgroundColor: withAlpha(secondaryColor, "22"),
@@ -55,9 +51,26 @@ const SectionBlock = ({
         {title}
       </Text>
     </View>
-    {children}
-  </View>
-);
+  );
+
+  return (
+    <View
+      style={{
+        borderWidth: 1,
+        borderColor: primaryColor,
+        marginBottom: 10,
+      }}
+    >
+      {/* Header row + first content row kept together so the heading is
+          never orphaned at the bottom of a page. */}
+      <View wrap={false}>
+        {headerRow}
+        {firstRow}
+      </View>
+      {restRows}
+    </View>
+  );
+};
 
 // Content row inside a section block
 const ContentRow = ({

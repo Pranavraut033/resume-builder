@@ -9,6 +9,7 @@ import { htmlToPlainText, isHtml } from "@/lib/htmlUtils";
 
 import { ResolvedPDFStyles, withAlpha } from "../resolveStyles";
 import { PDFTemplateProps } from "./ModernMinimalPDF";
+import { SectionGroup } from "./shared/SectionGroup";
 
 const plain = (text: string | null | undefined): string => {
   if (!text) return "";
@@ -217,8 +218,7 @@ export const TechSidebarPDF: React.FC<PDFTemplateProps> = ({
           >
             {/* Skills */}
             {(resume.skills ?? []).length > 0 ? (
-              <View>
-                <SidebarSH title="Skills" s={s} />
+              <SectionGroup heading={<SidebarSH title="Skills" s={s} />}>
                 {(resume.skills ?? []).map((skill, i) => (
                   <Text
                     key={i}
@@ -233,13 +233,12 @@ export const TechSidebarPDF: React.FC<PDFTemplateProps> = ({
                     {skill}
                   </Text>
                 ))}
-              </View>
+              </SectionGroup>
             ) : null}
 
             {/* Education */}
             {(resume.education ?? []).length > 0 ? (
-              <View>
-                <SidebarSH title="Education" s={s} />
+              <SectionGroup heading={<SidebarSH title="Education" s={s} />}>
                 {(resume.education ?? []).map((edu, i) => (
                   <View key={i} wrap={false} style={{ marginBottom: 8 }}>
                     <Text
@@ -276,13 +275,14 @@ export const TechSidebarPDF: React.FC<PDFTemplateProps> = ({
                     ) : null}
                   </View>
                 ))}
-              </View>
+              </SectionGroup>
             ) : null}
 
             {/* Certifications */}
             {(resume.certifications ?? []).length > 0 ? (
-              <View>
-                <SidebarSH title="Certifications" s={s} />
+              <SectionGroup
+                heading={<SidebarSH title="Certifications" s={s} />}
+              >
                 {(resume.certifications ?? []).map((cert, i) => (
                   <View key={i} wrap={false} style={{ marginBottom: 6 }}>
                     <Text
@@ -300,13 +300,12 @@ export const TechSidebarPDF: React.FC<PDFTemplateProps> = ({
                     </Text>
                   </View>
                 ))}
-              </View>
+              </SectionGroup>
             ) : null}
 
             {/* Languages */}
             {(resume.languages ?? []).length > 0 ? (
-              <View>
-                <SidebarSH title="Languages" s={s} />
+              <SectionGroup heading={<SidebarSH title="Languages" s={s} />}>
                 {(resume.languages ?? []).map((l, i) => (
                   <View key={i} wrap={false} style={{ marginBottom: 4 }}>
                     <Text
@@ -319,13 +318,12 @@ export const TechSidebarPDF: React.FC<PDFTemplateProps> = ({
                     </Text>
                   </View>
                 ))}
-              </View>
+              </SectionGroup>
             ) : null}
 
             {/* Awards */}
             {(resume.awards ?? []).length > 0 ? (
-              <View>
-                <SidebarSH title="Awards" s={s} />
+              <SectionGroup heading={<SidebarSH title="Awards" s={s} />}>
                 {(resume.awards ?? []).map((award, i) => (
                   <View key={i} wrap={false} style={{ marginBottom: 6 }}>
                     <Text
@@ -348,7 +346,7 @@ export const TechSidebarPDF: React.FC<PDFTemplateProps> = ({
                     ) : null}
                   </View>
                 ))}
-              </View>
+              </SectionGroup>
             ) : null}
           </View>
 
@@ -371,8 +369,7 @@ export const TechSidebarPDF: React.FC<PDFTemplateProps> = ({
 
             {/* Experience */}
             {(resume.experience ?? []).length > 0 ? (
-              <View>
-                <MainSH title="Work Experience" s={s} />
+              <SectionGroup heading={<MainSH title="Work Experience" s={s} />}>
                 {(resume.experience ?? []).map((exp, i) => (
                   <View key={i} wrap={false} style={{ marginBottom: 10 }}>
                     <View
@@ -427,13 +424,12 @@ export const TechSidebarPDF: React.FC<PDFTemplateProps> = ({
                     ))}
                   </View>
                 ))}
-              </View>
+              </SectionGroup>
             ) : null}
 
             {/* Projects */}
             {(resume.projects ?? []).length > 0 ? (
-              <View>
-                <MainSH title="Projects" s={s} />
+              <SectionGroup heading={<MainSH title="Projects" s={s} />}>
                 {(resume.projects ?? []).map((proj, i) => (
                   <View key={i} wrap={false} style={{ marginBottom: 10 }}>
                     <View
@@ -502,13 +498,12 @@ export const TechSidebarPDF: React.FC<PDFTemplateProps> = ({
                     ) : null}
                   </View>
                 ))}
-              </View>
+              </SectionGroup>
             ) : null}
 
             {/* Publications */}
             {(resume.publications ?? []).length > 0 ? (
-              <View>
-                <MainSH title="Publications" s={s} />
+              <SectionGroup heading={<MainSH title="Publications" s={s} />}>
                 {(resume.publications ?? []).map((pub, i) => (
                   <View key={i} wrap={false} style={{ marginBottom: 6 }}>
                     <Text
@@ -527,13 +522,14 @@ export const TechSidebarPDF: React.FC<PDFTemplateProps> = ({
                     </Text>
                   </View>
                 ))}
-              </View>
+              </SectionGroup>
             ) : null}
 
             {/* Volunteer */}
             {(resume.volunteer ?? []).length > 0 ? (
-              <View>
-                <MainSH title="Volunteer Experience" s={s} />
+              <SectionGroup
+                heading={<MainSH title="Volunteer Experience" s={s} />}
+              >
                 {(resume.volunteer ?? []).map((v, i) => (
                   <View key={i} wrap={false} style={{ marginBottom: 8 }}>
                     <View
@@ -575,7 +571,7 @@ export const TechSidebarPDF: React.FC<PDFTemplateProps> = ({
                     ) : null}
                   </View>
                 ))}
-              </View>
+              </SectionGroup>
             ) : null}
           </View>
         </View>

@@ -13,6 +13,12 @@ interface UseBlockPaginatorOptions {
   pageContentHeight: number;
   /** Height already reserved on page 1 by the header. Defaults to 0. */
   firstPageReserved?: number;
+  /**
+   * Vertical gap in px rendered between consecutive blocks (e.g. a `mb-4`
+   * margin on each block wrapper). Not applied before the first block on a
+   * page. Defaults to 0.
+   */
+  gapPx?: number;
 }
 
 interface UseBlockPaginatorResult {
@@ -39,6 +45,7 @@ export function useBlockPaginator({
   count,
   pageContentHeight,
   firstPageReserved = 0,
+  gapPx = 0,
 }: UseBlockPaginatorOptions): UseBlockPaginatorResult {
   const elemsRef = useRef<(HTMLElement | null)[]>(
     Array.from({ length: count }, () => null)
@@ -53,8 +60,10 @@ export function useBlockPaginator({
   // Store dimensions in refs so recompute() can stay stable (no deps).
   const pageContentHeightRef = useRef(pageContentHeight);
   const firstPageReservedRef = useRef(firstPageReserved);
+  const gapPxRef = useRef(gapPx);
   pageContentHeightRef.current = pageContentHeight;
   firstPageReservedRef.current = firstPageReserved;
+  gapPxRef.current = gapPx;
 
   const [pageGroups, setPageGroups] = useState<number[][]>(() => [
     Array.from({ length: count }, (_, i) => i),
@@ -69,7 +78,8 @@ export function useBlockPaginator({
     const groups = groupBlocksIntoPages(
       heights,
       pageContentHeightRef.current,
-      firstPageReservedRef.current
+      firstPageReservedRef.current,
+      gapPxRef.current
     );
     setPageGroups((prev) => {
       // Avoid setState if the result is identical (same page structure).
@@ -103,7 +113,7 @@ export function useBlockPaginator({
   useEffect(() => {
     if (measured) recompute();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pageContentHeight, firstPageReserved]);
+  }, [pageContentHeight, firstPageReserved, gapPx]);
 
   // setRef is stable. Each per-index callback is created once and cached so
   // React always receives the same function reference — avoiding the pattern

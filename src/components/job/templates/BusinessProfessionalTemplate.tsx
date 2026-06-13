@@ -217,9 +217,7 @@ export const BusinessProfessionalTemplate: React.FC<TemplateRendererProps> = ({
             <h3 className={`${textSize} font-bold`}>
               <EditableText
                 value={edu.degree}
-                onCommit={(v) =>
-                  edit.updateEducation(eduIndex, { degree: v })
-                }
+                onCommit={(v) => edit.updateEducation(eduIndex, { degree: v })}
                 placeholder="Degree"
               />
             </h3>
@@ -258,9 +256,7 @@ export const BusinessProfessionalTemplate: React.FC<TemplateRendererProps> = ({
                 {" • "}
                 <EditableText
                   value={edu.field}
-                  onCommit={(v) =>
-                    edit.updateEducation(eduIndex, { field: v })
-                  }
+                  onCommit={(v) => edit.updateEducation(eduIndex, { field: v })}
                   placeholder="Field"
                 />
               </>
@@ -311,9 +307,7 @@ export const BusinessProfessionalTemplate: React.FC<TemplateRendererProps> = ({
             <h3 className={`${textSize} font-bold`}>
               <EditableText
                 value={project.name}
-                onCommit={(v) =>
-                  edit.updateProject(projectIndex, { name: v })
-                }
+                onCommit={(v) => edit.updateProject(projectIndex, { name: v })}
                 placeholder="Project name"
               />
             </h3>
@@ -395,9 +389,7 @@ export const BusinessProfessionalTemplate: React.FC<TemplateRendererProps> = ({
           <span className={`${textSize} font-semibold`}>
             <EditableText
               value={cert.name}
-              onCommit={(v) =>
-                edit.updateCertification(certIndex, { name: v })
-              }
+              onCommit={(v) => edit.updateCertification(certIndex, { name: v })}
               placeholder="Certification"
             />
           </span>
@@ -413,9 +405,7 @@ export const BusinessProfessionalTemplate: React.FC<TemplateRendererProps> = ({
             {" • "}
             <EditableText
               value={cert.date}
-              onCommit={(v) =>
-                edit.updateCertification(certIndex, { date: v })
-              }
+              onCommit={(v) => edit.updateCertification(certIndex, { date: v })}
               placeholder="Date"
             />
           </span>
@@ -541,10 +531,14 @@ export const BusinessProfessionalTemplate: React.FC<TemplateRendererProps> = ({
     return () => obs.disconnect();
   }, []);
 
+  const isFirstInSection = (i: number) =>
+    i === 0 || blocks[i].sectionKey !== blocks[i - 1].sectionKey;
+
   const { setRef, pageGroups } = useBlockPaginator({
     count: blocks.length,
     pageContentHeight: contentHeightPx,
     firstPageReserved: headerHeight,
+    gapPx: 16, // matches the `mb-4` gap between rendered blocks
   });
 
   // ── Item-level drag-and-drop (editor only) ─────────────────────────────────
@@ -722,6 +716,11 @@ export const BusinessProfessionalTemplate: React.FC<TemplateRendererProps> = ({
         <div style={{ paddingLeft: marginPx, paddingRight: marginPx }}>
           {blocks.map((block, i) => (
             <div key={i} ref={setRef(i)}>
+              {isFirstInSection(i) && (
+                <div className="mb-2">
+                  {sectionHeadingNode(block.sectionKey)}
+                </div>
+              )}
               {block.node}
             </div>
           ))}
@@ -766,7 +765,10 @@ export const BusinessProfessionalTemplate: React.FC<TemplateRendererProps> = ({
       collisionDetection={closestCenter}
       onDragEnd={handleItemDragEnd}
     >
-      <SortableContext items={sortableIds} strategy={verticalListSortingStrategy}>
+      <SortableContext
+        items={sortableIds}
+        strategy={verticalListSortingStrategy}
+      >
         {body}
       </SortableContext>
     </DndContext>

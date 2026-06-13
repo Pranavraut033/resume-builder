@@ -10,6 +10,7 @@ import { ResumeJSON } from "@/types/resume";
 
 import { PDFTemplateProps } from "./ModernMinimalPDF";
 import { ResolvedPDFStyles } from "../resolveStyles";
+import { SectionGroup } from "./shared/SectionGroup";
 
 const plain = (text: string | null | undefined): string => {
   if (!text) return "";
@@ -142,8 +143,7 @@ export const BusinessProfessionalPDF: React.FC<PDFTemplateProps> = ({
 
         {/* ── Experience ─────────────────────────────────────── */}
         {(resume.experience ?? []).length > 0 ? (
-          <View>
-            <SH s={s} title="Professional Experience" />
+          <SectionGroup heading={<SH s={s} title="Professional Experience" />}>
             {(resume.experience ?? []).map((exp, i) => (
               <View key={i} wrap={false} style={{ marginBottom: 9 }}>
                 <View
@@ -189,13 +189,12 @@ export const BusinessProfessionalPDF: React.FC<PDFTemplateProps> = ({
                 ))}
               </View>
             ))}
-          </View>
+          </SectionGroup>
         ) : null}
 
         {/* ── Education ──────────────────────────────────────── */}
         {(resume.education ?? []).length > 0 ? (
-          <View>
-            <SH s={s} title="Education" />
+          <SectionGroup heading={<SH s={s} title="Education" />}>
             {(resume.education ?? []).map((edu, i) => (
               <View key={i} wrap={false} style={{ marginBottom: 8 }}>
                 <View
@@ -225,7 +224,7 @@ export const BusinessProfessionalPDF: React.FC<PDFTemplateProps> = ({
                 ) : null}
               </View>
             ))}
-          </View>
+          </SectionGroup>
         ) : null}
 
         {/* ── Skills ─────────────────────────────────────────── */}
@@ -245,8 +244,7 @@ export const BusinessProfessionalPDF: React.FC<PDFTemplateProps> = ({
 
         {/* ── Projects ───────────────────────────────────────── */}
         {(resume.projects ?? []).length > 0 ? (
-          <View>
-            <SH s={s} title="Key Projects" />
+          <SectionGroup heading={<SH s={s} title="Key Projects" />}>
             {(resume.projects ?? []).map((proj, i) => (
               <View key={i} wrap={false} style={{ marginBottom: 8 }}>
                 <View
@@ -291,13 +289,12 @@ export const BusinessProfessionalPDF: React.FC<PDFTemplateProps> = ({
                 ) : null}
               </View>
             ))}
-          </View>
+          </SectionGroup>
         ) : null}
 
         {/* ── Certifications ─────────────────────────────────── */}
         {(resume.certifications ?? []).length > 0 ? (
-          <View>
-            <SH s={s} title="Certifications" />
+          <SectionGroup heading={<SH s={s} title="Certifications" />}>
             {(resume.certifications ?? []).map((cert, i) => (
               <View key={i} wrap={false} style={{ marginBottom: 5 }}>
                 <Text style={{ fontSize, fontWeight: 600, color: textColor }}>
@@ -319,13 +316,12 @@ export const BusinessProfessionalPDF: React.FC<PDFTemplateProps> = ({
                 ) : null}
               </View>
             ))}
-          </View>
+          </SectionGroup>
         ) : null}
 
         {/* ── Publications ───────────────────────────────────── */}
         {(resume.publications ?? []).length > 0 ? (
-          <View>
-            <SH s={s} title="Publications" />
+          <SectionGroup heading={<SH s={s} title="Publications" />}>
             {(resume.publications ?? []).map((pub, i) => (
               <View key={i} wrap={false} style={{ marginBottom: 6 }}>
                 <Text style={{ fontSize, fontWeight: 700, color: textColor }}>
@@ -348,7 +344,7 @@ export const BusinessProfessionalPDF: React.FC<PDFTemplateProps> = ({
                 </Text>
               </View>
             ))}
-          </View>
+          </SectionGroup>
         ) : null}
 
         {/* ── Languages ──────────────────────────────────────── */}
@@ -368,8 +364,7 @@ export const BusinessProfessionalPDF: React.FC<PDFTemplateProps> = ({
 
         {/* ── Volunteer ──────────────────────────────────────── */}
         {(resume.volunteer ?? []).length > 0 ? (
-          <View>
-            <SH s={s} title="Volunteer Experience" />
+          <SectionGroup heading={<SH s={s} title="Volunteer Experience" />}>
             {(resume.volunteer ?? []).map((v, i) => (
               <View key={i} wrap={false} style={{ marginBottom: 8 }}>
                 <View
@@ -406,13 +401,12 @@ export const BusinessProfessionalPDF: React.FC<PDFTemplateProps> = ({
                 ) : null}
               </View>
             ))}
-          </View>
+          </SectionGroup>
         ) : null}
 
         {/* ── Awards ─────────────────────────────────────────── */}
         {(resume.awards ?? []).length > 0 ? (
-          <View>
-            <SH s={s} title="Awards" />
+          <SectionGroup heading={<SH s={s} title="Awards" />}>
             {(resume.awards ?? []).map((award, i) => (
               <View key={i} wrap={false} style={{ marginBottom: 5 }}>
                 <Text style={{ fontSize, fontWeight: 600, color: textColor }}>
@@ -431,7 +425,7 @@ export const BusinessProfessionalPDF: React.FC<PDFTemplateProps> = ({
                 ) : null}
               </View>
             ))}
-          </View>
+          </SectionGroup>
         ) : null}
       </Page>
     </Document>

@@ -9,6 +9,7 @@ import { htmlToPlainText, isHtml } from "@/lib/htmlUtils";
 import { ResumeJSON } from "@/types/resume";
 
 import { ResolvedPDFStyles } from "../resolveStyles";
+import { SectionGroup } from "./shared/SectionGroup";
 
 export interface PDFTemplateProps {
   resume: ResumeJSON;
@@ -129,8 +130,7 @@ export const ModernMinimalPDF: React.FC<PDFTemplateProps> = ({
 
         {/* ── Experience ─────────────────────────────────────── */}
         {resume.experience.length > 0 ? (
-          <View>
-            <SH s={s} title="Work Experience" />
+          <SectionGroup heading={<SH s={s} title="Work Experience" />}>
             {resume.experience.map((exp, i) => (
               <View key={i} wrap={false} style={{ marginBottom: 9 }}>
                 <View
@@ -188,13 +188,12 @@ export const ModernMinimalPDF: React.FC<PDFTemplateProps> = ({
                 ))}
               </View>
             ))}
-          </View>
+          </SectionGroup>
         ) : null}
 
         {/* ── Projects ───────────────────────────────────────── */}
         {resume.projects.length > 0 ? (
-          <View>
-            <SH s={s} title="Projects" />
+          <SectionGroup heading={<SH s={s} title="Projects" />}>
             {resume.projects.map((proj, i) => (
               <View key={i} wrap={false} style={{ marginBottom: 9 }}>
                 <View
@@ -241,7 +240,7 @@ export const ModernMinimalPDF: React.FC<PDFTemplateProps> = ({
                 ) : null}
               </View>
             ))}
-          </View>
+          </SectionGroup>
         ) : null}
 
         {/* ── Skills ─────────────────────────────────────────── */}
@@ -256,8 +255,7 @@ export const ModernMinimalPDF: React.FC<PDFTemplateProps> = ({
 
         {/* ── Education ──────────────────────────────────────── */}
         {resume.education.length > 0 ? (
-          <View>
-            <SH s={s} title="Education" />
+          <SectionGroup heading={<SH s={s} title="Education" />}>
             {resume.education.map((edu, i) => (
               <View key={i} wrap={false} style={{ marginBottom: 8 }}>
                 <View
@@ -294,13 +292,12 @@ export const ModernMinimalPDF: React.FC<PDFTemplateProps> = ({
                 ) : null}
               </View>
             ))}
-          </View>
+          </SectionGroup>
         ) : null}
 
         {/* ── Certifications ─────────────────────────────────── */}
         {resume.certifications.length > 0 ? (
-          <View>
-            <SH s={s} title="Certifications" />
+          <SectionGroup heading={<SH s={s} title="Certifications" />}>
             {resume.certifications.map((cert, i) => (
               <View key={i} wrap={false} style={{ marginBottom: 6 }}>
                 <Text style={{ fontSize, fontWeight: 700, color: accentColor }}>
@@ -321,13 +318,12 @@ export const ModernMinimalPDF: React.FC<PDFTemplateProps> = ({
                 </Text>
               </View>
             ))}
-          </View>
+          </SectionGroup>
         ) : null}
 
         {/* ── Publications ───────────────────────────────────── */}
         {(resume.publications ?? []).length > 0 ? (
-          <View>
-            <SH s={s} title="Publications" />
+          <SectionGroup heading={<SH s={s} title="Publications" />}>
             {(resume.publications ?? []).map((pub, i) => (
               <View key={i} wrap={false} style={{ marginBottom: 6 }}>
                 <Text style={{ fontSize, fontWeight: 700, color: accentColor }}>
@@ -350,7 +346,7 @@ export const ModernMinimalPDF: React.FC<PDFTemplateProps> = ({
                 </Text>
               </View>
             ))}
-          </View>
+          </SectionGroup>
         ) : null}
 
         {/* ── Languages ──────────────────────────────────────── */}
@@ -367,8 +363,7 @@ export const ModernMinimalPDF: React.FC<PDFTemplateProps> = ({
 
         {/* ── Volunteer ──────────────────────────────────────── */}
         {(resume.volunteer ?? []).length > 0 ? (
-          <View>
-            <SH s={s} title="Volunteer Experience" />
+          <SectionGroup heading={<SH s={s} title="Volunteer Experience" />}>
             {(resume.volunteer ?? []).map((v, i) => (
               <View key={i} wrap={false} style={{ marginBottom: 8 }}>
                 <View
@@ -399,13 +394,12 @@ export const ModernMinimalPDF: React.FC<PDFTemplateProps> = ({
                 ) : null}
               </View>
             ))}
-          </View>
+          </SectionGroup>
         ) : null}
 
         {/* ── Awards ─────────────────────────────────────────── */}
         {(resume.awards ?? []).length > 0 ? (
-          <View>
-            <SH s={s} title="Awards" />
+          <SectionGroup heading={<SH s={s} title="Awards" />}>
             {(resume.awards ?? []).map((award, i) => (
               <View key={i} wrap={false} style={{ marginBottom: 6 }}>
                 <Text style={{ fontSize, fontWeight: 700, color: accentColor }}>
@@ -423,7 +417,7 @@ export const ModernMinimalPDF: React.FC<PDFTemplateProps> = ({
                 ) : null}
               </View>
             ))}
-          </View>
+          </SectionGroup>
         ) : null}
       </Page>
     </Document>

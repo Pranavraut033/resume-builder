@@ -115,7 +115,10 @@ export const BJetProfessionalTemplate: React.FC<TemplateRendererProps> = ({
     const title = sectionLabels[sectionKey] ?? sectionKey;
     const canAdd = edit.editable && isListSection(sectionKey);
     return (
-      <table className="mb-0 w-full border-2 border-b-0" style={{ borderColor: primaryColor }}>
+      <table
+        className="mb-0 w-full border-2 border-b-0"
+        style={{ borderColor: primaryColor }}
+      >
         <tbody>
           <tr>
             <td
@@ -199,7 +202,7 @@ export const BJetProfessionalTemplate: React.FC<TemplateRendererProps> = ({
                       />
                     </span>
                   </div>
-                  <div className="text-xs shrink-0">
+                  <div className="shrink-0 text-xs">
                     <EditableText
                       value={exp.startDate}
                       onCommit={(v) =>
@@ -303,7 +306,7 @@ export const BJetProfessionalTemplate: React.FC<TemplateRendererProps> = ({
                     />
                   </div>
                 </div>
-                <div className="text-xs shrink-0">
+                <div className="shrink-0 text-xs">
                   <EditableText
                     value={edu.startDate}
                     onCommit={(v) =>
@@ -386,7 +389,7 @@ export const BJetProfessionalTemplate: React.FC<TemplateRendererProps> = ({
                     />
                   </h3>
                   {(project.startDate || project.endDate || edit.editable) && (
-                    <div className="text-xs shrink-0">
+                    <div className="shrink-0 text-xs">
                       <EditableText
                         value={project.startDate || ""}
                         onCommit={(v) =>
@@ -498,7 +501,7 @@ export const BJetProfessionalTemplate: React.FC<TemplateRendererProps> = ({
                     </a>
                   )}
                 </div>
-                <div className="text-xs shrink-0">
+                <div className="shrink-0 text-xs">
                   <EditableText
                     value={cert.date}
                     onCommit={(v) =>
@@ -856,9 +859,7 @@ export const BJetProfessionalTemplate: React.FC<TemplateRendererProps> = ({
               currentSection = block.sectionKey;
               const needsHeadingRow =
                 isNewSection &&
-                !["summary", "skills", "languages"].includes(
-                  block.sectionKey
-                );
+                !["summary", "skills", "languages"].includes(block.sectionKey);
               return (
                 <div key={i} ref={setRef(i)}>
                   {needsHeadingRow && sectionHeadingRow(block.sectionKey)}
@@ -910,7 +911,10 @@ export const BJetProfessionalTemplate: React.FC<TemplateRendererProps> = ({
       collisionDetection={closestCenter}
       onDragEnd={handleItemDragEnd}
     >
-      <SortableContext items={sortableIds} strategy={verticalListSortingStrategy}>
+      <SortableContext
+        items={sortableIds}
+        strategy={verticalListSortingStrategy}
+      >
         {body}
       </SortableContext>
     </DndContext>

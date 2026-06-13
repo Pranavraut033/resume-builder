@@ -393,9 +393,7 @@ export const ModernMinimalTemplate: React.FC<TemplateRendererProps> = ({
           <h3 className="font-semibold" style={{ color: accentColor }}>
             <EditableText
               value={cert.name}
-              onCommit={(v) =>
-                edit.updateCertification(certIndex, { name: v })
-              }
+              onCommit={(v) => edit.updateCertification(certIndex, { name: v })}
               placeholder="Certification"
             />
           </h3>
@@ -410,9 +408,7 @@ export const ModernMinimalTemplate: React.FC<TemplateRendererProps> = ({
             {" • "}
             <EditableText
               value={cert.date}
-              onCommit={(v) =>
-                edit.updateCertification(certIndex, { date: v })
-              }
+              onCommit={(v) => edit.updateCertification(certIndex, { date: v })}
               placeholder="Date"
             />
             {cert.url && (
@@ -538,10 +534,14 @@ export const ModernMinimalTemplate: React.FC<TemplateRendererProps> = ({
   }, []);
 
   // ── Pagination ─────────────────────────────────────────────────────────────
+  const isFirstInSection = (i: number) =>
+    i === 0 || blocks[i].sectionKey !== blocks[i - 1].sectionKey;
+
   const { setRef, pageGroups } = useBlockPaginator({
     count: blocks.length,
     pageContentHeight: contentHeightPx,
     firstPageReserved: headerHeight,
+    gapPx: 16, // matches the `mb-4` gap between rendered blocks
   });
 
   // ── Item-level drag-and-drop (editor only) ─────────────────────────────────
@@ -724,6 +724,11 @@ export const ModernMinimalTemplate: React.FC<TemplateRendererProps> = ({
         <div style={{ paddingLeft: marginPx, paddingRight: marginPx }}>
           {blocks.map((block, i) => (
             <div key={i} ref={setRef(i)}>
+              {isFirstInSection(i) && (
+                <div className="mb-2">
+                  {sectionHeadingNode(block.sectionKey)}
+                </div>
+              )}
               {block.node}
             </div>
           ))}
@@ -770,7 +775,10 @@ export const ModernMinimalTemplate: React.FC<TemplateRendererProps> = ({
       collisionDetection={closestCenter}
       onDragEnd={handleItemDragEnd}
     >
-      <SortableContext items={sortableIds} strategy={verticalListSortingStrategy}>
+      <SortableContext
+        items={sortableIds}
+        strategy={verticalListSortingStrategy}
+      >
         {body}
       </SortableContext>
     </DndContext>

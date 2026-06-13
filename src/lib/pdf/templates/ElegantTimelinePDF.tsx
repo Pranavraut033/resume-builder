@@ -13,6 +13,7 @@ import { htmlToPlainText, isHtml } from "@/lib/htmlUtils";
 
 import { ResolvedPDFStyles, withAlpha } from "../resolveStyles";
 import { PDFTemplateProps } from "./ModernMinimalPDF";
+import { SectionGroup } from "./shared/SectionGroup";
 
 const plain = (text: string | null | undefined): string => {
   if (!text) return "";
@@ -159,8 +160,7 @@ export const ElegantTimelinePDF: React.FC<PDFTemplateProps> = ({
 
         {/* ── Experience (left-border timeline) ───────────── */}
         {(resume.experience ?? []).length > 0 ? (
-          <View>
-            <SH title="Experience" s={s} />
+          <SectionGroup heading={<SH title="Experience" s={s} />}>
             {(resume.experience ?? []).map((exp, i) => (
               <View
                 key={i}
@@ -221,13 +221,12 @@ export const ElegantTimelinePDF: React.FC<PDFTemplateProps> = ({
                 </View>
               </View>
             ))}
-          </View>
+          </SectionGroup>
         ) : null}
 
         {/* ── Projects ────────────────────────────────────── */}
         {(resume.projects ?? []).length > 0 ? (
-          <View>
-            <SH title="Projects" s={s} />
+          <SectionGroup heading={<SH title="Projects" s={s} />}>
             {(resume.projects ?? []).map((proj, i) => (
               <View
                 key={i}
@@ -285,7 +284,7 @@ export const ElegantTimelinePDF: React.FC<PDFTemplateProps> = ({
                 </View>
               </View>
             ))}
-          </View>
+          </SectionGroup>
         ) : null}
 
         {/* ── Skills (pill tags) ──────────────────────────── */}
@@ -322,8 +321,7 @@ export const ElegantTimelinePDF: React.FC<PDFTemplateProps> = ({
 
         {/* ── Education ───────────────────────────────────── */}
         {(resume.education ?? []).length > 0 ? (
-          <View>
-            <SH title="Education" s={s} />
+          <SectionGroup heading={<SH title="Education" s={s} />}>
             {(resume.education ?? []).map((edu, i) => (
               <View
                 key={i}
@@ -368,13 +366,12 @@ export const ElegantTimelinePDF: React.FC<PDFTemplateProps> = ({
                 </View>
               </View>
             ))}
-          </View>
+          </SectionGroup>
         ) : null}
 
         {/* ── Certifications ──────────────────────────────── */}
         {(resume.certifications ?? []).length > 0 ? (
-          <View>
-            <SH title="Certifications" s={s} />
+          <SectionGroup heading={<SH title="Certifications" s={s} />}>
             {(resume.certifications ?? []).map((cert, i) => (
               <View
                 key={i}
@@ -412,13 +409,12 @@ export const ElegantTimelinePDF: React.FC<PDFTemplateProps> = ({
                 </Text>
               </View>
             ))}
-          </View>
+          </SectionGroup>
         ) : null}
 
         {/* ── Publications ────────────────────────────────── */}
         {(resume.publications ?? []).length > 0 ? (
-          <View>
-            <SH title="Publications" s={s} />
+          <SectionGroup heading={<SH title="Publications" s={s} />}>
             {(resume.publications ?? []).map((pub, i) => (
               <View
                 key={i}
@@ -459,7 +455,7 @@ export const ElegantTimelinePDF: React.FC<PDFTemplateProps> = ({
                 </Text>
               </View>
             ))}
-          </View>
+          </SectionGroup>
         ) : null}
 
         {/* ── Languages ───────────────────────────────────── */}
@@ -482,8 +478,7 @@ export const ElegantTimelinePDF: React.FC<PDFTemplateProps> = ({
 
         {/* ── Volunteer ───────────────────────────────────── */}
         {(resume.volunteer ?? []).length > 0 ? (
-          <View>
-            <SH title="Volunteer" s={s} />
+          <SectionGroup heading={<SH title="Volunteer" s={s} />}>
             {(resume.volunteer ?? []).map((v, i) => (
               <View
                 key={i}
@@ -527,13 +522,12 @@ export const ElegantTimelinePDF: React.FC<PDFTemplateProps> = ({
                 </View>
               </View>
             ))}
-          </View>
+          </SectionGroup>
         ) : null}
 
         {/* ── Awards ──────────────────────────────────────── */}
         {(resume.awards ?? []).length > 0 ? (
-          <View>
-            <SH title="Awards" s={s} />
+          <SectionGroup heading={<SH title="Awards" s={s} />}>
             {(resume.awards ?? []).map((award, i) => (
               <View
                 key={i}
@@ -568,7 +562,7 @@ export const ElegantTimelinePDF: React.FC<PDFTemplateProps> = ({
                 ) : null}
               </View>
             ))}
-          </View>
+          </SectionGroup>
         ) : null}
       </Page>
     </Document>

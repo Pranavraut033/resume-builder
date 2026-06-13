@@ -12,6 +12,7 @@ import { htmlToPlainText, isHtml } from "@/lib/htmlUtils";
 
 import { ResolvedPDFStyles, withAlpha } from "../resolveStyles";
 import { PDFTemplateProps } from "./ModernMinimalPDF";
+import { SectionGroup } from "./shared/SectionGroup";
 
 const plain = (text: string | null | undefined): string => {
   if (!text) return "";
@@ -190,8 +191,7 @@ export const CreativeModernPDF: React.FC<PDFTemplateProps> = ({
 
             {/* Skills with dot bullets */}
             {(resume.skills ?? []).length > 0 ? (
-              <View>
-                <LeftSH s={s} title="Skills" />
+              <SectionGroup heading={<LeftSH s={s} title="Skills" />}>
                 {(resume.skills ?? []).map((skill, i) => (
                   <View
                     key={i}
@@ -213,13 +213,12 @@ export const CreativeModernPDF: React.FC<PDFTemplateProps> = ({
                     <Text style={{ fontSize, color: textColor }}>{skill}</Text>
                   </View>
                 ))}
-              </View>
+              </SectionGroup>
             ) : null}
 
             {/* Education */}
             {(resume.education ?? []).length > 0 ? (
-              <View>
-                <LeftSH s={s} title="Education" />
+              <SectionGroup heading={<LeftSH s={s} title="Education" />}>
                 {(resume.education ?? []).map((edu, i) => (
                   <View key={i} wrap={false} style={{ marginBottom: 8 }}>
                     <Text
@@ -251,13 +250,12 @@ export const CreativeModernPDF: React.FC<PDFTemplateProps> = ({
                     ) : null}
                   </View>
                 ))}
-              </View>
+              </SectionGroup>
             ) : null}
 
             {/* Certifications */}
             {(resume.certifications ?? []).length > 0 ? (
-              <View>
-                <LeftSH s={s} title="Certifications" />
+              <SectionGroup heading={<LeftSH s={s} title="Certifications" />}>
                 {(resume.certifications ?? []).map((cert, i) => (
                   <View key={i} wrap={false} style={{ marginBottom: 6 }}>
                     <Text
@@ -275,13 +273,12 @@ export const CreativeModernPDF: React.FC<PDFTemplateProps> = ({
                     </Text>
                   </View>
                 ))}
-              </View>
+              </SectionGroup>
             ) : null}
 
             {/* Languages */}
             {(resume.languages ?? []).length > 0 ? (
-              <View>
-                <LeftSH s={s} title="Languages" />
+              <SectionGroup heading={<LeftSH s={s} title="Languages" />}>
                 {(resume.languages ?? []).map((l, i) => (
                   <View key={i} style={{ marginBottom: 3 }}>
                     <Text
@@ -294,13 +291,12 @@ export const CreativeModernPDF: React.FC<PDFTemplateProps> = ({
                     </Text>
                   </View>
                 ))}
-              </View>
+              </SectionGroup>
             ) : null}
 
             {/* Awards */}
             {(resume.awards ?? []).length > 0 ? (
-              <View>
-                <LeftSH s={s} title="Awards" />
+              <SectionGroup heading={<LeftSH s={s} title="Awards" />}>
                 {(resume.awards ?? []).map((award, i) => (
                   <View key={i} wrap={false} style={{ marginBottom: 6 }}>
                     <Text
@@ -318,7 +314,7 @@ export const CreativeModernPDF: React.FC<PDFTemplateProps> = ({
                     </Text>
                   </View>
                 ))}
-              </View>
+              </SectionGroup>
             ) : null}
           </View>
 
@@ -331,8 +327,7 @@ export const CreativeModernPDF: React.FC<PDFTemplateProps> = ({
           >
             {/* Experience */}
             {(resume.experience ?? []).length > 0 ? (
-              <View>
-                <RightSH s={s} title="Experience" />
+              <SectionGroup heading={<RightSH s={s} title="Experience" />}>
                 {(resume.experience ?? []).map((exp, i) => (
                   <View key={i} wrap={false} style={{ marginBottom: 10 }}>
                     <View
@@ -407,13 +402,12 @@ export const CreativeModernPDF: React.FC<PDFTemplateProps> = ({
                     </View>
                   </View>
                 ))}
-              </View>
+              </SectionGroup>
             ) : null}
 
             {/* Projects */}
             {(resume.projects ?? []).length > 0 ? (
-              <View>
-                <RightSH s={s} title="Projects" />
+              <SectionGroup heading={<RightSH s={s} title="Projects" />}>
                 {(resume.projects ?? []).map((proj, i) => (
                   <View key={i} wrap={false} style={{ marginBottom: 10 }}>
                     <View
@@ -473,13 +467,12 @@ export const CreativeModernPDF: React.FC<PDFTemplateProps> = ({
                     ) : null}
                   </View>
                 ))}
-              </View>
+              </SectionGroup>
             ) : null}
 
             {/* Volunteer */}
             {(resume.volunteer ?? []).length > 0 ? (
-              <View>
-                <RightSH s={s} title="Volunteer" />
+              <SectionGroup heading={<RightSH s={s} title="Volunteer" />}>
                 {(resume.volunteer ?? []).map((v, i) => (
                   <View key={i} wrap={false} style={{ marginBottom: 8 }}>
                     <View
@@ -521,13 +514,12 @@ export const CreativeModernPDF: React.FC<PDFTemplateProps> = ({
                     ) : null}
                   </View>
                 ))}
-              </View>
+              </SectionGroup>
             ) : null}
 
             {/* Publications */}
             {(resume.publications ?? []).length > 0 ? (
-              <View>
-                <RightSH s={s} title="Publications" />
+              <SectionGroup heading={<RightSH s={s} title="Publications" />}>
                 {(resume.publications ?? []).map((pub, i) => (
                   <View key={i} wrap={false} style={{ marginBottom: 6 }}>
                     <Text
@@ -548,7 +540,7 @@ export const CreativeModernPDF: React.FC<PDFTemplateProps> = ({
                     </Text>
                   </View>
                 ))}
-              </View>
+              </SectionGroup>
             ) : null}
           </View>
         </View>

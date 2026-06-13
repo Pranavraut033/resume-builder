@@ -8,33 +8,38 @@
  * @param firstPageReserved Height already consumed on page 0 (e.g. by the
  *                          resume header). Reduces the capacity of the first
  *                          page only.
+ * @param gapPx             Vertical gap in px rendered between consecutive
+ *                          blocks on the same page (e.g. a `mb-4` margin).
+ *                          Not applied before the first block on a page.
  * @returns Array of pages; each page is an array of block indices.
  */
 export function groupBlocksIntoPages(
   heights: number[],
   pageContentHeight: number,
-  firstPageReserved = 0
+  firstPageReserved = 0,
+  gapPx = 0
 ): number[][] {
   if (heights.length === 0) return [[]];
 
   const pages: number[][] = [[]];
-  let currentPageHeight = firstPageReserved;
-  let currentPageCapacity = pageContentHeight - firstPageReserved;
+  let usedHeight = firstPageReserved;
 
   for (let i = 0; i < heights.length; i++) {
     const h = heights[i];
+    const currentPage = pages[pages.length - 1];
+    const isFirstOnPage = currentPage.length === 0;
+    const required = h + (isFirstOnPage ? 0 : gapPx);
 
-    // A block taller than a full page gets its own page to avoid infinite loop.
-    const fitsOnCurrent = h <= currentPageCapacity - currentPageHeight;
+    // A block taller than a full page still gets placed (own page) to avoid
+    // an infinite loop — it will simply overflow that page.
+    const fits = usedHeight + required <= pageContentHeight;
 
-    if (fitsOnCurrent) {
-      pages[pages.length - 1].push(i);
-      currentPageHeight += h;
+    if (fits || isFirstOnPage) {
+      currentPage.push(i);
+      usedHeight += required;
     } else {
-      // Start a new page.
       pages.push([i]);
-      currentPageCapacity = pageContentHeight;
-      currentPageHeight = h;
+      usedHeight = h;
     }
   }
 
