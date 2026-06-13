@@ -24,6 +24,45 @@ A local-first, AI-powered desktop app that turns a job description and your base
 - **Secure key storage**: API keys live in Tauri's encrypted store (desktop) or `localStorage` (web), never on the server
 - **Local-first**: all data in a local SQLite database; no mandatory cloud dependency
 
+## Download & Install
+
+Prebuilt desktop apps for macOS, Windows, and Linux are published on the [Releases](https://github.com/Pranavraut033/resume-builder/releases) page for every `v*.*.*` tag.
+
+| Platform | File | Notes |
+| --- | --- | --- |
+| macOS | `Resume.Builder_<version>_universal.dmg` | Universal binary (Apple Silicon + Intel) |
+| Windows | `Resume.Builder_<version>_x64-setup.exe` | NSIS installer |
+| Linux | `Resume.Builder_<version>_amd64.AppImage` or `.deb` | AppImage is portable; `.deb` for Debian/Ubuntu |
+
+The app is **self-signed** (not signed by a CA-trusted/registered publisher), so each OS will show a one-time warning before the first launch. This is expected — follow the steps below to open it.
+
+### macOS
+
+1. Open the downloaded `.dmg` and drag **Resume Builder** into **Applications**
+2. On first launch, Gatekeeper will say *"Resume Builder cannot be verified"* — **right-click the app → Open → Open** in the dialog
+3. If you instead see *"The application is damaged and can't be opened"*, clear the quarantine flag:
+   ```bash
+   xattr -d com.apple.quarantine /Applications/Resume\ Builder.app
+   ```
+
+### Windows
+
+1. Run the `*-setup.exe` installer
+2. Windows SmartScreen will show *"Windows protected your PC"* — click **More info**, then **Run anyway**
+3. Follow the installer prompts
+
+### Linux
+
+- **AppImage** (portable, no install):
+  ```bash
+  chmod +x Resume.Builder_*_amd64.AppImage
+  ./Resume.Builder_*_amd64.AppImage
+  ```
+- **.deb** (Debian/Ubuntu):
+  ```bash
+  sudo dpkg -i Resume.Builder_*_amd64.deb
+  ```
+
 ## Tech Stack
 
 - **Framework**: Next.js 16 (App Router, Server Actions)

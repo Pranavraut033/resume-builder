@@ -123,6 +123,23 @@ jobs:
             -S apple-tool:,apple: \
             -s -k "$KEYCHAIN_PASSWORD" build.keychain
 
+      - name: Create self-signed certificate (Windows)
+        if: matrix.platform == 'windows-latest'
+        id: windows_cert
+        shell: pwsh
+        run: |
+          $cert = New-SelfSignedCertificate `
+            -Type Custom `
+            -Subject "CN=Resume Builder, O=Resume Builder" `
+            -KeyUsage DigitalSignature `
+            -FriendlyName "Resume Builder Self-Signed" `
+            -CertStoreLocation "Cert:\CurrentUser\My" `
+            -NotAfter (Get-Date).AddYears(5) `
+            -TextExtension @("2.5.29.37={text}1.3.6.1.5.5.7.3.3","2.5.29.19={text}")
+
+          $config = @{ bundle = @{ windows = @{ certificateThumbprint = $cert.Thumbprint; digestAlgorithm = "sha256" } } }
+          $config | ConvertTo-Json -Depth 5 -Compress | Set-Content -Path windows-signing.conf.json -Encoding utf8
+
       - name: Build and publish Tauri app
         uses: tauri-apps/tauri-action@v0
         env:
@@ -132,7 +149,7 @@ jobs:
           APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
         with:
           releaseId: ${{ needs.create-release.outputs.release_id }}
-          args: ${{ matrix.args }}
+          args: ${{ matrix.platform == 'windows-latest' && '--config windows-signing.conf.json' || matrix.args }}
           uploadUpdaterJson: false
 
       - name: Cleanup keychain
