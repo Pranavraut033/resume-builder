@@ -71,11 +71,14 @@ export interface JobPageContextType {
     updates: Partial<Sanitize<ResumeJSON>>,
     note?: string
   ) => void;
+  undoResume: () => void;
+  redoResume: () => void;
   refetch: (options?: RefetchOptions, ...fields: (keyof JobPageData)[]) => void;
   isExportingPdf: boolean;
   isExportingTxt: boolean;
   onPDFExport: () => void;
   onTXTExport: () => void;
+  onJSONExport: () => void;
   onCopyText: () => void;
   saveToDb: (...args: SaveToDbArgs) => void;
   saveStatus: "idle" | "saving" | "saved" | "error";
@@ -177,6 +180,18 @@ export function JobPageProvider({
     []
   );
 
+  // Undo/redo apply the reverted/replayed document back to React state
+  // without recording a new history entry.
+  const undoResume = useCallback(() => {
+    const result = historyRef.current.undo();
+    if (result) setResumeState(result);
+  }, []);
+
+  const redoResume = useCallback(() => {
+    const result = historyRef.current.redo();
+    if (result) setResumeState(result);
+  }, []);
+
   const onPDFExport = useCallback(async () => {
     const jobData = data?.job;
     if (!jobData) return;
@@ -239,6 +254,33 @@ export function JobPageProvider({
       setIsExportingTxt(false);
     }, 2000);
   };
+
+  const onJSONExport = useCallback(() => {
+    const jobData = data?.job;
+    if (!jobData)
+      return pushToast({
+        title: "No job context",
+        description: "Cannot export without job context.",
+        variant: "error",
+      });
+
+    const payload =
+      contentType === "coverLetter"
+        ? JSON.stringify({ coverLetter }, null, 2)
+        : JSON.stringify(resume, null, 2);
+    const blob = new Blob([payload], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download =
+      contentType === "coverLetter"
+        ? `${jobData.company?.name} Cover Letter.json`
+        : `${jobData.company?.name} ${resume.header.name}-Resume.json`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  }, [contentType, coverLetter, data?.job, pushToast, resume]);
 
   const onCopyText = useCallback(() => {
     navigator.clipboard.writeText(generateContentText());
@@ -417,6 +459,7 @@ export function JobPageProvider({
     isExportingTxt,
     job,
     onCopyText,
+    onJSONExport,
     onPDFExport,
     onTXTExport,
     profile: data.profile,
@@ -430,6 +473,8 @@ export function JobPageProvider({
     updateCoverLetterState,
     updateCustomizationState,
     updateResumeState,
+    undoResume,
+    redoResume,
     resumeMeta: {
       createdAt: data.resume!.createdAt,
       updatedAt: data.resume!.updatedAt,

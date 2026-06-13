@@ -4,8 +4,27 @@
 
 "use client";
 
+import {
+  DndContext,
+  DragEndEvent,
+  PointerSensor,
+  closestCenter,
+  useSensor,
+  useSensors,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
 import React, { useEffect, useRef, useState } from "react";
 
+import { EditableItem } from "@/components/job-v2/resume/EditableItem";
+import { EditableText } from "@/components/job-v2/resume/EditableText";
+import {
+  ListSectionId,
+  useInlineEdit,
+} from "@/components/job-v2/resume/InlineEditContext";
+import { Icon } from "@/components/ui/Icon";
 import { useBlockPaginator } from "@/hooks/useBlockPaginator";
 import useResolveCustomization from "@/hooks/useResolveCustomization";
 import { getPageDimensions } from "@/lib/pageDimensions";
@@ -14,7 +33,21 @@ import MeasurementContainer from "./shared/MeasurementContainer";
 import ResumePage from "./shared/ResumePage";
 import { TemplateRendererProps } from "./TemplateRenderer";
 
-type Block = { node: React.ReactNode; sectionKey: string };
+const LIST_SECTIONS: readonly ListSectionId[] = [
+  "experience",
+  "education",
+  "projects",
+  "certifications",
+];
+const isListSection = (key: string): key is ListSectionId =>
+  (LIST_SECTIONS as readonly string[]).includes(key);
+
+type Block = {
+  node: React.ReactNode;
+  sectionKey: string;
+  /** For list-section entries: the index within that section's array. */
+  itemIndex?: number;
+};
 
 export const ElegantTimelineTemplate: React.FC<TemplateRendererProps> = ({
   resume,
@@ -36,14 +69,31 @@ export const ElegantTimelineTemplate: React.FC<TemplateRendererProps> = ({
   const { widthMm, widthPx, heightPx, marginPx, contentHeightPx } =
     getPageDimensions(customization.pageFormat, customization.marginSize);
 
-  const sectionHeadingNode = (title: string) => (
-    <h2
-      className={`${headingSize} mb-4 text-center font-semibold uppercase`}
-      style={{ color: primaryColor }}
-    >
-      {title}
-    </h2>
-  );
+  const edit = useInlineEdit();
+
+  const sectionHeadingNode = (sectionKey: string) => {
+    const title = sectionLabels[sectionKey] ?? sectionKey;
+    const canAdd = edit.editable && isListSection(sectionKey);
+    return (
+      <h2
+        className={`${headingSize} group/heading relative mb-4 text-center font-semibold uppercase`}
+        style={{ color: primaryColor }}
+      >
+        <span>{title}</span>
+        {canAdd && (
+          <button
+            onClick={() => edit.addItem(sectionKey)}
+            aria-label={`Add ${title} entry`}
+            title={`Add ${title} entry`}
+            className="text-agent-on-surface-variant hover:bg-agent-primary-container hover:text-agent-on-primary-container absolute top-1/2 right-0 -my-1 flex -translate-y-1/2 items-center gap-1 rounded-full px-2 py-1 text-xs font-medium opacity-0 transition-all duration-150 group-hover/heading:opacity-100"
+          >
+            <Icon name="plus" className="h-3.5 w-3.5" />
+            Add
+          </button>
+        )}
+      </h2>
+    );
+  };
 
   const sectionLabels: Record<string, string> = {
     summary: "Professional Summary",
@@ -60,22 +110,28 @@ export const ElegantTimelineTemplate: React.FC<TemplateRendererProps> = ({
 
   const blocks: Block[] = [];
 
-  if (resume.summary) {
+  if (resume.summary || edit.editable) {
     blocks.push({
       sectionKey: "summary",
       node: (
         <p
           className={`${textSize} ${lineHeight} mx-auto max-w-3xl text-center`}
         >
-          {resume.summary}
+          <EditableText
+            value={resume.summary}
+            onCommit={(v) => edit.updateSummary(v)}
+            fieldType="textarea"
+            placeholder="Write a short professional summary…"
+          />
         </p>
       ),
     });
   }
 
-  (resume.experience ?? []).forEach((exp, idx) => {
+  (resume.experience ?? []).forEach((exp, expIndex) => {
     blocks.push({
       sectionKey: "experience",
+      itemIndex: expIndex,
       node: (
         <div className="relative">
           <div
@@ -83,37 +139,82 @@ export const ElegantTimelineTemplate: React.FC<TemplateRendererProps> = ({
             style={{ backgroundColor: accentColor }}
           />
           <div
-            className={`flex ${idx % 2 === 0 ? "justify-start" : "justify-end"}`}
+            className={`flex ${expIndex % 2 === 0 ? "justify-start" : "justify-end"}`}
           >
             <div
-              className={`w-5/12 ${idx % 2 === 0 ? "pr-8 text-right" : "pl-8 text-left"}`}
+              className={`w-5/12 ${expIndex % 2 === 0 ? "pr-8 text-right" : "pl-8 text-left"}`}
             >
               <div className="relative">
                 <div
                   className={`absolute top-2 h-4 w-4 rounded-full border-2 ${
-                    idx % 2 === 0 ? "-right-[3.75rem]" : "-left-[3.75rem]"
+                    expIndex % 2 === 0 ? "-right-[3.75rem]" : "-left-[3.75rem]"
                   }`}
                   style={{ backgroundColor, borderColor: accentColor }}
                 />
-                <h3 className={`${textSize} font-bold`}>{exp.role}</h3>
+                <h3 className={`${textSize} font-bold`}>
+                  <EditableText
+                    value={exp.role}
+                    onCommit={(v) =>
+                      edit.updateExperience(expIndex, { role: v })
+                    }
+                    placeholder="Role"
+                  />
+                </h3>
                 <div
                   className={`${textSize} ${lineHeight} font-medium`}
                   style={{ color: secondaryColor }}
                 >
-                  {exp.company}
+                  <EditableText
+                    value={exp.company}
+                    onCommit={(v) =>
+                      edit.updateExperience(expIndex, { company: v })
+                    }
+                    placeholder="Company"
+                  />
                 </div>
                 <div className="mb-2 text-xs">
-                  {exp.startDate} - {exp.endDate || "Present"}
+                  <EditableText
+                    value={exp.startDate}
+                    onCommit={(v) =>
+                      edit.updateExperience(expIndex, { startDate: v })
+                    }
+                    placeholder="Start"
+                  />
+                  {" - "}
+                  <EditableText
+                    value={exp.endDate || ""}
+                    onCommit={(v) =>
+                      edit.updateExperience(expIndex, { endDate: v })
+                    }
+                    placeholder="Present"
+                  />
                 </div>
-                {exp.description && (
+                {(exp.description || edit.editable) && (
                   <p className={`${textSize} ${lineHeight} mb-2`}>
-                    {exp.description}
+                    <EditableText
+                      value={exp.description}
+                      onCommit={(v) =>
+                        edit.updateExperience(expIndex, { description: v })
+                      }
+                      fieldType="textarea"
+                      placeholder="Describe your role…"
+                    />
                   </p>
                 )}
                 {exp.achievements && exp.achievements.length > 0 && (
                   <ul className={`space-y-1 text-xs ${lineHeight}`}>
                     {exp.achievements.map((a, i) => (
-                      <li key={i}>• {a}</li>
+                      <li key={i}>
+                        •{" "}
+                        <EditableText
+                          value={a}
+                          onCommit={(v) =>
+                            edit.updateExperienceAchievement(expIndex, i, v)
+                          }
+                          fieldType="bullet"
+                          placeholder="Achievement"
+                        />
+                      </li>
                     ))}
                   </ul>
                 )}
@@ -125,23 +226,68 @@ export const ElegantTimelineTemplate: React.FC<TemplateRendererProps> = ({
     });
   });
 
-  (resume.education ?? []).forEach((edu) => {
+  (resume.education ?? []).forEach((edu, eduIndex) => {
     blocks.push({
       sectionKey: "education",
+      itemIndex: eduIndex,
       node: (
         <div className="text-center">
-          <h3 className={`${textSize} font-bold`}>{edu.degree}</h3>
+          <h3 className={`${textSize} font-bold`}>
+            <EditableText
+              value={edu.degree}
+              onCommit={(v) => edit.updateEducation(eduIndex, { degree: v })}
+              placeholder="Degree"
+            />
+          </h3>
           <div
             className={`${textSize} ${lineHeight}`}
             style={{ color: secondaryColor }}
           >
-            {edu.institution}
-            {edu.field && ` • ${edu.field}`}
+            <EditableText
+              value={edu.institution}
+              onCommit={(v) =>
+                edit.updateEducation(eduIndex, { institution: v })
+              }
+              placeholder="Institution"
+            />
+            {(edu.field || edit.editable) && (
+              <>
+                {" • "}
+                <EditableText
+                  value={edu.field}
+                  onCommit={(v) =>
+                    edit.updateEducation(eduIndex, { field: v })
+                  }
+                  placeholder="Field"
+                />
+              </>
+            )}
           </div>
           <div className="text-xs">
-            {edu.startDate} - {edu.endDate || "Present"}
+            <EditableText
+              value={edu.startDate}
+              onCommit={(v) =>
+                edit.updateEducation(eduIndex, { startDate: v })
+              }
+              placeholder="Start"
+            />
+            {" - "}
+            <EditableText
+              value={edu.endDate || ""}
+              onCommit={(v) => edit.updateEducation(eduIndex, { endDate: v })}
+              placeholder="Present"
+            />
           </div>
-          {edu.gpa && <div className="text-xs">GPA: {edu.gpa}</div>}
+          {(edu.gpa || edit.editable) && (
+            <div className="text-xs">
+              GPA:{" "}
+              <EditableText
+                value={edu.gpa || ""}
+                onCommit={(v) => edit.updateEducation(eduIndex, { gpa: v })}
+                placeholder="—"
+              />
+            </div>
+          )}
         </div>
       ),
     });
@@ -161,7 +307,11 @@ export const ElegantTimelineTemplate: React.FC<TemplateRendererProps> = ({
                 color: accentColor,
               }}
             >
-              {skill}
+              <EditableText
+                value={skill}
+                onCommit={(v) => edit.updateSkill(idx, v)}
+                placeholder="Skill"
+              />
             </span>
           ))}
         </div>
@@ -169,32 +319,85 @@ export const ElegantTimelineTemplate: React.FC<TemplateRendererProps> = ({
     });
   }
 
-  (resume.certifications ?? []).forEach((cert) => {
+  (resume.certifications ?? []).forEach((cert, certIndex) => {
     blocks.push({
       sectionKey: "certifications",
+      itemIndex: certIndex,
       node: (
         <div className="text-center">
-          <h3 className={`${textSize} font-semibold`}>{cert.name}</h3>
+          <h3 className={`${textSize} font-semibold`}>
+            <EditableText
+              value={cert.name}
+              onCommit={(v) =>
+                edit.updateCertification(certIndex, { name: v })
+              }
+              placeholder="Certification"
+            />
+          </h3>
           <p className="text-xs" style={{ color: secondaryColor }}>
-            {cert.issuer} • {cert.date}
+            <EditableText
+              value={cert.issuer}
+              onCommit={(v) =>
+                edit.updateCertification(certIndex, { issuer: v })
+              }
+              placeholder="Issuer"
+            />
+            {" • "}
+            <EditableText
+              value={cert.date}
+              onCommit={(v) =>
+                edit.updateCertification(certIndex, { date: v })
+              }
+              placeholder="Date"
+            />
           </p>
         </div>
       ),
     });
   });
 
-  (resume.projects ?? []).forEach((project) => {
+  (resume.projects ?? []).forEach((project, projectIndex) => {
     blocks.push({
       sectionKey: "projects",
+      itemIndex: projectIndex,
       node: (
         <div className="text-center">
-          <h3 className={`${textSize} font-bold`}>{project.name}</h3>
+          <h3 className={`${textSize} font-bold`}>
+            <EditableText
+              value={project.name}
+              onCommit={(v) =>
+                edit.updateProject(projectIndex, { name: v })
+              }
+              placeholder="Project name"
+            />
+          </h3>
           <p className={`${textSize} ${lineHeight} mt-1`}>
-            {project.description}
+            <EditableText
+              value={project.description}
+              onCommit={(v) =>
+                edit.updateProject(projectIndex, { description: v })
+              }
+              fieldType="textarea"
+              placeholder="Describe the project…"
+            />
           </p>
           {project.technologies && project.technologies.length > 0 && (
             <div className="mt-1 text-xs" style={{ color: secondaryColor }}>
-              {project.technologies.join(", ")}
+              {project.technologies.map((tech, i) => (
+                <span key={i}>
+                  {i > 0 && ", "}
+                  <EditableText
+                    value={tech}
+                    onCommit={(v) => {
+                      const next = project.technologies.map((t, ti) =>
+                        ti === i ? v : t
+                      );
+                      edit.updateProjectTechnologies(projectIndex, next);
+                    }}
+                    placeholder="Tech"
+                  />
+                </span>
+              ))}
             </div>
           )}
         </div>
@@ -296,29 +499,87 @@ export const ElegantTimelineTemplate: React.FC<TemplateRendererProps> = ({
     firstPageReserved: headerHeight,
   });
 
+  // ── Item-level drag-and-drop (editor only) ─────────────────────────────────
+  const sortableIds = blocks
+    .filter((b) => isListSection(b.sectionKey) && b.itemIndex !== undefined)
+    .map((b) => `${b.sectionKey}-${b.itemIndex}`);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } })
+  );
+
+  const handleItemDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    const parse = (raw: string | number) => {
+      const s = String(raw);
+      const dash = s.lastIndexOf("-");
+      return { section: s.slice(0, dash), index: Number(s.slice(dash + 1)) };
+    };
+    const from = parse(active.id);
+    const to = parse(over.id);
+    if (from.section !== to.section || !isListSection(from.section)) return;
+    edit.moveItem(from.section, from.index, to.index);
+  };
+
   const headerNode = (
     <header className="mb-8 text-center">
       <h1
         className={`mb-2 ${nameSize} font-light`}
         style={{ color: primaryColor }}
       >
-        {resume.header.name}
+        <EditableText
+          value={resume.header.name}
+          onCommit={(v) => edit.updateHeader({ name: v })}
+          placeholder="Your Name"
+        />
       </h1>
-      {resume.header.headline && (
+      {(resume.header.headline || edit.editable) && (
         <div
           className={`${textSize} ${lineHeight} mb-2 font-medium`}
           style={{ color: accentColor }}
         >
-          {resume.header.headline}
+          <EditableText
+            value={resume.header.headline || ""}
+            onCommit={(v) => edit.updateHeader({ headline: v })}
+            placeholder="Professional headline"
+          />
         </div>
       )}
       <div
         className={`${textSize} ${lineHeight} mb-2 flex flex-wrap justify-center gap-3`}
         style={{ color: secondaryColor }}
       >
-        {resume.header.email && <span>✉ {resume.header.email}</span>}
-        {resume.header.phone && <span>📞 {resume.header.phone}</span>}
-        {resume.header.location && <span>📍 {resume.header.location}</span>}
+        {(resume.header.email || edit.editable) && (
+          <span>
+            ✉{" "}
+            <EditableText
+              value={resume.header.email}
+              onCommit={(v) => edit.updateHeader({ email: v })}
+              placeholder="email@example.com"
+            />
+          </span>
+        )}
+        {(resume.header.phone || edit.editable) && (
+          <span>
+            📞{" "}
+            <EditableText
+              value={resume.header.phone || ""}
+              onCommit={(v) => edit.updateHeader({ phone: v })}
+              placeholder="Phone"
+            />
+          </span>
+        )}
+        {(resume.header.location || edit.editable) && (
+          <span>
+            📍{" "}
+            <EditableText
+              value={resume.header.location || ""}
+              onCommit={(v) => edit.updateHeader({ location: v })}
+              placeholder="Location"
+            />
+          </span>
+        )}
       </div>
       <div
         className={`${textSize} ${lineHeight} flex flex-wrap justify-center gap-3`}
@@ -358,24 +619,43 @@ export const ElegantTimelineTemplate: React.FC<TemplateRendererProps> = ({
     let currentSection = prevLastSection;
     return indices.map((idx) => {
       const block = blocks[idx];
+      // pageGroups can hold stale indices while blocks rebuilds after a resume update
+      if (!block) return null;
       const isNewSection = block.sectionKey !== currentSection;
       currentSection = block.sectionKey;
+
+      const reorderable =
+        edit.editable &&
+        isListSection(block.sectionKey) &&
+        block.itemIndex !== undefined;
+
       return (
         <div key={idx} className="mb-6">
           {isNewSection && (
-            <div className="mb-3">
-              {sectionHeadingNode(
-                sectionLabels[block.sectionKey] ?? block.sectionKey
-              )}
-            </div>
+            <div className="mb-3">{sectionHeadingNode(block.sectionKey)}</div>
           )}
-          {block.node}
+          {reorderable ? (
+            <EditableItem
+              id={`${block.sectionKey}-${block.itemIndex}`}
+              label={sectionLabels[block.sectionKey] ?? block.sectionKey}
+              onDelete={() =>
+                edit.removeItem(
+                  block.sectionKey as ListSectionId,
+                  block.itemIndex as number
+                )
+              }
+            >
+              {block.node}
+            </EditableItem>
+          ) : (
+            block.node
+          )}
         </div>
       );
     });
   };
 
-  return (
+  const body = (
     <div
       style={{
         fontFamily,
@@ -427,5 +707,19 @@ export const ElegantTimelineTemplate: React.FC<TemplateRendererProps> = ({
         );
       })}
     </div>
+  );
+
+  if (!edit.editable) return body;
+
+  return (
+    <DndContext
+      sensors={sensors}
+      collisionDetection={closestCenter}
+      onDragEnd={handleItemDragEnd}
+    >
+      <SortableContext items={sortableIds} strategy={verticalListSortingStrategy}>
+        {body}
+      </SortableContext>
+    </DndContext>
   );
 };

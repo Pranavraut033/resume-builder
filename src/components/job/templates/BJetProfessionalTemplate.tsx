@@ -3,8 +3,27 @@
 // Copyright (c) 2025 M. H. A. Afif
 // Licensed under MIT License
 
+import {
+  DndContext,
+  DragEndEvent,
+  PointerSensor,
+  closestCenter,
+  useSensor,
+  useSensors,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
 import React, { useEffect, useRef, useState } from "react";
 
+import { EditableItem } from "@/components/job-v2/resume/EditableItem";
+import { EditableText } from "@/components/job-v2/resume/EditableText";
+import {
+  ListSectionId,
+  useInlineEdit,
+} from "@/components/job-v2/resume/InlineEditContext";
+import { Icon } from "@/components/ui/Icon";
 import { useBlockPaginator } from "@/hooks/useBlockPaginator";
 import useResolveCustomization from "@/hooks/useResolveCustomization";
 import { getPageDimensions } from "@/lib/pageDimensions";
@@ -13,7 +32,21 @@ import MeasurementContainer from "./shared/MeasurementContainer";
 import ResumePage from "./shared/ResumePage";
 import { TemplateRendererProps } from "./TemplateRenderer";
 
-type Block = { node: React.ReactNode };
+const LIST_SECTIONS: readonly ListSectionId[] = [
+  "experience",
+  "education",
+  "projects",
+  "certifications",
+];
+const isListSection = (key: string): key is ListSectionId =>
+  (LIST_SECTIONS as readonly string[]).includes(key);
+
+type Block = {
+  node: React.ReactNode;
+  sectionKey: string;
+  /** For list-section entries: the index within that section's array. */
+  itemIndex?: number;
+};
 
 export const BJetProfessionalTemplate: React.FC<TemplateRendererProps> = ({
   resume,
@@ -33,9 +66,24 @@ export const BJetProfessionalTemplate: React.FC<TemplateRendererProps> = ({
   const { widthMm, widthPx, heightPx, marginPx, contentHeightPx } =
     getPageDimensions(customization.pageFormat, customization.marginSize);
 
+  const edit = useInlineEdit();
+
   const sectionHeaderStyle: React.CSSProperties = {
     backgroundColor: `${secondaryColor}30`,
     color: primaryColor,
+  };
+
+  const sectionLabels: Record<string, string> = {
+    summary: "PROFESSIONAL SUMMARY",
+    experience: "PROFESSIONAL EXPERIENCE",
+    education: "EDUCATION",
+    skills: "CORE COMPETENCIES",
+    projects: "KEY PROJECTS",
+    certifications: "CERTIFICATIONS",
+    publications: "PUBLICATIONS",
+    languages: "LANGUAGES",
+    volunteer: "VOLUNTEER EXPERIENCE",
+    awards: "AWARDS",
   };
 
   const sectionTable = (title: string, rows: React.ReactNode) => (
@@ -62,23 +110,62 @@ export const BJetProfessionalTemplate: React.FC<TemplateRendererProps> = ({
     </tr>
   );
 
+  // ── Section heading row (used for sections that don't use sectionTable()) ──
+  const sectionHeadingRow = (sectionKey: string) => {
+    const title = sectionLabels[sectionKey] ?? sectionKey;
+    const canAdd = edit.editable && isListSection(sectionKey);
+    return (
+      <table className="mb-0 w-full border-2 border-b-0" style={{ borderColor: primaryColor }}>
+        <tbody>
+          <tr>
+            <td
+              className="group/heading flex items-center justify-between gap-2 p-2 font-bold"
+              style={sectionHeaderStyle}
+            >
+              <span>{title}</span>
+              {canAdd && (
+                <button
+                  onClick={() => edit.addItem(sectionKey as ListSectionId)}
+                  aria-label={`Add ${title} entry`}
+                  title={`Add ${title} entry`}
+                  className="text-agent-on-surface-variant hover:bg-agent-primary-container hover:text-agent-on-primary-container -my-1 flex items-center gap-1 rounded-full px-2 py-1 text-xs font-medium opacity-0 transition-all duration-150 group-hover/heading:opacity-100"
+                >
+                  <Icon name="plus" className="h-3.5 w-3.5" />
+                  Add
+                </button>
+              )}
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    );
+  };
+
   const blocks: Block[] = [];
 
-  if (resume.summary) {
+  if (resume.summary || edit.editable) {
     blocks.push({
+      sectionKey: "summary",
       node: sectionTable(
         "PROFESSIONAL SUMMARY",
         tdCell(
           <p className={`${textSize} ${lineHeight} leading-relaxed`}>
-            {resume.summary}
+            <EditableText
+              value={resume.summary}
+              onCommit={(v) => edit.updateSummary(v)}
+              fieldType="textarea"
+              placeholder="Write a short professional summary…"
+            />
           </p>
         )
       ),
     });
   }
 
-  (resume.experience ?? []).forEach((exp) => {
+  (resume.experience ?? []).forEach((exp, expIndex) => {
     blocks.push({
+      sectionKey: "experience",
+      itemIndex: expIndex,
       node: (
         <table
           className="w-full border-x-2 border-b-2"
@@ -89,22 +176,57 @@ export const BJetProfessionalTemplate: React.FC<TemplateRendererProps> = ({
               <div>
                 <div className="mb-1 flex justify-between gap-4">
                   <div>
-                    <span className={`${textSize} font-bold`}>{exp.role}</span>
+                    <span className={`${textSize} font-bold`}>
+                      <EditableText
+                        value={exp.role}
+                        onCommit={(v) =>
+                          edit.updateExperience(expIndex, { role: v })
+                        }
+                        placeholder="Role"
+                      />
+                    </span>
                     <span className="mx-2">•</span>
                     <span
                       className={`${textSize} font-semibold`}
                       style={{ color: secondaryColor }}
                     >
-                      {exp.company}
+                      <EditableText
+                        value={exp.company}
+                        onCommit={(v) =>
+                          edit.updateExperience(expIndex, { company: v })
+                        }
+                        placeholder="Company"
+                      />
                     </span>
                   </div>
-                  <div className="text-xs">
-                    {exp.startDate} - {exp.endDate || "Present"}
+                  <div className="text-xs shrink-0">
+                    <EditableText
+                      value={exp.startDate}
+                      onCommit={(v) =>
+                        edit.updateExperience(expIndex, { startDate: v })
+                      }
+                      placeholder="Start"
+                    />
+                    {" - "}
+                    <EditableText
+                      value={exp.endDate || ""}
+                      onCommit={(v) =>
+                        edit.updateExperience(expIndex, { endDate: v })
+                      }
+                      placeholder="Present"
+                    />
                   </div>
                 </div>
-                {exp.description && (
+                {(exp.description || edit.editable) && (
                   <p className={`${textSize} ${lineHeight} mb-2`}>
-                    {exp.description}
+                    <EditableText
+                      value={exp.description}
+                      onCommit={(v) =>
+                        edit.updateExperience(expIndex, { description: v })
+                      }
+                      fieldType="textarea"
+                      placeholder="Describe your role…"
+                    />
                   </p>
                 )}
                 {exp.achievements && exp.achievements.length > 0 && (
@@ -114,7 +236,14 @@ export const BJetProfessionalTemplate: React.FC<TemplateRendererProps> = ({
                         key={i}
                         className={`${textSize} ${lineHeight} ml-5 list-disc`}
                       >
-                        {a}
+                        <EditableText
+                          value={a}
+                          onCommit={(v) =>
+                            edit.updateExperienceAchievement(expIndex, i, v)
+                          }
+                          fieldType="bullet"
+                          placeholder="Achievement"
+                        />
                       </li>
                     ))}
                   </ul>
@@ -127,8 +256,10 @@ export const BJetProfessionalTemplate: React.FC<TemplateRendererProps> = ({
     });
   });
 
-  (resume.education ?? []).forEach((edu) => {
+  (resume.education ?? []).forEach((edu, eduIndex) => {
     blocks.push({
+      sectionKey: "education",
+      itemIndex: eduIndex,
       node: (
         <table
           className="w-full border-x-2 border-b-2"
@@ -138,18 +269,68 @@ export const BJetProfessionalTemplate: React.FC<TemplateRendererProps> = ({
             {tdCell(
               <div className="flex justify-between gap-4">
                 <div>
-                  <div className={`${textSize} font-bold`}>{edu.degree}</div>
+                  <div className={`${textSize} font-bold`}>
+                    <EditableText
+                      value={edu.degree}
+                      onCommit={(v) =>
+                        edit.updateEducation(eduIndex, { degree: v })
+                      }
+                      placeholder="Degree"
+                    />
+                    {(edu.field || edit.editable) && (
+                      <>
+                        {" • "}
+                        <EditableText
+                          value={edu.field}
+                          onCommit={(v) =>
+                            edit.updateEducation(eduIndex, { field: v })
+                          }
+                          placeholder="Field"
+                        />
+                      </>
+                    )}
+                  </div>
                   <div
                     className={`${textSize} ${lineHeight}`}
                     style={{ color: secondaryColor }}
                   >
-                    {edu.institution}
-                    {edu.field && ` • ${edu.field}`}
+                    <EditableText
+                      value={edu.institution}
+                      onCommit={(v) =>
+                        edit.updateEducation(eduIndex, { institution: v })
+                      }
+                      placeholder="Institution"
+                    />
                   </div>
                 </div>
-                <div className="text-xs">
-                  {edu.startDate} - {edu.endDate || "Present"}
-                  {edu.gpa && ` • GPA: ${edu.gpa}`}
+                <div className="text-xs shrink-0">
+                  <EditableText
+                    value={edu.startDate}
+                    onCommit={(v) =>
+                      edit.updateEducation(eduIndex, { startDate: v })
+                    }
+                    placeholder="Start"
+                  />
+                  {" - "}
+                  <EditableText
+                    value={edu.endDate || ""}
+                    onCommit={(v) =>
+                      edit.updateEducation(eduIndex, { endDate: v })
+                    }
+                    placeholder="Present"
+                  />
+                  {(edu.gpa || edit.editable) && (
+                    <>
+                      {" • GPA: "}
+                      <EditableText
+                        value={edu.gpa || ""}
+                        onCommit={(v) =>
+                          edit.updateEducation(eduIndex, { gpa: v })
+                        }
+                        placeholder="—"
+                      />
+                    </>
+                  )}
                 </div>
               </div>
             )}
@@ -161,13 +342,19 @@ export const BJetProfessionalTemplate: React.FC<TemplateRendererProps> = ({
 
   if ((resume.skills ?? []).length > 0) {
     blocks.push({
+      sectionKey: "skills",
       node: sectionTable(
         "CORE COMPETENCIES",
         tdCell(
           <div className="grid grid-cols-3 gap-2">
             {(resume.skills ?? []).map((skill, idx) => (
               <div key={idx} className={`${textSize} ${lineHeight}`}>
-                • {skill}
+                •{" "}
+                <EditableText
+                  value={skill}
+                  onCommit={(v) => edit.updateSkill(idx, v)}
+                  placeholder="Skill"
+                />
               </div>
             ))}
           </div>
@@ -176,8 +363,10 @@ export const BJetProfessionalTemplate: React.FC<TemplateRendererProps> = ({
     });
   }
 
-  (resume.projects ?? []).forEach((project) => {
+  (resume.projects ?? []).forEach((project, projectIndex) => {
     blocks.push({
+      sectionKey: "projects",
+      itemIndex: projectIndex,
       node: (
         <table
           className="w-full border-x-2 border-b-2"
@@ -187,17 +376,44 @@ export const BJetProfessionalTemplate: React.FC<TemplateRendererProps> = ({
             {tdCell(
               <div>
                 <div className="flex justify-between gap-4">
-                  <h3 className={`${textSize} font-bold`}>{project.name}</h3>
-                  {(project.startDate || project.endDate) && (
-                    <div className="text-xs">
-                      {project.startDate || ""}
-                      {project.startDate || project.endDate ? " - " : ""}
-                      {project.endDate || "Present"}
+                  <h3 className={`${textSize} font-bold`}>
+                    <EditableText
+                      value={project.name}
+                      onCommit={(v) =>
+                        edit.updateProject(projectIndex, { name: v })
+                      }
+                      placeholder="Project name"
+                    />
+                  </h3>
+                  {(project.startDate || project.endDate || edit.editable) && (
+                    <div className="text-xs shrink-0">
+                      <EditableText
+                        value={project.startDate || ""}
+                        onCommit={(v) =>
+                          edit.updateProject(projectIndex, { startDate: v })
+                        }
+                        placeholder="Start"
+                      />
+                      {" - "}
+                      <EditableText
+                        value={project.endDate || ""}
+                        onCommit={(v) =>
+                          edit.updateProject(projectIndex, { endDate: v })
+                        }
+                        placeholder="Present"
+                      />
                     </div>
                   )}
                 </div>
                 <p className={`${textSize} ${lineHeight} mt-1 mb-2`}>
-                  {project.description}
+                  <EditableText
+                    value={project.description}
+                    onCommit={(v) =>
+                      edit.updateProject(projectIndex, { description: v })
+                    }
+                    fieldType="textarea"
+                    placeholder="Describe the project…"
+                  />
                 </p>
                 {project.url && (
                   <div className="mb-2 text-xs">
@@ -213,7 +429,21 @@ export const BJetProfessionalTemplate: React.FC<TemplateRendererProps> = ({
                 {project.technologies && project.technologies.length > 0 && (
                   <div className={`${textSize} ${lineHeight}`}>
                     <span className="font-semibold">Technologies: </span>
-                    {project.technologies.join(", ")}
+                    {project.technologies.map((tech, i) => (
+                      <span key={i}>
+                        {i > 0 && ", "}
+                        <EditableText
+                          value={tech}
+                          onCommit={(v) => {
+                            const next = project.technologies.map((t, ti) =>
+                              ti === i ? v : t
+                            );
+                            edit.updateProjectTechnologies(projectIndex, next);
+                          }}
+                          placeholder="Tech"
+                        />
+                      </span>
+                    ))}
                   </div>
                 )}
               </div>
@@ -224,8 +454,10 @@ export const BJetProfessionalTemplate: React.FC<TemplateRendererProps> = ({
     });
   });
 
-  (resume.certifications ?? []).forEach((cert) => {
+  (resume.certifications ?? []).forEach((cert, certIndex) => {
     blocks.push({
+      sectionKey: "certifications",
+      itemIndex: certIndex,
       node: (
         <table
           className="w-full border-x-2 border-b-2"
@@ -235,12 +467,26 @@ export const BJetProfessionalTemplate: React.FC<TemplateRendererProps> = ({
             {tdCell(
               <div className="flex justify-between gap-4">
                 <div>
-                  <div className={`${textSize} font-semibold`}>{cert.name}</div>
+                  <div className={`${textSize} font-semibold`}>
+                    <EditableText
+                      value={cert.name}
+                      onCommit={(v) =>
+                        edit.updateCertification(certIndex, { name: v })
+                      }
+                      placeholder="Certification"
+                    />
+                  </div>
                   <div
                     className={`${textSize} ${lineHeight}`}
                     style={{ color: secondaryColor }}
                   >
-                    {cert.issuer}
+                    <EditableText
+                      value={cert.issuer}
+                      onCommit={(v) =>
+                        edit.updateCertification(certIndex, { issuer: v })
+                      }
+                      placeholder="Issuer"
+                    />
                   </div>
                   {cert.url && (
                     <a
@@ -252,7 +498,15 @@ export const BJetProfessionalTemplate: React.FC<TemplateRendererProps> = ({
                     </a>
                   )}
                 </div>
-                <div className="text-xs">{cert.date}</div>
+                <div className="text-xs shrink-0">
+                  <EditableText
+                    value={cert.date}
+                    onCommit={(v) =>
+                      edit.updateCertification(certIndex, { date: v })
+                    }
+                    placeholder="Date"
+                  />
+                </div>
               </div>
             )}
           </tbody>
@@ -263,6 +517,7 @@ export const BJetProfessionalTemplate: React.FC<TemplateRendererProps> = ({
 
   (resume.publications ?? []).forEach((pub) => {
     blocks.push({
+      sectionKey: "publications",
       node: (
         <table
           className="w-full border-x-2 border-b-2"
@@ -300,6 +555,7 @@ export const BJetProfessionalTemplate: React.FC<TemplateRendererProps> = ({
 
   if ((resume.languages ?? []).length > 0) {
     blocks.push({
+      sectionKey: "languages",
       node: sectionTable(
         "LANGUAGES",
         tdCell(
@@ -317,6 +573,7 @@ export const BJetProfessionalTemplate: React.FC<TemplateRendererProps> = ({
 
   (resume.volunteer ?? []).forEach((v) => {
     blocks.push({
+      sectionKey: "volunteer",
       node: (
         <table
           className="w-full border-x-2 border-b-2"
@@ -354,6 +611,7 @@ export const BJetProfessionalTemplate: React.FC<TemplateRendererProps> = ({
 
   (resume.awards ?? []).forEach((award) => {
     blocks.push({
+      sectionKey: "awards",
       node: (
         <table
           className="w-full border-x-2 border-b-2"
@@ -387,14 +645,6 @@ export const BJetProfessionalTemplate: React.FC<TemplateRendererProps> = ({
     });
   });
 
-  // Section header blocks (placed before their first content block)
-  // We handle section headers inline by grouping: just build blocks with sectionKey
-  // Actually for BJet we embed section headings inside each table already.
-  // For continuation pages we wrap in a special "header repeat" table.
-  // Since BJet uses table-per-section-item style, we track which is first item of section.
-  // We pre-pend each group of same-section blocks with a section header.
-  // Blocks are ordered naturally; we pass them directly as one flat array.
-
   const headerRef = useRef<HTMLDivElement | null>(null);
   const [headerHeight, setHeaderHeight] = useState(0);
   useEffect(() => {
@@ -414,21 +664,28 @@ export const BJetProfessionalTemplate: React.FC<TemplateRendererProps> = ({
     firstPageReserved: headerHeight,
   });
 
-  // Section header tables (rendered at top of each section on page 1)
-  // For BJet: experience blocks don't have individual section headers on per-item tables.
-  // We need to add section headers. Let's restructure: add section header as first block of each section.
-  // Since blocks array is already flat (no sectionKey), the section headers are embedded in the first
-  // table of each section. This is already handled in the sectionTable() wrapper for summary/skills/langs.
-  // For per-item tables (experience, education, etc.), we need to add a section header block before the first.
-  // Let's rebuild blocks with section headers as explicit block entries.
+  // ── Item-level drag-and-drop (editor only) ─────────────────────────────────
+  const sortableIds = blocks
+    .filter((b) => isListSection(b.sectionKey) && b.itemIndex !== undefined)
+    .map((b) => `${b.sectionKey}-${b.itemIndex}`);
 
-  // (Already done above — sectionTable() adds the heading row for summary/skills/languages.
-  // For experience/education/etc., the per-item tables lack a header row.
-  // We need to prepend a header block. Rebuild needed.)
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } })
+  );
 
-  // NOTE: For simplicity, we'll just add section header blocks before first item.
-  // The blocks array above doesn't have sectionKeys so let's just render them as-is.
-  // The section header for experience is missing. We'll fix by adding header blocks explicitly.
+  const handleItemDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    const parse = (raw: string | number) => {
+      const s = String(raw);
+      const dash = s.lastIndexOf("-");
+      return { section: s.slice(0, dash), index: Number(s.slice(dash + 1)) };
+    };
+    const from = parse(active.id);
+    const to = parse(over.id);
+    if (from.section !== to.section || !isListSection(from.section)) return;
+    edit.moveItem(from.section, from.index, to.index);
+  };
 
   const headerNode = (
     <table
@@ -439,11 +696,21 @@ export const BJetProfessionalTemplate: React.FC<TemplateRendererProps> = ({
         <tr>
           <td className="p-4" style={{ backgroundColor: primaryColor }}>
             <h1 className="text-2xl font-bold text-white">
-              {resume.header.name}
+              <EditableText
+                value={resume.header.name}
+                onCommit={(v) => edit.updateHeader({ name: v })}
+                placeholder="Your Name"
+                className="text-white"
+              />
             </h1>
-            {resume.header.headline && (
+            {(resume.header.headline || edit.editable) && (
               <div className={`${textSize} mt-1 text-white`}>
-                {resume.header.headline}
+                <EditableText
+                  value={resume.header.headline || ""}
+                  onCommit={(v) => edit.updateHeader({ headline: v })}
+                  placeholder="Professional headline"
+                  className="text-white"
+                />
               </div>
             )}
           </td>
@@ -451,22 +718,40 @@ export const BJetProfessionalTemplate: React.FC<TemplateRendererProps> = ({
         <tr>
           <td className="border-t p-3" style={{ borderColor: secondaryColor }}>
             <div className={`${textSize} ${lineHeight} space-y-1`}>
-              {resume.header.email && (
+              {(resume.header.email || edit.editable) && (
                 <div className="flex items-center gap-2">
                   <span className="font-semibold">Email:</span>
-                  <span>{resume.header.email}</span>
+                  <span>
+                    <EditableText
+                      value={resume.header.email}
+                      onCommit={(v) => edit.updateHeader({ email: v })}
+                      placeholder="email@example.com"
+                    />
+                  </span>
                 </div>
               )}
-              {resume.header.phone && (
+              {(resume.header.phone || edit.editable) && (
                 <div className="flex items-center gap-2">
                   <span className="font-semibold">Phone:</span>
-                  <span>{resume.header.phone}</span>
+                  <span>
+                    <EditableText
+                      value={resume.header.phone || ""}
+                      onCommit={(v) => edit.updateHeader({ phone: v })}
+                      placeholder="Phone"
+                    />
+                  </span>
                 </div>
               )}
-              {resume.header.location && (
+              {(resume.header.location || edit.editable) && (
                 <div className="flex items-center gap-2">
                   <span className="font-semibold">Location:</span>
-                  <span>{resume.header.location}</span>
+                  <span>
+                    <EditableText
+                      value={resume.header.location || ""}
+                      onCommit={(v) => edit.updateHeader({ location: v })}
+                      placeholder="Location"
+                    />
+                  </span>
                 </div>
               )}
               <div className="flex flex-wrap gap-4">
@@ -505,7 +790,50 @@ export const BJetProfessionalTemplate: React.FC<TemplateRendererProps> = ({
     </table>
   );
 
-  return (
+  // ── Page content renderer ──────────────────────────────────────────────────
+  const renderPageBlocks = (indices: number[], prevLastSection: string) => {
+    let currentSection = prevLastSection;
+    return indices.map((idx) => {
+      const block = blocks[idx];
+      // pageGroups can hold stale indices while blocks rebuilds after a resume update
+      if (!block) return null;
+      const isNewSection = block.sectionKey !== currentSection;
+      currentSection = block.sectionKey;
+
+      const reorderable =
+        edit.editable &&
+        isListSection(block.sectionKey) &&
+        block.itemIndex !== undefined;
+
+      const needsHeadingRow =
+        isNewSection &&
+        !["summary", "skills", "languages"].includes(block.sectionKey);
+
+      return (
+        <div key={idx}>
+          {needsHeadingRow && sectionHeadingRow(block.sectionKey)}
+          {reorderable ? (
+            <EditableItem
+              id={`${block.sectionKey}-${block.itemIndex}`}
+              label={sectionLabels[block.sectionKey] ?? block.sectionKey}
+              onDelete={() =>
+                edit.removeItem(
+                  block.sectionKey as ListSectionId,
+                  block.itemIndex as number
+                )
+              }
+            >
+              {block.node}
+            </EditableItem>
+          ) : (
+            block.node
+          )}
+        </div>
+      );
+    });
+  };
+
+  const body = (
     <div
       style={{
         fontFamily,
@@ -521,37 +849,70 @@ export const BJetProfessionalTemplate: React.FC<TemplateRendererProps> = ({
           <div ref={headerRef}>{headerNode}</div>
         </div>
         <div style={{ paddingLeft: marginPx, paddingRight: marginPx }}>
-          {blocks.map((block, i) => (
-            <div key={i} ref={setRef(i)}>
-              {block.node}
-            </div>
-          ))}
+          {(() => {
+            let currentSection = "";
+            return blocks.map((block, i) => {
+              const isNewSection = block.sectionKey !== currentSection;
+              currentSection = block.sectionKey;
+              const needsHeadingRow =
+                isNewSection &&
+                !["summary", "skills", "languages"].includes(
+                  block.sectionKey
+                );
+              return (
+                <div key={i} ref={setRef(i)}>
+                  {needsHeadingRow && sectionHeadingRow(block.sectionKey)}
+                  {block.node}
+                </div>
+              );
+            });
+          })()}
         </div>
       </MeasurementContainer>
 
-      {pageGroups.map((group, pageIndex) => (
-        <ResumePage
-          key={pageIndex}
-          widthPx={widthPx}
-          heightPx={heightPx}
-          pageIndex={pageIndex}
-          pageCount={pageGroups.length}
-        >
-          <div
-            style={{
-              padding: marginPx,
-              height: "100%",
-              boxSizing: "border-box",
-              overflowY: "hidden",
-            }}
+      {pageGroups.map((group, pageIndex) => {
+        const prevGroup = pageGroups[pageIndex - 1];
+        const prevLastSection =
+          pageIndex === 0
+            ? ""
+            : (blocks[prevGroup[prevGroup.length - 1]]?.sectionKey ?? "");
+
+        return (
+          <ResumePage
+            key={pageIndex}
+            widthPx={widthPx}
+            heightPx={heightPx}
+            pageIndex={pageIndex}
+            pageCount={pageGroups.length}
           >
-            {pageIndex === 0 && headerNode}
-            {group.map((idx) => (
-              <div key={idx}>{blocks[idx].node}</div>
-            ))}
-          </div>
-        </ResumePage>
-      ))}
+            <div
+              style={{
+                padding: marginPx,
+                height: "100%",
+                boxSizing: "border-box",
+                overflowY: "hidden",
+              }}
+            >
+              {pageIndex === 0 && headerNode}
+              {renderPageBlocks(group, pageIndex === 0 ? "" : prevLastSection)}
+            </div>
+          </ResumePage>
+        );
+      })}
     </div>
+  );
+
+  if (!edit.editable) return body;
+
+  return (
+    <DndContext
+      sensors={sensors}
+      collisionDetection={closestCenter}
+      onDragEnd={handleItemDragEnd}
+    >
+      <SortableContext items={sortableIds} strategy={verticalListSortingStrategy}>
+        {body}
+      </SortableContext>
+    </DndContext>
   );
 };

@@ -4,8 +4,27 @@
 
 "use client";
 
+import {
+  DndContext,
+  DragEndEvent,
+  PointerSensor,
+  closestCenter,
+  useSensor,
+  useSensors,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
 import React, { useEffect, useRef, useState } from "react";
 
+import { EditableItem } from "@/components/job-v2/resume/EditableItem";
+import { EditableText } from "@/components/job-v2/resume/EditableText";
+import {
+  ListSectionId,
+  useInlineEdit,
+} from "@/components/job-v2/resume/InlineEditContext";
+import { Icon } from "@/components/ui/Icon";
 import { useBlockPaginator } from "@/hooks/useBlockPaginator";
 import useResolveCustomization from "@/hooks/useResolveCustomization";
 import { getPageDimensions } from "@/lib/pageDimensions";
@@ -14,7 +33,21 @@ import MeasurementContainer from "./shared/MeasurementContainer";
 import ResumePage from "./shared/ResumePage";
 import { TemplateRendererProps } from "./TemplateRenderer";
 
-type Block = { node: React.ReactNode; sectionKey: string };
+const LIST_SECTIONS: readonly ListSectionId[] = [
+  "experience",
+  "education",
+  "projects",
+  "certifications",
+];
+const isListSection = (key: string): key is ListSectionId =>
+  (LIST_SECTIONS as readonly string[]).includes(key);
+
+type Block = {
+  node: React.ReactNode;
+  sectionKey: string;
+  /** For list-section entries: the index within that section's array. */
+  itemIndex?: number;
+};
 
 export const TechSidebarTemplate: React.FC<TemplateRendererProps> = ({
   resume,
@@ -41,6 +74,8 @@ export const TechSidebarTemplate: React.FC<TemplateRendererProps> = ({
   const SIDEBAR_RATIO = 0.35;
   const MAIN_RATIO = 0.65;
 
+  const edit = useInlineEdit();
+
   // Header occupies the full width at the top
   const headerRef = useRef<HTMLDivElement | null>(null);
   const [headerHeight, setHeaderHeight] = useState(0);
@@ -56,21 +91,36 @@ export const TechSidebarTemplate: React.FC<TemplateRendererProps> = ({
   }, []);
 
   // ── Sidebar blocks ─────────────────────────────────────────────────────────
-  const sidebarSectionHeading = (title: string) => (
-    <h2
-      className={`${headingSize} mb-3 font-bold`}
-      style={{ color: primaryColor }}
-    >
-      {title}
-    </h2>
-  );
-
   const sidebarLabels: Record<string, string> = {
     skills: "TECHNICAL SKILLS",
     education: "EDUCATION",
     certifications: "CERTIFICATIONS",
     languages: "LANGUAGES",
     awards: "AWARDS",
+  };
+
+  const sidebarSectionHeading = (sectionKey: string) => {
+    const title = sidebarLabels[sectionKey] ?? sectionKey;
+    const canAdd = edit.editable && isListSection(sectionKey);
+    return (
+      <h2
+        className={`${headingSize} group/heading mb-3 flex items-center justify-between gap-2 font-bold`}
+        style={{ color: primaryColor }}
+      >
+        <span>{title}</span>
+        {canAdd && (
+          <button
+            onClick={() => edit.addItem(sectionKey)}
+            aria-label={`Add ${title} entry`}
+            title={`Add ${title} entry`}
+            className="text-agent-on-surface-variant hover:bg-agent-primary-container hover:text-agent-on-primary-container -my-1 flex items-center gap-1 rounded-full px-2 py-1 text-xs font-medium opacity-0 transition-all duration-150 group-hover/heading:opacity-100"
+          >
+            <Icon name="plus" className="h-3.5 w-3.5" />
+            Add
+          </button>
+        )}
+      </h2>
+    );
   };
 
   const sidebarBlocks: Block[] = [];
@@ -84,44 +134,115 @@ export const TechSidebarTemplate: React.FC<TemplateRendererProps> = ({
             <span className="mr-2" style={{ color: accentColor }}>
               ▸
             </span>
-            {skill}
+            <EditableText
+              value={skill}
+              onCommit={(v) => edit.updateSkill(idx, v)}
+              placeholder="Skill"
+            />
           </div>
         ),
       });
-      void idx; // suppress unused warning
     });
   }
 
-  (resume.education ?? []).forEach((edu) => {
+  (resume.education ?? []).forEach((edu, eduIndex) => {
     sidebarBlocks.push({
       sectionKey: "education",
+      itemIndex: eduIndex,
       node: (
         <div className="mb-1">
-          <div className={`${textSize} font-semibold`}>{edu.degree}</div>
+          <div className={`${textSize} font-semibold`}>
+            <EditableText
+              value={edu.degree}
+              onCommit={(v) => edit.updateEducation(eduIndex, { degree: v })}
+              placeholder="Degree"
+            />
+            {(edu.field || edit.editable) && (
+              <>
+                {" • "}
+                <EditableText
+                  value={edu.field}
+                  onCommit={(v) =>
+                    edit.updateEducation(eduIndex, { field: v })
+                  }
+                  placeholder="Field"
+                />
+              </>
+            )}
+          </div>
           <div
             className={`${textSize} ${lineHeight}`}
             style={{ color: secondaryColor }}
           >
-            {edu.institution}
-            {edu.field && ` • ${edu.field}`}
+            <EditableText
+              value={edu.institution}
+              onCommit={(v) =>
+                edit.updateEducation(eduIndex, { institution: v })
+              }
+              placeholder="Institution"
+            />
           </div>
           <div className="text-xs">
-            {edu.startDate} - {edu.endDate || "Present"}
+            <EditableText
+              value={edu.startDate}
+              onCommit={(v) =>
+                edit.updateEducation(eduIndex, { startDate: v })
+              }
+              placeholder="Start"
+            />
+            {" - "}
+            <EditableText
+              value={edu.endDate || ""}
+              onCommit={(v) => edit.updateEducation(eduIndex, { endDate: v })}
+              placeholder="Present"
+            />
           </div>
-          {edu.gpa && <div className="text-xs">GPA: {edu.gpa}</div>}
+          {(edu.gpa || edit.editable) && (
+            <div className="text-xs">
+              GPA:{" "}
+              <EditableText
+                value={edu.gpa || ""}
+                onCommit={(v) => edit.updateEducation(eduIndex, { gpa: v })}
+                placeholder="—"
+              />
+            </div>
+          )}
         </div>
       ),
     });
   });
 
-  (resume.certifications ?? []).forEach((cert) => {
+  (resume.certifications ?? []).forEach((cert, certIndex) => {
     sidebarBlocks.push({
       sectionKey: "certifications",
+      itemIndex: certIndex,
       node: (
         <div className="mb-1">
-          <div className={`${textSize} font-semibold`}>{cert.name}</div>
+          <div className={`${textSize} font-semibold`}>
+            <EditableText
+              value={cert.name}
+              onCommit={(v) =>
+                edit.updateCertification(certIndex, { name: v })
+              }
+              placeholder="Certification"
+            />
+          </div>
           <div className="text-xs" style={{ color: secondaryColor }}>
-            {cert.issuer} • {cert.date}
+            <EditableText
+              value={cert.issuer}
+              onCommit={(v) =>
+                edit.updateCertification(certIndex, { issuer: v })
+              }
+              placeholder="Issuer"
+            />
+            {" • "}
+            <EditableText
+              value={cert.date}
+              onCommit={(v) =>
+                edit.updateCertification(certIndex, { date: v })
+              }
+              placeholder="Date"
+            />
           </div>
           {cert.url && (
             <a
@@ -173,15 +294,6 @@ export const TechSidebarTemplate: React.FC<TemplateRendererProps> = ({
   });
 
   // ── Main blocks ────────────────────────────────────────────────────────────
-  const mainSectionHeading = (title: string) => (
-    <h2
-      className={`${headingSize} mb-3 border-b-2 pb-1 font-bold`}
-      style={{ color: primaryColor, borderColor: primaryColor }}
-    >
-      {title}
-    </h2>
-  );
-
   const mainLabels: Record<string, string> = {
     summary: "PROFESSIONAL SUMMARY",
     experience: "PROFESSIONAL EXPERIENCE",
@@ -190,48 +302,121 @@ export const TechSidebarTemplate: React.FC<TemplateRendererProps> = ({
     volunteer: "VOLUNTEER EXPERIENCE",
   };
 
+  const mainSectionHeading = (sectionKey: string) => {
+    const title = mainLabels[sectionKey] ?? sectionKey;
+    const canAdd = edit.editable && isListSection(sectionKey);
+    return (
+      <h2
+        className={`${headingSize} group/heading mb-3 flex items-center justify-between gap-2 border-b-2 pb-1 font-bold`}
+        style={{ color: primaryColor, borderColor: primaryColor }}
+      >
+        <span>{title}</span>
+        {canAdd && (
+          <button
+            onClick={() => edit.addItem(sectionKey)}
+            aria-label={`Add ${title} entry`}
+            title={`Add ${title} entry`}
+            className="text-agent-on-surface-variant hover:bg-agent-primary-container hover:text-agent-on-primary-container -my-1 flex items-center gap-1 rounded-full px-2 py-1 text-xs font-medium opacity-0 transition-all duration-150 group-hover/heading:opacity-100"
+          >
+            <Icon name="plus" className="h-3.5 w-3.5" />
+            Add
+          </button>
+        )}
+      </h2>
+    );
+  };
+
   const mainBlocks: Block[] = [];
 
-  if (resume.summary) {
+  if (resume.summary || edit.editable) {
     mainBlocks.push({
       sectionKey: "summary",
       node: (
         <p className={`${textSize} ${lineHeight} leading-relaxed`}>
-          {resume.summary}
+          <EditableText
+            value={resume.summary}
+            onCommit={(v) => edit.updateSummary(v)}
+            fieldType="textarea"
+            placeholder="Write a short professional summary…"
+          />
         </p>
       ),
     });
   }
 
-  (resume.experience ?? []).forEach((exp) => {
+  (resume.experience ?? []).forEach((exp, expIndex) => {
     mainBlocks.push({
       sectionKey: "experience",
+      itemIndex: expIndex,
       node: (
         <div>
           <div className="flex items-start justify-between gap-4">
             <div>
-              <h3 className={`${textSize} font-bold`}>{exp.role}</h3>
+              <h3 className={`${textSize} font-bold`}>
+                <EditableText
+                  value={exp.role}
+                  onCommit={(v) =>
+                    edit.updateExperience(expIndex, { role: v })
+                  }
+                  placeholder="Role"
+                />
+              </h3>
               <div
                 className={`${textSize} ${lineHeight}`}
                 style={{ color: secondaryColor }}
               >
-                {exp.company}
+                <EditableText
+                  value={exp.company}
+                  onCommit={(v) =>
+                    edit.updateExperience(expIndex, { company: v })
+                  }
+                  placeholder="Company"
+                />
               </div>
             </div>
             <div className="shrink-0 text-xs">
-              {exp.startDate} - {exp.endDate || "Present"}
+              <EditableText
+                value={exp.startDate}
+                onCommit={(v) =>
+                  edit.updateExperience(expIndex, { startDate: v })
+                }
+                placeholder="Start"
+              />
+              {" - "}
+              <EditableText
+                value={exp.endDate || ""}
+                onCommit={(v) =>
+                  edit.updateExperience(expIndex, { endDate: v })
+                }
+                placeholder="Present"
+              />
             </div>
           </div>
-          {exp.description && (
+          {(exp.description || edit.editable) && (
             <p className={`${textSize} ${lineHeight} mt-1`}>
-              {exp.description}
+              <EditableText
+                value={exp.description}
+                onCommit={(v) =>
+                  edit.updateExperience(expIndex, { description: v })
+                }
+                fieldType="textarea"
+                placeholder="Describe your role…"
+              />
             </p>
           )}
           {exp.achievements && exp.achievements.length > 0 && (
             <ul className="mt-2 space-y-1">
               {exp.achievements.map((a, i) => (
                 <li key={i} className={`${textSize} ${lineHeight} ml-4`}>
-                  <span style={{ color: accentColor }}>▸</span> {a}
+                  <span style={{ color: accentColor }}>▸</span>{" "}
+                  <EditableText
+                    value={a}
+                    onCommit={(v) =>
+                      edit.updateExperienceAchievement(expIndex, i, v)
+                    }
+                    fieldType="bullet"
+                    placeholder="Achievement"
+                  />
                 </li>
               ))}
             </ul>
@@ -241,23 +426,51 @@ export const TechSidebarTemplate: React.FC<TemplateRendererProps> = ({
     });
   });
 
-  (resume.projects ?? []).forEach((project) => {
+  (resume.projects ?? []).forEach((project, projectIndex) => {
     mainBlocks.push({
       sectionKey: "projects",
+      itemIndex: projectIndex,
       node: (
         <div>
           <div className="flex items-start justify-between gap-4">
-            <h3 className={`${textSize} font-bold`}>{project.name}</h3>
-            {(project.startDate || project.endDate) && (
+            <h3 className={`${textSize} font-bold`}>
+              <EditableText
+                value={project.name}
+                onCommit={(v) =>
+                  edit.updateProject(projectIndex, { name: v })
+                }
+                placeholder="Project name"
+              />
+            </h3>
+            {(project.startDate || project.endDate || edit.editable) && (
               <div className="shrink-0 text-xs">
-                {project.startDate || ""}
-                {project.startDate || project.endDate ? " - " : ""}
-                {project.endDate || "Present"}
+                <EditableText
+                  value={project.startDate || ""}
+                  onCommit={(v) =>
+                    edit.updateProject(projectIndex, { startDate: v })
+                  }
+                  placeholder="Start"
+                />
+                {" - "}
+                <EditableText
+                  value={project.endDate || ""}
+                  onCommit={(v) =>
+                    edit.updateProject(projectIndex, { endDate: v })
+                  }
+                  placeholder="Present"
+                />
               </div>
             )}
           </div>
           <p className={`${textSize} ${lineHeight} mt-1`}>
-            {project.description}
+            <EditableText
+              value={project.description}
+              onCommit={(v) =>
+                edit.updateProject(projectIndex, { description: v })
+              }
+              fieldType="textarea"
+              placeholder="Describe the project…"
+            />
           </p>
           {project.url && (
             <div className="mt-1 text-xs">
@@ -281,7 +494,16 @@ export const TechSidebarTemplate: React.FC<TemplateRendererProps> = ({
                     color: accentColor,
                   }}
                 >
-                  {tech}
+                  <EditableText
+                    value={tech}
+                    onCommit={(v) => {
+                      const next = project.technologies.map((t, ti) =>
+                        ti === i ? v : t
+                      );
+                      edit.updateProjectTechnologies(projectIndex, next);
+                    }}
+                    placeholder="Tech"
+                  />
                 </span>
               ))}
             </div>
@@ -370,6 +592,29 @@ export const TechSidebarTemplate: React.FC<TemplateRendererProps> = ({
     1
   );
 
+  // ── Item-level drag-and-drop (editor only) ─────────────────────────────────
+  const sortableIds = [...sidebarBlocks, ...mainBlocks]
+    .filter((b) => isListSection(b.sectionKey) && b.itemIndex !== undefined)
+    .map((b) => `${b.sectionKey}-${b.itemIndex}`);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } })
+  );
+
+  const handleItemDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    const parse = (raw: string | number) => {
+      const s = String(raw);
+      const dash = s.lastIndexOf("-");
+      return { section: s.slice(0, dash), index: Number(s.slice(dash + 1)) };
+    };
+    const from = parse(active.id);
+    const to = parse(over.id);
+    if (from.section !== to.section || !isListSection(from.section)) return;
+    edit.moveItem(from.section, from.index, to.index);
+  };
+
   // ── Render helpers ─────────────────────────────────────────────────────────
   const renderSidebarBlocks = (indices: number[], prevLastSection: string) => {
     let currentSection = prevLastSection;
@@ -377,16 +622,39 @@ export const TechSidebarTemplate: React.FC<TemplateRendererProps> = ({
       const block = sidebarBlocks[idx];
       const isNewSection = block.sectionKey !== currentSection;
       currentSection = block.sectionKey;
+
+      const reorderable =
+        edit.editable &&
+        isListSection(block.sectionKey) &&
+        block.itemIndex !== undefined;
+
       return (
         <div key={idx} className="mb-2">
           {isNewSection && (
             <div className="mb-2">
-              {sidebarSectionHeading(
-                sidebarLabels[block.sectionKey] ?? block.sectionKey
-              )}
+              {sidebarSectionHeading(block.sectionKey)}
             </div>
           )}
-          {block.node}
+          {reorderable ? (
+            <EditableItem
+              id={`${block.sectionKey}-${block.itemIndex}`}
+              label={
+                (sidebarLabels[block.sectionKey] ??
+                  mainLabels[block.sectionKey]) ??
+                block.sectionKey
+              }
+              onDelete={() =>
+                edit.removeItem(
+                  block.sectionKey as ListSectionId,
+                  block.itemIndex as number
+                )
+              }
+            >
+              {block.node}
+            </EditableItem>
+          ) : (
+            block.node
+          )}
         </div>
       );
     });
@@ -398,16 +666,37 @@ export const TechSidebarTemplate: React.FC<TemplateRendererProps> = ({
       const block = mainBlocks[idx];
       const isNewSection = block.sectionKey !== currentSection;
       currentSection = block.sectionKey;
+
+      const reorderable =
+        edit.editable &&
+        isListSection(block.sectionKey) &&
+        block.itemIndex !== undefined;
+
       return (
         <div key={idx} className="mb-4">
           {isNewSection && (
-            <div className="mb-2">
-              {mainSectionHeading(
-                mainLabels[block.sectionKey] ?? block.sectionKey
-              )}
-            </div>
+            <div className="mb-2">{mainSectionHeading(block.sectionKey)}</div>
           )}
-          {block.node}
+          {reorderable ? (
+            <EditableItem
+              id={`${block.sectionKey}-${block.itemIndex}`}
+              label={
+                (sidebarLabels[block.sectionKey] ??
+                  mainLabels[block.sectionKey]) ??
+                block.sectionKey
+              }
+              onDelete={() =>
+                edit.removeItem(
+                  block.sectionKey as ListSectionId,
+                  block.itemIndex as number
+                )
+              }
+            >
+              {block.node}
+            </EditableItem>
+          ) : (
+            block.node
+          )}
         </div>
       );
     });
@@ -420,19 +709,54 @@ export const TechSidebarTemplate: React.FC<TemplateRendererProps> = ({
   const headerNode = (
     <div className="p-8 pb-4" style={{ backgroundColor: primaryColor }}>
       <h1 className="mb-1 text-3xl font-bold text-white">
-        {resume.header.name}
+        <EditableText
+          value={resume.header.name}
+          onCommit={(v) => edit.updateHeader({ name: v })}
+          placeholder="Your Name"
+        />
       </h1>
-      {resume.header.headline && (
+      {(resume.header.headline || edit.editable) && (
         <div className={`${textSize} ${lineHeight} mb-2 text-white opacity-90`}>
-          {resume.header.headline}
+          <EditableText
+            value={resume.header.headline || ""}
+            onCommit={(v) => edit.updateHeader({ headline: v })}
+            placeholder="Professional headline"
+          />
         </div>
       )}
       <div
         className={`flex flex-wrap gap-3 text-xs text-white opacity-90 ${lineHeight}`}
       >
-        {resume.header.email && <span>✉ {resume.header.email}</span>}
-        {resume.header.phone && <span>📞 {resume.header.phone}</span>}
-        {resume.header.location && <span>📍 {resume.header.location}</span>}
+        {(resume.header.email || edit.editable) && (
+          <span>
+            ✉{" "}
+            <EditableText
+              value={resume.header.email}
+              onCommit={(v) => edit.updateHeader({ email: v })}
+              placeholder="email@example.com"
+            />
+          </span>
+        )}
+        {(resume.header.phone || edit.editable) && (
+          <span>
+            📞{" "}
+            <EditableText
+              value={resume.header.phone || ""}
+              onCommit={(v) => edit.updateHeader({ phone: v })}
+              placeholder="Phone"
+            />
+          </span>
+        )}
+        {(resume.header.location || edit.editable) && (
+          <span>
+            📍{" "}
+            <EditableText
+              value={resume.header.location || ""}
+              onCommit={(v) => edit.updateHeader({ location: v })}
+              placeholder="Location"
+            />
+          </span>
+        )}
         {resume.header.linkedin && (
           <a href={resume.header.linkedin} className="hover:underline">
             🔗 {resume.header.linkedin}
@@ -452,7 +776,7 @@ export const TechSidebarTemplate: React.FC<TemplateRendererProps> = ({
     </div>
   );
 
-  return (
+  const body = (
     <div
       style={{
         fontFamily,
@@ -556,5 +880,19 @@ export const TechSidebarTemplate: React.FC<TemplateRendererProps> = ({
         );
       })}
     </div>
+  );
+
+  if (!edit.editable) return body;
+
+  return (
+    <DndContext
+      sensors={sensors}
+      collisionDetection={closestCenter}
+      onDragEnd={handleItemDragEnd}
+    >
+      <SortableContext items={sortableIds} strategy={verticalListSortingStrategy}>
+        {body}
+      </SortableContext>
+    </DndContext>
   );
 };

@@ -61,7 +61,7 @@ export default function JobsTable({
           {table.getRowModel().rows.map((row) => (
             <tr
               key={row.id}
-              onClick={() => router.push(`/job/${row.original.id}`)}
+              onClick={() => router.push(`/job/${row.original.id}/inline`)}
               className="cursor-pointer transition-colors"
               style={{
                 borderTop: "1px solid var(--color-agent-outline-variant)",

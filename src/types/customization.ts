@@ -249,3 +249,42 @@ export const COLOR_PRESETS: Array<{
     colors: ["#374151", "#4b5563", "#6b7280", "#1f2937", "#ffffff"],
   },
 ];
+
+// ── V2 Inline Editor extensions ──────────────────────────────────────────────
+// These optional fields are stored within the JSON-backed customization and
+// are ignored by V1 components. No DB schema change required.
+
+export type V2SectionId =
+  | "personal"
+  | "summary"
+  | "experience"
+  | "education"
+  | "skills"
+  | "projects"
+  | "certifications";
+
+export const V2_DEFAULT_SECTION_ORDER: V2SectionId[] = [
+  "personal",
+  "summary",
+  "experience",
+  "education",
+  "skills",
+  "projects",
+  "certifications",
+];
+
+export type V2CustomizationExtensions = {
+  /** Ordered section IDs — V2 inline editor only */
+  sectionOrder?: V2SectionId[];
+  /** Section IDs the user has hidden from the exported resume */
+  hiddenSections?: V2SectionId[];
+};
+
+/**
+ * V2 customization type — a superset of SanitizedCustomization with
+ * additional optional fields used by the inline WYSIWYG editor.
+ * V1 components are typed as SanitizedCustomization and safely ignore
+ * these extra keys at runtime.
+ */
+export type V2Customization = SanitizedCustomization &
+  V2CustomizationExtensions;

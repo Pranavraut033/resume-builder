@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 
 import { updateJobStatus, JobRecord } from "@/actions/job";
@@ -50,10 +51,12 @@ export default function JobPageLayout({
     isDirtyCoverLetter,
     isDirtyResume,
     job,
+    redoResume,
     refetch,
     resume,
     saveStatus,
     saveToDb,
+    undoResume,
     setChatSnapPosition,
     setContentType,
   } = useJobPageContext();
@@ -283,7 +286,7 @@ export default function JobPageLayout({
                       variant="ghost"
                       size="sm"
                       title={historyState.undoLabel || "Undo"}
-                      onClick={() => historyRef.current?.undo()}
+                      onClick={undoResume}
                       disabled={!historyState.canUndo}
                     >
                       <Icon name="undo" />
@@ -293,7 +296,7 @@ export default function JobPageLayout({
                       variant="ghost"
                       size="sm"
                       title={historyState.redoLabel || "Redo"}
-                      onClick={() => historyRef.current?.redo()}
+                      onClick={redoResume}
                       disabled={!historyState.canRedo}
                     >
                       <Icon name="redo" />
@@ -302,6 +305,16 @@ export default function JobPageLayout({
                 )}
 
                 <div className="flex-1" />
+
+                {/* Try inline editor V2 */}
+                <Link
+                  href={`/job/${job.id}/inline`}
+                  className="text-agent-primary hover:bg-agent-primary/10 flex items-center gap-1 rounded-lg px-2 py-1.5 text-xs font-medium transition-all"
+                  title="Open the new WYSIWYG inline editor"
+                >
+                  <Icon name="zap" size={12} />
+                  <span className="hidden md:inline">Try Inline Editor</span>
+                </Link>
 
                 {/* Editor / Export switcher — secondary control */}
                 <div className="bg-agent-surface-container flex rounded-lg p-0.5">

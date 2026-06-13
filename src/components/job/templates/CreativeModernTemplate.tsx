@@ -4,8 +4,27 @@
 
 "use client";
 
+import {
+  DndContext,
+  DragEndEvent,
+  PointerSensor,
+  closestCenter,
+  useSensor,
+  useSensors,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
 import React, { useEffect, useRef, useState } from "react";
 
+import { EditableItem } from "@/components/job-v2/resume/EditableItem";
+import { EditableText } from "@/components/job-v2/resume/EditableText";
+import {
+  ListSectionId,
+  useInlineEdit,
+} from "@/components/job-v2/resume/InlineEditContext";
+import { Icon } from "@/components/ui/Icon";
 import { useBlockPaginator } from "@/hooks/useBlockPaginator";
 import useResolveCustomization from "@/hooks/useResolveCustomization";
 import { getPageDimensions } from "@/lib/pageDimensions";
@@ -14,7 +33,21 @@ import MeasurementContainer from "./shared/MeasurementContainer";
 import ResumePage from "./shared/ResumePage";
 import { TemplateRendererProps } from "./TemplateRenderer";
 
-type Block = { node: React.ReactNode; sectionKey: string };
+const LIST_SECTIONS: readonly ListSectionId[] = [
+  "experience",
+  "education",
+  "projects",
+  "certifications",
+];
+const isListSection = (key: string): key is ListSectionId =>
+  (LIST_SECTIONS as readonly string[]).includes(key);
+
+type Block = {
+  node: React.ReactNode;
+  sectionKey: string;
+  /** For list-section entries: the index within that section's array. */
+  itemIndex?: number;
+};
 
 export const CreativeModernTemplate: React.FC<TemplateRendererProps> = ({
   resume,
@@ -37,6 +70,8 @@ export const CreativeModernTemplate: React.FC<TemplateRendererProps> = ({
 
   void marginPx; // column templates manage their own internal padding
 
+  const edit = useInlineEdit();
+
   const LEFT_RATIO = 0.4;
   const RIGHT_RATIO = 0.6;
   const COLUMN_PADDING = 24;
@@ -55,15 +90,6 @@ export const CreativeModernTemplate: React.FC<TemplateRendererProps> = ({
   }, []);
 
   // ── Left column blocks ─────────────────────────────────────────────────────
-  const leftHeading = (title: string) => (
-    <h2
-      className={`${headingSize} mb-3 border-b-2 pb-2 font-bold`}
-      style={{ color: primaryColor, borderColor: accentColor }}
-    >
-      {title}
-    </h2>
-  );
-
   const leftLabels: Record<string, string> = {
     summary: "ABOUT ME",
     skills: "SKILLS",
@@ -73,14 +99,43 @@ export const CreativeModernTemplate: React.FC<TemplateRendererProps> = ({
     awards: "AWARDS",
   };
 
+  const leftHeading = (sectionKey: string) => {
+    const title = leftLabels[sectionKey] ?? sectionKey;
+    const canAdd = edit.editable && isListSection(sectionKey);
+    return (
+      <h2
+        className={`${headingSize} group/heading mb-3 flex items-center justify-between gap-2 border-b-2 pb-2 font-bold`}
+        style={{ color: primaryColor, borderColor: accentColor }}
+      >
+        <span>{title}</span>
+        {canAdd && (
+          <button
+            onClick={() => edit.addItem(sectionKey)}
+            aria-label={`Add ${title} entry`}
+            title={`Add ${title} entry`}
+            className="text-agent-on-surface-variant hover:bg-agent-primary-container hover:text-agent-on-primary-container -my-1 flex items-center gap-1 rounded-full px-2 py-1 text-xs font-medium opacity-0 transition-all duration-150 group-hover/heading:opacity-100"
+          >
+            <Icon name="plus" className="h-3.5 w-3.5" />
+            Add
+          </button>
+        )}
+      </h2>
+    );
+  };
+
   const leftBlocks: Block[] = [];
 
-  if (resume.summary) {
+  if (resume.summary || edit.editable) {
     leftBlocks.push({
       sectionKey: "summary",
       node: (
         <p className={`${textSize} ${lineHeight} leading-relaxed`}>
-          {resume.summary}
+          <EditableText
+            value={resume.summary}
+            onCommit={(v) => edit.updateSummary(v)}
+            fieldType="textarea"
+            placeholder="Write a short professional summary…"
+          />
         </p>
       ),
     });
@@ -97,7 +152,13 @@ export const CreativeModernTemplate: React.FC<TemplateRendererProps> = ({
                 className="mr-2 h-2 w-2 rounded-full"
                 style={{ backgroundColor: accentColor }}
               />
-              <span className={`${textSize} ${lineHeight}`}>{skill}</span>
+              <span className={`${textSize} ${lineHeight}`}>
+                <EditableText
+                  value={skill}
+                  onCommit={(v) => edit.updateSkill(idx, v)}
+                  placeholder="Skill"
+                />
+              </span>
             </div>
           ))}
         </div>
@@ -105,38 +166,106 @@ export const CreativeModernTemplate: React.FC<TemplateRendererProps> = ({
     });
   }
 
-  (resume.education ?? []).forEach((edu) => {
+  (resume.education ?? []).forEach((edu, eduIndex) => {
     leftBlocks.push({
       sectionKey: "education",
+      itemIndex: eduIndex,
       node: (
         <div>
-          <h3 className={`${textSize} font-bold`}>{edu.degree}</h3>
+          <h3 className={`${textSize} font-bold`}>
+            <EditableText
+              value={edu.degree}
+              onCommit={(v) => edit.updateEducation(eduIndex, { degree: v })}
+              placeholder="Degree"
+            />
+          </h3>
           <div
             className={`${textSize} ${lineHeight}`}
             style={{ color: secondaryColor }}
           >
-            {edu.institution}
-            {edu.field && ` • ${edu.field}`}
+            <EditableText
+              value={edu.institution}
+              onCommit={(v) =>
+                edit.updateEducation(eduIndex, { institution: v })
+              }
+              placeholder="Institution"
+            />
+            {(edu.field || edit.editable) && (
+              <>
+                {" • "}
+                <EditableText
+                  value={edu.field}
+                  onCommit={(v) =>
+                    edit.updateEducation(eduIndex, { field: v })
+                  }
+                  placeholder="Field"
+                />
+              </>
+            )}
           </div>
           <div className="text-xs">
-            {edu.startDate} - {edu.endDate || "Present"}
+            <EditableText
+              value={edu.startDate}
+              onCommit={(v) =>
+                edit.updateEducation(eduIndex, { startDate: v })
+              }
+              placeholder="Start"
+            />
+            {" - "}
+            <EditableText
+              value={edu.endDate || ""}
+              onCommit={(v) => edit.updateEducation(eduIndex, { endDate: v })}
+              placeholder="Present"
+            />
           </div>
-          {edu.gpa && <div className="text-xs">GPA: {edu.gpa}</div>}
+          {(edu.gpa || edit.editable) && (
+            <div className="text-xs">
+              GPA:{" "}
+              <EditableText
+                value={edu.gpa || ""}
+                onCommit={(v) => edit.updateEducation(eduIndex, { gpa: v })}
+                placeholder="—"
+              />
+            </div>
+          )}
         </div>
       ),
     });
   });
 
-  (resume.certifications ?? []).forEach((cert) => {
+  (resume.certifications ?? []).forEach((cert, certIndex) => {
     leftBlocks.push({
       sectionKey: "certifications",
+      itemIndex: certIndex,
       node: (
         <div>
-          <div className={`${textSize} font-semibold`}>{cert.name}</div>
-          <div className="text-xs" style={{ color: secondaryColor }}>
-            {cert.issuer}
+          <div className={`${textSize} font-semibold`}>
+            <EditableText
+              value={cert.name}
+              onCommit={(v) =>
+                edit.updateCertification(certIndex, { name: v })
+              }
+              placeholder="Certification"
+            />
           </div>
-          <div className="text-xs">{cert.date}</div>
+          <div className="text-xs" style={{ color: secondaryColor }}>
+            <EditableText
+              value={cert.issuer}
+              onCommit={(v) =>
+                edit.updateCertification(certIndex, { issuer: v })
+              }
+              placeholder="Issuer"
+            />
+          </div>
+          <div className="text-xs">
+            <EditableText
+              value={cert.date}
+              onCommit={(v) =>
+                edit.updateCertification(certIndex, { date: v })
+              }
+              placeholder="Date"
+            />
+          </div>
           {cert.url && (
             <div className="mt-1 text-xs">
               <a
@@ -190,15 +319,6 @@ export const CreativeModernTemplate: React.FC<TemplateRendererProps> = ({
   });
 
   // ── Right column blocks ────────────────────────────────────────────────────
-  const rightHeading = (title: string) => (
-    <h2
-      className={`${headingSize} mb-4 border-b-2 pb-2 font-bold`}
-      style={{ color: primaryColor, borderColor: accentColor }}
-    >
-      {title}
-    </h2>
-  );
-
   const rightLabels: Record<string, string> = {
     experience: "EXPERIENCE",
     projects: "PROJECTS",
@@ -206,11 +326,36 @@ export const CreativeModernTemplate: React.FC<TemplateRendererProps> = ({
     publications: "PUBLICATIONS",
   };
 
+  const rightHeading = (sectionKey: string) => {
+    const title = rightLabels[sectionKey] ?? sectionKey;
+    const canAdd = edit.editable && isListSection(sectionKey);
+    return (
+      <h2
+        className={`${headingSize} group/heading mb-4 flex items-center justify-between gap-2 border-b-2 pb-2 font-bold`}
+        style={{ color: primaryColor, borderColor: accentColor }}
+      >
+        <span>{title}</span>
+        {canAdd && (
+          <button
+            onClick={() => edit.addItem(sectionKey)}
+            aria-label={`Add ${title} entry`}
+            title={`Add ${title} entry`}
+            className="text-agent-on-surface-variant hover:bg-agent-primary-container hover:text-agent-on-primary-container -my-1 flex items-center gap-1 rounded-full px-2 py-1 text-xs font-medium opacity-0 transition-all duration-150 group-hover/heading:opacity-100"
+          >
+            <Icon name="plus" className="h-3.5 w-3.5" />
+            Add
+          </button>
+        )}
+      </h2>
+    );
+  };
+
   const rightBlocks: Block[] = [];
 
-  (resume.experience ?? []).forEach((exp) => {
+  (resume.experience ?? []).forEach((exp, expIndex) => {
     rightBlocks.push({
       sectionKey: "experience",
+      itemIndex: expIndex,
       node: (
         <div className="relative pl-6">
           <div
@@ -218,27 +363,68 @@ export const CreativeModernTemplate: React.FC<TemplateRendererProps> = ({
             style={{ backgroundColor: accentColor }}
           />
           <div className="mb-1 flex items-start justify-between gap-4">
-            <h3 className={`${textSize} font-bold`}>{exp.role}</h3>
+            <h3 className={`${textSize} font-bold`}>
+              <EditableText
+                value={exp.role}
+                onCommit={(v) => edit.updateExperience(expIndex, { role: v })}
+                placeholder="Role"
+              />
+            </h3>
             <span className="ml-2 text-xs whitespace-nowrap">
-              {exp.startDate} - {exp.endDate || "Present"}
+              <EditableText
+                value={exp.startDate}
+                onCommit={(v) =>
+                  edit.updateExperience(expIndex, { startDate: v })
+                }
+                placeholder="Start"
+              />
+              {" - "}
+              <EditableText
+                value={exp.endDate || ""}
+                onCommit={(v) =>
+                  edit.updateExperience(expIndex, { endDate: v })
+                }
+                placeholder="Present"
+              />
             </span>
           </div>
           <div
             className={`${textSize} ${lineHeight} mb-2 font-semibold`}
             style={{ color: secondaryColor }}
           >
-            {exp.company}
+            <EditableText
+              value={exp.company}
+              onCommit={(v) =>
+                edit.updateExperience(expIndex, { company: v })
+              }
+              placeholder="Company"
+            />
           </div>
-          {exp.description && (
+          {(exp.description || edit.editable) && (
             <p className={`${textSize} ${lineHeight} mb-2`}>
-              {exp.description}
+              <EditableText
+                value={exp.description}
+                onCommit={(v) =>
+                  edit.updateExperience(expIndex, { description: v })
+                }
+                fieldType="textarea"
+                placeholder="Describe your role…"
+              />
             </p>
           )}
           {exp.achievements && exp.achievements.length > 0 && (
             <ul className="space-y-1">
               {exp.achievements.map((a, i) => (
                 <li key={i} className={`${textSize} ${lineHeight} ml-4`}>
-                  <span style={{ color: accentColor }}>▸</span> {a}
+                  <span style={{ color: accentColor }}>▸</span>{" "}
+                  <EditableText
+                    value={a}
+                    onCommit={(v) =>
+                      edit.updateExperienceAchievement(expIndex, i, v)
+                    }
+                    fieldType="bullet"
+                    placeholder="Achievement"
+                  />
                 </li>
               ))}
             </ul>
@@ -248,9 +434,10 @@ export const CreativeModernTemplate: React.FC<TemplateRendererProps> = ({
     });
   });
 
-  (resume.projects ?? []).forEach((project) => {
+  (resume.projects ?? []).forEach((project, projectIndex) => {
     rightBlocks.push({
       sectionKey: "projects",
+      itemIndex: projectIndex,
       node: (
         <div className="relative pl-6">
           <div
@@ -258,17 +445,44 @@ export const CreativeModernTemplate: React.FC<TemplateRendererProps> = ({
             style={{ backgroundColor: accentColor }}
           />
           <div className="flex items-start justify-between gap-4">
-            <h3 className={`${textSize} font-bold`}>{project.name}</h3>
-            {(project.startDate || project.endDate) && (
+            <h3 className={`${textSize} font-bold`}>
+              <EditableText
+                value={project.name}
+                onCommit={(v) =>
+                  edit.updateProject(projectIndex, { name: v })
+                }
+                placeholder="Project name"
+              />
+            </h3>
+            {(project.startDate || project.endDate || edit.editable) && (
               <span className="text-xs whitespace-nowrap">
-                {project.startDate || ""}
-                {project.startDate || project.endDate ? " - " : ""}
-                {project.endDate || "Present"}
+                <EditableText
+                  value={project.startDate || ""}
+                  onCommit={(v) =>
+                    edit.updateProject(projectIndex, { startDate: v })
+                  }
+                  placeholder="Start"
+                />
+                {" - "}
+                <EditableText
+                  value={project.endDate || ""}
+                  onCommit={(v) =>
+                    edit.updateProject(projectIndex, { endDate: v })
+                  }
+                  placeholder="Present"
+                />
               </span>
             )}
           </div>
           <p className={`${textSize} ${lineHeight} mt-1 mb-2`}>
-            {project.description}
+            <EditableText
+              value={project.description}
+              onCommit={(v) =>
+                edit.updateProject(projectIndex, { description: v })
+              }
+              fieldType="textarea"
+              placeholder="Describe the project…"
+            />
           </p>
           {project.url && (
             <div className="mb-2 text-xs">
@@ -292,7 +506,16 @@ export const CreativeModernTemplate: React.FC<TemplateRendererProps> = ({
                     color: backgroundColor,
                   }}
                 >
-                  {tech}
+                  <EditableText
+                    value={tech}
+                    onCommit={(v) => {
+                      const next = project.technologies.map((t, ti) =>
+                        ti === i ? v : t
+                      );
+                      edit.updateProjectTechnologies(projectIndex, next);
+                    }}
+                    placeholder="Tech"
+                  />
                 </span>
               ))}
             </div>
@@ -386,14 +609,35 @@ export const CreativeModernTemplate: React.FC<TemplateRendererProps> = ({
       const block = leftBlocks[idx];
       const isNewSection = block.sectionKey !== currentSection;
       currentSection = block.sectionKey;
+      const reorderable =
+        edit.editable &&
+        isListSection(block.sectionKey) &&
+        block.itemIndex !== undefined;
       return (
         <div key={idx} className="mb-4">
           {isNewSection && (
-            <div className="mb-2">
-              {leftHeading(leftLabels[block.sectionKey] ?? block.sectionKey)}
-            </div>
+            <div className="mb-2">{leftHeading(block.sectionKey)}</div>
           )}
-          {block.node}
+          {reorderable ? (
+            <EditableItem
+              id={`${block.sectionKey}-${block.itemIndex}`}
+              label={
+                (leftLabels[block.sectionKey] ??
+                  rightLabels[block.sectionKey]) ??
+                block.sectionKey
+              }
+              onDelete={() =>
+                edit.removeItem(
+                  block.sectionKey as ListSectionId,
+                  block.itemIndex as number
+                )
+              }
+            >
+              {block.node}
+            </EditableItem>
+          ) : (
+            block.node
+          )}
         </div>
       );
     });
@@ -405,14 +649,35 @@ export const CreativeModernTemplate: React.FC<TemplateRendererProps> = ({
       const block = rightBlocks[idx];
       const isNewSection = block.sectionKey !== currentSection;
       currentSection = block.sectionKey;
+      const reorderable =
+        edit.editable &&
+        isListSection(block.sectionKey) &&
+        block.itemIndex !== undefined;
       return (
         <div key={idx} className="mb-5">
           {isNewSection && (
-            <div className="mb-2">
-              {rightHeading(rightLabels[block.sectionKey] ?? block.sectionKey)}
-            </div>
+            <div className="mb-2">{rightHeading(block.sectionKey)}</div>
           )}
-          {block.node}
+          {reorderable ? (
+            <EditableItem
+              id={`${block.sectionKey}-${block.itemIndex}`}
+              label={
+                (leftLabels[block.sectionKey] ??
+                  rightLabels[block.sectionKey]) ??
+                block.sectionKey
+              }
+              onDelete={() =>
+                edit.removeItem(
+                  block.sectionKey as ListSectionId,
+                  block.itemIndex as number
+                )
+              }
+            >
+              {block.node}
+            </EditableItem>
+          ) : (
+            block.node
+          )}
         </div>
       );
     });
@@ -429,19 +694,54 @@ export const CreativeModernTemplate: React.FC<TemplateRendererProps> = ({
       }}
     >
       <h1 className="mb-2 text-4xl font-bold text-white">
-        {resume.header.name}
+        <EditableText
+          value={resume.header.name}
+          onCommit={(v) => edit.updateHeader({ name: v })}
+          placeholder="Your Name"
+        />
       </h1>
-      {resume.header.headline && (
+      {(resume.header.headline || edit.editable) && (
         <div className={`${textSize} ${lineHeight} mb-3 text-white opacity-95`}>
-          {resume.header.headline}
+          <EditableText
+            value={resume.header.headline || ""}
+            onCommit={(v) => edit.updateHeader({ headline: v })}
+            placeholder="Professional headline"
+          />
         </div>
       )}
       <div
         className={`flex flex-wrap gap-4 text-sm text-white opacity-95 ${lineHeight}`}
       >
-        {resume.header.email && <span>✉ {resume.header.email}</span>}
-        {resume.header.phone && <span>📞 {resume.header.phone}</span>}
-        {resume.header.location && <span>📍 {resume.header.location}</span>}
+        {(resume.header.email || edit.editable) && (
+          <span>
+            ✉{" "}
+            <EditableText
+              value={resume.header.email}
+              onCommit={(v) => edit.updateHeader({ email: v })}
+              placeholder="email@example.com"
+            />
+          </span>
+        )}
+        {(resume.header.phone || edit.editable) && (
+          <span>
+            📞{" "}
+            <EditableText
+              value={resume.header.phone || ""}
+              onCommit={(v) => edit.updateHeader({ phone: v })}
+              placeholder="Phone"
+            />
+          </span>
+        )}
+        {(resume.header.location || edit.editable) && (
+          <span>
+            📍{" "}
+            <EditableText
+              value={resume.header.location || ""}
+              onCommit={(v) => edit.updateHeader({ location: v })}
+              placeholder="Location"
+            />
+          </span>
+        )}
         {resume.header.linkedin && (
           <a href={resume.header.linkedin} className="hover:underline">
             🔗 {resume.header.linkedin}
@@ -461,7 +761,30 @@ export const CreativeModernTemplate: React.FC<TemplateRendererProps> = ({
     </header>
   );
 
-  return (
+  // ── Item-level drag-and-drop (editor only) ─────────────────────────────────
+  const sortableIds = [...leftBlocks, ...rightBlocks]
+    .filter((b) => isListSection(b.sectionKey) && b.itemIndex !== undefined)
+    .map((b) => `${b.sectionKey}-${b.itemIndex}`);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } })
+  );
+
+  const handleItemDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    const parse = (raw: string | number) => {
+      const s = String(raw);
+      const dash = s.lastIndexOf("-");
+      return { section: s.slice(0, dash), index: Number(s.slice(dash + 1)) };
+    };
+    const from = parse(active.id);
+    const to = parse(over.id);
+    if (from.section !== to.section || !isListSection(from.section)) return;
+    edit.moveItem(from.section, from.index, to.index);
+  };
+
+  const body = (
     <div
       style={{
         fontFamily,
@@ -562,5 +885,22 @@ export const CreativeModernTemplate: React.FC<TemplateRendererProps> = ({
         );
       })}
     </div>
+  );
+
+  if (!edit.editable) return body;
+
+  return (
+    <DndContext
+      sensors={sensors}
+      collisionDetection={closestCenter}
+      onDragEnd={handleItemDragEnd}
+    >
+      <SortableContext
+        items={sortableIds}
+        strategy={verticalListSortingStrategy}
+      >
+        {body}
+      </SortableContext>
+    </DndContext>
   );
 };
