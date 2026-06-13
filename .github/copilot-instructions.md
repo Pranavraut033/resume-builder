@@ -45,4 +45,4 @@ This is a local-first desktop app using Next.js (App Router) frontend wrapped in
 - **LLM Operation (Client)**: Import from `@/lib/clientLLM`, call in client component with API keys from keyStorage.
 - **Edit resume**: Call `updateResume(jobId, contentJson)` Server Action from client.
 - **Generate resume**: Use `generateResume()` from `clientLLM` on client, then save via Server Action.
-- **New feature**: Check `requirements.md`, update `STATUS.md`, implement incrementally.
+- **New feature**: Check `docs/plans/requirements.md`, implement incrementally.

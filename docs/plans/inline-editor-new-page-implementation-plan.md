@@ -3,7 +3,7 @@
 Status: Proposed
 Date: 2026-06-01
 Owner: Resume Builder team
-Related PRD: docs/PRD-inline-editor.md
+Related PRD: docs/plans/inline-editor-prd.md
 
 ## 1) Rollout Principle
 

@@ -72,7 +72,7 @@ SQLite via Prisma. Core models: `Profile` (base profile, with skills/experience/
 ### Job page (two coexisting implementations)
 
 - `src/app/job/[jobId]/` + `src/components/job/` — original job detail page (`JobPageLayout.tsx`, `JobPageContext.tsx`), drag-and-drop resume editor.
-- `src/app/job/[jobId]/inline/` + `src/components/job-v2/` — newer "Inline Editor V2": WYSIWYG inline editing (`InlineJobPageLayout.tsx`, `DocumentCanvas.tsx`, `resume/EditableSection.tsx`, `resume/InlineField.tsx`, `InlineEditContext.tsx`, `ChatOverlay.tsx`, `CustomizationDrawer.tsx`, `TemplatePicker.tsx`). See `docs/INLINE_EDITOR_V2_REFINED_PLAN.md` for the plan/rollout. When working on job-page UI, check which of these two trees the task targets — avoid mixing patterns between them.
+- `src/app/job/[jobId]/inline/` + `src/components/job-v2/` — newer "Inline Editor V2": WYSIWYG inline editing (`InlineJobPageLayout.tsx`, `DocumentCanvas.tsx`, `resume/EditableSection.tsx`, `resume/InlineField.tsx`, `InlineEditContext.tsx`, `ChatOverlay.tsx`, `CustomizationDrawer.tsx`, `TemplatePicker.tsx`). See `docs/plans/inline-editor-v2-refined-plan.md` for the plan/rollout. When working on job-page UI, check which of these two trees the task targets — avoid mixing patterns between them.
 
 ### State management
 

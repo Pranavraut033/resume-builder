@@ -2,7 +2,7 @@
 
 Status: Proposed
 Date: 2026-06-11
-Related docs: docs/PRD-inline-editor.md, docs/INLINE_EDITOR_NEW_PAGE_IMPLEMENTATION_PLAN.md
+Related docs: docs/plans/inline-editor-prd.md, docs/plans/inline-editor-new-page-implementation-plan.md
 
 This refines the original document-first editor goal against the current
 state of the `/job/[jobId]/inline` + `src/components/job-v2/` scaffold.
