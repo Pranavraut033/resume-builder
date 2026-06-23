@@ -1,6 +1,20 @@
-import { SanitizedCustomization } from "@/types/customization";
+import { BackgroundId, isBackgroundId } from "@/lib/backgrounds/types";
+import { SanitizedCustomization, ThemeColors } from "@/types/customization";
 
 import { registerPDFFont } from "./fonts";
+
+/** Page dimensions in PDF points, used for full-bleed background layers. */
+const PAGE_PT = {
+  LETTER: { w: 612, h: 792 },
+  A4: { w: 595.28, h: 841.89 },
+} as const;
+
+export function getPagePt(pageFormat: "A4" | "LETTER"): {
+  w: number;
+  h: number;
+} {
+  return PAGE_PT[pageFormat] ?? PAGE_PT.LETTER;
+}
 
 const FONT_SIZE_PT: Record<string, number> = {
   small: 9,
@@ -43,6 +57,8 @@ export interface ResolvedPDFStyles {
   lineHeight: number;
   marginPt: number;
   pageFormat: "A4" | "LETTER";
+  background: BackgroundId;
+  colorsTuple: ThemeColors;
 }
 
 /**
@@ -73,6 +89,18 @@ export function resolvePDFCustomization(
     backgroundColor = "#ffffff",
   ] = parts;
 
+  const colorsTuple: ThemeColors = [
+    primaryColor,
+    secondaryColor,
+    accentColor,
+    textColor,
+    backgroundColor,
+  ];
+
+  const rawBackground = (customization as { background?: string }).background;
+  const background: BackgroundId =
+    rawBackground && isBackgroundId(rawBackground) ? rawBackground : "none";
+
   const fontFamily = registerPDFFont(customization.fontFamily ?? "Inter");
   const sizeKey = (customization.fontSize as string) ?? "medium";
   const marginKey = (customization.marginSize as string) ?? "normal";
@@ -92,5 +120,7 @@ export function resolvePDFCustomization(
     lineHeight: LINE_HEIGHT[lineHeightKey] ?? 1.5,
     marginPt: MARGIN_PT[marginKey] ?? 36,
     pageFormat: customization.pageFormat === "letter" ? "LETTER" : "A4",
+    background,
+    colorsTuple,
   };
 }

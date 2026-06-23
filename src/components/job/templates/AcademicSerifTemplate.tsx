@@ -19,9 +19,7 @@ import {
 import React, { useEffect, useRef, useState } from "react";
 
 import { EditableItem } from "@/components/job-v2/resume/EditableItem";
-import { EditableLink } from "@/components/job-v2/resume/EditableLink";
 import { EditableText } from "@/components/job-v2/resume/EditableText";
-import { LanguageField } from "@/components/job-v2/resume/LanguageField";
 import {
   ListSectionId,
   useInlineEdit,
@@ -51,7 +49,7 @@ type Block = {
   itemIndex?: number;
 };
 
-export const BusinessProfessionalTemplate: React.FC<TemplateRendererProps> = ({
+export const AcademicSerifTemplate: React.FC<TemplateRendererProps> = ({
   resume,
   customization,
 }) => {
@@ -80,8 +78,12 @@ export const BusinessProfessionalTemplate: React.FC<TemplateRendererProps> = ({
     const canAdd = edit.editable && isListSection(sectionKey);
     return (
       <h2
-        className={`${headingSize} group/heading mb-3 flex items-center justify-between gap-2 font-serif font-bold uppercase`}
-        style={{ color: primaryColor }}
+        className={`${headingSize} group/heading mb-3 flex items-center justify-between gap-2 border-b font-serif font-bold tracking-widest`}
+        style={{
+          color: primaryColor,
+          borderColor: secondaryColor,
+          fontVariant: "small-caps",
+        }}
       >
         <span>{title}</span>
         {canAdd && (
@@ -100,16 +102,16 @@ export const BusinessProfessionalTemplate: React.FC<TemplateRendererProps> = ({
   };
 
   const sectionLabels: Record<string, string> = {
-    summary: "Professional Summary",
-    experience: "Professional Experience",
+    summary: "Research Summary",
+    experience: "Academic & Professional Experience",
     education: "Education",
-    skills: "Core Competencies",
-    projects: "Key Projects",
+    skills: "Areas of Expertise",
+    projects: "Research Projects",
     certifications: "Certifications",
     publications: "Publications",
     languages: "Languages",
-    volunteer: "Volunteer Experience",
-    awards: "Awards",
+    volunteer: "Service & Volunteer Work",
+    awards: "Honors & Awards",
   };
 
   const blocks: Block[] = [];
@@ -130,90 +132,6 @@ export const BusinessProfessionalTemplate: React.FC<TemplateRendererProps> = ({
     });
   }
 
-  (resume.experience ?? []).forEach((exp, expIndex) => {
-    blocks.push({
-      sectionKey: "experience",
-      itemIndex: expIndex,
-      node: (
-        <div>
-          <div className="mb-1 flex items-baseline justify-between gap-4">
-            <h3 className={`${textSize} font-bold`}>
-              <EditableText
-                value={exp.role}
-                onCommit={(v) => edit.updateExperience(expIndex, { role: v })}
-                placeholder="Role"
-              />
-            </h3>
-            <span
-              className="shrink-0 text-xs"
-              style={{ color: secondaryColor }}
-            >
-              <EditableText
-                value={exp.startDate}
-                onCommit={(v) =>
-                  edit.updateExperience(expIndex, { startDate: v })
-                }
-                placeholder="Start"
-              />
-              {" - "}
-              <EditableText
-                value={exp.endDate || ""}
-                onCommit={(v) =>
-                  edit.updateExperience(expIndex, { endDate: v })
-                }
-                placeholder="Present"
-              />
-            </span>
-          </div>
-          <div
-            className={`${textSize} ${lineHeight} mb-2 font-semibold`}
-            style={{ color: secondaryColor }}
-          >
-            <EditableText
-              value={exp.company}
-              onCommit={(v) => edit.updateExperience(expIndex, { company: v })}
-              placeholder="Company"
-            />
-          </div>
-          {(exp.description || edit.editable) && (
-            <p className={`${textSize} ${lineHeight} mb-2`}>
-              <EditableText
-                value={exp.description}
-                onCommit={(v) =>
-                  edit.updateExperience(expIndex, { description: v })
-                }
-                fieldType="textarea"
-                placeholder="Describe your role…"
-              />
-            </p>
-          )}
-          {(exp.achievements && exp.achievements.length > 0 || edit.editable) && (
-            <EditableText
-              value={(exp.achievements ?? []).join("\n")}
-              onCommit={(v) =>
-                edit.updateExperienceAchievements(
-                  expIndex,
-                  v.split("\n").filter(Boolean)
-                )
-              }
-              fieldType="bullet"
-              placeholder="Add bullet points, one per line…"
-              renderDisplay={(v) => (
-                <ul className="space-y-1">
-                  {v.split("\n").filter(Boolean).map((a, i) => (
-                    <li key={i} className={`${textSize} ${lineHeight} ml-5 list-disc`}>
-                      {a}
-                    </li>
-                  ))}
-                </ul>
-              )}
-            />
-          )}
-        </div>
-      ),
-    });
-  });
-
   (resume.education ?? []).forEach((edu, eduIndex) => {
     blocks.push({
       sectionKey: "education",
@@ -221,7 +139,7 @@ export const BusinessProfessionalTemplate: React.FC<TemplateRendererProps> = ({
       node: (
         <div>
           <div className="flex items-baseline justify-between gap-4">
-            <h3 className={`${textSize} font-bold`}>
+            <h3 className={`${textSize} font-serif font-bold italic`}>
               <EditableText
                 value={edu.degree}
                 onCommit={(v) => edit.updateEducation(eduIndex, { degree: v })}
@@ -284,26 +202,133 @@ export const BusinessProfessionalTemplate: React.FC<TemplateRendererProps> = ({
     });
   });
 
-  if ((resume.skills ?? []).length > 0 || edit.editable) {
+  (resume.experience ?? []).forEach((exp, expIndex) => {
+    blocks.push({
+      sectionKey: "experience",
+      itemIndex: expIndex,
+      node: (
+        <div>
+          <div className="mb-1 flex items-baseline justify-between gap-4">
+            <h3 className={`${textSize} font-serif font-bold italic`}>
+              <EditableText
+                value={exp.role}
+                onCommit={(v) => edit.updateExperience(expIndex, { role: v })}
+                placeholder="Role"
+              />
+            </h3>
+            <span
+              className="shrink-0 text-xs"
+              style={{ color: secondaryColor }}
+            >
+              <EditableText
+                value={exp.startDate}
+                onCommit={(v) =>
+                  edit.updateExperience(expIndex, { startDate: v })
+                }
+                placeholder="Start"
+              />
+              {" - "}
+              <EditableText
+                value={exp.endDate || ""}
+                onCommit={(v) =>
+                  edit.updateExperience(expIndex, { endDate: v })
+                }
+                placeholder="Present"
+              />
+            </span>
+          </div>
+          <div
+            className={`${textSize} ${lineHeight} mb-2 font-semibold`}
+            style={{ color: secondaryColor }}
+          >
+            <EditableText
+              value={exp.company}
+              onCommit={(v) => edit.updateExperience(expIndex, { company: v })}
+              placeholder="Company"
+            />
+          </div>
+          {(exp.description || edit.editable) && (
+            <p className={`${textSize} ${lineHeight} mb-2 text-justify`}>
+              <EditableText
+                value={exp.description}
+                onCommit={(v) =>
+                  edit.updateExperience(expIndex, { description: v })
+                }
+                fieldType="textarea"
+                placeholder="Describe your role…"
+              />
+            </p>
+          )}
+          {exp.achievements && exp.achievements.length > 0 && (
+            <ul className="space-y-1">
+              {exp.achievements.map((a, i) => (
+                <li
+                  key={i}
+                  className={`${textSize} ${lineHeight} ml-5 list-disc`}
+                >
+                  <EditableText
+                    value={a}
+                    onCommit={(v) =>
+                      edit.updateExperienceAchievement(expIndex, i, v)
+                    }
+                    fieldType="bullet"
+                    placeholder="Achievement"
+                  />
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      ),
+    });
+  });
+
+  (resume.publications ?? []).forEach((pub) => {
+    blocks.push({
+      sectionKey: "publications",
+      node: (
+        <div>
+          <h3 className={`${textSize} font-serif font-bold italic`}>
+            {pub.title}
+          </h3>
+          <div className={`${textSize} ${lineHeight} mt-1`}>
+            {pub.authors.join(", ")}
+          </div>
+          <div className="mt-1 text-xs" style={{ color: secondaryColor }}>
+            {pub.venue} • {pub.date}
+            {pub.doi && ` • DOI: ${pub.doi}`}
+          </div>
+          {pub.url && (
+            <div className="mt-1 text-xs">
+              <a
+                href={pub.url}
+                className="hover:underline"
+                style={{ color: accentColor }}
+              >
+                Publication Link
+              </a>
+            </div>
+          )}
+        </div>
+      ),
+    });
+  });
+
+  if ((resume.skills ?? []).length > 0) {
     blocks.push({
       sectionKey: "skills",
       node: (
-        <div className={`${textSize} ${lineHeight}`}>
-          <EditableText
-            value={(resume.skills ?? []).join(", ")}
-            onCommit={(v) =>
-              edit.updateSkills(v.split(",").map((s) => s.trim()).filter(Boolean))
-            }
-            fieldType="textarea"
-            placeholder="JavaScript, TypeScript, React…"
-            renderDisplay={(v) => (
-              <div className="flex flex-wrap gap-x-4 gap-y-1">
-                {v.split(",").map((s) => s.trim()).filter(Boolean).map((skill, idx) => (
-                  <span key={idx}>• {skill}</span>
-                ))}
-              </div>
-            )}
-          />
+        <div className="flex flex-wrap gap-x-4 gap-y-1">
+          {(resume.skills ?? []).map((skill, idx) => (
+            <span key={idx} className={`${textSize} ${lineHeight}`}>
+              •{" "}
+              <EditableText
+                value={skill}
+                onCommit={(v) => edit.updateSkill(idx, v)}
+                placeholder="Skill"
+              />
+            </span>
+          ))}
         </div>
       ),
     });
@@ -316,7 +341,7 @@ export const BusinessProfessionalTemplate: React.FC<TemplateRendererProps> = ({
       node: (
         <div>
           <div className="flex items-baseline justify-between gap-4">
-            <h3 className={`${textSize} font-bold`}>
+            <h3 className={`${textSize} font-serif font-bold italic`}>
               <EditableText
                 value={project.name}
                 onCommit={(v) => edit.updateProject(projectIndex, { name: v })}
@@ -346,7 +371,7 @@ export const BusinessProfessionalTemplate: React.FC<TemplateRendererProps> = ({
               </span>
             )}
           </div>
-          <p className={`${textSize} ${lineHeight} mt-1`}>
+          <p className={`${textSize} ${lineHeight} mt-1 text-justify`}>
             <EditableText
               value={project.description}
               onCommit={(v) =>
@@ -358,7 +383,7 @@ export const BusinessProfessionalTemplate: React.FC<TemplateRendererProps> = ({
           </p>
           {project.technologies && project.technologies.length > 0 && (
             <div className="mt-1 text-xs" style={{ color: secondaryColor }}>
-              Technologies:{" "}
+              Methods:{" "}
               {project.technologies.map((tech, i) => (
                 <span key={i}>
                   {i > 0 && ", "}
@@ -376,17 +401,15 @@ export const BusinessProfessionalTemplate: React.FC<TemplateRendererProps> = ({
               ))}
             </div>
           )}
-          {(project.url || edit.editable) && (
+          {project.url && (
             <div className="mt-1 text-xs">
-              <EditableLink
-                href={project.url ?? ""}
-                onCommit={(v) => edit.updateProject(projectIndex, { url: v })}
-                placeholder="https://…"
+              <a
+                href={project.url}
                 className="hover:underline"
                 style={{ color: accentColor }}
               >
                 Project Link
-              </EditableLink>
+              </a>
             </div>
           )}
         </div>
@@ -423,45 +446,14 @@ export const BusinessProfessionalTemplate: React.FC<TemplateRendererProps> = ({
               placeholder="Date"
             />
           </span>
-          {(cert.url || edit.editable) && (
+          {cert.url && (
             <div className="mt-1 text-xs">
-              <EditableLink
-                href={cert.url ?? ""}
-                onCommit={(v) => edit.updateCertification(certIndex, { url: v })}
-                placeholder="https://…"
+              <a
+                href={cert.url}
                 className="hover:underline"
                 style={{ color: accentColor }}
               >
                 Credential Link
-              </EditableLink>
-            </div>
-          )}
-        </div>
-      ),
-    });
-  });
-
-  (resume.publications ?? []).forEach((pub) => {
-    blocks.push({
-      sectionKey: "publications",
-      node: (
-        <div>
-          <h3 className={`${textSize} font-bold`}>{pub.title}</h3>
-          <div className={`${textSize} ${lineHeight} mt-1`}>
-            {pub.authors.join(", ")}
-          </div>
-          <div className="mt-1 text-xs" style={{ color: secondaryColor }}>
-            {pub.venue} • {pub.date}
-            {pub.doi && ` • DOI: ${pub.doi}`}
-          </div>
-          {pub.url && (
-            <div className="mt-1 text-xs">
-              <a
-                href={pub.url}
-                className="hover:underline"
-                style={{ color: accentColor }}
-              >
-                Publication Link
               </a>
             </div>
           )}
@@ -470,33 +462,16 @@ export const BusinessProfessionalTemplate: React.FC<TemplateRendererProps> = ({
     });
   });
 
-  if ((resume.languages ?? []).length > 0 || edit.editable) {
+  if ((resume.languages ?? []).length > 0) {
     blocks.push({
       sectionKey: "languages",
       node: (
         <div className="flex flex-wrap gap-x-4 gap-y-1">
           {(resume.languages ?? []).map((l, idx) => (
-            <LanguageField
-              key={idx}
-              language={l}
-              onUpdate={(patch) => edit.updateLanguage(idx, patch)}
-              onRemove={() => edit.removeLanguage(idx)}
-              className={`${textSize} ${lineHeight}`}
-              renderDisplay={(lang) => (
-                <span className={`${textSize} ${lineHeight}`}>
-                  •{" "}{lang.name}{lang.proficiency ? ` (${lang.proficiency})` : ""}
-                </span>
-              )}
-            />
+            <span key={idx} className={`${textSize} ${lineHeight}`}>
+              • {l.name} ({l.proficiency})
+            </span>
           ))}
-          {edit.editable && (
-            <button
-              onClick={edit.addLanguage}
-              className="text-agent-primary hover:text-agent-primary/70 text-xs opacity-60 hover:opacity-100"
-            >
-              + Add
-            </button>
-          )}
         </div>
       ),
     });
@@ -508,7 +483,9 @@ export const BusinessProfessionalTemplate: React.FC<TemplateRendererProps> = ({
       node: (
         <div>
           <div className="mb-1 flex items-baseline justify-between gap-4">
-            <h3 className={`${textSize} font-bold`}>{v.role}</h3>
+            <h3 className={`${textSize} font-serif font-bold italic`}>
+              {v.role}
+            </h3>
             <span
               className="shrink-0 text-xs"
               style={{ color: secondaryColor }}
@@ -523,7 +500,9 @@ export const BusinessProfessionalTemplate: React.FC<TemplateRendererProps> = ({
             {v.organization}
           </div>
           {v.description && (
-            <p className={`${textSize} ${lineHeight}`}>{v.description}</p>
+            <p className={`${textSize} ${lineHeight} text-justify`}>
+              {v.description}
+            </p>
           )}
         </div>
       ),
@@ -597,14 +576,12 @@ export const BusinessProfessionalTemplate: React.FC<TemplateRendererProps> = ({
     edit.moveItem(from.section, from.index, to.index);
   };
 
+  // ── Traditional, formal header: serif small-caps name, double rule below. ──
   const headerNode = (
-    <header
-      className="mb-8 border-b pb-6 text-center"
-      style={{ borderColor: secondaryColor }}
-    >
+    <header className="mb-8 pb-6 text-center">
       <h1
-        className={`mb-2 font-serif ${nameSize} font-bold`}
-        style={{ color: primaryColor }}
+        className={`mb-2 font-serif ${nameSize} font-bold tracking-wide`}
+        style={{ color: primaryColor, fontVariant: "small-caps" }}
       >
         <EditableText
           value={resume.header.name}
@@ -614,7 +591,7 @@ export const BusinessProfessionalTemplate: React.FC<TemplateRendererProps> = ({
       </h1>
       {(resume.header.headline || edit.editable) && (
         <div
-          className={`${textSize} mb-2 font-medium`}
+          className={`${textSize} mb-2 font-serif italic`}
           style={{ color: accentColor }}
         >
           <EditableText
@@ -659,34 +636,39 @@ export const BusinessProfessionalTemplate: React.FC<TemplateRendererProps> = ({
               />
             </span>
           )}
-          {(resume.header.linkedin || edit.editable) && (
-            <EditableLink
-              href={resume.header.linkedin ?? ""}
-              onCommit={(v) => edit.updateHeader({ linkedin: v })}
-              placeholder="LinkedIn URL"
+          {resume.header.linkedin && (
+            <a
+              href={resume.header.linkedin}
               className="hover:underline"
               style={{ color: accentColor }}
-            />
+            >
+              {resume.header.linkedin}
+            </a>
           )}
-          {(resume.header.github || edit.editable) && (
-            <EditableLink
-              href={resume.header.github ?? ""}
-              onCommit={(v) => edit.updateHeader({ github: v })}
-              placeholder="GitHub URL"
+          {resume.header.github && (
+            <a
+              href={resume.header.github}
               className="hover:underline"
               style={{ color: accentColor }}
-            />
+            >
+              {resume.header.github}
+            </a>
           )}
-          {(resume.header.website || edit.editable) && (
-            <EditableLink
-              href={resume.header.website ?? ""}
-              onCommit={(v) => edit.updateHeader({ website: v })}
-              placeholder="Website URL"
+          {resume.header.website && (
+            <a
+              href={resume.header.website}
               className="hover:underline"
               style={{ color: accentColor }}
-            />
+            >
+              {resume.header.website}
+            </a>
           )}
         </div>
+      </div>
+      {/* Double rule, traditional academic styling */}
+      <div className="mt-4 space-y-0.5">
+        <div className="h-px" style={{ backgroundColor: primaryColor }} />
+        <div className="h-px" style={{ backgroundColor: secondaryColor }} />
       </div>
     </header>
   );

@@ -7,6 +7,7 @@
 import { Document, Page, Text, View } from "@react-pdf/renderer";
 import React from "react";
 
+import BackgroundPdf from "@/lib/backgrounds/BackgroundPdf";
 import { ResumeJSON } from "@/types/resume";
 
 import { htmlToPdfNodes } from "../htmlToPdf";
@@ -43,6 +44,7 @@ export const BusinessProfessionalCoverLetterPDF: React.FC<
           padding: s.marginPt,
         }}
       >
+        <BackgroundPdf styles={s} />
         {/* ── Name + divider ───────────────────────────────── */}
         <View style={{ marginBottom: 12 }}>
           <Text

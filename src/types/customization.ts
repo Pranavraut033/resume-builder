@@ -1,5 +1,7 @@
 import { Customization } from "@prisma/client";
 
+import { BackgroundId, VALID_BACKGROUND_IDS } from "@/lib/backgrounds/types";
+
 /**
  * Adapted from Resumify (https://github.com/Afif718/Resumify)
  * Copyright (c) 2025 M. H. A. Afif
@@ -11,7 +13,10 @@ export type TemplateType =
   | "modern-minimal"
   | "elegant-timeline"
   | "creative-modern"
-  | "bjet-professional";
+  | "bjet-professional"
+  | "compact-modern"
+  | "two-tone"
+  | "academic-serif";
 
 export type PageFormat = "letter" | "a4";
 export type FontSize = "small" | "medium" | "large";
@@ -48,6 +53,7 @@ export const DEFAULT_CUSTOMIZATION: SanitizedCustomization = {
   lineHeight: "medium",
   colors: DEFAULT_COLORS.join(","),
   marginSize: "normal",
+  background: "none",
 };
 
 export type Template = {
@@ -112,6 +118,30 @@ export const AVAILABLE_TEMPLATES: Array<Template> = [
     features: ["Executive style", "Premium look", "Professional layout"],
     bestFor: "Senior positions, executive roles, premium applications",
   },
+  {
+    id: "compact-modern",
+    name: "Compact",
+    description: "Dense single-column layout that fits more on every page",
+    fontFamily: "Inter",
+    features: ["Single column", "Space-efficient", "ATS-friendly"],
+    bestFor: "Experienced candidates with lots to fit, ATS submissions",
+  },
+  {
+    id: "two-tone",
+    name: "Two-Tone",
+    description: "Bold colour-block header with a clean, contemporary body",
+    fontFamily: "Montserrat",
+    features: ["Colour-block header", "Strong contrast", "Modern aesthetics"],
+    bestFor: "Marketing, sales, and design-forward roles",
+  },
+  {
+    id: "academic-serif",
+    name: "Academic",
+    description: "Traditional serif layout for academic and research profiles",
+    fontFamily: "Merriweather",
+    features: ["Serif typography", "Small-caps headings", "Formal structure"],
+    bestFor: "Academics, researchers, education, legal roles",
+  },
 ];
 
 export const AVAILABLE_FONTS = [
@@ -172,6 +202,7 @@ export function validateCustomization({
   colors,
   marginSize,
   lineHeight,
+  background,
 }: SanitizedCustomization) {
   if (template && !VALID_TEMPLATE_IDS.has(template as TemplateType)) {
     throw new Error("Invalid template selected.");
@@ -200,6 +231,10 @@ export function validateCustomization({
   if (colors) {
     const colorsSplit = colors.split(",");
     void validateColors(colorsSplit as ThemeColors);
+  }
+
+  if (background && !VALID_BACKGROUND_IDS.has(background as BackgroundId)) {
+    throw new Error("Invalid background selected.");
   }
 }
 

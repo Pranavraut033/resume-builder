@@ -7,6 +7,8 @@ import React from "react";
 
 import { RichTextEditorContent } from "@/components/form/RichTextEditor";
 import useResolveCustomization from "@/hooks/useResolveCustomization";
+import BackgroundSvg from "@/lib/backgrounds/BackgroundSvg";
+import { getPageDimensions } from "@/lib/pageDimensions";
 
 import type { CoverLetterRendererProps } from "./CoverLetterRenderer";
 
@@ -26,25 +28,38 @@ export const CreativeModernCoverLetter: React.FC<CoverLetterRendererProps> = ({
     today,
     lineHeight,
     marginClass,
+    background,
+    colorsTuple,
   } = useResolveCustomization(customization);
+  const { widthPx, heightPx } = getPageDimensions(
+    customization.pageFormat,
+    customization.marginSize
+  );
 
   return (
     <div
-      className={`${marginClass} overflow-hidden`}
+      className={`${marginClass} relative overflow-hidden`}
       style={{
         fontFamily: fontFamily,
         color: textColor,
         backgroundColor: backgroundColor,
       }}
     >
+      <BackgroundSvg
+        background={background}
+        colors={colorsTuple}
+        width={widthPx}
+        height={heightPx}
+      />
+
       {/* Creative accent stripe */}
       <div
-        className="absolute top-0 left-0 h-full w-2"
+        className="absolute top-0 left-0 z-1 h-full w-2"
         style={{ backgroundColor: accentColor }}
       />
 
       {/* Content with left margin for stripe */}
-      <div className="ml-8 p-12">
+      <div className="relative z-1 ml-8 p-12">
         {/* Header with creative styling */}
         <header className="mb-8">
           <h1

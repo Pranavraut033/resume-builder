@@ -158,6 +158,7 @@ model Customization {
   lineHeight String @map("line_height") // tight, normal, relaxed
   marginSize String @map("margin_size") // CSV: top,right,bottom,left in inches (e.g. 1,1,1,1)
   colors     String @default("#3b82f6,#64748b,#8b5cf6,#1f2937,#ffffff")
+  background String @default("none") // page background pattern id
 
   resumes     Resume?
   coverLetter CoverLetter?

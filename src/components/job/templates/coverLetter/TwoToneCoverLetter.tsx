@@ -1,6 +1,7 @@
 /**
- * Elegant Timeline Cover Letter Template
- * Matches the style of ElegantTimelineTemplate resume
+ * Two-Tone Cover Letter Template
+ * Matches the style of TwoToneTemplate resume — bold colour-block header,
+ * reversed-out name plate, accent stripe.
  */
 
 import React from "react";
@@ -12,22 +13,22 @@ import { getPageDimensions } from "@/lib/pageDimensions";
 
 import type { CoverLetterRendererProps } from "./CoverLetterRenderer";
 
-export const ElegantTimelineCoverLetter: React.FC<CoverLetterRendererProps> = ({
+export const TwoToneCoverLetter: React.FC<CoverLetterRendererProps> = ({
   coverLetter,
   resume,
   customization,
 }) => {
   const {
     primaryColor,
-    secondaryColor,
+    secondaryColor: _,
     accentColor,
     textColor,
     backgroundColor,
     textSize,
     fontFamily,
     today,
-    marginClass,
     lineHeight,
+    marginClass,
     background,
     colorsTuple,
   } = useResolveCustomization(customization);
@@ -38,7 +39,7 @@ export const ElegantTimelineCoverLetter: React.FC<CoverLetterRendererProps> = ({
 
   return (
     <div
-      className={`relative ${marginClass}`}
+      className={`${marginClass} relative overflow-hidden`}
       style={{
         fontFamily: fontFamily,
         color: textColor,
@@ -51,18 +52,18 @@ export const ElegantTimelineCoverLetter: React.FC<CoverLetterRendererProps> = ({
         width={widthPx}
         height={heightPx}
       />
-      <div className="relative z-1">
-        {/* Elegant Header - Centered to match resume */}
-        <header className="mb-8 text-center">
+
+      {/* Bold two-tone header band */}
+      <div className="relative z-1 flex items-stretch">
+        <div className="flex-1 p-8" style={{ backgroundColor: primaryColor }}>
           <h1
-            className="mb-2 text-4xl font-light"
-            style={{ color: primaryColor }}
+            className="mb-2 inline-block px-3 py-1 text-3xl font-bold"
+            style={{ backgroundColor: backgroundColor, color: primaryColor }}
           >
             {resume?.header?.name || "[Your Name]"}
           </h1>
           <div
-            className={`${textSize} mb-2 flex flex-wrap justify-center gap-3`}
-            style={{ color: secondaryColor }}
+            className={`${textSize} flex flex-wrap gap-4 text-white opacity-95`}
           >
             {resume?.header?.email && <span>✉ {resume.header.email}</span>}
             {resume?.header?.phone && <span>📞 {resume.header.phone}</span>}
@@ -70,50 +71,42 @@ export const ElegantTimelineCoverLetter: React.FC<CoverLetterRendererProps> = ({
               <span>📍 {resume.header.location}</span>
             )}
           </div>
-          <div className={`${textSize} flex flex-wrap justify-center gap-3`}>
+          <div
+            className={`${textSize} mt-1 flex flex-wrap gap-4 text-white opacity-95`}
+          >
             {resume?.header?.linkedin && (
-              <a
-                href={resume.header.linkedin}
-                className="hover:underline"
-                style={{ color: accentColor }}
-              >
-                {resume.header.linkedin}
+              <a href={resume.header.linkedin} className="hover:underline">
+                🔗 {resume.header.linkedin}
               </a>
             )}
             {resume?.header?.github && (
-              <a
-                href={resume.header.github}
-                className="hover:underline"
-                style={{ color: accentColor }}
-              >
-                {resume.header.github}
+              <a href={resume.header.github} className="hover:underline">
+                💻 {resume.header.github}
               </a>
             )}
             {resume?.header?.website && (
-              <a
-                href={resume.header.website}
-                className="hover:underline"
-                style={{ color: accentColor }}
-              >
-                {resume.header.website}
+              <a href={resume.header.website} className="hover:underline">
+                🌐 {resume.header.website}
               </a>
             )}
           </div>
-        </header>
-
-        {/* Content */}
-        <div className="space-y-6">
-          {/* Date */}
-          <div className={`${textSize}`} style={{ color: secondaryColor }}>
-            {today}
-          </div>
-
-          {/* Cover Letter Content */}
-          <RichTextEditorContent
-            content={coverLetter}
-            className={`${textSize} ${lineHeight}`}
-          />
         </div>
+        {/* Second tone: accent stripe */}
+        <div
+          className="w-3 flex-shrink-0"
+          style={{ backgroundColor: accentColor }}
+        />
+      </div>
+
+      {/* Content */}
+      <div className="relative z-1 p-12">
+        {/* Date */}
+        <div className={`${textSize} mb-6`}>{today}</div>
+
+        <RichTextEditorContent
+          content={coverLetter}
+          className={`${textSize} ${lineHeight}`}
+        />
       </div>
     </div>
   );

@@ -1,6 +1,7 @@
 /**
- * Business Professional Cover Letter Template
- * Matches the style of BusinessProfessionalTemplate resume
+ * Academic Serif Cover Letter Template
+ * Matches the style of AcademicSerifTemplate resume — traditional serif
+ * layout with a centered header and a double-rule divider.
  */
 
 import React from "react";
@@ -12,9 +13,11 @@ import { getPageDimensions } from "@/lib/pageDimensions";
 
 import { CoverLetterRendererProps } from "./CoverLetterRenderer";
 
-export const BusinessProfessionalCoverLetter: React.FC<
-  CoverLetterRendererProps
-> = ({ coverLetter, resume, customization }) => {
+export const AcademicSerifCoverLetter: React.FC<CoverLetterRendererProps> = ({
+  coverLetter,
+  resume,
+  customization,
+}) => {
   const {
     primaryColor,
     secondaryColor,
@@ -50,14 +53,11 @@ export const BusinessProfessionalCoverLetter: React.FC<
         height={heightPx}
       />
       <div className="relative z-1">
-        {/* Header - Centered */}
-        <header
-          className="mb-8 border-b pb-6 text-center"
-          style={{ borderColor: secondaryColor }}
-        >
+        {/* Header - Centered, traditional double rule */}
+        <header className="mb-8 pb-6 text-center">
           <h1
-            className="mb-2 font-serif text-3xl font-bold"
-            style={{ color: primaryColor }}
+            className="mb-2 font-serif text-3xl font-bold tracking-wide"
+            style={{ color: primaryColor, fontVariant: "small-caps" }}
           >
             {resume?.header?.name || "[Your Name]"}
           </h1>
@@ -78,6 +78,10 @@ export const BusinessProfessionalCoverLetter: React.FC<
               {resume?.header?.linkedin && <span>LinkedIn</span>}
             </div>
           </div>
+          <div className="mt-4 space-y-0.5">
+            <div className="h-px" style={{ backgroundColor: primaryColor }} />
+            <div className="h-px" style={{ backgroundColor: secondaryColor }} />
+          </div>
         </header>
 
         {/* Date */}
@@ -86,7 +90,7 @@ export const BusinessProfessionalCoverLetter: React.FC<
         {/* Cover Letter Content */}
         <RichTextEditorContent
           content={coverLetter}
-          className={`${textSize} ${lineHeight}`}
+          className={`${textSize} ${lineHeight} text-justify`}
         />
       </div>
     </div>
