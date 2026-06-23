@@ -63,6 +63,8 @@ export const TechSidebarTemplate: React.FC<TemplateRendererProps> = ({
     fontFamily,
     lineHeight,
     headingSize,
+    background,
+    colorsTuple,
   } = useResolveCustomization(customization);
 
   const { widthMm, widthPx, heightPx, contentHeightPx } = getPageDimensions(
@@ -844,6 +846,8 @@ export const TechSidebarTemplate: React.FC<TemplateRendererProps> = ({
             heightPx={heightPx}
             pageIndex={pageIndex}
             pageCount={pageCount}
+            background={background}
+            colors={colorsTuple}
           >
             {pageIndex === 0 && headerNode}
             <div

@@ -1,3 +1,4 @@
+import { BackgroundId, isBackgroundId } from "@/lib/backgrounds/types";
 import {
   FontSize,
   Leading,
@@ -46,13 +47,19 @@ export default function useResolveCustomization(
     day: "numeric",
   });
 
+  const colorsTuple = colors.split(",") as ThemeColors;
   const [
     primaryColor,
     secondaryColor,
     accentColor,
     textColor,
     backgroundColor,
-  ] = colors.split(",") as ThemeColors;
+  ] = colorsTuple;
+
+  const rawBackground = (customization as { background?: string }).background;
+  const background: BackgroundId =
+    rawBackground && isBackgroundId(rawBackground) ? rawBackground : "none";
+
   const headingSize =
     textSize === "text-xs"
       ? "text-base"
@@ -65,6 +72,8 @@ export default function useResolveCustomization(
     accentColor,
     textColor,
     backgroundColor,
+    colorsTuple,
+    background,
     textSize,
     fontFamily,
     today,

@@ -1,5 +1,8 @@
 import React from "react";
 
+import BackgroundSvg from "@/lib/backgrounds/BackgroundSvg";
+import { BackgroundId, ThemeColors } from "@/lib/backgrounds/types";
+
 /** A fixed-size page box that matches the physical page dimensions. */
 const ResumePage: React.FC<{
   widthPx: number;
@@ -9,7 +12,18 @@ const ResumePage: React.FC<{
   pageIndex?: number;
   /** Total number of pages. */
   pageCount?: number;
-}> = ({ widthPx, heightPx, children, pageIndex, pageCount }) => (
+  /** Optional theme-coloured background pattern rendered behind the content. */
+  background?: BackgroundId;
+  colors?: ThemeColors;
+}> = ({
+  widthPx,
+  heightPx,
+  children,
+  pageIndex,
+  pageCount,
+  background,
+  colors,
+}) => (
   <div
     style={{
       display: "flex",
@@ -32,7 +46,17 @@ const ResumePage: React.FC<{
         borderRadius: 2,
       }}
     >
-      {children}
+      {background && background !== "none" && colors && (
+        <BackgroundSvg
+          background={background}
+          colors={colors}
+          width={widthPx}
+          height={heightPx}
+        />
+      )}
+      <div style={{ position: "relative", zIndex: 1, height: "100%" }}>
+        {children}
+      </div>
     </div>
 
     {pageIndex !== undefined && pageCount !== undefined && pageCount > 1 && (

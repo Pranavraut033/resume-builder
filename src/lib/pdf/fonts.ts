@@ -20,7 +20,12 @@ export const SYSTEM_FONT_MAP: Record<string, string> = {
 const CDN = "https://cdn.jsdelivr.net/npm/@fontsource";
 const FONTSOURCE_V4 = "@4";
 
-type FontSpec = { pkg: string; name: string; weights: number[] };
+type FontSpec = {
+  pkg: string;
+  name: string;
+  weights: number[];
+  italicWeights?: number[];
+};
 
 const GOOGLE_FONTS: Record<string, FontSpec> = {
   Inter: {
@@ -62,6 +67,7 @@ const GOOGLE_FONTS: Record<string, FontSpec> = {
     pkg: "merriweather",
     name: "merriweather",
     weights: [300, 400, 700],
+    italicWeights: [400, 700],
   },
   Raleway: {
     pkg: "raleway",
@@ -103,11 +109,18 @@ export function registerPDFFont(fontFamily: string): string {
 
   Font.register({
     family: fontFamily,
-    fonts: spec.weights.map((weight) => ({
-      src: `${CDN}/${spec.pkg}${FONTSOURCE_V4}/files/${spec.name}-latin-${weight}-normal.woff`,
-      fontWeight: weight,
-      fontStyle: "normal",
-    })),
+    fonts: [
+      ...spec.weights.map((weight) => ({
+        src: `${CDN}/${spec.pkg}${FONTSOURCE_V4}/files/${spec.name}-latin-${weight}-normal.woff`,
+        fontWeight: weight,
+        fontStyle: "normal" as const,
+      })),
+      ...(spec.italicWeights ?? []).map((weight) => ({
+        src: `${CDN}/${spec.pkg}${FONTSOURCE_V4}/files/${spec.name}-latin-${weight}-italic.woff`,
+        fontWeight: weight,
+        fontStyle: "italic" as const,
+      })),
+    ],
   });
 
   registered.add(fontFamily);

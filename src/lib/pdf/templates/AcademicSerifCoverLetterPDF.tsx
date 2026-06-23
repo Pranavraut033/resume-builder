@@ -1,6 +1,6 @@
 /**
- * Modern Minimal – Cover Letter PDF Template
- * Mirrors ModernMinimalCoverLetter.tsx: clean border-bottom header, flush left.
+ * Academic Serif – Cover Letter PDF Template
+ * Mirrors AcademicSerifCoverLetter.tsx: centered header, double-rule divider.
  */
 
 import { Document, Page, Text, View } from "@react-pdf/renderer";
@@ -18,7 +18,7 @@ export interface CoverLetterPDFProps {
   styles: ResolvedPDFStyles;
 }
 
-export const ModernMinimalCoverLetterPDF: React.FC<CoverLetterPDFProps> = ({
+export const AcademicSerifCoverLetterPDF: React.FC<CoverLetterPDFProps> = ({
   coverLetter,
   resume,
   styles: s,
@@ -52,28 +52,40 @@ export const ModernMinimalCoverLetterPDF: React.FC<CoverLetterPDFProps> = ({
         }}
       >
         <BackgroundPdf styles={s} />
-        {/* ── Header ───────────────────────────────────────── */}
-        <View
-          style={{
-            borderBottomWidth: 2,
-            borderBottomColor: s.primaryColor,
-            paddingBottom: 8,
-            marginBottom: 14,
-          }}
-        >
+        {/* ── Header (centered, double-rule divider) ───────── */}
+        <View style={{ alignItems: "center", marginBottom: 16 }}>
           <Text
             style={{
               fontSize: s.nameFontSize,
               fontWeight: 700,
               color: s.primaryColor,
               marginBottom: 4,
+              textAlign: "center",
+              letterSpacing: 1,
             }}
           >
             {h.name}
           </Text>
-          <Text style={{ fontSize: s.smallFontSize, color: "#6b7280" }}>
+          <Text
+            style={{
+              fontSize: s.smallFontSize,
+              color: s.secondaryColor,
+              textAlign: "center",
+              marginBottom: 8,
+            }}
+          >
             {contactParts.join("  •  ")}
           </Text>
+          <View style={{ width: "100%" }}>
+            <View
+              style={{
+                height: 1,
+                backgroundColor: s.primaryColor,
+                marginBottom: 1,
+              }}
+            />
+            <View style={{ height: 1, backgroundColor: s.secondaryColor }} />
+          </View>
         </View>
 
         {/* ── Date ─────────────────────────────────────────── */}

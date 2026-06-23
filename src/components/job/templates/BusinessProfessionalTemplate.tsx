@@ -64,6 +64,8 @@ export const BusinessProfessionalTemplate: React.FC<TemplateRendererProps> = ({
     lineHeight,
     headingSize,
     nameSize,
+    background,
+    colorsTuple,
   } = useResolveCustomization(customization);
 
   const { widthMm, widthPx, heightPx, marginPx, contentHeightPx } =
@@ -740,6 +742,8 @@ export const BusinessProfessionalTemplate: React.FC<TemplateRendererProps> = ({
             heightPx={heightPx}
             pageIndex={pageIndex}
             pageCount={pageGroups.length}
+            background={background}
+            colors={colorsTuple}
           >
             <div
               style={{
