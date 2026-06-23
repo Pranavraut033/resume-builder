@@ -19,6 +19,10 @@ import {
 } from "./prompts";
 import { PromptSystem } from "../prompts";
 import { mergeLLMUsageInfo } from "../tokenTracker";
+import {
+  PipelineStageEvent,
+  runTailoringPipeline as runPipeline,
+} from "./pipeline/pipeline";
 import { EditFieldOutputSchema } from "./prompts/extractFieldsToEdit";
 import {
   IntentLabel,
@@ -148,6 +152,25 @@ class ResumeChatBot {
   isProviderReady(): this is { provider: LLMProvider } {
     return this.provider !== null;
   }
+
+  // ── Multi-agent tailoring pipeline ────────────────────────────────────────
+  // Chains the four agents (requirements → rewrite → verify → score) with a
+  // bounded verification loop. Kept separate from chat() intent routing.
+  async *runTailoringPipeline(
+    options: ChatBotOptions
+  ): AsyncGenerator<PipelineStageEvent> {
+    this.isSessionInitialized();
+    for await (const event of runPipeline(this.provider, {
+      resume: this.resume,
+      jobDetails: this.jobDetails,
+      options,
+    })) {
+      // adopt the tailored resume into session state so later chat turns see it
+      if (event.stage === "done") this.resume = event.updatedResume;
+      yield event;
+    }
+  }
+
   // ── Intent classification ─────────────────────────────────────────────────
 
   async classifyIntent(
