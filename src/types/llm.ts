@@ -27,6 +27,7 @@ export interface ResumePromptInput {
 export interface CoverLetterPromptInput {
   jobDetails: JobDetailsJSON;
   resume: ResumeJSON; // the tailored resume
+  customInstructions?: string;
 }
 
 export type ATSAnalysisPromptInput = CoverLetterPromptInput;

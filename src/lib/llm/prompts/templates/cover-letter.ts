@@ -67,7 +67,10 @@ HARD CONSTRAINTS:
 - Do not invent experience, skills, or outcomes not in the profile
 - Do not use first-person opener ("I" as the first word of the letter)
 - 3–4 paragraphs, each 2–4 sentences — tight, no padding
-
+{{#if additionalInstructions}}
+CUSTOM INSTRUCTIONS (override defaults where they conflict):
+{{additionalInstructions}}
+{{/if}}
 Return ONLY clean WYSIWYG editor HTML content.`,
 };
 

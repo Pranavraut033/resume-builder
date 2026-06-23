@@ -141,6 +141,7 @@ class LLMService {
             {
               resume: context.resume!,
               jobDetails: context.jobDetails!,
+              customInstructions: context.additionalInstructions,
             },
             options
           ));
@@ -272,11 +273,12 @@ class LLMService {
   static async generateCoverLetter(
     resume: ResumeJSON | null,
     jobDetails: JobDetailsJSON,
-    options: LLMServiceOptions
+    options: LLMServiceOptions,
+    customInstructions?: string
   ): Promise<LLMResult<string>> {
     return this.executeCall(
       "generate_cover_letter",
-      { resume, jobDetails },
+      { resume, jobDetails, additionalInstructions: customInstructions },
       options
     );
   }

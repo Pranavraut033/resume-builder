@@ -5,7 +5,7 @@ import { useModelStore } from "@/store/modelStore";
 import { LLMResult } from "@/types/llm";
 import { JobDetailsJSON, ResumeJSON } from "@/types/resume";
 
-type Args = { resume?: ResumeJSON | null; jobData?: JobDetailsJSON | null };
+type Args = { resume?: ResumeJSON | null; jobData?: JobDetailsJSON | null; customInstructions?: string };
 
 function useGenerateCoverLetter(
   options?: Omit<
@@ -25,10 +25,12 @@ function useGenerateCoverLetter(
         return Promise.reject(new Error("Missing resume or job data"));
       }
 
-      return LLMService.generateCoverLetter(data.resume, data.jobData, {
-        provider: activeModelPair[0],
-        model: activeModelPair[1],
-      });
+      return LLMService.generateCoverLetter(
+        data.resume,
+        data.jobData,
+        { provider: activeModelPair[0], model: activeModelPair[1] },
+        data.customInstructions
+      );
     },
     ...options,
   });

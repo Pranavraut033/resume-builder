@@ -293,6 +293,7 @@ export abstract class LLMProvider {
     return PromptSystem.generatePrompt("generate_cover_letter", {
       jobDetails: input.jobDetails,
       resume: input.resume,
+      additionalInstructions: input.customInstructions,
     });
   }
 

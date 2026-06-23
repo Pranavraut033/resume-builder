@@ -1,5 +1,7 @@
 "use client";
 
+import { useState } from "react";
+
 import { RichTextEditor } from "@/components/form/RichTextEditor";
 import { CoverLetterRenderer } from "@/components/job/templates/coverLetter/CoverLetterRenderer";
 import { Button } from "@/components/ui";
@@ -12,6 +14,15 @@ import { ModelSelector } from "../ModelSelector";
 
 import { EditorLayout } from ".";
 
+const INSTRUCTION_SUGGESTIONS = [
+  "Keep it under 250 words",
+  "Use a formal / conversational tone",
+  "Emphasize leadership experience",
+  "Highlight remote-work skills",
+  "Focus on culture fit over technical skills",
+  "Avoid mentioning salary expectations",
+];
+
 export default function CoverLetterEditorContent() {
   const {
     coverLetter,
@@ -23,6 +34,9 @@ export default function CoverLetterEditorContent() {
     refetch,
     saveToDb,
   } = useJobPageContext();
+
+  const [customInstructions, setCustomInstructions] = useState("");
+  const [showTip, setShowTip] = useState(false);
 
   const { pushToast } = useToast();
 
@@ -64,7 +78,11 @@ export default function CoverLetterEditorContent() {
           <Button
             variant="primary"
             onClick={() =>
-              generateCoverLetter({ resume, jobData: job?.details })
+              generateCoverLetter({
+                resume,
+                jobData: job?.details,
+                customInstructions: customInstructions.trim() || undefined,
+              })
             }
             disabled={isGenerating}
             icon={
@@ -83,6 +101,60 @@ export default function CoverLetterEditorContent() {
               : "Generate with AI"}
           </Button>
         </div>
+      </div>
+
+      {/* Custom Instructions */}
+      <div className="relative">
+        <div className="mb-1 flex items-center gap-1.5">
+          <label
+            className="text-agent-on-surface-variant text-xs font-medium"
+            htmlFor="cover-letter-instructions"
+          >
+            Custom instructions
+          </label>
+          <div className="relative">
+            <button
+              type="button"
+              onMouseEnter={() => setShowTip(true)}
+              onMouseLeave={() => setShowTip(false)}
+              className="text-agent-on-surface-variant hover:text-agent-on-surface"
+            >
+              <Icon name="info" className="h-3.5 w-3.5" />
+            </button>
+            {showTip && (
+              <div
+                className="border-agent-outline-variant bg-agent-surface-container shadow-agent-float absolute bottom-full left-1/2 z-20 mb-2 w-56 -translate-x-1/2 rounded-xl border p-3"
+              >
+                <p className="text-agent-on-surface mb-2 text-xs font-medium">Suggestions</p>
+                <ul className="space-y-1">
+                  {INSTRUCTION_SUGGESTIONS.map((s) => (
+                    <li key={s}>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setCustomInstructions((prev) =>
+                            prev ? `${prev}\n${s}` : s
+                          )
+                        }
+                        className="text-agent-on-surface-variant hover:text-agent-on-surface hover:bg-agent-surface-lowest w-full rounded-lg px-2 py-1 text-left text-xs transition-colors"
+                      >
+                        {s}
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </div>
+        </div>
+        <textarea
+          id="cover-letter-instructions"
+          value={customInstructions}
+          onChange={(e) => setCustomInstructions(e.target.value)}
+          placeholder="e.g. Keep it under 250 words · Use a formal tone · Emphasize leadership"
+          rows={2}
+          className="border-agent-outline-variant bg-agent-surface-lowest text-agent-on-surface placeholder:text-agent-on-surface-variant focus:border-agent-primary focus:ring-agent-primary/20 w-full resize-none rounded-xl border px-3 py-2 text-xs outline-none focus:ring-2"
+        />
       </div>
 
       {/* Editor */}
