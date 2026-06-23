@@ -113,13 +113,13 @@ export function ATSScorePanel({
             {analysis.matchedKeywords.slice(0, 8).map((keyword) => (
               <span
                 key={keyword}
-                className="inline-block rounded bg-green-100 px-2 py-1 text-xs text-green-800 dark:bg-green-900/30 dark:text-green-300"
+                className="rounded bg-green-100 px-2 py-1 text-xs text-green-800 dark:bg-green-900/30 dark:text-green-300"
               >
                 {keyword}
               </span>
             ))}
             {analysis.matchedKeywords.length > 8 && (
-              <span className="inline-block rounded bg-gray-100 px-2 py-1 text-xs text-gray-700 dark:bg-gray-800 dark:text-gray-300">
+              <span className="rounded bg-gray-100 px-2 py-1 text-xs text-gray-700 dark:bg-gray-800 dark:text-gray-300">
                 +{analysis.matchedKeywords.length - 8} more
               </span>
             )}
@@ -138,13 +138,13 @@ export function ATSScorePanel({
             {analysis.missingKeywords.slice(0, 8).map((keyword) => (
               <span
                 key={keyword}
-                className="inline-block rounded bg-yellow-100 px-2 py-1 text-xs text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300"
+                className="rounded bg-yellow-100 px-2 py-1 text-xs text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300"
               >
                 {keyword}
               </span>
             ))}
             {analysis.missingKeywords.length > 8 && (
-              <span className="inline-block rounded bg-gray-100 px-2 py-1 text-xs text-gray-700 dark:bg-gray-800 dark:text-gray-300">
+              <span className="rounded bg-gray-100 px-2 py-1 text-xs text-gray-700 dark:bg-gray-800 dark:text-gray-300">
                 +{analysis.missingKeywords.length - 8} more
               </span>
             )}
@@ -163,7 +163,7 @@ export function ATSScorePanel({
             {analysis.overusedKeywords.map((keyword) => (
               <span
                 key={keyword}
-                className="inline-block rounded bg-red-100 px-2 py-1 text-xs text-red-800 dark:bg-red-900/30 dark:text-red-300"
+                className="rounded bg-red-100 px-2 py-1 text-xs text-red-800 dark:bg-red-900/30 dark:text-red-300"
               >
                 {keyword}
               </span>

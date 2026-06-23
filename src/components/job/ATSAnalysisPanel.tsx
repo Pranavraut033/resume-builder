@@ -1,14 +1,18 @@
+import { analyzeResume } from "@pranavraut033/ats-checker";
 import { useMutation } from "@tanstack/react-query";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 
 import SparklesIcon from "@/components/icons/SparklesIcon";
 import { Button } from "@/components/ui/Button";
+import { Icon } from "@/components/ui/Icon";
 import { useJobPageContext } from "@/contexts/JobPageContext";
 import { cn } from "@/lib/cn";
 import LLMService from "@/lib/llm/llmService";
+import { resumeToText } from "@/lib/resumeToText";
 import { useModelStore } from "@/store/modelStore";
 import { ATSAnalysisJSON } from "@/types/resume";
 
+import { ATSScorePanel } from "./ATSScorePanel";
 import { useChatContext } from "../chat/ChatContext";
 import { ModelSelector } from "../ModelSelector";
 import { useToast } from "../ui/ToastProvider";
@@ -232,6 +236,26 @@ export function ATSAnalysisPanel(props: ATSAnalysisPanelProps) {
     (state) => state.activeModelPair ?? []
   );
 
+  const [tab, setTab] = useState<"quick" | "ai">("quick");
+  const [quickRefreshNonce, setQuickRefreshNonce] = useState(0);
+
+  const quickAnalysis = useMemo(() => {
+    if (props.standalone || !job?.details?.raw_description) return null;
+    return analyzeResume({
+      resumeText: resumeToText(resume),
+      jobDescription: job.details.raw_description,
+    });
+    // quickRefreshNonce is an intentional no-op dep — analyzeResume is
+    // deterministic over resume/job, so this only exists to let the
+    // "Regenerate" button force a recompute on demand.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    resume,
+    job?.details?.raw_description,
+    props.standalone,
+    quickRefreshNonce,
+  ]);
+
   const { pushToast } = useToast();
 
   const {
@@ -318,13 +342,86 @@ export function ATSAnalysisPanel(props: ATSAnalysisPanelProps) {
     };
   }, [analysis]);
 
+  const tabBar = !props.standalone && (
+    <div className="border-agent-outline-variant/60 mb-1 flex gap-1 border-b pb-0">
+      {(["quick", "ai"] as const).map((t) => (
+        <button
+          key={t}
+          type="button"
+          onClick={() => setTab(t)}
+          className={cn(
+            "px-3 py-2 text-xs font-medium transition-colors",
+            tab === t
+              ? "border-agent-primary text-agent-on-surface border-b-2"
+              : "text-agent-on-surface-variant hover:text-agent-on-surface"
+          )}
+        >
+          {t === "quick" ? "Quick Check" : "AI Analysis"}
+        </button>
+      ))}
+    </div>
+  );
+
+  if (tab === "quick" && !props.standalone) {
+    return (
+      <section
+        className={cn("space-y-4 p-4 sm:p-5", {
+          "border-agent-outline-variant bg-agent-surface rounded-agent-xl shadow-agent-card border":
+            !props.standalone,
+        })}
+      >
+        {tabBar}
+        <div className="flex items-center justify-between">
+          <span className="text-agent-on-surface-variant text-xs">
+            Recalculates instantly from your current resume — no AI call.
+          </span>
+          <Button
+            size="sm"
+            variant="secondary"
+            onClick={() => setQuickRefreshNonce((n) => n + 1)}
+            className="inline-flex shrink-0 items-center gap-1.5 rounded-lg"
+          >
+            <Icon name="refreshCw" className="h-3.5 w-3.5" />
+            Regenerate
+          </Button>
+        </div>
+        <ATSScorePanel analysis={quickAnalysis} />
+        <p className="text-agent-on-surface-variant/70 text-center text-[11px]">
+          Powered by{" "}
+          <a
+            href="https://github.com/Pranavraut033/ats-checker#readme"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="hover:text-agent-on-surface-variant underline"
+          >
+            @pranavraut033/ats-checker
+          </a>
+        </p>
+      </section>
+    );
+  }
+
   if (!analysis) {
     return (
-      <EmptyOrLoadingState
-        loading={isPending}
-        error={error instanceof Error ? error.message : undefined}
-        onGenerate={onGenerate}
-      />
+      <>
+        {tabBar && (
+          <div className="border-agent-outline-variant bg-agent-surface rounded-agent-xl shadow-agent-card space-y-0 border p-4 sm:p-5">
+            {tabBar}
+            <EmptyOrLoadingState
+              loading={isPending}
+              error={error instanceof Error ? error.message : undefined}
+              onGenerate={onGenerate}
+            />
+          </div>
+        )}
+        {!tabBar && (
+          <EmptyOrLoadingState
+            loading={isPending}
+            error={error instanceof Error ? error.message : undefined}
+            onGenerate={onGenerate}
+          />
+        )}
+      </>
     );
   }
 
@@ -335,6 +432,7 @@ export function ATSAnalysisPanel(props: ATSAnalysisPanelProps) {
           !props.standalone,
       })}
     >
+      {tabBar}
       <header className="border-agent-outline-variant/80 flex flex-col gap-3 border-b pb-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <h2 className="font-agent-display text-agent-on-surface text-base font-semibold">

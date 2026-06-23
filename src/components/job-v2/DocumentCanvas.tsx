@@ -21,6 +21,7 @@ import { RichTextEditor } from "@/components/form/RichTextEditor";
 import { CoverLetterRenderer } from "@/components/job/templates/coverLetter/CoverLetterRenderer";
 import { TemplateRenderer } from "@/components/job/templates/TemplateRenderer";
 import { useJobPageContext } from "@/contexts/JobPageContext";
+import useResolveCustomization from "@/hooks/useResolveCustomization";
 import cn from "@/lib/cn";
 import {
   V2SectionId,
@@ -70,6 +71,9 @@ export function DocumentCanvas({
     updateCoverLetterState,
     updateResumeState,
   } = useJobPageContext();
+
+  const { textSize, lineHeight, fontFamily, textColor } =
+    useResolveCustomization(customization);
 
   // V2 extensions stored transiently (not persisted in this phase)
   const v2Customization = customization as V2Customization;
@@ -141,6 +145,7 @@ export function DocumentCanvas({
                 value={coverLetter}
                 onChange={updateCoverLetterState}
                 placeholder="Your cover letter…"
+                stickyToolbar
               />
               <button
                 className="bg-agent-surface-container text-agent-on-surface-variant hover:bg-agent-surface-high absolute top-2 right-2 z-20 rounded-md px-2 py-1 text-xs shadow"
@@ -169,7 +174,7 @@ export function DocumentCanvas({
   // ── Resume WYSIWYG canvas ──────────────────────────────────────────────────
 
   return (
-    <div className="flex flex-1 flex-col overflow-y-auto px-6 py-4">
+    <div className="flex flex-1 flex-col overflow-y-auto px-6 py-20">
       {/* The TemplateRenderer is the single source of truth — it IS the document */}
       <div className="relative mx-auto w-full max-w-[794px]">
         {/* Section drag-and-drop affordances overlaid above the template */}
@@ -207,7 +212,12 @@ export function DocumentCanvas({
             InlineEditProvider makes every wired field click-to-edit. */}
         <div className="shadow-agent-modal rounded-sm bg-white ring-1 ring-black/5">
           <InlineEditProvider resume={resume} updateResume={updateResumeState}>
-            <TemplateRenderer resume={resume} customization={customization} />
+            <div
+              className={cn(textSize, lineHeight)}
+              style={{ fontFamily, color: textColor }}
+            >
+              <TemplateRenderer resume={resume} customization={customization} />
+            </div>
           </InlineEditProvider>
         </div>
       </div>

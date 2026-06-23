@@ -19,8 +19,7 @@ interface ChatPanelProps {
 }
 
 export function ChatPanel({ onClose: _close }: ChatPanelProps) {
-  const { chatSnapPosition: snapPosition, setChatSnapPosition } =
-    useJobPageContext();
+  const { chatSnapPosition: snapPosition } = useJobPageContext();
 
   const {
     defaultView,
@@ -44,13 +43,13 @@ export function ChatPanel({ onClose: _close }: ChatPanelProps) {
     resetSession();
   }, [_close, resetSession]);
 
-  const onSnapPositionChange = useCallback(
-    (pos: "left" | "right" | "undocked") => {
-      setChatSnapPosition(pos);
-      if (pos === "undocked" && onClose) onClose();
-    },
-    [onClose, setChatSnapPosition]
-  );
+  // const onSnapPositionChange = useCallback(
+  //   (pos: "left" | "right" | "undocked") => {
+  //     setChatSnapPosition(pos);
+  //     if (pos === "undocked" && onClose) onClose();
+  //   },
+  //   [onClose, setChatSnapPosition]
+  // );
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -115,7 +114,7 @@ export function ChatPanel({ onClose: _close }: ChatPanelProps) {
           Resume AI
         </span>
         {/* Snap position controls — only shown when the snap prop is wired up */}
-        <>
+        {/* <>
           <button
             type="button"
             title="Snap left"
@@ -158,7 +157,7 @@ export function ChatPanel({ onClose: _close }: ChatPanelProps) {
               <Icon name="panelLeftClose" className="h-3.5 w-3.5" />
             </button>
           )}
-        </>
+        </> */}
         {/*Ats analysis result is present, show an "ATS Analysis" badge in the header*/}
         {atsAnalysis && (
           <button

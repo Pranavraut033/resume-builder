@@ -16,6 +16,7 @@ import cn from "@/lib/cn";
 import { HistoryChangeListener } from "@/lib/llm/ResumeHistory";
 import { JobStatus } from "@/types/job";
 
+import { ATSDrawer } from "./ATSDrawer";
 import { ChatOverlay } from "./ChatOverlay";
 import { CustomizationDrawer } from "./CustomizationDrawer";
 import { DocumentCanvas } from "./DocumentCanvas";
@@ -42,11 +43,13 @@ export function InlineJobPageLayout() {
     resume,
     saveStatus,
     saveToDb,
+    setChatSnapPosition,
     setContentType,
     undoResume,
   } = useJobPageContext();
 
   const [isCustomizationOpen, setIsCustomizationOpen] = useState(false);
+  const [isAtsOpen, setIsAtsOpen] = useState(false);
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
   const [isPendingStatus, startStatusTransition] = useTransition();
@@ -128,7 +131,7 @@ export function InlineJobPageLayout() {
           <div className="border-agent-outline-variant bg-agent-surface-lowest shadow-agent-modal h-full overflow-hidden rounded-2xl border backdrop-blur">
             <div className="bg-agent-surface-lowest flex h-full flex-col overflow-hidden">
               {/* ── Header ───────────────────────────────────────────────── */}
-              <header className="bg-agent-surface border-agent-outline-variant sticky shrink-0 border-b">
+              <header className="bg-agent-surface border-agent-outline-variant shrink-0 border-b">
                 <div className="flex items-center gap-2.5 px-3 py-2">
                   <BackButton />
                   <CompanyAvatar name={job?.company?.name} size={34} />
@@ -244,35 +247,58 @@ export function InlineJobPageLayout() {
                 />
               </Modal>
 
-              {/* ── Body: single document surface ────────────────────────── */}
-              <div className="bg-agent-surface-low relative flex min-h-0 flex-1 flex-col overflow-hidden">
-                <DocumentCanvas />
+              {/* ── Body: canvas column + chat side panel ────────────────── */}
+              <div className="bg-agent-surface-low flex min-h-0 flex-1 overflow-hidden">
+                {/* Canvas column — fills remaining space */}
+                <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden">
+                  <DocumentCanvas />
+                  {/* Floating action bar */}
+                  {contentType === "resume" && (
+                    <FloatingActionBar
+                      historyState={historyState}
+                      isCustomizationOpen={isCustomizationOpen}
+                      onToggleCustomization={() => {
+                        setIsCustomizationOpen((o) => !o);
+                        setIsAtsOpen(false);
+                        setIsChatOpen(false);
+                      }}
+                      isAtsOpen={isAtsOpen}
+                      onToggleAts={() => {
+                        setIsAtsOpen((o) => !o);
+                        setIsCustomizationOpen(false);
+                        setIsChatOpen(false);
+                      }}
+                      isChatOpen={isChatOpen}
+                      onToggleChat={() => {
+                        const next = !isChatOpen;
+                        setIsChatOpen(next);
+                        setChatSnapPosition(next ? "right" : "undocked");
+                        setIsCustomizationOpen(false);
+                        setIsAtsOpen(false);
+                      }}
+                    />
+                  )}
 
-                {/* Floating action bar */}
-                <FloatingActionBar
-                  historyState={historyState}
-                  isCustomizationOpen={isCustomizationOpen}
-                  onToggleCustomization={() => {
-                    setIsCustomizationOpen((o) => !o);
-                    setIsChatOpen(false);
-                  }}
-                  isChatOpen={isChatOpen}
-                  onToggleChat={() => {
-                    setIsChatOpen((o) => !o);
-                    setIsCustomizationOpen(false);
-                  }}
-                />
+                  {/* Customization drawer — slides over the canvas */}
+                  <CustomizationDrawer
+                    open={isCustomizationOpen}
+                    onClose={() => setIsCustomizationOpen(false)}
+                  />
 
-                {/* Customization drawer — slides over the canvas */}
-                <CustomizationDrawer
-                  open={isCustomizationOpen}
-                  onClose={() => setIsCustomizationOpen(false)}
-                />
+                  {/* ATS analysis drawer — slides over the canvas */}
+                  <ATSDrawer
+                    open={isAtsOpen}
+                    onClose={() => setIsAtsOpen(false)}
+                  />
+                </div>
 
-                {/* Chat — slides over the canvas */}
+                {/* Chat side panel — pushes canvas left instead of overlaying */}
                 <ChatOverlay
                   open={isChatOpen}
-                  onClose={() => setIsChatOpen(false)}
+                  onClose={() => {
+                    setIsChatOpen(false);
+                    setChatSnapPosition("undocked");
+                  }}
                 />
               </div>
             </div>

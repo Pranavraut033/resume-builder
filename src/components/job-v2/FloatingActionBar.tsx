@@ -15,6 +15,8 @@ interface FloatingActionBarProps {
   };
   isCustomizationOpen: boolean;
   onToggleCustomization: () => void;
+  isAtsOpen: boolean;
+  onToggleAts: () => void;
   isChatOpen: boolean;
   onToggleChat: () => void;
 }
@@ -22,15 +24,17 @@ interface FloatingActionBarProps {
 /**
  * FloatingActionBar — fixed top-right overlay for the V2 WYSIWYG canvas.
  *
- * Layout: Export PDF | Download JSON | Undo | Redo | Customize ▾ | Template ▾ | Chat 💬
+ * Layout: Export PDF | Download JSON | Undo | Redo | Customize ▾ | Template ▾ | ATS | Chat 💬
  *
- * Customize / Chat are controlled toggles (overlays managed by the parent).
+ * Customize / ATS / Chat are controlled toggles (overlays managed by the parent).
  * Template is a self-contained popover (TemplatePicker).
  */
 export function FloatingActionBar({
   historyState,
   isCustomizationOpen,
   onToggleCustomization,
+  isAtsOpen,
+  onToggleAts,
   isChatOpen,
   onToggleChat,
 }: FloatingActionBarProps) {
@@ -38,8 +42,8 @@ export function FloatingActionBar({
     useJobPageContext();
 
   return (
-    <div className="pointer-events-none absolute top-4 right-4 z-40 flex items-center gap-1.5">
-      <div className="border-agent-outline-variant bg-agent-surface-lowest/95 shadow-agent-modal pointer-events-auto flex items-center gap-0.5 rounded-full border p-1 backdrop-blur">
+    <div className="pointer-events-none absolute z-40 mt-4 flex items-center gap-1.5 self-center">
+      <div className="border-agent-outline-variant bg-agent-surface-lowest/80 shadow-agent-modal pointer-events-auto flex items-center gap-0.5 rounded-full border p-1 backdrop-blur-xs">
         {/* Export PDF */}
         <button
           onClick={onPDFExport}
@@ -103,6 +107,21 @@ export function FloatingActionBar({
 
         {/* Template */}
         <TemplatePicker />
+
+        {/* ATS */}
+        <button
+          onClick={onToggleAts}
+          className={cn(
+            "flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition-all",
+            isAtsOpen
+              ? "bg-agent-primary text-agent-on-primary"
+              : "text-agent-on-surface-variant hover:bg-agent-surface-container hover:text-agent-on-surface"
+          )}
+          title="ATS analysis"
+        >
+          <Icon name="barChart" className="h-3.5 w-3.5" />
+          <span className="hidden md:inline">ATS</span>
+        </button>
 
         {/* Chat */}
         <button
