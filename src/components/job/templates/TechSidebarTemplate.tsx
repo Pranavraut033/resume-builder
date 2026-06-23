@@ -19,7 +19,9 @@ import {
 import React, { useEffect, useRef, useState } from "react";
 
 import { EditableItem } from "@/components/job-v2/resume/EditableItem";
+import { EditableLink } from "@/components/job-v2/resume/EditableLink";
 import { EditableText } from "@/components/job-v2/resume/EditableText";
+import { LanguageField } from "@/components/job-v2/resume/LanguageField";
 import {
   ListSectionId,
   useInlineEdit,
@@ -125,23 +127,29 @@ export const TechSidebarTemplate: React.FC<TemplateRendererProps> = ({
 
   const sidebarBlocks: Block[] = [];
 
-  if ((resume.skills ?? []).length > 0) {
-    (resume.skills ?? []).forEach((skill, idx) => {
-      sidebarBlocks.push({
-        sectionKey: "skills",
-        node: (
-          <div className={`${textSize} ${lineHeight} flex items-center`}>
-            <span className="mr-2" style={{ color: accentColor }}>
-              ▸
-            </span>
-            <EditableText
-              value={skill}
-              onCommit={(v) => edit.updateSkill(idx, v)}
-              placeholder="Skill"
-            />
-          </div>
-        ),
-      });
+  if ((resume.skills ?? []).length > 0 || edit.editable) {
+    sidebarBlocks.push({
+      sectionKey: "skills",
+      node: (
+        <EditableText
+          value={(resume.skills ?? []).join(", ")}
+          onCommit={(v) =>
+            edit.updateSkills(v.split(",").map((s) => s.trim()).filter(Boolean))
+          }
+          fieldType="textarea"
+          placeholder="JavaScript, TypeScript, React…"
+          renderDisplay={(v) => (
+            <div className="space-y-1">
+              {v.split(",").map((s) => s.trim()).filter(Boolean).map((skill, idx) => (
+                <div key={idx} className={`${textSize} ${lineHeight} flex items-center`}>
+                  <span className="mr-2" style={{ color: accentColor }}>▸</span>
+                  {skill}
+                </div>
+              ))}
+            </div>
+          )}
+        />
+      ),
     });
   }
 
@@ -236,35 +244,56 @@ export const TechSidebarTemplate: React.FC<TemplateRendererProps> = ({
               placeholder="Date"
             />
           </div>
-          {cert.url && (
-            <a
-              href={cert.url}
+          {(cert.url || edit.editable) && (
+            <EditableLink
+              href={cert.url ?? ""}
+              onCommit={(v) => edit.updateCertification(certIndex, { url: v })}
+              placeholder="https://…"
               className="mt-1 text-xs hover:underline"
               style={{ color: accentColor }}
             >
               Credential Link
-            </a>
+            </EditableLink>
           )}
         </div>
       ),
     });
   });
 
-  (resume.languages ?? []).forEach((language) => {
+  (resume.languages ?? []).forEach((language, idx) => {
     sidebarBlocks.push({
       sectionKey: "languages",
       node: (
-        <div
-          className={`${textSize} ${lineHeight} mb-1 flex items-center justify-between gap-2`}
-        >
-          <span>{language.name}</span>
-          <span className="text-xs" style={{ color: secondaryColor }}>
-            {language.proficiency}
-          </span>
-        </div>
+        <LanguageField
+          language={language}
+          onUpdate={(patch) => edit.updateLanguage(idx, patch)}
+          onRemove={() => edit.removeLanguage(idx)}
+          renderDisplay={(l) => (
+            <div
+              className={`${textSize} ${lineHeight} mb-1 flex items-center justify-between gap-2`}
+            >
+              <span>{l.name}</span>
+              <span className="text-xs" style={{ color: secondaryColor }}>{l.proficiency}</span>
+            </div>
+          )}
+        />
       ),
     });
   });
+
+  if (edit.editable) {
+    sidebarBlocks.push({
+      sectionKey: "languages",
+      node: (
+        <button
+          onClick={edit.addLanguage}
+          className="text-agent-primary hover:text-agent-primary/70 text-xs opacity-60 hover:opacity-100"
+        >
+          + Add language
+        </button>
+      ),
+    });
+  }
 
   (resume.awards ?? []).forEach((award) => {
     sidebarBlocks.push({
@@ -394,22 +423,27 @@ export const TechSidebarTemplate: React.FC<TemplateRendererProps> = ({
               />
             </p>
           )}
-          {exp.achievements && exp.achievements.length > 0 && (
-            <ul className="mt-2 space-y-1">
-              {exp.achievements.map((a, i) => (
-                <li key={i} className={`${textSize} ${lineHeight} ml-4`}>
-                  <span style={{ color: accentColor }}>▸</span>{" "}
-                  <EditableText
-                    value={a}
-                    onCommit={(v) =>
-                      edit.updateExperienceAchievement(expIndex, i, v)
-                    }
-                    fieldType="bullet"
-                    placeholder="Achievement"
-                  />
-                </li>
-              ))}
-            </ul>
+          {(exp.achievements && exp.achievements.length > 0 || edit.editable) && (
+            <EditableText
+              value={(exp.achievements ?? []).join("\n")}
+              onCommit={(v) =>
+                edit.updateExperienceAchievements(
+                  expIndex,
+                  v.split("\n").filter(Boolean)
+                )
+              }
+              fieldType="bullet"
+              placeholder="Add bullet points, one per line…"
+              renderDisplay={(v) => (
+                <ul className="mt-2 space-y-1">
+                  {v.split("\n").filter(Boolean).map((a, i) => (
+                    <li key={i} className={`${textSize} ${lineHeight} ml-4`}>
+                      <span style={{ color: accentColor }}>▸</span> {a}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            />
           )}
         </div>
       ),
@@ -460,15 +494,17 @@ export const TechSidebarTemplate: React.FC<TemplateRendererProps> = ({
               placeholder="Describe the project…"
             />
           </p>
-          {project.url && (
+          {(project.url || edit.editable) && (
             <div className="mt-1 text-xs">
-              <a
-                href={project.url}
+              <EditableLink
+                href={project.url ?? ""}
+                onCommit={(v) => edit.updateProject(projectIndex, { url: v })}
+                placeholder="https://…"
                 className="hover:underline"
                 style={{ color: accentColor }}
               >
                 Project Link
-              </a>
+              </EditableLink>
             </div>
           )}
           {project.technologies && project.technologies.length > 0 && (
@@ -752,20 +788,35 @@ export const TechSidebarTemplate: React.FC<TemplateRendererProps> = ({
             />
           </span>
         )}
-        {resume.header.linkedin && (
-          <a href={resume.header.linkedin} className="hover:underline">
+        {(resume.header.linkedin || edit.editable) && (
+          <EditableLink
+            href={resume.header.linkedin ?? ""}
+            onCommit={(v) => edit.updateHeader({ linkedin: v })}
+            placeholder="LinkedIn URL"
+            className="hover:underline"
+          >
             🔗 {resume.header.linkedin}
-          </a>
+          </EditableLink>
         )}
-        {resume.header.github && (
-          <a href={resume.header.github} className="hover:underline">
+        {(resume.header.github || edit.editable) && (
+          <EditableLink
+            href={resume.header.github ?? ""}
+            onCommit={(v) => edit.updateHeader({ github: v })}
+            placeholder="GitHub URL"
+            className="hover:underline"
+          >
             💻 {resume.header.github}
-          </a>
+          </EditableLink>
         )}
-        {resume.header.website && (
-          <a href={resume.header.website} className="hover:underline">
+        {(resume.header.website || edit.editable) && (
+          <EditableLink
+            href={resume.header.website ?? ""}
+            onCommit={(v) => edit.updateHeader({ website: v })}
+            placeholder="Website URL"
+            className="hover:underline"
+          >
             🌐 {resume.header.website}
-          </a>
+          </EditableLink>
         )}
       </div>
     </div>

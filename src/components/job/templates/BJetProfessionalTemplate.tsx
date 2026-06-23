@@ -18,7 +18,9 @@ import {
 import React, { useEffect, useRef, useState } from "react";
 
 import { EditableItem } from "@/components/job-v2/resume/EditableItem";
+import { EditableLink } from "@/components/job-v2/resume/EditableLink";
 import { EditableText } from "@/components/job-v2/resume/EditableText";
+import { LanguageField } from "@/components/job-v2/resume/LanguageField";
 import {
   ListSectionId,
   useInlineEdit,
@@ -232,24 +234,27 @@ export const BJetProfessionalTemplate: React.FC<TemplateRendererProps> = ({
                     />
                   </p>
                 )}
-                {exp.achievements && exp.achievements.length > 0 && (
-                  <ul className="space-y-1">
-                    {exp.achievements.map((a, i) => (
-                      <li
-                        key={i}
-                        className={`${textSize} ${lineHeight} ml-5 list-disc`}
-                      >
-                        <EditableText
-                          value={a}
-                          onCommit={(v) =>
-                            edit.updateExperienceAchievement(expIndex, i, v)
-                          }
-                          fieldType="bullet"
-                          placeholder="Achievement"
-                        />
-                      </li>
-                    ))}
-                  </ul>
+                {(exp.achievements && exp.achievements.length > 0 || edit.editable) && (
+                  <EditableText
+                    value={(exp.achievements ?? []).join("\n")}
+                    onCommit={(v) =>
+                      edit.updateExperienceAchievements(
+                        expIndex,
+                        v.split("\n").filter(Boolean)
+                      )
+                    }
+                    fieldType="bullet"
+                    placeholder="Add bullet points, one per line…"
+                    renderDisplay={(v) => (
+                      <ul className="space-y-1">
+                        {v.split("\n").filter(Boolean).map((a, i) => (
+                          <li key={i} className={`${textSize} ${lineHeight} ml-5 list-disc`}>
+                            {a}
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  />
                 )}
               </div>
             )}
@@ -343,24 +348,29 @@ export const BJetProfessionalTemplate: React.FC<TemplateRendererProps> = ({
     });
   });
 
-  if ((resume.skills ?? []).length > 0) {
+  if ((resume.skills ?? []).length > 0 || edit.editable) {
     blocks.push({
       sectionKey: "skills",
       node: sectionTable(
         "CORE COMPETENCIES",
         tdCell(
-          <div className="grid grid-cols-3 gap-2">
-            {(resume.skills ?? []).map((skill, idx) => (
-              <div key={idx} className={`${textSize} ${lineHeight}`}>
-                •{" "}
-                <EditableText
-                  value={skill}
-                  onCommit={(v) => edit.updateSkill(idx, v)}
-                  placeholder="Skill"
-                />
+          <EditableText
+            value={(resume.skills ?? []).join(", ")}
+            onCommit={(v) =>
+              edit.updateSkills(v.split(",").map((s) => s.trim()).filter(Boolean))
+            }
+            fieldType="textarea"
+            placeholder="JavaScript, TypeScript, React…"
+            renderDisplay={(v) => (
+              <div className="grid grid-cols-3 gap-2">
+                {v.split(",").map((s) => s.trim()).filter(Boolean).map((skill, idx) => (
+                  <div key={idx} className={`${textSize} ${lineHeight}`}>
+                    • {skill}
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
+            )}
+          />
         )
       ),
     });
@@ -418,15 +428,17 @@ export const BJetProfessionalTemplate: React.FC<TemplateRendererProps> = ({
                     placeholder="Describe the project…"
                   />
                 </p>
-                {project.url && (
+                {(project.url || edit.editable) && (
                   <div className="mb-2 text-xs">
-                    <a
-                      href={project.url}
+                    <EditableLink
+                      href={project.url ?? ""}
+                      onCommit={(v) => edit.updateProject(projectIndex, { url: v })}
+                      placeholder="https://…"
                       className="hover:underline"
                       style={{ color: accentColor }}
                     >
                       Project Link
-                    </a>
+                    </EditableLink>
                   </div>
                 )}
                 {project.technologies && project.technologies.length > 0 && (
@@ -491,14 +503,16 @@ export const BJetProfessionalTemplate: React.FC<TemplateRendererProps> = ({
                       placeholder="Issuer"
                     />
                   </div>
-                  {cert.url && (
-                    <a
-                      href={cert.url}
+                  {(cert.url || edit.editable) && (
+                    <EditableLink
+                      href={cert.url ?? ""}
+                      onCommit={(v) => edit.updateCertification(certIndex, { url: v })}
+                      placeholder="https://…"
                       className="mt-1 text-xs hover:underline"
                       style={{ color: accentColor }}
                     >
                       Credential Link
-                    </a>
+                    </EditableLink>
                   )}
                 </div>
                 <div className="shrink-0 text-xs">
@@ -556,7 +570,7 @@ export const BJetProfessionalTemplate: React.FC<TemplateRendererProps> = ({
     });
   });
 
-  if ((resume.languages ?? []).length > 0) {
+  if ((resume.languages ?? []).length > 0 || edit.editable) {
     blocks.push({
       sectionKey: "languages",
       node: sectionTable(
@@ -565,9 +579,21 @@ export const BJetProfessionalTemplate: React.FC<TemplateRendererProps> = ({
           <div className="grid grid-cols-3 gap-2">
             {(resume.languages ?? []).map((l, idx) => (
               <div key={idx} className={`${textSize} ${lineHeight}`}>
-                {l.name} ({l.proficiency})
+                <LanguageField
+                  language={l}
+                  onUpdate={(patch) => edit.updateLanguage(idx, patch)}
+                  onRemove={() => edit.removeLanguage(idx)}
+                />
               </div>
             ))}
+            {edit.editable && (
+              <button
+                onClick={edit.addLanguage}
+                className="text-agent-primary hover:text-agent-primary/70 text-xs opacity-60 hover:opacity-100"
+              >
+                + Add
+              </button>
+            )}
           </div>
         )
       ),
@@ -758,32 +784,32 @@ export const BJetProfessionalTemplate: React.FC<TemplateRendererProps> = ({
                 </div>
               )}
               <div className="flex flex-wrap gap-4">
-                {resume.header.linkedin && (
-                  <a
-                    href={resume.header.linkedin}
+                {(resume.header.linkedin || edit.editable) && (
+                  <EditableLink
+                    href={resume.header.linkedin ?? ""}
+                    onCommit={(v) => edit.updateHeader({ linkedin: v })}
+                    placeholder="LinkedIn URL"
                     className="hover:underline"
                     style={{ color: accentColor }}
-                  >
-                    {resume.header.linkedin}
-                  </a>
+                  />
                 )}
-                {resume.header.github && (
-                  <a
-                    href={resume.header.github}
+                {(resume.header.github || edit.editable) && (
+                  <EditableLink
+                    href={resume.header.github ?? ""}
+                    onCommit={(v) => edit.updateHeader({ github: v })}
+                    placeholder="GitHub URL"
                     className="hover:underline"
                     style={{ color: accentColor }}
-                  >
-                    {resume.header.github}
-                  </a>
+                  />
                 )}
-                {resume.header.website && (
-                  <a
-                    href={resume.header.website}
+                {(resume.header.website || edit.editable) && (
+                  <EditableLink
+                    href={resume.header.website ?? ""}
+                    onCommit={(v) => edit.updateHeader({ website: v })}
+                    placeholder="Website URL"
                     className="hover:underline"
                     style={{ color: accentColor }}
-                  >
-                    {resume.header.website}
-                  </a>
+                  />
                 )}
               </div>
             </div>

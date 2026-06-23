@@ -5,6 +5,7 @@ import {
   useState,
   useCallback,
   useEffect,
+  useLayoutEffect,
   type KeyboardEvent,
 } from "react";
 
@@ -73,6 +74,25 @@ export function InlineField({
     }
   }, [isEditing]);
 
+  const resizeTextarea = useCallback((el: HTMLTextAreaElement) => {
+    el.style.height = "auto";
+    el.style.height = `${el.scrollHeight}px`;
+  }, []);
+
+  const resizeInput = useCallback(
+    (el: HTMLInputElement) => {
+      el.style.width = `${Math.max(el.value.length || placeholder.length, 3)}ch`;
+    },
+    [placeholder]
+  );
+
+  useLayoutEffect(() => {
+    const el = inputRef.current;
+    if (!isEditing || !el) return;
+    if (el instanceof HTMLTextAreaElement) resizeTextarea(el);
+    else if (el instanceof HTMLInputElement) resizeInput(el);
+  }, [isEditing, draft, resizeTextarea, resizeInput]);
+
   const handleKeyDown = useCallback(
     (e: KeyboardEvent<HTMLInputElement | HTMLTextAreaElement>) => {
       if (e.key === "Escape") {
@@ -88,7 +108,7 @@ export function InlineField({
   );
 
   const sharedEditClasses =
-    "w-full bg-transparent outline-none ring-1 ring-agent-primary rounded-sm px-0.5 -mx-0.5 resize-none";
+    "bg-transparent outline-none ring-1 ring-agent-primary rounded-sm px-0.5 -mx-0.5 resize-none";
 
   if (isEditing) {
     if (fieldType === "textarea" || fieldType === "bullet") {
@@ -96,13 +116,20 @@ export function InlineField({
         <textarea
           ref={inputRef as React.RefObject<HTMLTextAreaElement>}
           value={draft}
-          onChange={(e) => setDraft(e.target.value)}
+          onChange={(e) => {
+            setDraft(e.target.value);
+            resizeTextarea(e.target);
+          }}
           onBlur={commit}
           onKeyDown={handleKeyDown}
           placeholder={placeholder}
-          rows={Math.max(2, draft.split("\n").length)}
-          className={cn(sharedEditClasses, className)}
-          style={{ minHeight: "1.5em", lineHeight: "inherit", font: "inherit" }}
+          rows={1}
+          className={cn(sharedEditClasses, "w-full", className)}
+          style={{
+            lineHeight: "inherit",
+            font: "inherit",
+            overflowY: "hidden",
+          }}
         />
       );
     }
@@ -112,7 +139,10 @@ export function InlineField({
         ref={inputRef as React.RefObject<HTMLInputElement>}
         type="text"
         value={draft}
-        onChange={(e) => setDraft(e.target.value)}
+        onChange={(e) => {
+          setDraft(e.target.value);
+          resizeInput(e.target);
+        }}
         onBlur={commit}
         onKeyDown={handleKeyDown}
         placeholder={placeholder}

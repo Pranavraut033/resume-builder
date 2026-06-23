@@ -19,7 +19,9 @@ import {
 import React, { useEffect, useRef, useState } from "react";
 
 import { EditableItem } from "@/components/job-v2/resume/EditableItem";
+import { EditableLink } from "@/components/job-v2/resume/EditableLink";
 import { EditableText } from "@/components/job-v2/resume/EditableText";
+import { LanguageField } from "@/components/job-v2/resume/LanguageField";
 import {
   ListSectionId,
   useInlineEdit,
@@ -189,23 +191,27 @@ export const ModernMinimalTemplate: React.FC<TemplateRendererProps> = ({
               />
             </p>
           )}
-          {exp.achievements.length > 0 && (
-            <ul
-              className={`${textSize} ${lineHeight} list-inside list-disc space-y-1`}
-            >
-              {exp.achievements.map((a, i) => (
-                <li key={i}>
-                  <EditableText
-                    value={a}
-                    onCommit={(v) =>
-                      edit.updateExperienceAchievement(expIndex, i, v)
-                    }
-                    fieldType="bullet"
-                    placeholder="Achievement"
-                  />
-                </li>
-              ))}
-            </ul>
+          {(exp.achievements.length > 0 || edit.editable) && (
+            <EditableText
+              value={exp.achievements.join("\n")}
+              onCommit={(v) =>
+                edit.updateExperienceAchievements(
+                  expIndex,
+                  v.split("\n").filter(Boolean)
+                )
+              }
+              fieldType="bullet"
+              placeholder="Add bullet points, one per line…"
+              renderDisplay={(v) => (
+                <ul
+                  className={`${textSize} ${lineHeight} list-inside list-disc space-y-1`}
+                >
+                  {v.split("\n").filter(Boolean).map((a, i) => (
+                    <li key={i}>{a}</li>
+                  ))}
+                </ul>
+              )}
+            />
           )}
         </div>
       ),
@@ -224,14 +230,16 @@ export const ModernMinimalTemplate: React.FC<TemplateRendererProps> = ({
               onCommit={(v) => edit.updateProject(projectIndex, { name: v })}
               placeholder="Project name"
             />
-            {project.url && (
-              <a
-                href={project.url}
+            {(project.url || edit.editable) && (
+              <EditableLink
+                href={project.url ?? ""}
+                onCommit={(v) => edit.updateProject(projectIndex, { url: v })}
+                placeholder="https://…"
                 className={`${textSize} ml-2 hover:underline`}
                 style={{ color: secondaryColor }}
               >
                 [Link]
-              </a>
+              </EditableLink>
             )}
           </h3>
           {(project.startDate || project.endDate || edit.editable) && (
@@ -288,21 +296,22 @@ export const ModernMinimalTemplate: React.FC<TemplateRendererProps> = ({
     });
   });
 
-  if (resume.skills.length > 0) {
+  if (resume.skills.length > 0 || edit.editable) {
     blocks.push({
       sectionKey: "skills",
       node: (
         <div className={`${textSize} ${lineHeight}`}>
-          {resume.skills.map((skill, i) => (
-            <span key={i}>
-              {i > 0 && " • "}
-              <EditableText
-                value={skill}
-                onCommit={(v) => edit.updateSkill(i, v)}
-                placeholder="Skill"
-              />
-            </span>
-          ))}
+          <EditableText
+            value={resume.skills.join(", ")}
+            onCommit={(v) =>
+              edit.updateSkills(
+                v.split(",").map((s) => s.trim()).filter(Boolean)
+              )
+            }
+            fieldType="textarea"
+            placeholder="JavaScript, TypeScript, React…"
+            renderDisplay={(v) => <>{v.split(", ").join(" • ")}</>}
+          />
         </div>
       ),
     });
@@ -411,14 +420,16 @@ export const ModernMinimalTemplate: React.FC<TemplateRendererProps> = ({
               onCommit={(v) => edit.updateCertification(certIndex, { date: v })}
               placeholder="Date"
             />
-            {cert.url && (
-              <a
-                href={cert.url}
+            {(cert.url || edit.editable) && (
+              <EditableLink
+                href={cert.url ?? ""}
+                onCommit={(v) => edit.updateCertification(certIndex, { url: v })}
+                placeholder="https://…"
                 className="ml-2 hover:underline"
                 style={{ color: secondaryColor }}
               >
                 [Verify]
-              </a>
+              </EditableLink>
             )}
           </p>
         </div>
@@ -455,14 +466,27 @@ export const ModernMinimalTemplate: React.FC<TemplateRendererProps> = ({
     });
   });
 
-  if ((resume.languages ?? []).length > 0) {
+  if ((resume.languages ?? []).length > 0 || edit.editable) {
     blocks.push({
       sectionKey: "languages",
       node: (
-        <div className={`${textSize} ${lineHeight}`}>
-          {(resume.languages ?? [])
-            .map((l) => `${l.name} (${l.proficiency})`)
-            .join(" • ")}
+        <div className={`${textSize} ${lineHeight} flex flex-wrap gap-x-4 gap-y-1`}>
+          {(resume.languages ?? []).map((l, idx) => (
+            <LanguageField
+              key={idx}
+              language={l}
+              onUpdate={(patch) => edit.updateLanguage(idx, patch)}
+              onRemove={() => edit.removeLanguage(idx)}
+            />
+          ))}
+          {edit.editable && (
+            <button
+              onClick={edit.addLanguage}
+              className="text-agent-primary hover:text-agent-primary/70 text-xs opacity-60 hover:opacity-100"
+            >
+              + Add
+            </button>
+          )}
         </div>
       ),
     });
@@ -632,32 +656,32 @@ export const ModernMinimalTemplate: React.FC<TemplateRendererProps> = ({
           )}
         </div>
         <div className="flex flex-wrap gap-4">
-          {resume.header.linkedin && (
-            <a
-              href={resume.header.linkedin}
+          {(resume.header.linkedin || edit.editable) && (
+            <EditableLink
+              href={resume.header.linkedin ?? ""}
+              onCommit={(v) => edit.updateHeader({ linkedin: v })}
+              placeholder="LinkedIn URL"
               className="hover:underline"
               style={{ color: accentColor }}
-            >
-              {resume.header.linkedin}
-            </a>
+            />
           )}
-          {resume.header.github && (
-            <a
-              href={resume.header.github}
+          {(resume.header.github || edit.editable) && (
+            <EditableLink
+              href={resume.header.github ?? ""}
+              onCommit={(v) => edit.updateHeader({ github: v })}
+              placeholder="GitHub URL"
               className="hover:underline"
               style={{ color: accentColor }}
-            >
-              {resume.header.github}
-            </a>
+            />
           )}
-          {resume.header.website && (
-            <a
-              href={resume.header.website}
+          {(resume.header.website || edit.editable) && (
+            <EditableLink
+              href={resume.header.website ?? ""}
+              onCommit={(v) => edit.updateHeader({ website: v })}
+              placeholder="Website URL"
               className="hover:underline"
               style={{ color: accentColor }}
-            >
-              {resume.header.website}
-            </a>
+            />
           )}
         </div>
       </div>

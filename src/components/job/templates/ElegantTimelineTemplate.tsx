@@ -19,7 +19,9 @@ import {
 import React, { useEffect, useRef, useState } from "react";
 
 import { EditableItem } from "@/components/job-v2/resume/EditableItem";
+import { EditableLink } from "@/components/job-v2/resume/EditableLink";
 import { EditableText } from "@/components/job-v2/resume/EditableText";
+import { LanguageField } from "@/components/job-v2/resume/LanguageField";
 import {
   ListSectionId,
   useInlineEdit,
@@ -201,22 +203,25 @@ export const ElegantTimelineTemplate: React.FC<TemplateRendererProps> = ({
                     />
                   </p>
                 )}
-                {exp.achievements && exp.achievements.length > 0 && (
-                  <ul className={`space-y-1 text-xs ${lineHeight}`}>
-                    {exp.achievements.map((a, i) => (
-                      <li key={i}>
-                        •{" "}
-                        <EditableText
-                          value={a}
-                          onCommit={(v) =>
-                            edit.updateExperienceAchievement(expIndex, i, v)
-                          }
-                          fieldType="bullet"
-                          placeholder="Achievement"
-                        />
-                      </li>
-                    ))}
-                  </ul>
+                {(exp.achievements && exp.achievements.length > 0 || edit.editable) && (
+                  <EditableText
+                    value={(exp.achievements ?? []).join("\n")}
+                    onCommit={(v) =>
+                      edit.updateExperienceAchievements(
+                        expIndex,
+                        v.split("\n").filter(Boolean)
+                      )
+                    }
+                    fieldType="bullet"
+                    placeholder="Add bullet points, one per line…"
+                    renderDisplay={(v) => (
+                      <ul className={`space-y-1 text-xs ${lineHeight}`}>
+                        {v.split("\n").filter(Boolean).map((a, i) => (
+                          <li key={i}>• {a}</li>
+                        ))}
+                      </ul>
+                    )}
+                  />
                 )}
               </div>
             </div>
@@ -289,28 +294,31 @@ export const ElegantTimelineTemplate: React.FC<TemplateRendererProps> = ({
     });
   });
 
-  if ((resume.skills ?? []).length > 0) {
+  if ((resume.skills ?? []).length > 0 || edit.editable) {
     blocks.push({
       sectionKey: "skills",
       node: (
-        <div className="flex flex-wrap justify-center gap-2">
-          {(resume.skills ?? []).map((skill, idx) => (
-            <span
-              key={idx}
-              className="rounded-full px-3 py-1 text-sm"
-              style={{
-                backgroundColor: accentColor + "20",
-                color: accentColor,
-              }}
-            >
-              <EditableText
-                value={skill}
-                onCommit={(v) => edit.updateSkill(idx, v)}
-                placeholder="Skill"
-              />
-            </span>
-          ))}
-        </div>
+        <EditableText
+          value={(resume.skills ?? []).join(", ")}
+          onCommit={(v) =>
+            edit.updateSkills(v.split(",").map((s) => s.trim()).filter(Boolean))
+          }
+          fieldType="textarea"
+          placeholder="JavaScript, TypeScript, React…"
+          renderDisplay={(v) => (
+            <div className="flex flex-wrap justify-center gap-2">
+              {v.split(",").map((s) => s.trim()).filter(Boolean).map((skill, idx) => (
+                <span
+                  key={idx}
+                  className="rounded-full px-3 py-1 text-sm"
+                  style={{ backgroundColor: accentColor + "20", color: accentColor }}
+                >
+                  {skill}
+                </span>
+              ))}
+            </div>
+          )}
+        />
       ),
     });
   }
@@ -412,16 +420,28 @@ export const ElegantTimelineTemplate: React.FC<TemplateRendererProps> = ({
     });
   });
 
-  if ((resume.languages ?? []).length > 0) {
+  if ((resume.languages ?? []).length > 0 || edit.editable) {
     blocks.push({
       sectionKey: "languages",
       node: (
         <div className="flex flex-wrap justify-center gap-x-4 gap-y-1">
           {(resume.languages ?? []).map((l, idx) => (
-            <span key={idx} className={`${textSize} ${lineHeight}`}>
-              {l.name} ({l.proficiency})
-            </span>
+            <LanguageField
+              key={idx}
+              language={l}
+              onUpdate={(patch) => edit.updateLanguage(idx, patch)}
+              onRemove={() => edit.removeLanguage(idx)}
+              className={`${textSize} ${lineHeight}`}
+            />
           ))}
+          {edit.editable && (
+            <button
+              onClick={edit.addLanguage}
+              className="text-agent-primary hover:text-agent-primary/70 text-xs opacity-60 hover:opacity-100"
+            >
+              + Add
+            </button>
+          )}
         </div>
       ),
     });
@@ -578,32 +598,32 @@ export const ElegantTimelineTemplate: React.FC<TemplateRendererProps> = ({
       <div
         className={`${textSize} ${lineHeight} flex flex-wrap justify-center gap-3`}
       >
-        {resume.header.linkedin && (
-          <a
-            href={resume.header.linkedin}
+        {(resume.header.linkedin || edit.editable) && (
+          <EditableLink
+            href={resume.header.linkedin ?? ""}
+            onCommit={(v) => edit.updateHeader({ linkedin: v })}
+            placeholder="LinkedIn URL"
             className="hover:underline"
             style={{ color: accentColor }}
-          >
-            {resume.header.linkedin}
-          </a>
+          />
         )}
-        {resume.header.github && (
-          <a
-            href={resume.header.github}
+        {(resume.header.github || edit.editable) && (
+          <EditableLink
+            href={resume.header.github ?? ""}
+            onCommit={(v) => edit.updateHeader({ github: v })}
+            placeholder="GitHub URL"
             className="hover:underline"
             style={{ color: accentColor }}
-          >
-            {resume.header.github}
-          </a>
+          />
         )}
-        {resume.header.website && (
-          <a
-            href={resume.header.website}
+        {(resume.header.website || edit.editable) && (
+          <EditableLink
+            href={resume.header.website ?? ""}
+            onCommit={(v) => edit.updateHeader({ website: v })}
+            placeholder="Website URL"
             className="hover:underline"
             style={{ color: accentColor }}
-          >
-            {resume.header.website}
-          </a>
+          />
         )}
       </div>
     </header>

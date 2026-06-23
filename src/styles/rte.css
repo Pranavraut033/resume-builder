@@ -5,9 +5,39 @@
   @apply overflow-hidden transition-shadow duration-150 ease-in-out;
 }
 
+/* Document-canvas variant: white bg, no border/radius, toolbar sticks to scroll container */
+.rte-wrapper--sticky-toolbar {
+  @apply border-none rounded-none overflow-visible ring-0 focus-within:ring-0 focus-within:ring-offset-0;
+  background-color: #ffffff;
+  color: #111827;
+}
+
 /* ─── Toolbar ─────────────────────────────────────────────────────────────── */
 .rte-toolbar {
   @apply bg-agent-surface-container border-agent-surface-bright flex items-center gap-0.5 border-b px-2 py-1;
+}
+
+.rte-toolbar--sticky {
+  @apply sticky top-0 z-20 rounded-t-md shadow-sm;
+  background-color: #f9fafb;
+  border-bottom: 1px solid #e5e7eb;
+  color: #374151;
+}
+
+/* Force button colors to light-mode values inside sticky (document-canvas) toolbar */
+.rte-toolbar--sticky .rte-btn {
+  color: #6b7280;
+}
+.rte-toolbar--sticky .rte-btn:hover {
+  background-color: #f3f4f6;
+  color: #111827;
+}
+.rte-toolbar--sticky .rte-btn--active {
+  background-color: #eff6ff;
+  color: #2563eb;
+}
+.rte-toolbar--sticky .rte-divider {
+  background-color: #e5e7eb;
 }
 
 .rte-group {

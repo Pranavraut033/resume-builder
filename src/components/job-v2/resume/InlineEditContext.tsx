@@ -7,6 +7,7 @@ import type {
   ContactInfo,
   Education,
   Experience,
+  Language,
   Project,
   ResumeJSON,
 } from "@/types/resume";
@@ -45,6 +46,11 @@ export interface InlineEditContextValue {
   updateProjectTechnologies: (index: number, technologies: string[]) => void;
   updateCertification: (index: number, patch: Partial<Certification>) => void;
   updateSkill: (index: number, value: string) => void;
+  updateSkills: (skills: string[]) => void;
+  updateExperienceAchievements: (expIndex: number, achievements: string[]) => void;
+  updateLanguage: (index: number, patch: Partial<Language>) => void;
+  addLanguage: () => void;
+  removeLanguage: (index: number) => void;
   /** Append a new empty entry to a list section. */
   addItem: (section: ListSectionId) => void;
   /** Remove the entry at `index` from a list section. */
@@ -66,6 +72,11 @@ const NON_EDITABLE: InlineEditContextValue = {
   updateProjectTechnologies: noop,
   updateCertification: noop,
   updateSkill: noop,
+  updateSkills: noop,
+  updateExperienceAchievements: noop,
+  updateLanguage: noop,
+  addLanguage: noop,
+  removeLanguage: noop,
   addItem: noop,
   removeItem: noop,
   moveItem: noop,
@@ -212,6 +223,40 @@ export function InlineEditProvider({
         updateResume(
           { skills: replaceAt(resume.skills, index, value) },
           "Edited skill"
+        ),
+      updateSkills: (skills) => updateResume({ skills }, "Edited skills"),
+      updateExperienceAchievements: (expIndex, achievements) => {
+        const exp = resume.experience[expIndex];
+        if (!exp) return;
+        updateResume(
+          {
+            experience: replaceAt(resume.experience, expIndex, {
+              ...exp,
+              achievements,
+            }),
+          },
+          "Edited achievements"
+        );
+      },
+      updateLanguage: (index, patch) =>
+        updateResume(
+          {
+            languages: replaceAt(resume.languages ?? [], index, {
+              ...(resume.languages ?? [])[index],
+              ...patch,
+            }),
+          },
+          "Edited language"
+        ),
+      addLanguage: () =>
+        updateResume(
+          { languages: [...(resume.languages ?? []), { name: "", proficiency: "" }] },
+          "Added language"
+        ),
+      removeLanguage: (index) =>
+        updateResume(
+          { languages: (resume.languages ?? []).filter((_, i) => i !== index) },
+          "Removed language"
         ),
       addItem: (section) =>
         updateResume(

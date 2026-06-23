@@ -1,5 +1,6 @@
 "use client";
 
+import { BulletListField } from "./BulletListField";
 import { useInlineEdit } from "./InlineEditContext";
 import { InlineField } from "./InlineField";
 
@@ -34,6 +35,17 @@ export function EditableText({
 
   if (!editable) {
     return <>{renderDisplay ? renderDisplay(value) : value}</>;
+  }
+
+  if (fieldType === "bullet") {
+    return (
+      <BulletListField
+        items={value.split("\n").filter(Boolean)}
+        onChange={(items) => onCommit(items.join("\n"))}
+        placeholder={placeholder}
+        className={className}
+      />
+    );
   }
 
   return (

@@ -14,12 +14,16 @@ interface RichTextEditorProps {
   value: string;
   onChange: (html: string) => void;
   placeholder?: string;
+  className?: string;
+  stickyToolbar?: boolean;
 }
 
 export default function RichTextEditor({
   value,
   onChange,
   placeholder,
+  className,
+  stickyToolbar,
 }: RichTextEditorProps) {
   const editor = useEditor({
     extensions: [
@@ -84,8 +88,8 @@ export default function RichTextEditor({
   if (!editor) return <div className="rte-skeleton" />;
 
   return (
-    <div className="rte-wrapper">
-      <RichTextEditorToolbar editor={editor} onSetLink={setLink} />
+    <div className={`rte-wrapper${stickyToolbar ? " rte-wrapper--sticky-toolbar" : ""}${className ? ` ${className}` : ""}`}>
+      <RichTextEditorToolbar editor={editor} onSetLink={setLink} stickyToolbar={stickyToolbar} />
 
       <EditorContent editor={editor} />
     </div>

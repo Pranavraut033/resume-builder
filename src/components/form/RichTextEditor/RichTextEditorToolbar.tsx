@@ -5,11 +5,13 @@ import type { Editor } from "@tiptap/react";
 type RichTextEditorToolbarProps = {
   editor: Editor;
   onSetLink: () => void;
+  stickyToolbar?: boolean;
 };
 
 export default function RichTextEditorToolbar({
   editor,
   onSetLink,
+  stickyToolbar,
 }: RichTextEditorToolbarProps) {
   const headingLevel = editor.isActive("heading", { level: 1 })
     ? 1
@@ -20,7 +22,7 @@ export default function RichTextEditorToolbar({
         : null;
 
   return (
-    <div className="rte-toolbar" role="toolbar" aria-label="Text formatting">
+    <div className={`rte-toolbar${stickyToolbar ? " rte-toolbar--sticky" : ""}`} role="toolbar" aria-label="Text formatting">
       {/* Headings */}
       <div className="rte-group">
         {([1, 2, 3] as const).map((level) => (
