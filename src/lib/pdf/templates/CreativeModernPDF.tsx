@@ -8,6 +8,7 @@
 import { Document, Link, Page, Text, View } from "@react-pdf/renderer";
 import React, { memo } from "react";
 
+import BackgroundPdf from "@/lib/backgrounds/BackgroundPdf";
 import { htmlToPlainText, isHtml } from "@/lib/htmlUtils";
 
 import { ResolvedPDFStyles, withAlpha } from "../resolveStyles";
@@ -124,6 +125,7 @@ export const CreativeModernPDF: React.FC<PDFTemplateProps> = ({
           backgroundColor,
         }}
       >
+        <BackgroundPdf styles={s} />
         {/* ── Full-width solid header (gradient simplified — react-pdf limitation) */}
         <View
           style={{

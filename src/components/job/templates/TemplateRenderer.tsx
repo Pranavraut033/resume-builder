@@ -8,12 +8,15 @@ import { simpleI32HashString, toStableJsonString } from "@/lib";
 import { SanitizedCustomization, TemplateType } from "@/types/customization";
 import { ResumeJSON } from "@/types/resume";
 
+import { AcademicSerifTemplate } from "./AcademicSerifTemplate";
 import { BJetProfessionalTemplate } from "./BJetProfessionalTemplate";
 import { BusinessProfessionalTemplate } from "./BusinessProfessionalTemplate";
+import { CompactModernTemplate } from "./CompactModernTemplate";
 import { CreativeModernTemplate } from "./CreativeModernTemplate";
 import { ElegantTimelineTemplate } from "./ElegantTimelineTemplate";
 import { ModernMinimalTemplate } from "./ModernMinimalTemplate";
 import { TechSidebarTemplate } from "./TechSidebarTemplate";
+import { TwoToneTemplate } from "./TwoToneTemplate";
 
 export interface TemplateRendererProps {
   resume: ResumeJSON;
@@ -30,6 +33,9 @@ const templateMap: Record<
   "elegant-timeline": ElegantTimelineTemplate,
   "creative-modern": CreativeModernTemplate,
   "bjet-professional": BJetProfessionalTemplate,
+  "compact-modern": CompactModernTemplate,
+  "two-tone": TwoToneTemplate,
+  "academic-serif": AcademicSerifTemplate,
 };
 
 export const TemplateRenderer: React.FC<TemplateRendererProps> = ({

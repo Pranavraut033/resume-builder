@@ -17,8 +17,7 @@ const plain = (text: string | null | undefined): string => {
   return isHtml(text) ? htmlToPlainText(text) : text;
 };
 
-// Section heading for the sidebar column
-const SidebarSH = memo(function SidebarSH({
+const LeftSH = memo(function LeftSH({
   title,
   s,
 }: {
@@ -29,8 +28,8 @@ const SidebarSH = memo(function SidebarSH({
   return (
     <View
       style={{
-        marginBottom: 5,
         marginTop: 10,
+        marginBottom: 5,
         borderBottomWidth: 1,
         borderBottomColor: primaryColor,
         paddingBottom: 2,
@@ -42,40 +41,7 @@ const SidebarSH = memo(function SidebarSH({
           fontSize: fontSize + 1,
           fontWeight: 700,
           color: primaryColor,
-        }}
-      >
-        {title.toUpperCase()}
-      </Text>
-    </View>
-  );
-});
-
-// Section heading for the main column
-const MainSH = memo(function MainSH({
-  title,
-  s,
-}: {
-  title: string;
-  s: ResolvedPDFStyles;
-}) {
-  const { primaryColor, fontFamily, headingFontSize, secondaryColor } = s;
-
-  return (
-    <View
-      style={{
-        marginBottom: 5,
-        marginTop: 10,
-        borderBottomWidth: 1,
-        borderBottomColor: secondaryColor,
-        paddingBottom: 2,
-      }}
-    >
-      <Text
-        style={{
-          fontFamily,
-          fontSize: headingFontSize,
-          fontWeight: 700,
-          color: primaryColor,
+          textTransform: "uppercase",
         }}
       >
         {title}
@@ -84,7 +50,39 @@ const MainSH = memo(function MainSH({
   );
 });
 
-export const TechSidebarPDF: React.FC<PDFTemplateProps> = ({
+const RightSH = memo(function RightSH({
+  title,
+  s,
+}: {
+  title: string;
+  s: ResolvedPDFStyles;
+}) {
+  const { accentColor, fontFamily, headingFontSize, textColor } = s;
+  return (
+    <View
+      style={{
+        marginTop: 10,
+        marginBottom: 5,
+        borderLeftWidth: 3,
+        borderLeftColor: accentColor,
+        paddingLeft: 8,
+      }}
+    >
+      <Text
+        style={{
+          fontFamily,
+          fontSize: headingFontSize,
+          fontWeight: 700,
+          color: textColor,
+        }}
+      >
+        {title}
+      </Text>
+    </View>
+  );
+});
+
+export const TwoTonePDF: React.FC<PDFTemplateProps> = ({
   resume,
   styles: s,
 }) => {
@@ -103,25 +101,16 @@ export const TechSidebarPDF: React.FC<PDFTemplateProps> = ({
     pageFormat,
   } = s;
 
-  const sidebarBg = withAlpha(secondaryColor, "10");
+  const leftBg = withAlpha(primaryColor, "08");
 
   const contactParts = [
     resume.header.email,
     resume.header.phone,
     resume.header.location,
+    resume.header.linkedin ?? null,
+    resume.header.github ?? null,
+    resume.header.website ?? null,
   ].filter(Boolean);
-
-  const socialParts: { label: string; url?: string }[] = [
-    resume.header.linkedin
-      ? { label: "LinkedIn", url: resume.header.linkedin }
-      : null,
-    resume.header.github
-      ? { label: "GitHub", url: resume.header.github }
-      : null,
-    resume.header.website
-      ? { label: "Portfolio", url: resume.header.website }
-      : null,
-  ].filter(Boolean) as { label: string; url?: string }[];
 
   return (
     <Document>
@@ -135,121 +124,120 @@ export const TechSidebarPDF: React.FC<PDFTemplateProps> = ({
         }}
       >
         <BackgroundPdf styles={s} />
-        {/* ── Full-width header ──────────────────────────────── */}
-        <View
-          style={{
-            backgroundColor: primaryColor,
-            padding: marginPt,
-            paddingVertical: marginPt * 0.8,
-          }}
-        >
-          <Text
+        {/* ── Bold two-tone header: solid primary band + accent stripe, name
+            knocked out as a reversed (background-coloured) plate. ─────────── */}
+        <View style={{ flexDirection: "row" }}>
+          <View
             style={{
-              fontSize: nameFontSize,
-              fontWeight: 700,
-              color: "#ffffff",
-              marginBottom: 3,
+              flex: 1,
+              backgroundColor: primaryColor,
+              padding: marginPt,
+              paddingVertical: marginPt * 0.9,
             }}
           >
-            {resume.header.name}
-          </Text>
-          {resume.header.headline ? (
             <Text
               style={{
-                fontSize,
-                color: withAlpha("#ffffff", "cc"),
-                marginBottom: 5,
+                fontSize: nameFontSize,
+                fontWeight: 700,
+                color: primaryColor,
+                backgroundColor,
+                alignSelf: "flex-start",
+                paddingHorizontal: 8,
+                paddingVertical: 3,
+                marginBottom: 6,
               }}
             >
-              {resume.header.headline}
+              {resume.header.name}
             </Text>
-          ) : null}
-          <View style={{ flexDirection: "row", flexWrap: "wrap" }}>
-            {contactParts.map((part, i) => (
+            {resume.header.headline ? (
               <Text
-                key={i}
                 style={{
-                  fontSize: smallFontSize,
-                  color: withAlpha("#ffffff", "cc"),
-                  marginRight: 14,
+                  fontSize,
+                  fontWeight: 600,
+                  color: "#ffffff",
+                  marginBottom: 5,
                 }}
               >
-                {part}
+                {resume.header.headline}
               </Text>
-            ))}
-            {socialParts.map((s2, i) =>
-              s2.url ? (
-                <Link
-                  key={i}
-                  src={s2.url}
-                  style={{
-                    fontSize: smallFontSize,
-                    color: withAlpha("#ffffff", "cc"),
-                    marginRight: 14,
-                    textDecoration: "none",
-                  }}
-                >
-                  {s2.label}
-                </Link>
-              ) : (
+            ) : null}
+            <View style={{ flexDirection: "row", flexWrap: "wrap" }}>
+              {contactParts.map((part, i) => (
                 <Text
                   key={i}
                   style={{
                     fontSize: smallFontSize,
-                    color: withAlpha("#ffffff", "cc"),
+                    color: withAlpha("#ffffff", "bb"),
                     marginRight: 14,
                   }}
                 >
-                  {s2.label}
+                  {part}
                 </Text>
-              )
-            )}
+              ))}
+            </View>
           </View>
+          {/* Second tone: accent stripe */}
+          <View style={{ width: 8, backgroundColor: accentColor }} />
         </View>
 
-        {/* ── Two-column body ───────────────────────────────── */}
-        {/* alignItems: 'stretch' makes both columns equal height so sidebar bg fills fully */}
+        {/* ── Two-column body ─────────────────────────────────── */}
         <View style={{ flexDirection: "row", alignItems: "stretch" }}>
-          {/* ── Sidebar ───────────────────────────────────── */}
+          {/* ── Left column (40%) ──────────────────────────── */}
           <View
             style={{
-              width: "35%",
-              backgroundColor: sidebarBg,
+              width: "40%",
+              backgroundColor: leftBg,
               padding: marginPt * 0.7,
             }}
           >
-            {/* Skills */}
+            {/* Summary / About */}
+            {resume.summary ? (
+              <View wrap={false}>
+                <LeftSH s={s} title="About" />
+                <Text style={{ fontSize, lineHeight }}>
+                  {plain(resume.summary)}
+                </Text>
+              </View>
+            ) : null}
+
+            {/* Skills as colour-block chips */}
             {(resume.skills ?? []).length > 0 ? (
-              <SectionGroup heading={<SidebarSH title="Skills" s={s} />}>
-                {(resume.skills ?? []).map((skill, i) => (
-                  <Text
-                    key={i}
-                    style={{
-                      fontSize,
-                      lineHeight,
-                      color: textColor,
-                      marginBottom: 2,
-                    }}
-                  >
-                    {"\u2022 "}
-                    {skill}
-                  </Text>
-                ))}
+              <SectionGroup heading={<LeftSH s={s} title="Skills" />}>
+                <View style={{ flexDirection: "row", flexWrap: "wrap" }}>
+                  {(resume.skills ?? []).map((skill, i) => (
+                    <View
+                      key={i}
+                      style={{
+                        backgroundColor: accentColor,
+                        borderRadius: 2,
+                        paddingHorizontal: 6,
+                        paddingVertical: 2,
+                        marginRight: 4,
+                        marginBottom: 4,
+                      }}
+                    >
+                      <Text
+                        style={{
+                          fontSize: smallFontSize,
+                          fontWeight: 600,
+                          color: backgroundColor,
+                        }}
+                      >
+                        {skill}
+                      </Text>
+                    </View>
+                  ))}
+                </View>
               </SectionGroup>
             ) : null}
 
             {/* Education */}
             {(resume.education ?? []).length > 0 ? (
-              <SectionGroup heading={<SidebarSH title="Education" s={s} />}>
+              <SectionGroup heading={<LeftSH s={s} title="Education" />}>
                 {(resume.education ?? []).map((edu, i) => (
                   <View key={i} wrap={false} style={{ marginBottom: 8 }}>
                     <Text
-                      style={{
-                        fontSize,
-                        fontWeight: 700,
-                        color: textColor,
-                        marginBottom: 1,
-                      }}
+                      style={{ fontSize, fontWeight: 700, color: textColor }}
                     >
                       {edu.degree}
                     </Text>
@@ -282,9 +270,7 @@ export const TechSidebarPDF: React.FC<PDFTemplateProps> = ({
 
             {/* Certifications */}
             {(resume.certifications ?? []).length > 0 ? (
-              <SectionGroup
-                heading={<SidebarSH title="Certifications" s={s} />}
-              >
+              <SectionGroup heading={<LeftSH s={s} title="Certifications" />}>
                 {(resume.certifications ?? []).map((cert, i) => (
                   <View key={i} wrap={false} style={{ marginBottom: 6 }}>
                     <Text
@@ -307,9 +293,9 @@ export const TechSidebarPDF: React.FC<PDFTemplateProps> = ({
 
             {/* Languages */}
             {(resume.languages ?? []).length > 0 ? (
-              <SectionGroup heading={<SidebarSH title="Languages" s={s} />}>
+              <SectionGroup heading={<LeftSH s={s} title="Languages" />}>
                 {(resume.languages ?? []).map((l, i) => (
-                  <View key={i} wrap={false} style={{ marginBottom: 4 }}>
+                  <View key={i} style={{ marginBottom: 3 }}>
                     <Text
                       style={{ fontSize, fontWeight: 600, color: textColor }}
                     >
@@ -325,7 +311,7 @@ export const TechSidebarPDF: React.FC<PDFTemplateProps> = ({
 
             {/* Awards */}
             {(resume.awards ?? []).length > 0 ? (
-              <SectionGroup heading={<SidebarSH title="Awards" s={s} />}>
+              <SectionGroup heading={<LeftSH s={s} title="Awards" />}>
                 {(resume.awards ?? []).map((award, i) => (
                   <View key={i} wrap={false} style={{ marginBottom: 6 }}>
                     <Text
@@ -341,89 +327,93 @@ export const TechSidebarPDF: React.FC<PDFTemplateProps> = ({
                     <Text style={{ fontSize: smallFontSize, color: "#6b7280" }}>
                       {award.date}
                     </Text>
-                    {award.description ? (
-                      <Text style={{ fontSize: smallFontSize, lineHeight }}>
-                        {plain(award.description)}
-                      </Text>
-                    ) : null}
                   </View>
                 ))}
               </SectionGroup>
             ) : null}
           </View>
 
-          {/* ── Main column ───────────────────────────────── */}
+          {/* ── Right column (60%) ──────────────────────────── */}
           <View
             style={{
-              width: "65%",
+              width: "60%",
               padding: marginPt * 0.7,
             }}
           >
-            {/* Summary */}
-            {resume.summary ? (
-              <View wrap={false}>
-                <MainSH title="Summary" s={s} />
-                <Text style={{ fontSize, lineHeight }}>
-                  {plain(resume.summary)}
-                </Text>
-              </View>
-            ) : null}
-
             {/* Experience */}
             {(resume.experience ?? []).length > 0 ? (
-              <SectionGroup heading={<MainSH title="Work Experience" s={s} />}>
+              <SectionGroup heading={<RightSH s={s} title="Experience" />}>
                 {(resume.experience ?? []).map((exp, i) => (
                   <View key={i} wrap={false} style={{ marginBottom: 10 }}>
                     <View
                       style={{
                         flexDirection: "row",
-                        justifyContent: "space-between",
                         alignItems: "flex-start",
-                        marginBottom: 1,
+                        marginBottom: 2,
                       }}
                     >
-                      <Text
+                      {/* accent square */}
+                      <View
                         style={{
-                          fontSize,
-                          fontWeight: 700,
-                          color: accentColor,
-                          flex: 1,
+                          width: 7,
+                          height: 7,
+                          backgroundColor: accentColor,
+                          marginRight: 6,
+                          marginTop: 3,
                         }}
-                      >
-                        {exp.role}
-                      </Text>
-                      <Text
-                        style={{
-                          fontSize: smallFontSize,
-                          color: "#6b7280",
-                        }}
-                      >
-                        {exp.startDate} – {exp.endDate || "Present"}
-                      </Text>
+                      />
+                      <View style={{ flex: 1 }}>
+                        <View
+                          style={{
+                            flexDirection: "row",
+                            justifyContent: "space-between",
+                          }}
+                        >
+                          <Text
+                            style={{
+                              fontSize,
+                              fontWeight: 700,
+                              color: accentColor,
+                            }}
+                          >
+                            {exp.role}
+                          </Text>
+                          <Text
+                            style={{
+                              fontSize: smallFontSize,
+                              color: "#6b7280",
+                            }}
+                          >
+                            {exp.startDate} – {exp.endDate || "Present"}
+                          </Text>
+                        </View>
+                        <Text
+                          style={{
+                            fontSize: smallFontSize,
+                            color: "#6b7280",
+                            marginBottom: 3,
+                          }}
+                        >
+                          {exp.company}
+                        </Text>
+                        {exp.description ? (
+                          <Text
+                            style={{ fontSize, lineHeight, marginBottom: 3 }}
+                          >
+                            {plain(exp.description)}
+                          </Text>
+                        ) : null}
+                        {(exp.achievements ?? []).map((a, j) => (
+                          <Text
+                            key={j}
+                            style={{ fontSize, lineHeight, marginLeft: 8 }}
+                          >
+                            {"• "}
+                            {a}
+                          </Text>
+                        ))}
+                      </View>
                     </View>
-                    <Text
-                      style={{
-                        fontSize: smallFontSize,
-                        color: "#6b7280",
-                        marginBottom: 3,
-                      }}
-                    >
-                      {exp.company}
-                    </Text>
-                    {exp.description ? (
-                      <Text style={{ fontSize, lineHeight, marginBottom: 3 }}>
-                        {plain(exp.description)}
-                      </Text>
-                    ) : null}
-                    {(exp.achievements ?? []).map((a, j) => (
-                      <Text
-                        key={j}
-                        style={{ fontSize, lineHeight, marginLeft: 8 }}
-                      >
-                        {"\u2022 "}
-                        {a}
-                      </Text>
-                    ))}
                   </View>
                 ))}
               </SectionGroup>
@@ -431,7 +421,7 @@ export const TechSidebarPDF: React.FC<PDFTemplateProps> = ({
 
             {/* Projects */}
             {(resume.projects ?? []).length > 0 ? (
-              <SectionGroup heading={<MainSH title="Projects" s={s} />}>
+              <SectionGroup heading={<RightSH s={s} title="Projects" />}>
                 {(resume.projects ?? []).map((proj, i) => (
                   <View key={i} wrap={false} style={{ marginBottom: 10 }}>
                     <View
@@ -443,11 +433,7 @@ export const TechSidebarPDF: React.FC<PDFTemplateProps> = ({
                       }}
                     >
                       <Text
-                        style={{
-                          fontSize,
-                          fontWeight: 700,
-                          color: accentColor,
-                        }}
+                        style={{ fontSize, fontWeight: 700, color: textColor }}
                       >
                         {proj.name}
                       </Text>
@@ -456,7 +442,7 @@ export const TechSidebarPDF: React.FC<PDFTemplateProps> = ({
                           src={proj.url}
                           style={{
                             fontSize: smallFontSize,
-                            color: secondaryColor,
+                            color: accentColor,
                             textDecoration: "none",
                           }}
                         >
@@ -468,18 +454,13 @@ export const TechSidebarPDF: React.FC<PDFTemplateProps> = ({
                       {plain(proj.description)}
                     </Text>
                     {(proj.technologies ?? []).length > 0 ? (
-                      <View
-                        style={{
-                          flexDirection: "row",
-                          flexWrap: "wrap",
-                        }}
-                      >
+                      <View style={{ flexDirection: "row", flexWrap: "wrap" }}>
                         {proj.technologies.map((tech, j) => (
                           <View
                             key={j}
                             style={{
-                              backgroundColor: withAlpha(accentColor, "20"),
-                              borderRadius: 3,
+                              backgroundColor: accentColor,
+                              borderRadius: 2,
                               paddingHorizontal: 5,
                               paddingVertical: 1,
                               marginRight: 4,
@@ -489,7 +470,7 @@ export const TechSidebarPDF: React.FC<PDFTemplateProps> = ({
                             <Text
                               style={{
                                 fontSize: smallFontSize,
-                                color: accentColor,
+                                color: backgroundColor,
                               }}
                             >
                               {tech}
@@ -503,35 +484,9 @@ export const TechSidebarPDF: React.FC<PDFTemplateProps> = ({
               </SectionGroup>
             ) : null}
 
-            {/* Publications */}
-            {(resume.publications ?? []).length > 0 ? (
-              <SectionGroup heading={<MainSH title="Publications" s={s} />}>
-                {(resume.publications ?? []).map((pub, i) => (
-                  <View key={i} wrap={false} style={{ marginBottom: 6 }}>
-                    <Text
-                      style={{ fontSize, fontWeight: 700, color: accentColor }}
-                    >
-                      {pub.title}
-                    </Text>
-                    <Text style={{ fontSize, lineHeight }}>
-                      {pub.authors.join(", ")}
-                    </Text>
-                    <Text style={{ fontSize: smallFontSize, color: "#6b7280" }}>
-                      {pub.venue}
-                      {" • "}
-                      {pub.date}
-                      {pub.doi ? `  •  DOI: ${pub.doi}` : ""}
-                    </Text>
-                  </View>
-                ))}
-              </SectionGroup>
-            ) : null}
-
             {/* Volunteer */}
             {(resume.volunteer ?? []).length > 0 ? (
-              <SectionGroup
-                heading={<MainSH title="Volunteer Experience" s={s} />}
-              >
+              <SectionGroup heading={<RightSH s={s} title="Volunteer" />}>
                 {(resume.volunteer ?? []).map((v, i) => (
                   <View key={i} wrap={false} style={{ marginBottom: 8 }}>
                     <View
@@ -571,6 +526,32 @@ export const TechSidebarPDF: React.FC<PDFTemplateProps> = ({
                         {plain(v.description)}
                       </Text>
                     ) : null}
+                  </View>
+                ))}
+              </SectionGroup>
+            ) : null}
+
+            {/* Publications */}
+            {(resume.publications ?? []).length > 0 ? (
+              <SectionGroup heading={<RightSH s={s} title="Publications" />}>
+                {(resume.publications ?? []).map((pub, i) => (
+                  <View key={i} wrap={false} style={{ marginBottom: 6 }}>
+                    <Text
+                      style={{ fontSize, fontWeight: 700, color: textColor }}
+                    >
+                      {pub.title}
+                    </Text>
+                    <Text style={{ fontSize, lineHeight }}>
+                      {pub.authors.join(", ")}
+                    </Text>
+                    <Text
+                      style={{ fontSize: smallFontSize, color: secondaryColor }}
+                    >
+                      {pub.venue}
+                      {" • "}
+                      {pub.date}
+                      {pub.doi ? `  •  DOI: ${pub.doi}` : ""}
+                    </Text>
                   </View>
                 ))}
               </SectionGroup>

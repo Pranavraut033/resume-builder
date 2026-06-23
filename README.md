@@ -28,19 +28,19 @@ A local-first, AI-powered desktop app that turns a job description and your base
 
 Prebuilt desktop apps for macOS, Windows, and Linux are published on the [Releases](https://github.com/Pranavraut033/resume-builder/releases) page for every `v*.*.*` tag.
 
-| Platform | File | Notes |
-| --- | --- | --- |
-| macOS | `Resume.Builder_<version>_universal.dmg` | Universal binary (Apple Silicon + Intel) |
-| Windows | `Resume.Builder_<version>_x64-setup.exe` | NSIS installer |
-| Linux | `Resume.Builder_<version>_amd64.AppImage` or `.deb` | AppImage is portable; `.deb` for Debian/Ubuntu |
+| Platform | File                                                | Notes                                          |
+| -------- | --------------------------------------------------- | ---------------------------------------------- |
+| macOS    | `Resume.Builder_<version>_universal.dmg`            | Universal binary (Apple Silicon + Intel)       |
+| Windows  | `Resume.Builder_<version>_x64-setup.exe`            | NSIS installer                                 |
+| Linux    | `Resume.Builder_<version>_amd64.AppImage` or `.deb` | AppImage is portable; `.deb` for Debian/Ubuntu |
 
 The app is **self-signed** (not signed by a CA-trusted/registered publisher), so each OS will show a one-time warning before the first launch. This is expected — follow the steps below to open it.
 
 ### macOS
 
 1. Open the downloaded `.dmg` and drag **Resume Builder** into **Applications**
-2. On first launch, Gatekeeper will say *"Resume Builder cannot be verified"* — **right-click the app → Open → Open** in the dialog
-3. If you instead see *"The application is damaged and can't be opened"*, clear the quarantine flag:
+2. On first launch, Gatekeeper will say _"Resume Builder cannot be verified"_ — **right-click the app → Open → Open** in the dialog
+3. If you instead see _"The application is damaged and can't be opened"_, clear the quarantine flag:
    ```bash
    xattr -d com.apple.quarantine /Applications/Resume\ Builder.app
    ```
@@ -48,7 +48,7 @@ The app is **self-signed** (not signed by a CA-trusted/registered publisher), so
 ### Windows
 
 1. Run the `*-setup.exe` installer
-2. Windows SmartScreen will show *"Windows protected your PC"* — click **More info**, then **Run anyway**
+2. Windows SmartScreen will show _"Windows protected your PC"_ — click **More info**, then **Run anyway**
 3. Follow the installer prompts
 
 ### Linux
@@ -131,10 +131,10 @@ npm run dev
 
 The app reads a `.env` file for local database/server settings:
 
-| Variable | Default | Description |
-| --- | --- | --- |
+| Variable       | Default       | Description                             |
+| -------------- | ------------- | --------------------------------------- |
 | `DATABASE_URL` | `file:dev.db` | SQLite connection string used by Prisma |
-| `PORT` | `3008` | Port for the Next.js dev/start server |
+| `PORT`         | `3008`        | Port for the Next.js dev/start server   |
 
 AI provider API keys are **not** set via environment variables — add them in-app under `/settings`, where they're stored in Tauri's encrypted store (desktop) or `localStorage` (web). Ollama requires no key, just a local Ollama install.
 
@@ -188,21 +188,21 @@ resume-builder/
 
 ## Available Scripts
 
-| Command | Description |
-| --- | --- |
-| `npm run dev` | Start the Next.js dev server (port 3008) |
-| `npm run build` | Production build |
-| `npm run start` | Start the production server |
-| `npm run lint` / `lint:fix` | ESLint (with autofix) |
-| `npm run format` / `format:check` | Prettier write/check |
-| `npm run type-check` | `tsc --noEmit` |
-| `npm run test` | Vitest (watch mode) |
-| `npm run test:run` | Vitest single run |
-| `npm run test:coverage` | Vitest with coverage |
-| `npm run db:generate` | `prisma generate` |
-| `npm run db:push` | `prisma db push` |
-| `npm run db:studio` | Prisma Studio GUI |
-| `npm run tauri dev` / `tauri build` | Tauri desktop app dev/build |
+| Command                             | Description                              |
+| ----------------------------------- | ---------------------------------------- |
+| `npm run dev`                       | Start the Next.js dev server (port 3008) |
+| `npm run build`                     | Production build                         |
+| `npm run start`                     | Start the production server              |
+| `npm run lint` / `lint:fix`         | ESLint (with autofix)                    |
+| `npm run format` / `format:check`   | Prettier write/check                     |
+| `npm run type-check`                | `tsc --noEmit`                           |
+| `npm run test`                      | Vitest (watch mode)                      |
+| `npm run test:run`                  | Vitest single run                        |
+| `npm run test:coverage`             | Vitest with coverage                     |
+| `npm run db:generate`               | `prisma generate`                        |
+| `npm run db:push`                   | `prisma db push`                         |
+| `npm run db:studio`                 | Prisma Studio GUI                        |
+| `npm run tauri dev` / `tauri build` | Tauri desktop app dev/build              |
 
 Before committing: `npm run lint:fix && npm run format && npm run type-check`.
 

@@ -7,10 +7,14 @@ import {
   ResolvedPDFStyles,
   resolvePDFCustomization,
 } from "./pdf/resolveStyles";
+import { AcademicSerifCoverLetterPDF } from "./pdf/templates/AcademicSerifCoverLetterPDF";
+import { AcademicSerifPDF } from "./pdf/templates/AcademicSerifPDF";
 import { BJetProfessionalCoverLetterPDF } from "./pdf/templates/BJetProfessionalCoverLetterPDF";
 import { BJetProfessionalPDF } from "./pdf/templates/BJetProfessionalPDF";
 import { BusinessProfessionalCoverLetterPDF } from "./pdf/templates/BusinessProfessionalCoverLetterPDF";
 import { BusinessProfessionalPDF } from "./pdf/templates/BusinessProfessionalPDF";
+import { CompactModernCoverLetterPDF } from "./pdf/templates/CompactModernCoverLetterPDF";
+import { CompactModernPDF } from "./pdf/templates/CompactModernPDF";
 import { CreativeModernCoverLetterPDF } from "./pdf/templates/CreativeModernCoverLetterPDF";
 import { CreativeModernPDF } from "./pdf/templates/CreativeModernPDF";
 import { ElegantTimelineCoverLetterPDF } from "./pdf/templates/ElegantTimelineCoverLetterPDF";
@@ -19,6 +23,8 @@ import { ModernMinimalCoverLetterPDF } from "./pdf/templates/ModernMinimalCoverL
 import { ModernMinimalPDF } from "./pdf/templates/ModernMinimalPDF";
 import { TechSidebarCoverLetterPDF } from "./pdf/templates/TechSidebarCoverLetterPDF";
 import { TechSidebarPDF } from "./pdf/templates/TechSidebarPDF";
+import { TwoToneCoverLetterPDF } from "./pdf/templates/TwoToneCoverLetterPDF";
+import { TwoTonePDF } from "./pdf/templates/TwoTonePDF";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const TEMPLATE_MAP: Record<string, React.ComponentType<any>> = {
@@ -28,6 +34,9 @@ const TEMPLATE_MAP: Record<string, React.ComponentType<any>> = {
   "creative-modern": CreativeModernPDF,
   "elegant-timeline": ElegantTimelinePDF,
   "bjet-professional": BJetProfessionalPDF,
+  "compact-modern": CompactModernPDF,
+  "two-tone": TwoTonePDF,
+  "academic-serif": AcademicSerifPDF,
 };
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -38,6 +47,9 @@ const COVER_LETTER_TEMPLATE_MAP: Record<string, React.ComponentType<any>> = {
   "creative-modern": CreativeModernCoverLetterPDF,
   "elegant-timeline": ElegantTimelineCoverLetterPDF,
   "bjet-professional": BJetProfessionalCoverLetterPDF,
+  "compact-modern": CompactModernCoverLetterPDF,
+  "two-tone": TwoToneCoverLetterPDF,
+  "academic-serif": AcademicSerifCoverLetterPDF,
 };
 
 /**

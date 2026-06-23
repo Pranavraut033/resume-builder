@@ -1,6 +1,6 @@
 /**
- * Modern Minimal – Cover Letter PDF Template
- * Mirrors ModernMinimalCoverLetter.tsx: clean border-bottom header, flush left.
+ * Compact Modern – Cover Letter PDF Template
+ * Mirrors CompactModernCoverLetter.tsx: dense, ATS-friendly, pipe-joined contact line.
  */
 
 import { Document, Page, Text, View } from "@react-pdf/renderer";
@@ -18,7 +18,7 @@ export interface CoverLetterPDFProps {
   styles: ResolvedPDFStyles;
 }
 
-export const ModernMinimalCoverLetterPDF: React.FC<CoverLetterPDFProps> = ({
+export const CompactModernCoverLetterPDF: React.FC<CoverLetterPDFProps> = ({
   coverLetter,
   resume,
   styles: s,
@@ -30,14 +30,8 @@ export const ModernMinimalCoverLetterPDF: React.FC<CoverLetterPDFProps> = ({
     day: "numeric",
   });
 
-  const contactParts = [
-    h.email,
-    h.phone,
-    h.location,
-    h.linkedin,
-    h.github,
-    h.website,
-  ].filter(Boolean);
+  const contactParts = [h.email, h.phone, h.location].filter(Boolean);
+  const linkParts = [h.linkedin, h.github, h.website].filter(Boolean);
 
   return (
     <Document>
@@ -55,30 +49,37 @@ export const ModernMinimalCoverLetterPDF: React.FC<CoverLetterPDFProps> = ({
         {/* ── Header ───────────────────────────────────────── */}
         <View
           style={{
-            borderBottomWidth: 2,
-            borderBottomColor: s.primaryColor,
-            paddingBottom: 8,
-            marginBottom: 14,
+            borderBottomWidth: 1,
+            borderBottomColor: s.secondaryColor,
+            paddingBottom: 4,
+            marginBottom: 8,
           }}
         >
           <Text
             style={{
-              fontSize: s.nameFontSize,
+              fontSize: s.nameFontSize * 0.85,
               fontWeight: 700,
               color: s.primaryColor,
-              marginBottom: 4,
+              marginBottom: 2,
             }}
           >
             {h.name}
           </Text>
-          <Text style={{ fontSize: s.smallFontSize, color: "#6b7280" }}>
-            {contactParts.join("  •  ")}
-          </Text>
+          {contactParts.length > 0 && (
+            <Text style={{ fontSize: s.smallFontSize, color: "#6b7280" }}>
+              {contactParts.join("  |  ")}
+            </Text>
+          )}
+          {linkParts.length > 0 && (
+            <Text style={{ fontSize: s.smallFontSize, color: "#6b7280" }}>
+              {linkParts.join("  |  ")}
+            </Text>
+          )}
         </View>
 
         {/* ── Date ─────────────────────────────────────────── */}
         <Text
-          style={{ fontSize: s.fontSize, color: "#6b7280", marginBottom: 14 }}
+          style={{ fontSize: s.fontSize, color: "#6b7280", marginBottom: 6 }}
         >
           {today}
         </Text>

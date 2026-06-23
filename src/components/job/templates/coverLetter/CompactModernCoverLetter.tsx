@@ -1,6 +1,6 @@
 /**
- * Business Professional Cover Letter Template
- * Matches the style of BusinessProfessionalTemplate resume
+ * Compact Modern Cover Letter Template
+ * Matches the style of CompactModernTemplate resume — dense, ATS-friendly.
  */
 
 import React from "react";
@@ -10,11 +10,13 @@ import useResolveCustomization from "@/hooks/useResolveCustomization";
 import BackgroundSvg from "@/lib/backgrounds/BackgroundSvg";
 import { getPageDimensions } from "@/lib/pageDimensions";
 
-import { CoverLetterRendererProps } from "./CoverLetterRenderer";
+import type { CoverLetterRendererProps } from "./CoverLetterRenderer";
 
-export const BusinessProfessionalCoverLetter: React.FC<
-  CoverLetterRendererProps
-> = ({ coverLetter, resume, customization }) => {
+export const CompactModernCoverLetter: React.FC<CoverLetterRendererProps> = ({
+  coverLetter,
+  resume,
+  customization,
+}) => {
   const {
     primaryColor,
     secondaryColor,
@@ -34,9 +36,20 @@ export const BusinessProfessionalCoverLetter: React.FC<
     customization.marginSize
   );
 
+  const contactParts = [
+    resume?.header?.email,
+    resume?.header?.phone,
+    resume?.header?.location,
+  ].filter(Boolean);
+  const linkParts = [
+    resume?.header?.linkedin,
+    resume?.header?.github,
+    resume?.header?.website,
+  ].filter(Boolean);
+
   return (
     <div
-      className={`relative ${marginClass}`}
+      className={`cover-letter-content relative p-10 ${marginClass}`}
       style={{
         fontFamily: fontFamily,
         color: textColor,
@@ -50,40 +63,30 @@ export const BusinessProfessionalCoverLetter: React.FC<
         height={heightPx}
       />
       <div className="relative z-1">
-        {/* Header - Centered */}
+        {/* Header */}
         <header
-          className="mb-8 border-b pb-6 text-center"
+          className="mb-4 border-b pb-2"
           style={{ borderColor: secondaryColor }}
         >
           <h1
-            className="mb-2 font-serif text-3xl font-bold"
+            className="mb-1 text-2xl font-bold"
             style={{ color: primaryColor }}
           >
             {resume?.header?.name || "[Your Name]"}
           </h1>
-          <div
-            className={`${textSize} space-y-1`}
-            style={{ color: secondaryColor }}
-          >
-            <div className="flex justify-center gap-3">
-              {resume?.header?.email && <span>{resume.header.email}</span>}
-              {resume?.header?.phone && <span>•</span>}
-              {resume?.header?.phone && <span>{resume.header.phone}</span>}
-            </div>
-            <div className="flex justify-center gap-3">
-              {resume?.header?.location && (
-                <span>{resume.header.location}</span>
-              )}
-              {resume?.header?.linkedin && <span>•</span>}
-              {resume?.header?.linkedin && <span>LinkedIn</span>}
-            </div>
+          <div className={`${textSize} text-gray-600`}>
+            {contactParts.join(" | ")}
           </div>
+          {linkParts.length > 0 && (
+            <div className={`${textSize} text-gray-600`}>
+              {linkParts.join(" | ")}
+            </div>
+          )}
         </header>
 
         {/* Date */}
-        <div className={`${textSize} mb-6`}>{today}</div>
+        <div className={`${textSize} mb-3`}>{today}</div>
 
-        {/* Cover Letter Content */}
         <RichTextEditorContent
           content={coverLetter}
           className={`${textSize} ${lineHeight}`}

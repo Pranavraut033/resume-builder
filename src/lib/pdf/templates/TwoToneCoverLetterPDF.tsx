@@ -1,13 +1,14 @@
 /**
- * Creative Modern – Cover Letter PDF Template
- * Mirrors CreativeModernCoverLetter.tsx: thick accent stripe on left edge,
- * large bold name with accent underline bar, body content.
+ * Two-Tone – Cover Letter PDF Template
+ * Mirrors TwoToneCoverLetter.tsx: bold colour-block header, reversed-out name
+ * plate, accent stripe.
  */
 
 import { Document, Page, Text, View } from "@react-pdf/renderer";
 import React from "react";
 
 import BackgroundPdf from "@/lib/backgrounds/BackgroundPdf";
+import { withAlpha } from "@/lib/pdf/resolveStyles";
 import { ResumeJSON } from "@/types/resume";
 
 import { htmlToPdfNodes } from "../htmlToPdf";
@@ -19,7 +20,7 @@ export interface CoverLetterPDFProps {
   styles: ResolvedPDFStyles;
 }
 
-export const CreativeModernCoverLetterPDF: React.FC<CoverLetterPDFProps> = ({
+export const TwoToneCoverLetterPDF: React.FC<CoverLetterPDFProps> = ({
   coverLetter,
   resume,
   styles: s,
@@ -43,43 +44,39 @@ export const CreativeModernCoverLetterPDF: React.FC<CoverLetterPDFProps> = ({
           fontSize: s.fontSize,
           color: s.textColor,
           backgroundColor: s.backgroundColor,
-          flexDirection: "row",
         }}
       >
         <BackgroundPdf styles={s} />
-        {/* ── Vertical accent stripe ───────────────────────── */}
-        <View
-          style={{ width: 8, backgroundColor: s.accentColor, flexShrink: 0 }}
-        />
-
-        {/* ── Main content ─────────────────────────────────── */}
-        <View style={{ flex: 1, padding: s.marginPt }}>
-          {/* Header */}
-          <View style={{ marginBottom: 16 }}>
+        {/* ── Bold two-tone header band ─────────────────────── */}
+        <View style={{ flexDirection: "row" }}>
+          <View
+            style={{
+              flex: 1,
+              backgroundColor: s.primaryColor,
+              padding: s.marginPt,
+              paddingVertical: s.marginPt * 0.9,
+            }}
+          >
             <Text
               style={{
                 fontSize: s.nameFontSize,
                 fontWeight: 700,
                 color: s.primaryColor,
-                marginBottom: 4,
+                backgroundColor: s.backgroundColor,
+                alignSelf: "flex-start",
+                paddingHorizontal: 8,
+                paddingVertical: 3,
+                marginBottom: 6,
               }}
             >
               {h.name}
             </Text>
-
-            {/* Bold underline bar */}
-            <View
-              style={{
-                height: 3,
-                width: 64,
-                backgroundColor: s.accentColor,
-                marginBottom: 8,
-              }}
-            />
-
             {contactParts.length > 0 && (
               <Text
-                style={{ fontSize: s.smallFontSize, color: s.secondaryColor }}
+                style={{
+                  fontSize: s.smallFontSize,
+                  color: withAlpha("#ffffff", "bb"),
+                }}
               >
                 {contactParts.join("  •  ")}
               </Text>
@@ -88,7 +85,7 @@ export const CreativeModernCoverLetterPDF: React.FC<CoverLetterPDFProps> = ({
               <Text
                 style={{
                   fontSize: s.smallFontSize,
-                  color: s.accentColor,
+                  color: withAlpha("#ffffff", "bb"),
                   marginTop: 2,
                 }}
               >
@@ -96,30 +93,20 @@ export const CreativeModernCoverLetterPDF: React.FC<CoverLetterPDFProps> = ({
               </Text>
             )}
           </View>
+          {/* Second tone: accent stripe */}
+          <View style={{ width: 8, backgroundColor: s.accentColor }} />
+        </View>
 
+        {/* ── Content ──────────────────────────────────────── */}
+        <View style={{ padding: s.marginPt }}>
           {/* Date */}
           <Text
-            style={{
-              fontSize: s.fontSize,
-              color: s.secondaryColor,
-              marginBottom: 14,
-            }}
+            style={{ fontSize: s.fontSize, color: "#6b7280", marginBottom: 14 }}
           >
             {today}
           </Text>
 
-          {/* Body */}
           {htmlToPdfNodes(coverLetter, s)}
-
-          {/* Closing accent line */}
-          <View
-            style={{
-              height: 2,
-              width: 80,
-              backgroundColor: s.accentColor,
-              marginTop: 16,
-            }}
-          />
         </View>
       </Page>
     </Document>

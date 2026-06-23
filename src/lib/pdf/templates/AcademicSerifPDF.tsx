@@ -29,7 +29,7 @@ function buildContactParts(header: ResumeJSON["header"]): string[] {
   ].filter(Boolean) as string[];
 }
 
-// Section heading: UPPERCASE, serif-style bold, primary color
+// Section heading: small-caps style (uppercase + wide letter-spacing), serif, underlined
 const SH = memo(function SH({
   title,
   s,
@@ -37,14 +37,14 @@ const SH = memo(function SH({
   title: string;
   s: ResolvedPDFStyles;
 }) {
-  const { primaryColor, fontFamily, headingFontSize } = s;
+  const { primaryColor, secondaryColor, fontFamily, headingFontSize } = s;
   return (
     <View
       style={{
         marginTop: 10,
         marginBottom: 6,
         borderBottomWidth: 1,
-        borderBottomColor: primaryColor,
+        borderBottomColor: secondaryColor,
         paddingBottom: 2,
       }}
     >
@@ -55,7 +55,7 @@ const SH = memo(function SH({
           fontWeight: 700,
           color: primaryColor,
           textTransform: "uppercase",
-          letterSpacing: 0.5,
+          letterSpacing: 1,
         }}
       >
         {title}
@@ -64,11 +64,12 @@ const SH = memo(function SH({
   );
 });
 
-export const BusinessProfessionalPDF: React.FC<PDFTemplateProps> = ({
+export const AcademicSerifPDF: React.FC<PDFTemplateProps> = ({
   resume,
   styles: s,
 }) => {
   const {
+    primaryColor,
     secondaryColor,
     accentColor,
     textColor,
@@ -97,15 +98,16 @@ export const BusinessProfessionalPDF: React.FC<PDFTemplateProps> = ({
         }}
       >
         <BackgroundPdf styles={s} />
-        {/* ── Header (centered) ──────────────────────────────── */}
+        {/* ── Header (centered, traditional double rule below) ─────────── */}
         <View style={{ alignItems: "center", marginBottom: 14 }}>
           <Text
             style={{
               fontSize: nameFontSize,
               fontWeight: 700,
-              color: textColor,
+              color: primaryColor,
               marginBottom: 4,
               textAlign: "center",
+              letterSpacing: 1,
             }}
           >
             {resume.header.name}
@@ -114,7 +116,8 @@ export const BusinessProfessionalPDF: React.FC<PDFTemplateProps> = ({
             <Text
               style={{
                 fontSize,
-                color: secondaryColor,
+                fontStyle: "italic",
+                color: accentColor,
                 marginBottom: 4,
                 textAlign: "center",
               }}
@@ -125,73 +128,33 @@ export const BusinessProfessionalPDF: React.FC<PDFTemplateProps> = ({
           <Text
             style={{
               fontSize: smallFontSize,
-              color: "#6b7280",
+              color: secondaryColor,
               textAlign: "center",
+              marginBottom: 8,
             }}
           >
             {contactParts.join("  •  ")}
           </Text>
+          <View style={{ width: "100%" }}>
+            <View
+              style={{
+                height: 1,
+                backgroundColor: primaryColor,
+                marginBottom: 1,
+              }}
+            />
+            <View style={{ height: 1, backgroundColor: secondaryColor }} />
+          </View>
         </View>
 
         {/* ── Summary ────────────────────────────────────────── */}
         {resume.summary ? (
           <View wrap={false}>
-            <SH s={s} title="Professional Summary" />
+            <SH s={s} title="Research Summary" />
             <Text style={{ fontSize, lineHeight, textAlign: "justify" }}>
               {plain(resume.summary)}
             </Text>
           </View>
-        ) : null}
-
-        {/* ── Experience ─────────────────────────────────────── */}
-        {(resume.experience ?? []).length > 0 ? (
-          <SectionGroup heading={<SH s={s} title="Professional Experience" />}>
-            {(resume.experience ?? []).map((exp, i) => (
-              <View key={i} wrap={false} style={{ marginBottom: 9 }}>
-                <View
-                  style={{
-                    flexDirection: "row",
-                    justifyContent: "space-between",
-                    alignItems: "flex-start",
-                    marginBottom: 1,
-                  }}
-                >
-                  <Text style={{ fontSize, fontWeight: 700, color: textColor }}>
-                    {exp.role}
-                  </Text>
-                  <Text
-                    style={{ fontSize: smallFontSize, color: secondaryColor }}
-                  >
-                    {exp.startDate} – {exp.endDate || "Present"}
-                  </Text>
-                </View>
-                <Text
-                  style={{
-                    fontSize,
-                    fontWeight: 600,
-                    color: secondaryColor,
-                    marginBottom: 3,
-                  }}
-                >
-                  {exp.company}
-                </Text>
-                {exp.description ? (
-                  <Text style={{ fontSize, lineHeight, marginBottom: 3 }}>
-                    {plain(exp.description)}
-                  </Text>
-                ) : null}
-                {(exp.achievements ?? []).map((a, j) => (
-                  <Text
-                    key={j}
-                    style={{ fontSize, lineHeight, marginLeft: 12 }}
-                  >
-                    {"• "}
-                    {a}
-                  </Text>
-                ))}
-              </View>
-            ))}
-          </SectionGroup>
         ) : null}
 
         {/* ── Education ──────────────────────────────────────── */}
@@ -206,7 +169,14 @@ export const BusinessProfessionalPDF: React.FC<PDFTemplateProps> = ({
                     alignItems: "flex-start",
                   }}
                 >
-                  <Text style={{ fontSize, fontWeight: 700, color: textColor }}>
+                  <Text
+                    style={{
+                      fontSize,
+                      fontWeight: 700,
+                      fontStyle: "italic",
+                      color: textColor,
+                    }}
+                  >
                     {edu.degree}
                   </Text>
                   <Text
@@ -229,10 +199,112 @@ export const BusinessProfessionalPDF: React.FC<PDFTemplateProps> = ({
           </SectionGroup>
         ) : null}
 
+        {/* ── Experience ─────────────────────────────────────── */}
+        {(resume.experience ?? []).length > 0 ? (
+          <SectionGroup
+            heading={<SH s={s} title="Academic & Professional Experience" />}
+          >
+            {(resume.experience ?? []).map((exp, i) => (
+              <View key={i} wrap={false} style={{ marginBottom: 9 }}>
+                <View
+                  style={{
+                    flexDirection: "row",
+                    justifyContent: "space-between",
+                    alignItems: "flex-start",
+                    marginBottom: 1,
+                  }}
+                >
+                  <Text
+                    style={{
+                      fontSize,
+                      fontWeight: 700,
+                      fontStyle: "italic",
+                      color: textColor,
+                    }}
+                  >
+                    {exp.role}
+                  </Text>
+                  <Text
+                    style={{ fontSize: smallFontSize, color: secondaryColor }}
+                  >
+                    {exp.startDate} – {exp.endDate || "Present"}
+                  </Text>
+                </View>
+                <Text
+                  style={{
+                    fontSize,
+                    fontWeight: 600,
+                    color: secondaryColor,
+                    marginBottom: 3,
+                  }}
+                >
+                  {exp.company}
+                </Text>
+                {exp.description ? (
+                  <Text
+                    style={{
+                      fontSize,
+                      lineHeight,
+                      marginBottom: 3,
+                      textAlign: "justify",
+                    }}
+                  >
+                    {plain(exp.description)}
+                  </Text>
+                ) : null}
+                {(exp.achievements ?? []).map((a, j) => (
+                  <Text
+                    key={j}
+                    style={{ fontSize, lineHeight, marginLeft: 12 }}
+                  >
+                    {"• "}
+                    {a}
+                  </Text>
+                ))}
+              </View>
+            ))}
+          </SectionGroup>
+        ) : null}
+
+        {/* ── Publications ───────────────────────────────────── */}
+        {(resume.publications ?? []).length > 0 ? (
+          <SectionGroup heading={<SH s={s} title="Publications" />}>
+            {(resume.publications ?? []).map((pub, i) => (
+              <View key={i} wrap={false} style={{ marginBottom: 6 }}>
+                <Text
+                  style={{
+                    fontSize,
+                    fontWeight: 700,
+                    fontStyle: "italic",
+                    color: textColor,
+                  }}
+                >
+                  {pub.title}
+                </Text>
+                <Text style={{ fontSize, lineHeight, marginTop: 1 }}>
+                  {pub.authors.join(", ")}
+                </Text>
+                <Text
+                  style={{
+                    fontSize: smallFontSize,
+                    color: secondaryColor,
+                    marginTop: 1,
+                  }}
+                >
+                  {pub.venue}
+                  {" • "}
+                  {pub.date}
+                  {pub.doi ? `  •  DOI: ${pub.doi}` : ""}
+                </Text>
+              </View>
+            ))}
+          </SectionGroup>
+        ) : null}
+
         {/* ── Skills ─────────────────────────────────────────── */}
         {(resume.skills ?? []).length > 0 ? (
           <View wrap={false}>
-            <SH s={s} title="Core Competencies" />
+            <SH s={s} title="Areas of Expertise" />
             <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 2 }}>
               {(resume.skills ?? []).map((skill, i) => (
                 <Text key={i} style={{ fontSize, lineHeight, marginRight: 16 }}>
@@ -246,7 +318,7 @@ export const BusinessProfessionalPDF: React.FC<PDFTemplateProps> = ({
 
         {/* ── Projects ───────────────────────────────────────── */}
         {(resume.projects ?? []).length > 0 ? (
-          <SectionGroup heading={<SH s={s} title="Key Projects" />}>
+          <SectionGroup heading={<SH s={s} title="Research Projects" />}>
             {(resume.projects ?? []).map((proj, i) => (
               <View key={i} wrap={false} style={{ marginBottom: 8 }}>
                 <View
@@ -256,7 +328,14 @@ export const BusinessProfessionalPDF: React.FC<PDFTemplateProps> = ({
                     alignItems: "flex-start",
                   }}
                 >
-                  <Text style={{ fontSize, fontWeight: 700, color: textColor }}>
+                  <Text
+                    style={{
+                      fontSize,
+                      fontWeight: 700,
+                      fontStyle: "italic",
+                      color: textColor,
+                    }}
+                  >
                     {proj.name}
                   </Text>
                   {proj.startDate || proj.endDate ? (
@@ -267,7 +346,14 @@ export const BusinessProfessionalPDF: React.FC<PDFTemplateProps> = ({
                     </Text>
                   ) : null}
                 </View>
-                <Text style={{ fontSize, lineHeight, marginTop: 2 }}>
+                <Text
+                  style={{
+                    fontSize,
+                    lineHeight,
+                    marginTop: 2,
+                    textAlign: "justify",
+                  }}
+                >
                   {plain(proj.description)}
                 </Text>
                 {proj.technologies && proj.technologies.length > 0 ? (
@@ -278,7 +364,7 @@ export const BusinessProfessionalPDF: React.FC<PDFTemplateProps> = ({
                       marginTop: 2,
                     }}
                   >
-                    Technologies: {proj.technologies.join(", ")}
+                    Methods: {proj.technologies.join(", ")}
                   </Text>
                 ) : null}
                 {proj.url ? (
@@ -321,34 +407,6 @@ export const BusinessProfessionalPDF: React.FC<PDFTemplateProps> = ({
           </SectionGroup>
         ) : null}
 
-        {/* ── Publications ───────────────────────────────────── */}
-        {(resume.publications ?? []).length > 0 ? (
-          <SectionGroup heading={<SH s={s} title="Publications" />}>
-            {(resume.publications ?? []).map((pub, i) => (
-              <View key={i} wrap={false} style={{ marginBottom: 6 }}>
-                <Text style={{ fontSize, fontWeight: 700, color: textColor }}>
-                  {pub.title}
-                </Text>
-                <Text style={{ fontSize, lineHeight, marginTop: 1 }}>
-                  {pub.authors.join(", ")}
-                </Text>
-                <Text
-                  style={{
-                    fontSize: smallFontSize,
-                    color: secondaryColor,
-                    marginTop: 1,
-                  }}
-                >
-                  {pub.venue}
-                  {" • "}
-                  {pub.date}
-                  {pub.doi ? `  •  DOI: ${pub.doi}` : ""}
-                </Text>
-              </View>
-            ))}
-          </SectionGroup>
-        ) : null}
-
         {/* ── Languages ──────────────────────────────────────── */}
         {(resume.languages ?? []).length > 0 ? (
           <View wrap={false}>
@@ -366,7 +424,7 @@ export const BusinessProfessionalPDF: React.FC<PDFTemplateProps> = ({
 
         {/* ── Volunteer ──────────────────────────────────────── */}
         {(resume.volunteer ?? []).length > 0 ? (
-          <SectionGroup heading={<SH s={s} title="Volunteer Experience" />}>
+          <SectionGroup heading={<SH s={s} title="Service & Volunteer Work" />}>
             {(resume.volunteer ?? []).map((v, i) => (
               <View key={i} wrap={false} style={{ marginBottom: 8 }}>
                 <View
@@ -377,7 +435,14 @@ export const BusinessProfessionalPDF: React.FC<PDFTemplateProps> = ({
                     marginBottom: 1,
                   }}
                 >
-                  <Text style={{ fontSize, fontWeight: 700, color: textColor }}>
+                  <Text
+                    style={{
+                      fontSize,
+                      fontWeight: 700,
+                      fontStyle: "italic",
+                      color: textColor,
+                    }}
+                  >
                     {v.role}
                   </Text>
                   <Text
@@ -397,7 +462,7 @@ export const BusinessProfessionalPDF: React.FC<PDFTemplateProps> = ({
                   {v.organization}
                 </Text>
                 {v.description ? (
-                  <Text style={{ fontSize, lineHeight }}>
+                  <Text style={{ fontSize, lineHeight, textAlign: "justify" }}>
                     {plain(v.description)}
                   </Text>
                 ) : null}
@@ -408,7 +473,7 @@ export const BusinessProfessionalPDF: React.FC<PDFTemplateProps> = ({
 
         {/* ── Awards ─────────────────────────────────────────── */}
         {(resume.awards ?? []).length > 0 ? (
-          <SectionGroup heading={<SH s={s} title="Awards" />}>
+          <SectionGroup heading={<SH s={s} title="Honors & Awards" />}>
             {(resume.awards ?? []).map((award, i) => (
               <View key={i} wrap={false} style={{ marginBottom: 5 }}>
                 <Text style={{ fontSize, fontWeight: 600, color: textColor }}>

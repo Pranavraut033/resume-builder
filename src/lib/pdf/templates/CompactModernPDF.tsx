@@ -32,7 +32,7 @@ function buildContactLine(header: ResumeJSON["header"]): string {
     header.website ?? null,
   ]
     .filter(Boolean)
-    .join("  •  ");
+    .join("  |  ");
 }
 
 const SH = memo(function SH({
@@ -48,9 +48,9 @@ const SH = memo(function SH({
       style={{
         borderBottomWidth: 1,
         borderBottomColor: secondaryColor,
-        paddingBottom: 2,
-        marginTop: 10,
-        marginBottom: 5,
+        paddingBottom: 1,
+        marginTop: 6,
+        marginBottom: 3,
       }}
     >
       <Text
@@ -59,6 +59,8 @@ const SH = memo(function SH({
           fontSize: headingFontSize,
           fontWeight: 700,
           color: primaryColor,
+          textTransform: "uppercase",
+          letterSpacing: 0.5,
         }}
       >
         {title}
@@ -67,7 +69,7 @@ const SH = memo(function SH({
   );
 });
 
-export const ModernMinimalPDF: React.FC<PDFTemplateProps> = ({
+export const CompactModernPDF: React.FC<PDFTemplateProps> = ({
   resume,
   styles: s,
 }) => {
@@ -99,19 +101,26 @@ export const ModernMinimalPDF: React.FC<PDFTemplateProps> = ({
       >
         <BackgroundPdf styles={s} />
         {/* ── Header ─────────────────────────────────────────── */}
-        <View style={{ marginBottom: 14 }}>
+        <View
+          style={{
+            marginBottom: 8,
+            borderBottomWidth: 1,
+            borderBottomColor: secondaryColor,
+            paddingBottom: 6,
+          }}
+        >
           <Text
             style={{
               fontSize: nameFontSize,
               fontWeight: 700,
               color: textColor,
-              marginBottom: 3,
+              marginBottom: 2,
             }}
           >
             {resume.header.name}
           </Text>
           {resume.header.headline ? (
-            <Text style={{ fontSize, color: accentColor, marginBottom: 3 }}>
+            <Text style={{ fontSize, color: accentColor, marginBottom: 2 }}>
               {resume.header.headline}
             </Text>
           ) : null}
@@ -123,7 +132,7 @@ export const ModernMinimalPDF: React.FC<PDFTemplateProps> = ({
         {/* ── Summary ────────────────────────────────────────── */}
         {resume.summary ? (
           <View wrap={false}>
-            <SH s={s} title="Professional Summary" />
+            <SH s={s} title="Summary" />
             <Text style={{ fontSize, lineHeight, color: "#374151" }}>
               {plain(resume.summary)}
             </Text>
@@ -132,32 +141,26 @@ export const ModernMinimalPDF: React.FC<PDFTemplateProps> = ({
 
         {/* ── Experience ─────────────────────────────────────── */}
         {resume.experience.length > 0 ? (
-          <SectionGroup heading={<SH s={s} title="Work Experience" />}>
+          <SectionGroup heading={<SH s={s} title="Experience" />}>
             {resume.experience.map((exp, i) => (
-              <View key={i} wrap={false} style={{ marginBottom: 9 }}>
+              <View key={i} wrap={false} style={{ marginBottom: 5 }}>
                 <View
                   style={{
                     flexDirection: "row",
                     justifyContent: "space-between",
                     alignItems: "flex-start",
-                    marginBottom: 2,
+                    marginBottom: 1,
                   }}
                 >
-                  <View style={{ flex: 1 }}>
-                    <Text
-                      style={{ fontSize, fontWeight: 700, color: accentColor }}
-                    >
-                      {exp.role}
-                    </Text>
-                    <Text
-                      style={{
-                        fontSize: smallFontSize,
-                        color: "#6b7280",
-                      }}
-                    >
+                  <Text
+                    style={{ fontSize, fontWeight: 700, color: accentColor }}
+                  >
+                    {exp.role}
+                    <Text style={{ fontWeight: 400, color: secondaryColor }}>
+                      {"  —  "}
                       {exp.company}
                     </Text>
-                  </View>
+                  </Text>
                   <Text style={{ fontSize: smallFontSize, color: "#6b7280" }}>
                     {exp.startDate} – {exp.endDate || "Present"}
                   </Text>
@@ -168,7 +171,7 @@ export const ModernMinimalPDF: React.FC<PDFTemplateProps> = ({
                       fontSize,
                       lineHeight,
                       color: "#374151",
-                      marginBottom: 3,
+                      marginBottom: 1,
                     }}
                   >
                     {plain(exp.description)}
@@ -197,7 +200,7 @@ export const ModernMinimalPDF: React.FC<PDFTemplateProps> = ({
         {resume.projects.length > 0 ? (
           <SectionGroup heading={<SH s={s} title="Projects" />}>
             {resume.projects.map((proj, i) => (
-              <View key={i} wrap={false} style={{ marginBottom: 9 }}>
+              <View key={i} wrap={false} style={{ marginBottom: 5 }}>
                 <View
                   style={{
                     flexDirection: "row",
@@ -229,14 +232,14 @@ export const ModernMinimalPDF: React.FC<PDFTemplateProps> = ({
                     fontSize,
                     lineHeight,
                     color: "#374151",
-                    marginBottom: 3,
+                    marginBottom: 1,
                   }}
                 >
                   {plain(proj.description)}
                 </Text>
                 {proj.technologies.length > 0 ? (
                   <Text style={{ fontSize: smallFontSize, color: "#6b7280" }}>
-                    <Text style={{ fontWeight: 600 }}>{"Technologies: "}</Text>
+                    <Text style={{ fontWeight: 600 }}>{"Tech: "}</Text>
                     {proj.technologies.join(", ")}
                   </Text>
                 ) : null}
@@ -259,7 +262,7 @@ export const ModernMinimalPDF: React.FC<PDFTemplateProps> = ({
         {resume.education.length > 0 ? (
           <SectionGroup heading={<SH s={s} title="Education" />}>
             {resume.education.map((edu, i) => (
-              <View key={i} wrap={false} style={{ marginBottom: 8 }}>
+              <View key={i} wrap={false} style={{ marginBottom: 4 }}>
                 <View
                   style={{
                     flexDirection: "row",
@@ -267,22 +270,16 @@ export const ModernMinimalPDF: React.FC<PDFTemplateProps> = ({
                     alignItems: "flex-start",
                   }}
                 >
-                  <View style={{ flex: 1 }}>
-                    <Text
-                      style={{ fontSize, fontWeight: 700, color: accentColor }}
-                    >
-                      {edu.degree}
-                      {edu.field ? ` in ${edu.field}` : ""}
-                    </Text>
-                    <Text
-                      style={{
-                        fontSize: smallFontSize,
-                        color: "#6b7280",
-                      }}
-                    >
+                  <Text
+                    style={{ fontSize, fontWeight: 700, color: accentColor }}
+                  >
+                    {edu.degree}
+                    {edu.field ? ` in ${edu.field}` : ""}
+                    <Text style={{ fontWeight: 400, color: secondaryColor }}>
+                      {"  —  "}
                       {edu.institution}
                     </Text>
-                  </View>
+                  </Text>
                   <Text style={{ fontSize: smallFontSize, color: "#6b7280" }}>
                     {edu.startDate} – {edu.endDate || "Present"}
                   </Text>
@@ -301,14 +298,15 @@ export const ModernMinimalPDF: React.FC<PDFTemplateProps> = ({
         {resume.certifications.length > 0 ? (
           <SectionGroup heading={<SH s={s} title="Certifications" />}>
             {resume.certifications.map((cert, i) => (
-              <View key={i} wrap={false} style={{ marginBottom: 6 }}>
-                <Text style={{ fontSize, fontWeight: 700, color: accentColor }}>
-                  {cert.name}
-                </Text>
-                <Text style={{ fontSize: smallFontSize, color: "#6b7280" }}>
-                  {cert.issuer}
-                  {" • "}
-                  {cert.date}
+              <View key={i} wrap={false} style={{ marginBottom: 3 }}>
+                <Text style={{ fontSize, color: "#374151" }}>
+                  <Text style={{ fontWeight: 700, color: accentColor }}>
+                    {cert.name}
+                  </Text>
+                  {"  —  "}
+                  <Text style={{ fontSize: smallFontSize, color: "#6b7280" }}>
+                    {cert.issuer} • {cert.date}
+                  </Text>
                   {cert.url ? (
                     <Text>
                       {"  "}
@@ -327,7 +325,7 @@ export const ModernMinimalPDF: React.FC<PDFTemplateProps> = ({
         {(resume.publications ?? []).length > 0 ? (
           <SectionGroup heading={<SH s={s} title="Publications" />}>
             {(resume.publications ?? []).map((pub, i) => (
-              <View key={i} wrap={false} style={{ marginBottom: 6 }}>
+              <View key={i} wrap={false} style={{ marginBottom: 3 }}>
                 <Text style={{ fontSize, fontWeight: 700, color: accentColor }}>
                   {pub.title}
                 </Text>
@@ -367,7 +365,7 @@ export const ModernMinimalPDF: React.FC<PDFTemplateProps> = ({
         {(resume.volunteer ?? []).length > 0 ? (
           <SectionGroup heading={<SH s={s} title="Volunteer Experience" />}>
             {(resume.volunteer ?? []).map((v, i) => (
-              <View key={i} wrap={false} style={{ marginBottom: 8 }}>
+              <View key={i} wrap={false} style={{ marginBottom: 4 }}>
                 <View
                   style={{
                     flexDirection: "row",
@@ -375,16 +373,15 @@ export const ModernMinimalPDF: React.FC<PDFTemplateProps> = ({
                     alignItems: "flex-start",
                   }}
                 >
-                  <View style={{ flex: 1 }}>
-                    <Text
-                      style={{ fontSize, fontWeight: 700, color: accentColor }}
-                    >
-                      {v.role}
-                    </Text>
-                    <Text style={{ fontSize: smallFontSize, color: "#6b7280" }}>
+                  <Text
+                    style={{ fontSize, fontWeight: 700, color: accentColor }}
+                  >
+                    {v.role}
+                    <Text style={{ fontWeight: 400, color: secondaryColor }}>
+                      {"  —  "}
                       {v.organization}
                     </Text>
-                  </View>
+                  </Text>
                   <Text style={{ fontSize: smallFontSize, color: "#6b7280" }}>
                     {v.startDate} – {v.endDate || "Present"}
                   </Text>
@@ -403,14 +400,15 @@ export const ModernMinimalPDF: React.FC<PDFTemplateProps> = ({
         {(resume.awards ?? []).length > 0 ? (
           <SectionGroup heading={<SH s={s} title="Awards" />}>
             {(resume.awards ?? []).map((award, i) => (
-              <View key={i} wrap={false} style={{ marginBottom: 6 }}>
-                <Text style={{ fontSize, fontWeight: 700, color: accentColor }}>
-                  {award.title}
-                </Text>
-                <Text style={{ fontSize: smallFontSize, color: "#6b7280" }}>
-                  {award.issuer}
-                  {" • "}
-                  {award.date}
+              <View key={i} wrap={false} style={{ marginBottom: 3 }}>
+                <Text style={{ fontSize, color: "#374151" }}>
+                  <Text style={{ fontWeight: 700, color: accentColor }}>
+                    {award.title}
+                  </Text>
+                  {"  —  "}
+                  <Text style={{ fontSize: smallFontSize, color: "#6b7280" }}>
+                    {award.issuer} • {award.date}
+                  </Text>
                 </Text>
                 {award.description ? (
                   <Text style={{ fontSize, lineHeight, color: "#374151" }}>

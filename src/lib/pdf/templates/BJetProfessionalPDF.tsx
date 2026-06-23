@@ -5,6 +5,7 @@
 import { Document, Link, Page, Text, View } from "@react-pdf/renderer";
 import React from "react";
 
+import BackgroundPdf from "@/lib/backgrounds/BackgroundPdf";
 import { htmlToPlainText, isHtml } from "@/lib/htmlUtils";
 
 import { withAlpha } from "../resolveStyles";
@@ -134,6 +135,7 @@ export const BJetProfessionalPDF: React.FC<PDFTemplateProps> = ({
           padding: marginPt,
         }}
       >
+        <BackgroundPdf styles={s} />
         {/* ── Header table ────────────────────────────────── */}
         <View
           style={{

@@ -9,6 +9,7 @@
 import { Document, Link, Page, Text, View } from "@react-pdf/renderer";
 import React, { memo } from "react";
 
+import BackgroundPdf from "@/lib/backgrounds/BackgroundPdf";
 import { htmlToPlainText, isHtml } from "@/lib/htmlUtils";
 
 import { ResolvedPDFStyles, withAlpha } from "../resolveStyles";
@@ -95,6 +96,7 @@ export const ElegantTimelinePDF: React.FC<PDFTemplateProps> = ({
           padding: marginPt,
         }}
       >
+        <BackgroundPdf styles={s} />
         {/* ── Centered header ─────────────────────────────── */}
         <View style={{ alignItems: "center", marginBottom: 16 }}>
           <Text

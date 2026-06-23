@@ -7,6 +7,7 @@
 import { Document, Page, Text, View } from "@react-pdf/renderer";
 import React from "react";
 
+import BackgroundPdf from "@/lib/backgrounds/BackgroundPdf";
 import { ResumeJSON } from "@/types/resume";
 
 import { htmlToPdfNodes } from "../htmlToPdf";
@@ -45,6 +46,7 @@ export const ElegantTimelineCoverLetterPDF: React.FC<CoverLetterPDFProps> = ({
           padding: s.marginPt,
         }}
       >
+        <BackgroundPdf styles={s} />
         {/* ── Elegant header with left accent bar ───────────── */}
         <View
           style={{

@@ -1,9 +1,12 @@
 import { FontSelector, TemplateSelector } from "@/components/job";
 import { useJobPageContext } from "@/contexts/JobPageContext";
+import BackgroundSvg from "@/lib/backgrounds/BackgroundSvg";
+import { AVAILABLE_BACKGROUNDS, BackgroundId } from "@/lib/backgrounds/types";
 import {
   TemplateType,
   COLOR_PRESETS,
   Template,
+  ThemeColors,
   VALID_FONT_SIZES,
   VALID_MARGIN_SIZES,
   VALID_LETTER_SPACINGS,
@@ -11,6 +14,9 @@ import {
 
 import { Card } from "../ui";
 import DownloadButton from "./DownloadButton";
+
+const SWATCH_WIDTH = 240;
+const SWATCH_HEIGHT = 320;
 
 // eslint-disable-next-line @typescript-eslint/no-empty-object-type
 type Props = {
@@ -20,6 +26,8 @@ type Props = {
 const ThemeCustomizationPanel: React.FC<Props> = ({}) => {
   const { customization, updateCustomizationState: updateCustomization } =
     useJobPageContext();
+
+  const colorsTuple = customization.colors.split(",") as ThemeColors;
 
   return (
     <div className="relative flex flex-col gap-4 p-4">
@@ -173,6 +181,41 @@ const ThemeCustomizationPanel: React.FC<Props> = ({}) => {
                       : "transparent",
                 }}
               />
+            ))}
+          </div>
+        </div>
+
+        {/* Background */}
+        <div>
+          <p
+            className="mb-2 text-xs font-medium"
+            style={{ color: "var(--color-agent-on-surface-variant)" }}
+          >
+            Background
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {AVAILABLE_BACKGROUNDS.map((bg) => (
+              <button
+                key={bg.id}
+                title={bg.name}
+                onClick={() => updateCustomization({ background: bg.id })}
+                className="relative h-10 w-14 overflow-hidden rounded-md border-2 transition-transform hover:scale-105"
+                style={{
+                  background: "var(--color-agent-surface-container)",
+                  borderColor:
+                    (customization.background as BackgroundId | undefined) ===
+                    bg.id
+                      ? "var(--color-agent-primary)"
+                      : "var(--color-agent-outline-variant)",
+                }}
+              >
+                <BackgroundSvg
+                  background={bg.id}
+                  colors={colorsTuple}
+                  width={SWATCH_WIDTH}
+                  height={SWATCH_HEIGHT}
+                />
+              </button>
             ))}
           </div>
         </div>

@@ -9,12 +9,15 @@ import { simpleI32HashString, toStableJsonString } from "@/lib";
 import { SanitizedCustomization, TemplateType } from "@/types/customization";
 import { ResumeJSON } from "@/types/resume";
 
+import { AcademicSerifCoverLetter } from "./AcademicSerifCoverLetter";
 import { BJetProfessionalCoverLetter } from "./BJetProfessionalCoverLetter";
 import { BusinessProfessionalCoverLetter } from "./BusinessProfessionalCoverLetter";
+import { CompactModernCoverLetter } from "./CompactModernCoverLetter";
 import { CreativeModernCoverLetter } from "./CreativeModernCoverLetter";
 import { ElegantTimelineCoverLetter } from "./ElegantTimelineCoverLetter";
 import { ModernMinimalCoverLetter } from "./ModernMinimalCoverLetter";
 import { TechSidebarCoverLetter } from "./TechSidebarCoverLetter";
+import { TwoToneCoverLetter } from "./TwoToneCoverLetter";
 
 export interface CoverLetterRendererProps {
   coverLetter: string;
@@ -39,6 +42,9 @@ export const CoverLetterRenderer: React.FC<CoverLetterRendererProps> = ({
     "elegant-timeline": ElegantTimelineCoverLetter,
     "creative-modern": CreativeModernCoverLetter,
     "bjet-professional": BJetProfessionalCoverLetter,
+    "compact-modern": CompactModernCoverLetter,
+    "two-tone": TwoToneCoverLetter,
+    "academic-serif": AcademicSerifCoverLetter,
   };
 
   // Fallback to a default template if not found

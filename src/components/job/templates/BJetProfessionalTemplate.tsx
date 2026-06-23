@@ -61,6 +61,8 @@ export const BJetProfessionalTemplate: React.FC<TemplateRendererProps> = ({
     textSize,
     fontFamily,
     lineHeight,
+    background,
+    colorsTuple,
   } = useResolveCustomization(customization);
 
   const { widthMm, widthPx, heightPx, marginPx, contentHeightPx } =
@@ -885,6 +887,8 @@ export const BJetProfessionalTemplate: React.FC<TemplateRendererProps> = ({
             heightPx={heightPx}
             pageIndex={pageIndex}
             pageCount={pageGroups.length}
+            background={background}
+            colors={colorsTuple}
           >
             <div
               style={{

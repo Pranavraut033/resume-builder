@@ -49,7 +49,7 @@ type Block = {
   itemIndex?: number;
 };
 
-export const ModernMinimalTemplate: React.FC<TemplateRendererProps> = ({
+export const AcademicSerifTemplate: React.FC<TemplateRendererProps> = ({
   resume,
   customization,
 }) => {
@@ -73,14 +73,17 @@ export const ModernMinimalTemplate: React.FC<TemplateRendererProps> = ({
 
   const edit = useInlineEdit();
 
-  // ── Section headings ───────────────────────────────────────────────────────
   const sectionHeadingNode = (sectionKey: string) => {
     const title = sectionLabels[sectionKey] ?? sectionKey;
     const canAdd = edit.editable && isListSection(sectionKey);
     return (
       <h2
-        className={`${headingSize} group/heading mb-3 flex items-center justify-between gap-2 border-b pb-1 font-semibold`}
-        style={{ color: primaryColor, borderColor: secondaryColor }}
+        className={`${headingSize} group/heading mb-3 flex items-center justify-between gap-2 border-b font-serif font-bold tracking-widest`}
+        style={{
+          color: primaryColor,
+          borderColor: secondaryColor,
+          fontVariant: "small-caps",
+        }}
       >
         <span>{title}</span>
         {canAdd && (
@@ -99,26 +102,25 @@ export const ModernMinimalTemplate: React.FC<TemplateRendererProps> = ({
   };
 
   const sectionLabels: Record<string, string> = {
-    summary: "Professional Summary",
-    experience: "Work Experience",
-    projects: "Projects",
-    skills: "Skills",
+    summary: "Research Summary",
+    experience: "Academic & Professional Experience",
     education: "Education",
+    skills: "Areas of Expertise",
+    projects: "Research Projects",
     certifications: "Certifications",
     publications: "Publications",
     languages: "Languages",
-    volunteer: "Volunteer Experience",
-    awards: "Awards",
+    volunteer: "Service & Volunteer Work",
+    awards: "Honors & Awards",
   };
 
-  // ── Build block list ───────────────────────────────────────────────────────
   const blocks: Block[] = [];
 
   if (resume.summary || edit.editable) {
     blocks.push({
       sectionKey: "summary",
       node: (
-        <p className={`${textSize} ${lineHeight}`}>
+        <p className={`${textSize} ${lineHeight} text-justify`}>
           <EditableText
             value={resume.summary}
             onCommit={(v) => edit.updateSummary(v)}
@@ -130,36 +132,92 @@ export const ModernMinimalTemplate: React.FC<TemplateRendererProps> = ({
     });
   }
 
-  resume.experience.forEach((exp, expIndex) => {
+  (resume.education ?? []).forEach((edu, eduIndex) => {
+    blocks.push({
+      sectionKey: "education",
+      itemIndex: eduIndex,
+      node: (
+        <div>
+          <div className="flex items-baseline justify-between gap-4">
+            <h3 className={`${textSize} font-serif font-bold italic`}>
+              <EditableText
+                value={edu.degree}
+                onCommit={(v) => edit.updateEducation(eduIndex, { degree: v })}
+                placeholder="Degree"
+              />
+            </h3>
+            <span
+              className="shrink-0 text-xs"
+              style={{ color: secondaryColor }}
+            >
+              <EditableText
+                value={edu.startDate}
+                onCommit={(v) =>
+                  edit.updateEducation(eduIndex, { startDate: v })
+                }
+                placeholder="Start"
+              />
+              {" - "}
+              <EditableText
+                value={edu.endDate || ""}
+                onCommit={(v) => edit.updateEducation(eduIndex, { endDate: v })}
+                placeholder="Present"
+              />
+            </span>
+          </div>
+          <div
+            className={`${textSize} ${lineHeight}`}
+            style={{ color: secondaryColor }}
+          >
+            <EditableText
+              value={edu.institution}
+              onCommit={(v) =>
+                edit.updateEducation(eduIndex, { institution: v })
+              }
+              placeholder="Institution"
+            />
+            {(edu.field || edit.editable) && (
+              <>
+                {" • "}
+                <EditableText
+                  value={edu.field}
+                  onCommit={(v) => edit.updateEducation(eduIndex, { field: v })}
+                  placeholder="Field"
+                />
+              </>
+            )}
+          </div>
+          {(edu.gpa || edit.editable) && (
+            <div className="text-xs">
+              GPA:{" "}
+              <EditableText
+                value={edu.gpa || ""}
+                onCommit={(v) => edit.updateEducation(eduIndex, { gpa: v })}
+                placeholder="—"
+              />
+            </div>
+          )}
+        </div>
+      ),
+    });
+  });
+
+  (resume.experience ?? []).forEach((exp, expIndex) => {
     blocks.push({
       sectionKey: "experience",
       itemIndex: expIndex,
       node: (
         <div>
-          <div className="mb-1 flex items-start justify-between gap-4">
-            <div>
-              <h3 className="font-semibold" style={{ color: accentColor }}>
-                <EditableText
-                  value={exp.role}
-                  onCommit={(v) => edit.updateExperience(expIndex, { role: v })}
-                  placeholder="Role"
-                />
-              </h3>
-              <p
-                className={`${textSize} ${lineHeight}`}
-                style={{ color: secondaryColor }}
-              >
-                <EditableText
-                  value={exp.company}
-                  onCommit={(v) =>
-                    edit.updateExperience(expIndex, { company: v })
-                  }
-                  placeholder="Company"
-                />
-              </p>
-            </div>
+          <div className="mb-1 flex items-baseline justify-between gap-4">
+            <h3 className={`${textSize} font-serif font-bold italic`}>
+              <EditableText
+                value={exp.role}
+                onCommit={(v) => edit.updateExperience(expIndex, { role: v })}
+                placeholder="Role"
+              />
+            </h3>
             <span
-              className={`${textSize} shrink-0`}
+              className="shrink-0 text-xs"
               style={{ color: secondaryColor }}
             >
               <EditableText
@@ -179,8 +237,18 @@ export const ModernMinimalTemplate: React.FC<TemplateRendererProps> = ({
               />
             </span>
           </div>
+          <div
+            className={`${textSize} ${lineHeight} mb-2 font-semibold`}
+            style={{ color: secondaryColor }}
+          >
+            <EditableText
+              value={exp.company}
+              onCommit={(v) => edit.updateExperience(expIndex, { company: v })}
+              placeholder="Company"
+            />
+          </div>
           {(exp.description || edit.editable) && (
-            <p className={`${textSize} ${lineHeight} mb-2`}>
+            <p className={`${textSize} ${lineHeight} mb-2 text-justify`}>
               <EditableText
                 value={exp.description}
                 onCommit={(v) =>
@@ -191,12 +259,13 @@ export const ModernMinimalTemplate: React.FC<TemplateRendererProps> = ({
               />
             </p>
           )}
-          {exp.achievements.length > 0 && (
-            <ul
-              className={`${textSize} ${lineHeight} list-inside list-disc space-y-1`}
-            >
+          {exp.achievements && exp.achievements.length > 0 && (
+            <ul className="space-y-1">
               {exp.achievements.map((a, i) => (
-                <li key={i}>
+                <li
+                  key={i}
+                  className={`${textSize} ${lineHeight} ml-5 list-disc`}
+                >
                   <EditableText
                     value={a}
                     onCommit={(v) =>
@@ -214,48 +283,95 @@ export const ModernMinimalTemplate: React.FC<TemplateRendererProps> = ({
     });
   });
 
-  resume.projects.forEach((project, projectIndex) => {
+  (resume.publications ?? []).forEach((pub) => {
+    blocks.push({
+      sectionKey: "publications",
+      node: (
+        <div>
+          <h3 className={`${textSize} font-serif font-bold italic`}>
+            {pub.title}
+          </h3>
+          <div className={`${textSize} ${lineHeight} mt-1`}>
+            {pub.authors.join(", ")}
+          </div>
+          <div className="mt-1 text-xs" style={{ color: secondaryColor }}>
+            {pub.venue} • {pub.date}
+            {pub.doi && ` • DOI: ${pub.doi}`}
+          </div>
+          {pub.url && (
+            <div className="mt-1 text-xs">
+              <a
+                href={pub.url}
+                className="hover:underline"
+                style={{ color: accentColor }}
+              >
+                Publication Link
+              </a>
+            </div>
+          )}
+        </div>
+      ),
+    });
+  });
+
+  if ((resume.skills ?? []).length > 0) {
+    blocks.push({
+      sectionKey: "skills",
+      node: (
+        <div className="flex flex-wrap gap-x-4 gap-y-1">
+          {(resume.skills ?? []).map((skill, idx) => (
+            <span key={idx} className={`${textSize} ${lineHeight}`}>
+              •{" "}
+              <EditableText
+                value={skill}
+                onCommit={(v) => edit.updateSkill(idx, v)}
+                placeholder="Skill"
+              />
+            </span>
+          ))}
+        </div>
+      ),
+    });
+  }
+
+  (resume.projects ?? []).forEach((project, projectIndex) => {
     blocks.push({
       sectionKey: "projects",
       itemIndex: projectIndex,
       node: (
         <div>
-          <h3 className="font-semibold" style={{ color: accentColor }}>
-            <EditableText
-              value={project.name}
-              onCommit={(v) => edit.updateProject(projectIndex, { name: v })}
-              placeholder="Project name"
-            />
-            {project.url && (
-              <a
-                href={project.url}
-                className={`${textSize} ml-2 hover:underline`}
+          <div className="flex items-baseline justify-between gap-4">
+            <h3 className={`${textSize} font-serif font-bold italic`}>
+              <EditableText
+                value={project.name}
+                onCommit={(v) => edit.updateProject(projectIndex, { name: v })}
+                placeholder="Project name"
+              />
+            </h3>
+            {(project.startDate || project.endDate || edit.editable) && (
+              <span
+                className="shrink-0 text-xs"
                 style={{ color: secondaryColor }}
               >
-                [Link]
-              </a>
+                <EditableText
+                  value={project.startDate || ""}
+                  onCommit={(v) =>
+                    edit.updateProject(projectIndex, { startDate: v })
+                  }
+                  placeholder="Start"
+                />
+                {" - "}
+                <EditableText
+                  value={project.endDate || ""}
+                  onCommit={(v) =>
+                    edit.updateProject(projectIndex, { endDate: v })
+                  }
+                  placeholder="Present"
+                />
+              </span>
             )}
-          </h3>
-          {(project.startDate || project.endDate || edit.editable) && (
-            <div className={`${textSize}`} style={{ color: secondaryColor }}>
-              <EditableText
-                value={project.startDate || ""}
-                onCommit={(v) =>
-                  edit.updateProject(projectIndex, { startDate: v })
-                }
-                placeholder="Start"
-              />
-              {" - "}
-              <EditableText
-                value={project.endDate || ""}
-                onCommit={(v) =>
-                  edit.updateProject(projectIndex, { endDate: v })
-                }
-                placeholder="Present"
-              />
-            </div>
-          )}
-          <p className={`${textSize} ${lineHeight} mb-1`}>
+          </div>
+          <p className={`${textSize} ${lineHeight} mt-1 text-justify`}>
             <EditableText
               value={project.description}
               onCommit={(v) =>
@@ -265,9 +381,9 @@ export const ModernMinimalTemplate: React.FC<TemplateRendererProps> = ({
               placeholder="Describe the project…"
             />
           </p>
-          {project.technologies.length > 0 && (
-            <div className={`${textSize}`} style={{ color: secondaryColor }}>
-              <span className="font-medium">Technologies:</span>{" "}
+          {project.technologies && project.technologies.length > 0 && (
+            <div className="mt-1 text-xs" style={{ color: secondaryColor }}>
+              Methods:{" "}
               {project.technologies.map((tech, i) => (
                 <span key={i}>
                   {i > 0 && ", "}
@@ -285,121 +401,37 @@ export const ModernMinimalTemplate: React.FC<TemplateRendererProps> = ({
               ))}
             </div>
           )}
-        </div>
-      ),
-    });
-  });
-
-  if (resume.skills.length > 0) {
-    blocks.push({
-      sectionKey: "skills",
-      node: (
-        <div className={`${textSize} ${lineHeight}`}>
-          {resume.skills.map((skill, i) => (
-            <span key={i}>
-              {i > 0 && " • "}
-              <EditableText
-                value={skill}
-                onCommit={(v) => edit.updateSkill(i, v)}
-                placeholder="Skill"
-              />
-            </span>
-          ))}
-        </div>
-      ),
-    });
-  }
-
-  resume.education.forEach((edu, eduIndex) => {
-    blocks.push({
-      sectionKey: "education",
-      itemIndex: eduIndex,
-      node: (
-        <div>
-          <div className="flex items-start justify-between gap-4">
-            <div>
-              <h3 className="font-semibold" style={{ color: accentColor }}>
-                <EditableText
-                  value={edu.degree}
-                  onCommit={(v) =>
-                    edit.updateEducation(eduIndex, { degree: v })
-                  }
-                  placeholder="Degree"
-                />
-                {(edu.field || edit.editable) && (
-                  <>
-                    {" in "}
-                    <EditableText
-                      value={edu.field}
-                      onCommit={(v) =>
-                        edit.updateEducation(eduIndex, { field: v })
-                      }
-                      placeholder="Field"
-                    />
-                  </>
-                )}
-              </h3>
-              <p
-                className={`${textSize} ${lineHeight}`}
-                style={{ color: secondaryColor }}
+          {project.url && (
+            <div className="mt-1 text-xs">
+              <a
+                href={project.url}
+                className="hover:underline"
+                style={{ color: accentColor }}
               >
-                <EditableText
-                  value={edu.institution}
-                  onCommit={(v) =>
-                    edit.updateEducation(eduIndex, { institution: v })
-                  }
-                  placeholder="Institution"
-                />
-              </p>
+                Project Link
+              </a>
             </div>
-            <span
-              className={`${textSize} shrink-0`}
-              style={{ color: secondaryColor }}
-            >
-              <EditableText
-                value={edu.startDate}
-                onCommit={(v) =>
-                  edit.updateEducation(eduIndex, { startDate: v })
-                }
-                placeholder="Start"
-              />
-              {" - "}
-              <EditableText
-                value={edu.endDate || ""}
-                onCommit={(v) => edit.updateEducation(eduIndex, { endDate: v })}
-                placeholder="Present"
-              />
-            </span>
-          </div>
-          {(edu.gpa || edit.editable) && (
-            <p className={`${textSize}`} style={{ color: secondaryColor }}>
-              GPA:{" "}
-              <EditableText
-                value={edu.gpa || ""}
-                onCommit={(v) => edit.updateEducation(eduIndex, { gpa: v })}
-                placeholder="—"
-              />
-            </p>
           )}
         </div>
       ),
     });
   });
 
-  resume.certifications.forEach((cert, certIndex) => {
+  (resume.certifications ?? []).forEach((cert, certIndex) => {
     blocks.push({
       sectionKey: "certifications",
       itemIndex: certIndex,
       node: (
         <div>
-          <h3 className="font-semibold" style={{ color: accentColor }}>
+          <span className={`${textSize} font-semibold`}>
             <EditableText
               value={cert.name}
               onCommit={(v) => edit.updateCertification(certIndex, { name: v })}
               placeholder="Certification"
             />
-          </h3>
-          <p className={`${textSize}`} style={{ color: secondaryColor }}>
+          </span>
+          <span className="mx-2 text-xs">•</span>
+          <span className="text-xs" style={{ color: secondaryColor }}>
             <EditableText
               value={cert.issuer}
               onCommit={(v) =>
@@ -413,45 +445,18 @@ export const ModernMinimalTemplate: React.FC<TemplateRendererProps> = ({
               onCommit={(v) => edit.updateCertification(certIndex, { date: v })}
               placeholder="Date"
             />
-            {cert.url && (
+          </span>
+          {cert.url && (
+            <div className="mt-1 text-xs">
               <a
                 href={cert.url}
-                className="ml-2 hover:underline"
-                style={{ color: secondaryColor }}
+                className="hover:underline"
+                style={{ color: accentColor }}
               >
-                [Verify]
+                Credential Link
               </a>
-            )}
-          </p>
-        </div>
-      ),
-    });
-  });
-
-  (resume.publications ?? []).forEach((pub) => {
-    blocks.push({
-      sectionKey: "publications",
-      node: (
-        <div>
-          <h3 className="font-semibold" style={{ color: accentColor }}>
-            {pub.title}
-          </h3>
-          <p className={`${textSize} ${lineHeight}`}>
-            {pub.authors.join(", ")}
-          </p>
-          <p className={`${textSize}`} style={{ color: secondaryColor }}>
-            {pub.venue} • {pub.date}
-            {pub.doi && ` • DOI: ${pub.doi}`}
-            {pub.url && (
-              <a
-                href={pub.url}
-                className="ml-2 hover:underline"
-                style={{ color: secondaryColor }}
-              >
-                [View]
-              </a>
-            )}
-          </p>
+            </div>
+          )}
         </div>
       ),
     });
@@ -461,10 +466,12 @@ export const ModernMinimalTemplate: React.FC<TemplateRendererProps> = ({
     blocks.push({
       sectionKey: "languages",
       node: (
-        <div className={`${textSize} ${lineHeight}`}>
-          {(resume.languages ?? [])
-            .map((l) => `${l.name} (${l.proficiency})`)
-            .join(" • ")}
+        <div className="flex flex-wrap gap-x-4 gap-y-1">
+          {(resume.languages ?? []).map((l, idx) => (
+            <span key={idx} className={`${textSize} ${lineHeight}`}>
+              • {l.name} ({l.proficiency})
+            </span>
+          ))}
         </div>
       ),
     });
@@ -475,27 +482,27 @@ export const ModernMinimalTemplate: React.FC<TemplateRendererProps> = ({
       sectionKey: "volunteer",
       node: (
         <div>
-          <div className="mb-1 flex items-start justify-between gap-4">
-            <div>
-              <h3 className="font-semibold" style={{ color: accentColor }}>
-                {v.role}
-              </h3>
-              <p
-                className={`${textSize} ${lineHeight}`}
-                style={{ color: secondaryColor }}
-              >
-                {v.organization}
-              </p>
-            </div>
+          <div className="mb-1 flex items-baseline justify-between gap-4">
+            <h3 className={`${textSize} font-serif font-bold italic`}>
+              {v.role}
+            </h3>
             <span
-              className={`${textSize} shrink-0`}
+              className="shrink-0 text-xs"
               style={{ color: secondaryColor }}
             >
               {v.startDate} - {v.endDate || "Present"}
             </span>
           </div>
+          <div
+            className={`${textSize} ${lineHeight} mb-2 font-semibold`}
+            style={{ color: secondaryColor }}
+          >
+            {v.organization}
+          </div>
           {v.description && (
-            <p className={`${textSize} ${lineHeight}`}>{v.description}</p>
+            <p className={`${textSize} ${lineHeight} text-justify`}>
+              {v.description}
+            </p>
           )}
         </div>
       ),
@@ -507,21 +514,22 @@ export const ModernMinimalTemplate: React.FC<TemplateRendererProps> = ({
       sectionKey: "awards",
       node: (
         <div>
-          <h3 className="font-semibold" style={{ color: accentColor }}>
-            {award.title}
-          </h3>
-          <p className={`${textSize}`} style={{ color: secondaryColor }}>
+          <span className={`${textSize} font-semibold`}>{award.title}</span>
+          <span className="mx-2 text-xs">•</span>
+          <span className="text-xs" style={{ color: secondaryColor }}>
             {award.issuer} • {award.date}
-          </p>
+          </span>
           {award.description && (
-            <p className={`${textSize} ${lineHeight}`}>{award.description}</p>
+            <div className={`${textSize} ${lineHeight} mt-1`}>
+              {award.description}
+            </div>
           )}
         </div>
       ),
     });
   });
 
-  // ── Header measurement ─────────────────────────────────────────────────────
+  // Header measurement
   const headerRef = useRef<HTMLDivElement | null>(null);
   const [headerHeight, setHeaderHeight] = useState(0);
   useEffect(() => {
@@ -535,7 +543,6 @@ export const ModernMinimalTemplate: React.FC<TemplateRendererProps> = ({
     return () => obs.disconnect();
   }, []);
 
-  // ── Pagination ─────────────────────────────────────────────────────────────
   const isFirstInSection = (i: number) =>
     i === 0 || blocks[i].sectionKey !== blocks[i - 1].sectionKey;
 
@@ -569,15 +576,12 @@ export const ModernMinimalTemplate: React.FC<TemplateRendererProps> = ({
     edit.moveItem(from.section, from.index, to.index);
   };
 
-  // ── Header node ────────────────────────────────────────────────────────────
+  // ── Traditional, formal header: serif small-caps name, double rule below. ──
   const headerNode = (
-    <header
-      className="mb-8 border-b-2 pb-4"
-      style={{ borderColor: primaryColor }}
-    >
+    <header className="mb-8 pb-6 text-center">
       <h1
-        className={`mb-2 ${nameSize} font-bold`}
-        style={{ color: primaryColor }}
+        className={`mb-2 font-serif ${nameSize} font-bold tracking-wide`}
+        style={{ color: primaryColor, fontVariant: "small-caps" }}
       >
         <EditableText
           value={resume.header.name}
@@ -587,7 +591,7 @@ export const ModernMinimalTemplate: React.FC<TemplateRendererProps> = ({
       </h1>
       {(resume.header.headline || edit.editable) && (
         <div
-          className={`${textSize} ${lineHeight} mb-2 font-medium`}
+          className={`${textSize} mb-2 font-serif italic`}
           style={{ color: accentColor }}
         >
           <EditableText
@@ -601,10 +605,9 @@ export const ModernMinimalTemplate: React.FC<TemplateRendererProps> = ({
         className={`${textSize} ${lineHeight} space-y-1`}
         style={{ color: secondaryColor }}
       >
-        <div className="flex flex-wrap gap-4">
+        <div className="flex flex-wrap justify-center gap-3">
           {(resume.header.email || edit.editable) && (
             <span>
-              ✉{" "}
               <EditableText
                 value={resume.header.email}
                 onCommit={(v) => edit.updateHeader({ email: v })}
@@ -612,9 +615,9 @@ export const ModernMinimalTemplate: React.FC<TemplateRendererProps> = ({
               />
             </span>
           )}
+          {resume.header.phone && resume.header.email && <span>•</span>}
           {(resume.header.phone || edit.editable) && (
             <span>
-              📞{" "}
               <EditableText
                 value={resume.header.phone || ""}
                 onCommit={(v) => edit.updateHeader({ phone: v })}
@@ -622,9 +625,10 @@ export const ModernMinimalTemplate: React.FC<TemplateRendererProps> = ({
               />
             </span>
           )}
+        </div>
+        <div className="flex flex-wrap justify-center gap-3">
           {(resume.header.location || edit.editable) && (
             <span>
-              📍{" "}
               <EditableText
                 value={resume.header.location || ""}
                 onCommit={(v) => edit.updateHeader({ location: v })}
@@ -632,8 +636,6 @@ export const ModernMinimalTemplate: React.FC<TemplateRendererProps> = ({
               />
             </span>
           )}
-        </div>
-        <div className="flex flex-wrap gap-4">
           {resume.header.linkedin && (
             <a
               href={resume.header.linkedin}
@@ -663,10 +665,14 @@ export const ModernMinimalTemplate: React.FC<TemplateRendererProps> = ({
           )}
         </div>
       </div>
+      {/* Double rule, traditional academic styling */}
+      <div className="mt-4 space-y-0.5">
+        <div className="h-px" style={{ backgroundColor: primaryColor }} />
+        <div className="h-px" style={{ backgroundColor: secondaryColor }} />
+      </div>
     </header>
   );
 
-  // ── Page content renderer ──────────────────────────────────────────────────
   const renderPageBlocks = (indices: number[], prevLastSection: string) => {
     let currentSection = prevLastSection;
     return indices.map((idx) => {
@@ -718,7 +724,6 @@ export const ModernMinimalTemplate: React.FC<TemplateRendererProps> = ({
         alignItems: "flex-start",
       }}
     >
-      {/* ── Off-screen measurement ──────────────────────────────────────────── */}
       <MeasurementContainer widthMm={widthMm}>
         <div style={{ padding: marginPx, paddingBottom: 0 }}>
           <div ref={headerRef}>{headerNode}</div>
@@ -737,14 +742,12 @@ export const ModernMinimalTemplate: React.FC<TemplateRendererProps> = ({
         </div>
       </MeasurementContainer>
 
-      {/* ── Rendered pages ─────────────────────────────────────────────────── */}
       {pageGroups.map((group, pageIndex) => {
         const prevGroup = pageGroups[pageIndex - 1];
         const prevLastSection =
           pageIndex === 0
             ? ""
             : (blocks[prevGroup[prevGroup.length - 1]]?.sectionKey ?? "");
-
         return (
           <ResumePage
             key={pageIndex}
