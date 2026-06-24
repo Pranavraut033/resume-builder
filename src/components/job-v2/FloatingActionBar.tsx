@@ -19,6 +19,8 @@ interface FloatingActionBarProps {
   onToggleAts: () => void;
   isChatOpen: boolean;
   onToggleChat: () => void;
+  isOutlineOpen: boolean;
+  onToggleOutline: () => void;
 }
 
 /**
@@ -37,6 +39,8 @@ export function FloatingActionBar({
   onToggleAts,
   isChatOpen,
   onToggleChat,
+  isOutlineOpen,
+  onToggleOutline,
 }: FloatingActionBarProps) {
   const { isExportingPdf, onJSONExport, onPDFExport, redoResume, undoResume } =
     useJobPageContext();
@@ -107,6 +111,21 @@ export function FloatingActionBar({
 
         {/* Template */}
         <TemplatePicker />
+
+        {/* Sections outline */}
+        <button
+          onClick={onToggleOutline}
+          className={cn(
+            "flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition-all",
+            isOutlineOpen
+              ? "bg-agent-primary text-agent-on-primary"
+              : "text-agent-on-surface-variant hover:bg-agent-surface-container hover:text-agent-on-surface"
+          )}
+          title="Reorder, hide, or add sections"
+        >
+          <Icon name="panelLeftClose" className="h-3.5 w-3.5" />
+          <span className="hidden md:inline">Sections</span>
+        </button>
 
         {/* ATS */}
         <button

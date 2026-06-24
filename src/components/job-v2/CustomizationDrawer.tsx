@@ -6,15 +6,17 @@ import ThemeCustomizationPanel from "@/components/job/ThemeCustomizationPanel";
 import { Icon } from "@/components/ui/Icon";
 import cn from "@/lib/cn";
 
+import { SectionThemeOverrides } from "./SectionThemeOverrides";
+
 interface CustomizationDrawerProps {
   open: boolean;
   onClose: () => void;
 }
 
 /**
- * CustomizationDrawer — slides in from the right side of the document canvas.
- * Wraps the existing ThemeCustomizationPanel; all state management remains in
- * JobPageContext via updateCustomizationState.
+ * CustomizationDrawer — side panel that slides in from the left by
+ * transitioning width, mirroring ChatOverlay. No backdrop, no absolute
+ * positioning — the document canvas shrinks to make room.
  */
 export function CustomizationDrawer({
   open,
@@ -31,24 +33,15 @@ export function CustomizationDrawer({
   }, [open, onClose]);
 
   return (
-    <>
-      {/* Backdrop */}
-      {open && (
-        <div
-          className="absolute inset-0 z-30 bg-black/10 backdrop-blur-[1px]"
-          onClick={onClose}
-          aria-hidden
-        />
+    <aside
+      className={cn(
+        "border-agent-outline-variant bg-agent-surface-lowest flex shrink-0 flex-col overflow-hidden border-r transition-[width] duration-200 ease-in-out",
+        open ? "w-80" : "w-0"
       )}
-
-      {/* Drawer panel */}
-      <div
-        className={cn(
-          "border-agent-outline-variant bg-agent-surface-lowest shadow-agent-modal absolute top-0 right-0 z-40 flex h-full w-80 flex-col overflow-hidden border-l transition-transform duration-200",
-          open ? "translate-x-0" : "translate-x-full"
-        )}
-        aria-hidden={!open}
-      >
+      aria-hidden={!open}
+    >
+      {/* Fixed-width inner so content doesn't reflow during the slide animation */}
+      <div className="flex h-full w-80 min-w-0 flex-col">
         {/* Header */}
         <div className="border-agent-outline-variant flex items-center gap-2 border-b px-4 py-3">
           <Icon name="palette" className="text-agent-primary h-4 w-4" />
@@ -67,8 +60,9 @@ export function CustomizationDrawer({
         {/* Scrollable content */}
         <div className="flex-1 overflow-y-auto">
           <ThemeCustomizationPanel />
+          <SectionThemeOverrides />
         </div>
       </div>
-    </>
+    </aside>
   );
 }

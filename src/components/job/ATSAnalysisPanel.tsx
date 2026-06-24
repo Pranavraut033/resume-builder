@@ -17,6 +17,12 @@ import { useChatContext } from "../chat/ChatContext";
 import { ModelSelector } from "../ModelSelector";
 import { useToast } from "../ui/ToastProvider";
 
+// ponytail: stable reference so the Zustand selector doesn't return a new
+// array every render (was tripping React's getServerSnapshot-caching check
+// and crashing the page). Pre-existing bug, unrelated to this change — fixed
+// here only because it blocked verifying the inline editor in-browser.
+const EMPTY_MODEL_PAIR: [] = [];
+
 export type ATSAnalysisPanelProps =
   | {
       atsAnalysis?: ATSAnalysisJSON;
@@ -233,7 +239,7 @@ export function ATSAnalysisPanel(props: ATSAnalysisPanelProps) {
 
   const chatCtx = useChatContext(true);
   const [llmProvider, providerModel] = useModelStore(
-    (state) => state.activeModelPair ?? []
+    (state) => state.activeModelPair ?? EMPTY_MODEL_PAIR
   );
 
   const [tab, setTab] = useState<"quick" | "ai">("quick");

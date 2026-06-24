@@ -95,10 +95,7 @@ const PreviewViewport: React.FC<Props> = ({
   }, [isFitMode, recalculateFitZoom]);
 
   return (
-    <div
-      className="flex h-[88vh] flex-1 flex-col space-y-2 overflow-hidden p-2"
-      style={{ borderColor: "var(--color-agent-outline-variant)" }}
-    >
+    <div className="flex h-[88vh] flex-1 flex-col space-y-2 overflow-hidden p-2">
       {showTemplateSelector && (
         <Select
           value={customization.template}

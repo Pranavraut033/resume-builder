@@ -35,15 +35,10 @@ const ResumePage: React.FC<{
   >
     <div
       data-resume-page
+      className="shadow-agent-card relative overflow-hidden rounded-sm bg-white ring-1 ring-black/5"
       style={{
         width: widthPx,
         height: heightPx,
-        overflow: "hidden",
-        background: "white",
-        position: "relative",
-        boxShadow:
-          "0 4px 6px -1px rgba(0,0,0,0.10), 0 10px 32px -4px rgba(0,0,0,0.14)",
-        borderRadius: 2,
       }}
     >
       {background && background !== "none" && colors && (

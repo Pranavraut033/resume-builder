@@ -1,140 +1,316 @@
 "use client";
 
-import { useCallback } from "react";
+import {
+  DndContext,
+  DragEndEvent,
+  KeyboardSensor,
+  PointerSensor,
+  closestCenter,
+  useSensor,
+  useSensors,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  arrayMove,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
+import { useEffect, useState } from "react";
 
 import { Icon } from "@/components/ui/Icon";
+import { useJobPageContext } from "@/contexts/JobPageContext";
 import cn from "@/lib/cn";
-import { V2SectionId } from "@/types/customization";
-
-interface OutlineItem {
-  id: V2SectionId;
-  label: string;
-  icon: React.ComponentProps<typeof Icon>["name"];
-}
-
-const OUTLINE_ITEMS: OutlineItem[] = [
-  { id: "personal", label: "Personal Info", icon: "user" },
-  { id: "summary", label: "Summary", icon: "fileText" },
-  { id: "experience", label: "Experience", icon: "Briefcase" },
-  { id: "education", label: "Education", icon: "GraduationCap" },
-  { id: "skills", label: "Skills", icon: "Tag" },
-  { id: "projects", label: "Projects", icon: "Code2" },
-  { id: "certifications", label: "Certifications", icon: "Award" },
-];
+import {
+  BUILTIN_SECTION_LABELS,
+  BuiltinSectionId,
+  getSectionLayout,
+} from "@/types/resume";
 
 interface SectionOutlinePanelProps {
-  activeSection: V2SectionId | null;
-  hiddenSections?: V2SectionId[];
-  collapsed: boolean;
-  onToggleCollapse: () => void;
-  onSectionClick: (id: V2SectionId) => void;
+  open: boolean;
+  onClose: () => void;
 }
 
-export function SectionOutlinePanel({
-  activeSection,
-  hiddenSections = [],
-  collapsed,
-  onToggleCollapse,
-  onSectionClick,
-}: SectionOutlinePanelProps) {
-  const handleSectionClick = useCallback(
-    (id: V2SectionId) => {
-      onSectionClick(id);
-      // Scroll the document canvas section into view
-      const el = document.getElementById(`v2-section-${id}`);
-      if (el) {
-        el.scrollIntoView({ behavior: "smooth", block: "start" });
-      }
-    },
-    [onSectionClick]
+/**
+ * SectionOutlinePanel — drawer for reordering, hiding, and managing resume
+ * sections. Single source of truth for `resume.sectionLayout`: drag to
+ * reorder, eye toggle to hide a built-in section, +/- to add or remove a
+ * custom section, click a custom title to rename it.
+ *
+ * ponytail: this is a flat ordered list, not Enhance-CV-style per-page boxes
+ * — true page grouping needs each section's resolved page index, which only
+ * exists inside TemplateEngine's pagination hooks today. Wire a page-index
+ * callback out of TemplateEngine when that's worth the complexity; until
+ * then the flat list still gives full reorder/hide/custom-section control.
+ */
+export function SectionOutlinePanel({ open, onClose }: SectionOutlinePanelProps) {
+  const { resume, updateResumeState } = useJobPageContext();
+  const sectionLayout = getSectionLayout(resume);
+  const [renamingId, setRenamingId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [open, onClose]);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
   );
 
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    const oldIndex = sectionLayout.order.indexOf(active.id as string);
+    const newIndex = sectionLayout.order.indexOf(over.id as string);
+    if (oldIndex === -1 || newIndex === -1) return;
+    updateResumeState(
+      {
+        sectionLayout: {
+          ...sectionLayout,
+          order: arrayMove(sectionLayout.order, oldIndex, newIndex),
+        },
+      },
+      "Reordered sections"
+    );
+  };
+
+  const toggleHidden = (id: string) => {
+    const hidden = sectionLayout.hidden.includes(id)
+      ? sectionLayout.hidden.filter((h) => h !== id)
+      : [...sectionLayout.hidden, id];
+    updateResumeState(
+      { sectionLayout: { ...sectionLayout, hidden } },
+      "Toggled section visibility"
+    );
+  };
+
+  const addCustomSection = () => {
+    const id = `custom-${Date.now()}`;
+    updateResumeState(
+      {
+        sectionLayout: {
+          ...sectionLayout,
+          order: [...sectionLayout.order, id],
+          custom: [
+            ...sectionLayout.custom,
+            { id, title: "New Section", type: "bullets" as const, items: [] },
+          ],
+        },
+      },
+      "Added custom section"
+    );
+    setRenamingId(id);
+  };
+
+  const removeCustomSection = (id: string) => {
+    updateResumeState(
+      {
+        sectionLayout: {
+          ...sectionLayout,
+          order: sectionLayout.order.filter((s) => s !== id),
+          hidden: sectionLayout.hidden.filter((s) => s !== id),
+          custom: sectionLayout.custom.filter((c) => c.id !== id),
+        },
+      },
+      "Removed custom section"
+    );
+  };
+
+  const renameCustomSection = (id: string, title: string) => {
+    updateResumeState(
+      {
+        sectionLayout: {
+          ...sectionLayout,
+          custom: sectionLayout.custom.map((c) =>
+            c.id === id ? { ...c, title } : c
+          ),
+        },
+      },
+      "Renamed section"
+    );
+  };
+
+  const labelFor = (id: string) =>
+    BUILTIN_SECTION_LABELS[id as BuiltinSectionId] ??
+    sectionLayout.custom.find((c) => c.id === id)?.title ??
+    id;
+
+  const isCustom = (id: string) => sectionLayout.custom.some((c) => c.id === id);
+
   return (
-    <aside
+    <>
+      {open && (
+        <div
+          className="absolute inset-0 z-30 bg-black/10 backdrop-blur-[1px]"
+          onClick={onClose}
+          aria-hidden
+        />
+      )}
+
+      <div
+        className={cn(
+          "border-agent-outline-variant bg-agent-surface-lowest shadow-agent-modal absolute top-0 right-0 z-40 flex h-full w-80 flex-col overflow-hidden border-l transition-transform duration-200",
+          open ? "translate-x-0" : "translate-x-full"
+        )}
+        aria-hidden={!open}
+      >
+        <div className="border-agent-outline-variant flex items-center gap-2 border-b px-4 py-3">
+          <Icon name="panelLeftClose" className="text-agent-primary h-4 w-4" />
+          <h2 className="text-agent-on-surface flex-1 text-sm font-semibold">
+            Sections
+          </h2>
+          <button
+            onClick={onClose}
+            className="text-agent-on-surface-variant hover:bg-agent-surface-container flex h-7 w-7 items-center justify-center rounded-md transition-colors"
+            aria-label="Close sections drawer"
+          >
+            <Icon name="x" className="h-4 w-4" />
+          </button>
+        </div>
+
+        <DndContext
+          sensors={sensors}
+          collisionDetection={closestCenter}
+          onDragEnd={handleDragEnd}
+        >
+          <SortableContext
+            items={sectionLayout.order}
+            strategy={verticalListSortingStrategy}
+          >
+            <nav className="flex flex-1 flex-col gap-1 overflow-y-auto p-2">
+              {sectionLayout.order.map((id) => (
+                <SectionChip
+                  key={id}
+                  id={id}
+                  label={labelFor(id)}
+                  hidden={sectionLayout.hidden.includes(id)}
+                  custom={isCustom(id)}
+                  renaming={renamingId === id}
+                  onToggleHidden={() => toggleHidden(id)}
+                  onRemove={() => removeCustomSection(id)}
+                  onStartRename={() => setRenamingId(id)}
+                  onCommitRename={(title) => {
+                    renameCustomSection(id, title || "New Section");
+                    setRenamingId(null);
+                  }}
+                />
+              ))}
+            </nav>
+          </SortableContext>
+        </DndContext>
+
+        <div className="border-agent-outline-variant border-t p-2">
+          <button
+            onClick={addCustomSection}
+            className="text-agent-on-surface-variant hover:bg-agent-surface-container flex w-full items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-xs font-medium transition-colors"
+          >
+            <Icon name="plus" className="h-3.5 w-3.5" />
+            Add section
+          </button>
+        </div>
+      </div>
+    </>
+  );
+}
+
+function SectionChip({
+  id,
+  label,
+  hidden,
+  custom,
+  renaming,
+  onToggleHidden,
+  onRemove,
+  onStartRename,
+  onCommitRename,
+}: {
+  id: string;
+  label: string;
+  hidden: boolean;
+  custom: boolean;
+  renaming: boolean;
+  onToggleHidden: () => void;
+  onRemove: () => void;
+  onStartRename: () => void;
+  onCommitRename: (title: string) => void;
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
+    useSortable({ id });
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={{
+        transform: CSS.Transform.toString(transform),
+        transition,
+        opacity: isDragging ? 0.5 : 1,
+      }}
       className={cn(
-        "border-agent-outline-variant bg-agent-surface-lowest flex shrink-0 flex-col overflow-hidden border-r transition-all duration-200",
-        collapsed ? "w-12" : "w-52"
+        "group flex items-center gap-1.5 rounded-lg border px-2 py-1.5 transition-colors",
+        isDragging
+          ? "border-agent-primary bg-agent-primary-container/20"
+          : "border-agent-outline-variant/60 hover:bg-agent-surface-container/50",
+        hidden && "opacity-50"
       )}
     >
-      {/* Toggle button */}
-      <div className="border-agent-outline-variant flex h-10 shrink-0 items-center border-b px-2">
-        <button
-          onClick={onToggleCollapse}
-          className="text-agent-on-surface-variant hover:bg-agent-surface-container flex h-7 w-7 items-center justify-center rounded-md transition-colors"
-          title={collapsed ? "Expand outline" : "Collapse outline"}
-          aria-label={collapsed ? "Expand outline" : "Collapse outline"}
-        >
-          <Icon
-            name={collapsed ? "panelLeftOpen" : "panelLeftClose"}
-            className="h-4 w-4"
-          />
-        </button>
-        {!collapsed && (
-          <span className="text-agent-on-surface-variant ml-2 text-xs font-medium tracking-wide uppercase opacity-70">
-            Sections
-          </span>
-        )}
-      </div>
-
-      {/* Section list */}
-      <nav
-        className="flex flex-1 flex-col overflow-y-auto py-1.5"
-        role="navigation"
-        aria-label="Document sections"
+      <button
+        {...attributes}
+        {...listeners}
+        className="text-agent-on-surface-variant hover:text-agent-primary cursor-grab touch-none rounded p-0.5 active:cursor-grabbing"
+        aria-label={`Drag to reorder ${label}`}
       >
-        {OUTLINE_ITEMS.map((item) => {
-          const isActive = activeSection === item.id;
-          const isHidden = hiddenSections.includes(item.id);
+        <Icon name="gripVertical" className="h-3.5 w-3.5" />
+      </button>
 
-          return (
-            <button
-              key={item.id}
-              onClick={() => handleSectionClick(item.id)}
-              title={collapsed ? item.label : undefined}
-              aria-label={item.label}
-              className={cn(
-                "flex w-full items-center gap-2.5 px-2.5 py-2 text-left text-sm transition-all duration-100",
-                collapsed ? "justify-center" : "",
-                isActive
-                  ? "bg-agent-primary-container text-agent-on-primary-container"
-                  : isHidden
-                    ? "text-agent-on-surface-variant opacity-40 hover:opacity-70"
-                    : "text-agent-on-surface-variant hover:bg-agent-surface-container hover:text-agent-on-surface"
-              )}
-            >
-              <Icon
-                name={item.icon}
-                className="h-4 w-4 shrink-0"
-                color={
-                  isActive
-                    ? "var(--color-agent-on-primary-container)"
-                    : isHidden
-                      ? "var(--color-agent-on-surface-variant)"
-                      : "var(--color-agent-on-surface-variant)"
-                }
-              />
-              {!collapsed && (
-                <>
-                  <span className="flex-1 font-medium">{item.label}</span>
-                  {isHidden && (
-                    <Icon
-                      name="eyeOff"
-                      className="h-3 w-3 shrink-0 opacity-60"
-                    />
-                  )}
-                  {isActive && !isHidden && (
-                    <Icon
-                      name="ChevronRight"
-                      className="h-3.5 w-3.5 shrink-0"
-                      color="var(--color-agent-on-primary-container)"
-                    />
-                  )}
-                </>
-              )}
-            </button>
-          );
-        })}
-      </nav>
-    </aside>
+      {renaming ? (
+        <input
+          autoFocus
+          defaultValue={label}
+          onBlur={(e) => onCommitRename(e.target.value.trim())}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") (e.target as HTMLInputElement).blur();
+          }}
+          className="text-agent-on-surface min-w-0 flex-1 rounded border-none bg-transparent px-1 text-xs outline-none ring-1 ring-agent-primary"
+        />
+      ) : (
+        <span
+          onClick={custom ? onStartRename : undefined}
+          className={cn(
+            "min-w-0 flex-1 truncate text-xs font-medium",
+            custom && "cursor-text hover:underline"
+          )}
+          title={custom ? "Click to rename" : undefined}
+        >
+          {label}
+        </span>
+      )}
+
+      <button
+        onClick={onToggleHidden}
+        className="text-agent-on-surface-variant hover:bg-agent-surface-container rounded p-1 opacity-0 transition-opacity group-hover:opacity-100"
+        aria-label={hidden ? `Show ${label}` : `Hide ${label}`}
+        title={hidden ? "Show in export" : "Hide from export"}
+      >
+        <Icon name={hidden ? "eyeOff" : "eye"} className="h-3 w-3" />
+      </button>
+
+      {custom && (
+        <button
+          onClick={onRemove}
+          className="text-agent-on-surface-variant hover:bg-agent-error-container hover:text-agent-on-error-container rounded p-1 opacity-0 transition-opacity group-hover:opacity-100"
+          aria-label={`Delete ${label}`}
+          title="Delete section"
+        >
+          <Icon name="trash" className="h-3 w-3" />
+        </button>
+      )}
+    </div>
   );
 }

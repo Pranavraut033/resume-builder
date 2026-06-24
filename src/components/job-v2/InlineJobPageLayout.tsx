@@ -21,6 +21,7 @@ import { ChatOverlay } from "./ChatOverlay";
 import { CustomizationDrawer } from "./CustomizationDrawer";
 import { DocumentCanvas } from "./DocumentCanvas";
 import { FloatingActionBar } from "./FloatingActionBar";
+import { SectionOutlinePanel } from "./resume/SectionOutlinePanel";
 
 /**
  * InlineJobPageLayout — the V2 single-surface WYSIWYG editor.
@@ -51,6 +52,7 @@ export function InlineJobPageLayout() {
   const [isCustomizationOpen, setIsCustomizationOpen] = useState(false);
   const [isAtsOpen, setIsAtsOpen] = useState(false);
   const [isChatOpen, setIsChatOpen] = useState(false);
+  const [isOutlineOpen, setIsOutlineOpen] = useState(false);
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
   const [isPendingStatus, startStatusTransition] = useTransition();
 
@@ -247,8 +249,14 @@ export function InlineJobPageLayout() {
                 />
               </Modal>
 
-              {/* ── Body: canvas column + chat side panel ────────────────── */}
+              {/* ── Body: customization panel + canvas column + chat side panel ── */}
               <div className="bg-agent-surface-low flex min-h-0 flex-1 overflow-hidden">
+                {/* Customization side panel — pushes canvas right instead of overlaying */}
+                <CustomizationDrawer
+                  open={isCustomizationOpen}
+                  onClose={() => setIsCustomizationOpen(false)}
+                />
+
                 {/* Canvas column — fills remaining space */}
                 <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden">
                   <DocumentCanvas />
@@ -276,20 +284,28 @@ export function InlineJobPageLayout() {
                         setIsCustomizationOpen(false);
                         setIsAtsOpen(false);
                       }}
+                      isOutlineOpen={isOutlineOpen}
+                      onToggleOutline={() => {
+                        setIsOutlineOpen((o) => !o);
+                        setIsCustomizationOpen(false);
+                        setIsAtsOpen(false);
+                      }}
                     />
                   )}
-
-                  {/* Customization drawer — slides over the canvas */}
-                  <CustomizationDrawer
-                    open={isCustomizationOpen}
-                    onClose={() => setIsCustomizationOpen(false)}
-                  />
 
                   {/* ATS analysis drawer — slides over the canvas */}
                   <ATSDrawer
                     open={isAtsOpen}
                     onClose={() => setIsAtsOpen(false)}
                   />
+
+                  {/* Sections outline drawer — slides over the canvas */}
+                  {contentType === "resume" && (
+                    <SectionOutlinePanel
+                      open={isOutlineOpen}
+                      onClose={() => setIsOutlineOpen(false)}
+                    />
+                  )}
                 </div>
 
                 {/* Chat side panel — pushes canvas left instead of overlaying */}
