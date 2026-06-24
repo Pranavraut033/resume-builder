@@ -54,6 +54,7 @@ export const DEFAULT_CUSTOMIZATION: SanitizedCustomization = {
   colors: DEFAULT_COLORS.join(","),
   marginSize: "normal",
   background: "none",
+  themeJson: null,
 };
 
 export type Template = {
@@ -203,6 +204,7 @@ export function validateCustomization({
   marginSize,
   lineHeight,
   background,
+  themeJson,
 }: SanitizedCustomization) {
   if (template && !VALID_TEMPLATE_IDS.has(template as TemplateType)) {
     throw new Error("Invalid template selected.");
@@ -235,6 +237,16 @@ export function validateCustomization({
 
   if (background && !VALID_BACKGROUND_IDS.has(background as BackgroundId)) {
     throw new Error("Invalid background selected.");
+  }
+
+  if (themeJson) {
+    let theme: ThemeConfig;
+    try {
+      theme = JSON.parse(themeJson);
+    } catch {
+      throw new Error("Invalid themeJson: not valid JSON.");
+    }
+    validateThemeConfig(theme);
   }
 }
 
@@ -285,41 +297,79 @@ export const COLOR_PRESETS: Array<{
   },
 ];
 
-// ── V2 Inline Editor extensions ──────────────────────────────────────────────
-// These optional fields are stored within the JSON-backed customization and
-// are ignored by V1 components. No DB schema change required.
+// ── Theme engine ──────────────────────────────────────────────────────────
+// Presentation (fonts/spacing/per-section overrides) lives here, persisted
+// as Customization.themeJson. Structure (section order/hidden/custom) lives
+// on Resume.contentJson.sectionLayout — see src/types/resume.ts.
+//
+// themeJson is null for every pre-engine row; legacyToTheme() (see
+// src/lib/theme/legacyToTheme.ts) derives an equivalent ThemeConfig from the
+// legacy scalar columns (fontSize/colors/marginSize/lineHeight/fontFamily)
+// so old rows render identically until the user edits and it gets persisted.
 
-export type V2SectionId =
-  | "personal"
-  | "summary"
-  | "experience"
-  | "education"
-  | "skills"
-  | "projects"
-  | "certifications";
+export type HeadingStyle = "uppercase" | "underline" | "bar" | "serif";
 
-export const V2_DEFAULT_SECTION_ORDER: V2SectionId[] = [
-  "personal",
-  "summary",
-  "experience",
-  "education",
-  "skills",
-  "projects",
-  "certifications",
-];
+export type PerSectionOverride = Partial<{
+  color: string;
+  headingStyle: HeadingStyle;
+  gap: Leading;
+  hidden: boolean;
+}>;
 
-export type V2CustomizationExtensions = {
-  /** Ordered section IDs — V2 inline editor only */
-  sectionOrder?: V2SectionId[];
-  /** Section IDs the user has hidden from the exported resume */
-  hiddenSections?: V2SectionId[];
+export type ThemeConfig = {
+  colors: ThemeColors;
+  fonts: {
+    family: string;
+    baseSize: FontSize;
+    lineHeight: Leading;
+    headingSize: FontSize;
+    nameSize: FontSize;
+  };
+  spacing: {
+    margin: MarginSize;
+    sectionGap: Leading;
+    itemGap: Leading;
+  };
+  /** Keyed by section id (built-in or custom-section uuid). */
+  perSection?: Record<string, PerSectionOverride>;
 };
 
-/**
- * V2 customization type — a superset of SanitizedCustomization with
- * additional optional fields used by the inline WYSIWYG editor.
- * V1 components are typed as SanitizedCustomization and safely ignore
- * these extra keys at runtime.
- */
-export type V2Customization = SanitizedCustomization &
-  V2CustomizationExtensions;
+export function defaultThemeFromScalars(
+  customization: SanitizedCustomization
+): ThemeConfig {
+  return {
+    colors: customization.colors.split(",") as ThemeColors,
+    fonts: {
+      family: customization.fontFamily,
+      baseSize: customization.fontSize as FontSize,
+      lineHeight: customization.lineHeight as Leading,
+      headingSize: customization.fontSize as FontSize,
+      nameSize: customization.fontSize as FontSize,
+    },
+    spacing: {
+      margin: customization.marginSize as MarginSize,
+      sectionGap: "medium",
+      itemGap: "medium",
+    },
+  };
+}
+
+function validateThemeConfig(theme: ThemeConfig) {
+  validateColors(theme.colors);
+  if (!VALID_FONT_FAMILIES.has(theme.fonts.family)) {
+    throw new Error("Invalid theme font family.");
+  }
+  if (!VALID_FONT_SIZES.includes(theme.fonts.baseSize)) {
+    throw new Error("Invalid theme base font size.");
+  }
+  if (!VALID_MARGIN_SIZES.includes(theme.spacing.margin)) {
+    throw new Error("Invalid theme margin size.");
+  }
+}
+
+// ── V2 Inline Editor extensions ──────────────────────────────────────────────
+// Deprecated: order/hidden moved to Resume.contentJson.sectionLayout (see
+// src/types/resume.ts BUILTIN_SECTION_IDS / SectionLayoutSchema), which
+// covers all 11 sections instead of this set's 7 and actually persists.
+// V2Customization is kept only as an alias for the theme-extended shape.
+export type V2Customization = SanitizedCustomization & { themeJson?: string };

@@ -160,6 +160,10 @@ model Customization {
   colors     String @default("#3b82f6,#64748b,#8b5cf6,#1f2937,#ffffff")
   background String @default("none") // page background pattern id
 
+  // ThemeConfig JSON (fonts/spacing/per-section overrides). Null = derive
+  // from the legacy scalar columns above via legacyToTheme().
+  themeJson String? @map("theme_json")
+
   resumes     Resume?
   coverLetter CoverLetter?
 

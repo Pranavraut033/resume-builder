@@ -190,6 +190,78 @@ export const AwardSchema = z.object({
   description: z.string().nullable(),
 });
 
+// Canonical built-in section ids — single source of truth for section
+// ordering, replacing the old mismatched V2SectionId (7) / TXT (7) / template
+// internal key (11) lists.
+export const BUILTIN_SECTION_IDS = [
+  "header",
+  "summary",
+  "experience",
+  "education",
+  "skills",
+  "projects",
+  "certifications",
+  "publications",
+  "languages",
+  "volunteer",
+  "awards",
+] as const;
+
+export type BuiltinSectionId = (typeof BUILTIN_SECTION_IDS)[number];
+
+export const BUILTIN_SECTION_LABELS: Record<BuiltinSectionId, string> = {
+  header: "Personal Info",
+  summary: "Summary",
+  experience: "Experience",
+  education: "Education",
+  skills: "Skills",
+  projects: "Projects",
+  certifications: "Certifications",
+  publications: "Publications",
+  languages: "Languages",
+  volunteer: "Volunteer",
+  awards: "Awards",
+};
+
+// ponytail: custom-section content starts at bullets/text only. Add a
+// "timeline" (dated entries) shape when a user actually needs one — the enum
+// slot is reserved below, the UI/content model isn't built yet.
+export const CustomSectionSchema = z.object({
+  id: z.string(), // uuid; referenced by sectionLayout.order
+  title: z.string(),
+  type: z.enum(["bullets", "text", "timeline"]).default("bullets"),
+  items: z.array(z.string()).default([]),
+});
+
+export type CustomSection = z.infer<typeof CustomSectionSchema>;
+
+// Section order/visibility/custom-section structure. Optional + every field
+// defaulted so existing rows (no sectionLayout) parse fine — buildSections()
+// falls back to BUILTIN_SECTION_IDS order with nothing hidden/custom.
+export const SectionLayoutSchema = z.object({
+  order: z.array(z.string()),
+  hidden: z.array(z.string()).default([]),
+  custom: z.array(CustomSectionSchema).default([]),
+});
+
+export type SectionLayout = z.infer<typeof SectionLayoutSchema>;
+
+/**
+ * Resolve a resume's effective section layout. Pre-engine rows have no
+ * `sectionLayout` — fall back to the canonical built-in order with nothing
+ * hidden/custom, so old rows render identically until the user reorders and
+ * it gets persisted. Lazy migration: no backfill script needed.
+ */
+export function getSectionLayout(resume: ResumeJSON): SectionLayout {
+  return (
+    resume.sectionLayout ?? {
+      order: [...BUILTIN_SECTION_IDS],
+      hidden: [],
+      custom: [],
+    }
+  );
+}
+
 export const ResumeSchema = z.object({
   header: ContactInfoSchema,
   summary: z.string(),
@@ -202,6 +274,7 @@ export const ResumeSchema = z.object({
   languages: z.array(LanguageSchema).nullable(),
   volunteer: z.array(VolunteerSchema).nullable(),
   awards: z.array(AwardSchema).nullable(),
+  sectionLayout: SectionLayoutSchema.optional(),
 });
 
 export type ResumeJSON = z.infer<typeof ResumeSchema>;
