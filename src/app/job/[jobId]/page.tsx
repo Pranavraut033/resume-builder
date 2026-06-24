@@ -1,16 +1,7 @@
 "use client";
 
-import { CoverLetterEditor, ResumeEditor } from "@/components/job";
-import { useJobPageContext } from "@/contexts/JobPageContext";
+import { InlineJobPageLayout } from "@/components/job-v2/InlineJobPageLayout";
 
-const JobPage = () => {
-  const { contentType } = useJobPageContext();
-
-  return contentType === "coverLetter" ? (
-    <CoverLetterEditor />
-  ) : (
-    <ResumeEditor />
-  );
-};
-
-export default JobPage;
+export default function InlineEditorPage() {
+  return <InlineJobPageLayout />;
+}

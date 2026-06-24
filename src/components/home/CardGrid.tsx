@@ -31,7 +31,7 @@ export default function CardGrid({
       {jobs.map((job) => (
         <article
           key={job.id}
-          onClick={() => router.push(`/job/${job.id}/inline`)}
+          onClick={() => router.push(`/job/${job.id}`)}
           className="cursor-pointer rounded-2xl p-4 transition-all hover:-translate-y-0.5"
           style={{
             background: "var(--color-agent-surface-lowest)",

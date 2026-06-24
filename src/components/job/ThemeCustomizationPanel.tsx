@@ -1,4 +1,3 @@
-import { FontSelector, TemplateSelector } from "@/components/job";
 import { useJobPageContext } from "@/contexts/JobPageContext";
 import BackgroundSvg from "@/lib/backgrounds/BackgroundSvg";
 import { AVAILABLE_BACKGROUNDS, BackgroundId } from "@/lib/backgrounds/types";
@@ -14,6 +13,8 @@ import {
 
 import { Card } from "../ui";
 import DownloadButton from "./DownloadButton";
+import FontSelector from "./FontSelector";
+import TemplateSelector from "./TemplateSelector";
 
 const SWATCH_WIDTH = 240;
 const SWATCH_HEIGHT = 320;
@@ -230,7 +231,7 @@ const ThemeCustomizationPanel: React.FC<Props> = ({}) => {
           </p>
           <FontSelector
             value={customization.fontFamily ?? "Inter"}
-            onChange={(font) => updateCustomization({ fontFamily: font })}
+            onChange={(font: string) => updateCustomization({ fontFamily: font })}
           />
         </div>
       </Card>

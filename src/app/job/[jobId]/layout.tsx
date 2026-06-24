@@ -7,8 +7,8 @@ import { FallbackState, Button } from "@/components/ui";
 import { JobPageProvider } from "@/contexts/JobPageContext";
 
 export const metadata: Metadata = {
-  title: "Editor",
-  description: "Edit your resume and cover letter for the job.",
+  title: "Inline Editor",
+  description: "WYSIWYG resume and cover letter editor.",
 };
 
 export default async function EditorLayout({
