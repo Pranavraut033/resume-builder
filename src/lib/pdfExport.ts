@@ -1,5 +1,7 @@
 import React from "react";
 
+import { TEMPLATE_CONFIG } from "@/components/job-v2/engine/templates";
+import type { TemplateType } from "@/types/customization";
 import { SanitizedCustomization } from "@/types/customization";
 import { ResumeJSON } from "@/types/resume";
 
@@ -7,37 +9,17 @@ import {
   ResolvedPDFStyles,
   resolvePDFCustomization,
 } from "./pdf/resolveStyles";
+import { PDFTemplateEngine } from "./pdf/PDFTemplateEngine";
 import { AcademicSerifCoverLetterPDF } from "./pdf/templates/AcademicSerifCoverLetterPDF";
-import { AcademicSerifPDF } from "./pdf/templates/AcademicSerifPDF";
 import { BJetProfessionalCoverLetterPDF } from "./pdf/templates/BJetProfessionalCoverLetterPDF";
-import { BJetProfessionalPDF } from "./pdf/templates/BJetProfessionalPDF";
 import { BusinessProfessionalCoverLetterPDF } from "./pdf/templates/BusinessProfessionalCoverLetterPDF";
-import { BusinessProfessionalPDF } from "./pdf/templates/BusinessProfessionalPDF";
 import { CompactModernCoverLetterPDF } from "./pdf/templates/CompactModernCoverLetterPDF";
-import { CompactModernPDF } from "./pdf/templates/CompactModernPDF";
 import { CreativeModernCoverLetterPDF } from "./pdf/templates/CreativeModernCoverLetterPDF";
-import { CreativeModernPDF } from "./pdf/templates/CreativeModernPDF";
 import { ElegantTimelineCoverLetterPDF } from "./pdf/templates/ElegantTimelineCoverLetterPDF";
-import { ElegantTimelinePDF } from "./pdf/templates/ElegantTimelinePDF";
 import { ModernMinimalCoverLetterPDF } from "./pdf/templates/ModernMinimalCoverLetterPDF";
 import { ModernMinimalPDF } from "./pdf/templates/ModernMinimalPDF";
 import { TechSidebarCoverLetterPDF } from "./pdf/templates/TechSidebarCoverLetterPDF";
-import { TechSidebarPDF } from "./pdf/templates/TechSidebarPDF";
 import { TwoToneCoverLetterPDF } from "./pdf/templates/TwoToneCoverLetterPDF";
-import { TwoTonePDF } from "./pdf/templates/TwoTonePDF";
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const TEMPLATE_MAP: Record<string, React.ComponentType<any>> = {
-  "modern-minimal": ModernMinimalPDF,
-  "business-professional": BusinessProfessionalPDF,
-  "tech-sidebar": TechSidebarPDF,
-  "creative-modern": CreativeModernPDF,
-  "elegant-timeline": ElegantTimelinePDF,
-  "bjet-professional": BJetProfessionalPDF,
-  "compact-modern": CompactModernPDF,
-  "two-tone": TwoTonePDF,
-  "academic-serif": AcademicSerifPDF,
-};
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const COVER_LETTER_TEMPLATE_MAP: Record<string, React.ComponentType<any>> = {
@@ -55,6 +37,9 @@ const COVER_LETTER_TEMPLATE_MAP: Record<string, React.ComponentType<any>> = {
 /**
  * Generates a template-specific vector PDF via @react-pdf/renderer and triggers
  * a browser download. Must be called from a client context (browser / Tauri).
+ *
+ * Uses the new unified PDF template engine if a config exists in TEMPLATE_CONFIG,
+ * otherwise falls back to legacy per-template components.
  */
 export async function generateResumePDF(
   resume: ResumeJSON,
@@ -65,14 +50,29 @@ export async function generateResumePDF(
   const { pdf } = await import("@react-pdf/renderer");
 
   const styles = resolvePDFCustomization(customization);
-  const TemplateComponent =
-    TEMPLATE_MAP[customization.template] ?? ModernMinimalPDF;
+  const templateId = customization.template as TemplateType;
+  const config = TEMPLATE_CONFIG[templateId];
 
   const renderBlob = (pdfStyles: ResolvedPDFStyles): Promise<Blob> => {
-    const el = React.createElement(TemplateComponent, {
-      resume,
-      styles: pdfStyles,
-    });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let el: any;
+
+    if (config) {
+      // Use new unified PDF engine
+      el = React.createElement(PDFTemplateEngine, {
+        resume,
+        styles: pdfStyles,
+        config,
+      });
+    } else {
+      // All 9 templates have configs; this only fires for a corrupt/unknown
+      // `template` value — fall back to the legacy Modern Minimal component.
+      el = React.createElement(ModernMinimalPDF, {
+        resume,
+        styles: pdfStyles,
+      });
+    }
+
     return pdf(el).toBlob();
   };
 

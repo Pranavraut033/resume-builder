@@ -1,47 +1,24 @@
+import { buildSections } from "@/components/job-v2/engine/buildSections";
+import { SECTION_REGISTRY } from "@/components/job-v2/engine/sections";
 import { ResumeJSON } from "@/types/resume";
 
+// Columns are irrelevant for plain text — a 1-column config just gives
+// buildSections() a layout to resolve against; order/hidden/custom apply
+// the same regardless.
+const TXT_LAYOUT_CONFIG = { columns: 1 as const, heading: "underline" as const, defaultFont: "" };
+
 export function generateResumeTXT(resume: ResumeJSON): string {
-  let txt = "";
+  const header = `${resume.header.name}\n${resume.header.email}\n\n`;
 
-  // Header
-  txt += `${resume.header.name}\n`;
-  txt += `${resume.header.email}\n\n`;
+  const body = buildSections(resume, TXT_LAYOUT_CONFIG)
+    .map((instance) => {
+      const entry = SECTION_REGISTRY[instance.type];
+      if (!entry) return "";
+      const text = entry.txt({ resume, instance });
+      return text ? `${text}\n` : "";
+    })
+    .filter(Boolean)
+    .join("");
 
-  // Summary
-  txt += "Summary:\n";
-  txt += `${resume.summary}\n\n`;
-
-  // Experience
-  txt += "Experience:\n";
-  resume.experience.forEach((exp) => {
-    txt += `${exp.role} at ${exp.company}\n`;
-    txt += `${exp.startDate} - ${exp.endDate || "Present"}\n`;
-    txt += `${exp.description}\n\n`;
-  });
-
-  // Projects
-  txt += "Projects:\n";
-  resume.projects.forEach((proj) => {
-    txt += `${proj.name}\n`;
-    txt += `${proj.description}\n\n`;
-  });
-
-  // Skills
-  txt += "Skills:\n";
-  txt += `${resume.skills.join(", ")}\n\n`;
-
-  // Education
-  txt += "Education:\n";
-  resume.education.forEach((edu) => {
-    txt += `${edu.degree} from ${edu.institution}, ${edu.startDate}\n`;
-  });
-  txt += "\n";
-
-  // Certifications
-  txt += "Certifications:\n";
-  resume.certifications.forEach((cert) => {
-    txt += `${cert.name}, ${cert.date}\n`;
-  });
-
-  return txt;
+  return header + body;
 }
