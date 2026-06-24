@@ -172,6 +172,54 @@ export function ATSScorePanel({
         </Card>
       )}
 
+      {/* Achievement Strength */}
+      {analysis.achievementStrength &&
+        analysis.achievementStrength.strong +
+          analysis.achievementStrength.weak >
+          0 && (
+          <Card>
+            <h4 className="mb-2 text-sm font-semibold text-gray-900 dark:text-white">
+              Achievement Strength
+            </h4>
+            <div className="flex gap-4 text-xs">
+              <span className="text-green-700 dark:text-green-400">
+                {analysis.achievementStrength.strong} strong
+              </span>
+              <span className="text-yellow-700 dark:text-yellow-400">
+                {analysis.achievementStrength.weak} weak
+              </span>
+            </div>
+          </Card>
+        )}
+
+      {/* Languages */}
+      {(analysis.matchedLanguages?.length > 0 ||
+        analysis.missingLanguages?.length > 0) && (
+        <Card>
+          <h4 className="mb-2 text-sm font-semibold text-gray-900 dark:text-white">
+            Languages
+          </h4>
+          <div className="flex flex-wrap gap-1">
+            {analysis.matchedLanguages?.map((lang) => (
+              <span
+                key={lang.name}
+                className="rounded bg-green-100 px-2 py-1 text-xs text-green-800 dark:bg-green-900/30 dark:text-green-300"
+              >
+                {lang.name}
+              </span>
+            ))}
+            {analysis.missingLanguages?.map((lang) => (
+              <span
+                key={lang.name}
+                className="rounded bg-yellow-100 px-2 py-1 text-xs text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300"
+              >
+                {lang.name}
+              </span>
+            ))}
+          </div>
+        </Card>
+      )}
+
       {/* Suggestions */}
       {analysis.suggestions && analysis.suggestions.length > 0 && (
         <Card>
@@ -186,7 +234,7 @@ export function ATSScorePanel({
                 className="flex gap-2 text-xs text-gray-700 dark:text-gray-300"
               >
                 <span className="mt-1 shrink-0 text-blue-500">•</span>
-                <span>{suggestion}</span>
+                <span className="min-w-0 break-words">{suggestion}</span>
               </li>
             ))}
           </ul>
