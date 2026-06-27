@@ -1,29 +1,22 @@
 /**
- * Provider Registration Entry Point
+ * Provider barrel.
  *
- * This file is the single explicit entry point that ensures all providers
- * are imported and registered with the registry.
- *
- * This prevents the risk of providers failing to register if their files
- * are never imported elsewhere in the codebase.
- *
- * All provider imports must happen here before the registry is used.
+ * Re-exports the registry/factory primitives from `@pranavraut033/llm-core`
+ * (which ships the 6 concrete providers), plus the host's `ProviderFactory`
+ * shim. Importing this barrel (transitively, via `./factory`) registers all
+ * 6 built-in providers.
  */
 
-// Import all providers - this triggers their registration
-import "./antrophic";
-import "./gemini";
-import "./grok";
-import "./ollama";
-import "./openai";
-import "./perplexity";
-
-// Export registry and factory for consumers
 export {
   ProviderRegistry,
   getRegistry,
   getAvailableProviders,
   getAvailableProviderTypes,
-} from "./registry";
-export { ProviderFactory } from "./factory";
-export type { ProviderMetadata } from "./registry";
+  LLMProvider,
+} from "@pranavraut033/llm-core";
+export type {
+  ProviderMetadata,
+  StructureResult,
+} from "@pranavraut033/llm-core";
+
+export { ProviderFactory, getProviderInstance } from "./factory";

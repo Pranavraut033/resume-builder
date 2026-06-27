@@ -1,13 +1,29 @@
 /**
  * Prompt Template System Entry Point
- * Centralized template library with Handlebars-based templates
+ * Centralized template library with Handlebars-based templates.
+ *
+ * The generic registry/resolver/validation engine lives in
+ * `@pranavraut033/llm-core/prompts`; this module keeps the domain layer —
+ * concrete templates, `PromptContext`/`PromptPurpose`, and `PromptSystem`'s
+ * compact-positional context normalization.
  */
 
 // Import types
 export * from "./types";
-export * from "./resolver";
 export * from "./registry";
-export * from "./validation";
+export {
+  resolveTemplate,
+  shapeContext,
+  estimateTokens,
+  validateTemplate,
+  validateTemplateResponse,
+  validateOrThrow,
+  getValidationSummary,
+} from "@pranavraut033/llm-core/prompts";
+export type {
+  ValidationResult,
+  ValidationError,
+} from "@pranavraut033/llm-core/prompts";
 // export * from "./documentation";
 
 // Import all templates to trigger registration
@@ -32,8 +48,9 @@ import {
   atsAnalysisToCompactPositional,
 } from "@/types/resume";
 
+import { resolveTemplate } from "@pranavraut033/llm-core/prompts";
+
 import { templateRegistry } from "./registry";
-import { resolveTemplate } from "./resolver";
 import { PromptContext, PromptPurpose, ResolvedPrompt } from "./types";
 
 /**

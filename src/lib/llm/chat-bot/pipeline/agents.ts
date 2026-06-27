@@ -16,7 +16,7 @@ import { ResolvedPrompt } from "@/lib/llm/prompts";
 import { resumeToText } from "@/lib/resumeToText";
 import { Experience, JobDetailsJSON, ResumeJSON } from "@/types/resume";
 
-import { LLMProvider } from "../../providers/LLMProvider";
+import { LLMProvider } from "@pranavraut033/llm-core";
 
 export type HallucinationFlag = {
   experienceIndex: number;

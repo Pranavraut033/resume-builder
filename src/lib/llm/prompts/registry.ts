@@ -1,92 +1,20 @@
 /**
- * Template Registry
- * Centralized registry for all prompt templates
+ * Template Registry — host shim around @pranavraut033/llm-core/prompts.
+ *
+ * `TemplateRegistry` is a true singleton (one shared static instance
+ * regardless of generic type args), so re-deriving it here with this app's
+ * `PromptContext`/`PromptPurpose` type params gives every template module a
+ * correctly-typed `templateRegistry` while still pointing at the same
+ * underlying registry the package exports.
  */
 
-import { PromptTemplate, PromptPurpose, PROMPT_PURPOSES } from "./types";
+import { TemplateRegistry } from "@pranavraut033/llm-core/prompts";
 
-/**
- * Centralized template registry
- * Single source of truth for all prompt templates
- */
-class TemplateRegistry {
-  private static instance: TemplateRegistry;
-  private templates: Map<string, PromptTemplate> = new Map();
+import { PromptContext, PromptPurpose } from "./types";
 
-  private constructor() {}
+export const templateRegistry = TemplateRegistry.getInstance<
+  PromptContext,
+  PromptPurpose
+>();
 
-  static getInstance(): TemplateRegistry {
-    if (!TemplateRegistry.instance) {
-      TemplateRegistry.instance = new TemplateRegistry();
-    }
-    return TemplateRegistry.instance;
-  }
-
-  /**
-   * Register a prompt template
-   */
-  register(template: PromptTemplate): void {
-    if (this.templates.has(template.id)) {
-      console.warn(`[Template Registry] Overwriting template: ${template.id}`);
-    }
-    this.templates.set(template.id, template);
-  }
-
-  /**
-   * Get template by ID
-   */
-  get(id: string): PromptTemplate | undefined {
-    return this.templates.get(id);
-  }
-
-  /**
-   * Get template by purpose
-   */
-  getByPurpose(purpose: PromptPurpose): PromptTemplate | undefined {
-    for (const template of this.templates.values()) {
-      if (template.purpose === purpose) {
-        return template;
-      }
-    }
-    return undefined;
-  }
-
-  /**
-   * List all registered templates
-   */
-  listAll(): PromptTemplate[] {
-    return Array.from(this.templates.values());
-  }
-
-  /**
-   * Clear all templates (useful for testing)
-   */
-  clear(): void {
-    this.templates.clear();
-  }
-
-  /**
-   * Get registry statistics
-   */
-  getStats(): {
-    templateCount: number;
-    purposeCoverage: Record<PromptPurpose, boolean>;
-  } {
-    const purposeCoverage: Record<PromptPurpose, boolean> = {} as Record<
-      PromptPurpose,
-      boolean
-    >;
-
-    for (const purpose of PROMPT_PURPOSES) {
-      purposeCoverage[purpose] = this.getByPurpose(purpose) !== undefined;
-    }
-
-    return {
-      templateCount: this.templates.size,
-      purposeCoverage,
-    };
-  }
-}
-
-export const templateRegistry = TemplateRegistry.getInstance();
 export { TemplateRegistry };

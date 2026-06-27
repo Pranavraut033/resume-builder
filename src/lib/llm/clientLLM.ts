@@ -28,7 +28,9 @@ export async function fetchModels(
   ...providers: ProviderType[]
 ): Promise<Record<ProviderType, string[]>> {
   const { getAvailableProviderTypes } = await import("@/lib/llm/providers");
-  const providerTypes = getAvailableProviderTypes();
+  // Only the 6 builtins are ever registered (see providers/factory.ts), so
+  // narrowing the package's open ProviderId back to our closed enum is safe.
+  const providerTypes = getAvailableProviderTypes() as ProviderType[];
   const modelsMap: Record<ProviderType, string[]> = { ...EMPTY_MODELS_MAPS };
 
   // Initialize empty model array for each provider

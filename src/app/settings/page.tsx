@@ -110,9 +110,13 @@ export default function SettingsPage() {
     }
   };
 
+  // Only the 6 builtins are ever registered (see providers/factory.ts), so
+  // narrowing the package's open ProviderId back to our closed enum is safe.
   const cloudProviders = getAvailableProviders().filter(
     (p) => p.requiresAuth && !p.isLocal
-  );
+  ) as (Omit<ReturnType<typeof getAvailableProviders>[number], "type"> & {
+    type: ProviderType;
+  })[];
 
   return (
     <div className="text-agent-on-surface min-h-full px-6 py-8">

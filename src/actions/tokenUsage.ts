@@ -15,35 +15,22 @@ import { PromptPurpose } from "@/lib/llm/prompts";
 import { prisma } from "@/lib/prisma";
 import { ProviderType } from "@/types/llm";
 
+import type { LLMUsageInfo as CoreLLMUsageInfo } from "@pranavraut033/llm-core";
+
 export type MultiPurpose = PromptPurpose[]; // then join when you need the string
 
 /**
- * Data structure for recording token usage of LLM calls
+ * Data structure for recording token usage of LLM calls.
+ *
+ * `provider`/`purpose` are kept as the package's open `string` types (not
+ * the narrower `ProviderType`/`PromptPurpose` host unions) because this
+ * record round-trips through `@pranavraut033/llm-core`'s provider calls,
+ * which only know about the open `ProviderId`/`string` vocabulary — and the
+ * `TokenUsage.provider`/`.purpose` DB columns are plain strings anyway.
+ * Host code can still freely construct these from `ProviderType`/
+ * `PromptPurpose` values (narrow → wide is always assignable).
  */
-export interface LLMUsageInfo {
-  // Core — all providers
-  promptTokens: number; // OpenAI: prompt_tokens / Anthropic: input_tokens
-  completionTokens: number; // OpenAI: completion_tokens / Anthropic: output_tokens
-  totalTokens?: number; // OpenAI: total_tokens
-
-  // Cache — Anthropic: cache_read_input_tokens / cache_creation_input_tokens
-  //          OpenAI: prompt_tokens_details.cached_tokens
-  cacheReadTokens?: number;
-  cacheCreationTokens?: number;
-
-  // Reasoning — OpenAI o-series: completion_tokens_details.reasoning_tokens
-  reasoningTokens?: number;
-
-  // Cost
-  costUSD?: number;
-
-  // Metadata
-  provider: ProviderType;
-  model: string;
-  purpose: PromptPurpose | MultiPurpose;
-  requestId?: string;
-  durationMs?: number;
-}
+export type LLMUsageInfo = CoreLLMUsageInfo;
 
 export interface TokenUsageFilters {
   startDate?: string; // ISO date string

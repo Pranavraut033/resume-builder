@@ -25,7 +25,10 @@ export const PROVIDER_ICONS: Record<
 function buildProviderInfo(): Record<ProviderType, ProviderMetadata> {
   return getAvailableProviders().reduce(
     (acc, provider) => {
-      acc[provider.type] = provider;
+      // Only the 6 builtins are ever registered (see providers/factory.ts),
+      // so narrowing the package's open ProviderId back to our closed enum
+      // is safe.
+      acc[provider.type as ProviderType] = provider;
       return acc;
     },
     {} as Record<ProviderType, ProviderMetadata>

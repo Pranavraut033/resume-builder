@@ -24,13 +24,15 @@ import {
 } from "@/types/llm";
 import { ResumeJSON, JobDetailsJSON, ATSAnalysisJSON } from "@/types/resume";
 
+import { LLMProvider } from "@pranavraut033/llm-core";
+
+import * as domainOps from "./domainOps";
 import {
   PromptPurpose,
   PromptContext,
   PromptSystem,
   ResolvedPrompt,
 } from "./prompts";
-import { LLMProvider } from "./providers/LLMProvider";
 
 const logger = createLogger("LLMService");
 
@@ -137,7 +139,8 @@ class LLMService {
         }
 
         case "generate_cover_letter": {
-          ({ result, usage } = await provider.generateCoverLetter(
+          ({ result, usage } = await domainOps.generateCoverLetter(
+            provider,
             {
               resume: context.resume!,
               jobDetails: context.jobDetails!,
@@ -150,7 +153,8 @@ class LLMService {
         }
 
         case "generate_tailored_resume": {
-          ({ result, usage } = await provider.generateResume(
+          ({ result, usage } = await domainOps.generateResume(
+            provider,
             {
               baseProfile: context.baseProfile!,
               jobDetails: context.jobDetails!,
@@ -162,7 +166,8 @@ class LLMService {
         }
 
         case "parse_job": {
-          ({ result, usage } = await provider.parseJobDetails(
+          ({ result, usage } = await domainOps.parseJobDetails(
+            provider,
             context.jobDescription!,
             options
           ));
@@ -170,21 +175,24 @@ class LLMService {
         }
 
         case "parse_resume": {
-          ({ result, usage } = await provider.parseResume(
+          ({ result, usage } = await domainOps.parseResume(
+            provider,
             context.resumeText!,
             options
           ));
           break;
         }
         case "humanize_content": {
-          ({ result, usage } = await provider.humanizeContent(
+          ({ result, usage } = await domainOps.humanizeContent(
+            provider,
             context.userInput!,
             options
           ));
           break;
         }
         case "analyze_ats": {
-          ({ result, usage } = await provider.analyzeATS(
+          ({ result, usage } = await domainOps.analyzeATS(
+            provider,
             {
               resume: context.resume!,
               jobDetails: context.jobDetails!,

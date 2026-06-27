@@ -6,7 +6,7 @@ import { JobDetailsJSON, ResumeJSON } from "@/types/resume";
 
 import { HallucinationFlag } from "./agents";
 import { PipelineDeps, runTailoringPipeline } from "./pipeline";
-import { LLMProvider } from "../../providers/LLMProvider";
+import { LLMProvider } from "@pranavraut033/llm-core";
 
 const usage: LLMUsageInfo = {
   promptTokens: 10,

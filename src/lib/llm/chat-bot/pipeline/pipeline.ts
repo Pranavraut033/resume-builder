@@ -18,7 +18,7 @@ import {
   rewriteBullets,
   scoreResume,
 } from "./agents";
-import { LLMProvider } from "../../providers/LLMProvider";
+import { LLMProvider } from "@pranavraut033/llm-core";
 import { mergeLLMUsageInfo } from "../../tokenTracker";
 
 export type PipelineStageEvent =

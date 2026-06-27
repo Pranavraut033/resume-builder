@@ -34,8 +34,10 @@ import {
   groupMappingsByField,
   KeywordMappingSchema,
 } from "./prompts/keywordMappingPrompt";
+import * as domainOps from "../domainOps";
 import { FieldEdit, RESUME_TOOLS, validateEditFieldArgs } from "./tools";
-import { LLMProvider } from "../providers/LLMProvider";
+
+import { LLMProvider } from "@pranavraut033/llm-core";
 
 export type ChatBotOptions = {
   provider: ProviderType;
@@ -365,7 +367,8 @@ class ResumeChatBot {
           `Generating resume — intent: ${intent}, baseProfile: ${intent === IntentLabel.Regenerate ? "original" : "current"}`
         );
 
-        const { result, usage } = await this.provider.generateResume(
+        const { result, usage } = await domainOps.generateResume(
+          this.provider,
           {
             baseProfile:
               intent === IntentLabel.Regenerate
@@ -405,7 +408,8 @@ class ResumeChatBot {
           `Providing ATS advice — intent: ${intent}`
         );
 
-        const { result, usage } = await this.provider.analyzeATS(
+        const { result, usage } = await domainOps.analyzeATS(
+          this.provider,
           {
             resume: this.resume,
             jobDetails: this.jobDetails,
