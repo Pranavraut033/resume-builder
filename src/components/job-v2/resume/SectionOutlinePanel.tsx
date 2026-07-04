@@ -176,6 +176,7 @@ export function SectionOutlinePanel({ open, onClose }: SectionOutlinePanelProps)
         </div>
 
         <DndContext
+          id="section-outline-panel"
           sensors={sensors}
           collisionDetection={closestCenter}
           onDragEnd={handleDragEnd}

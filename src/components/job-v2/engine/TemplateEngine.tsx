@@ -425,7 +425,7 @@ export const TemplateEngine: React.FC<TemplateEngineProps> = ({
   if (!edit.editable) return body;
 
   return (
-    <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleItemDragEnd}>
+    <DndContext id="template-engine" sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleItemDragEnd}>
       <SortableContext items={sortableIds} strategy={verticalListSortingStrategy}>
         {body}
       </SortableContext>

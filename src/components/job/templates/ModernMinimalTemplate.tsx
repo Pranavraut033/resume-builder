@@ -799,6 +799,7 @@ export const ModernMinimalTemplate: React.FC<TemplateRendererProps> = ({
 
   return (
     <DndContext
+      id="modern-minimal-template"
       sensors={sensors}
       collisionDetection={closestCenter}
       onDragEnd={handleItemDragEnd}
