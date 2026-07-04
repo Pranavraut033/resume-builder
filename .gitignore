@@ -61,3 +61,7 @@ src-tauri/resources/next
 
 .understand-anything
 .scratch/
+
+# Playwright
+/test-results/
+/playwright-report/
