@@ -122,13 +122,27 @@ model Resume {
   updatedAt   DateTime @default(now()) @map("updated_at")
   contentJson String   @map("content_json") // JSON string containing ResumeJSON structure
 
-  customizations  Customization @relation(fields: [customizationId], references: [id], onDelete: Cascade)
-  customizationId Int           @unique @map("customization_id")
+  customizations  Customization    @relation(fields: [customizationId], references: [id], onDelete: Cascade)
+  customizationId Int              @unique @map("customization_id")
   jobs            Job?
-  atsAnalysis     ATSAnalysis?  @relation(fields: [aTSAnalysisId], references: [id], onDelete: Cascade)
-  aTSAnalysisId   Int?          @unique @map("ats_analysis_id")
+  atsAnalysis     ATSAnalysis?     @relation(fields: [aTSAnalysisId], references: [id], onDelete: Cascade)
+  aTSAnalysisId   Int?             @unique @map("ats_analysis_id")
+  snapshots       ResumeSnapshot[]
 
   @@map("resumes")
+}
+
+model ResumeSnapshot {
+  id          Int      @id @default(autoincrement())
+  createdAt   DateTime @default(now()) @map("created_at")
+  contentJson String   @map("content_json")
+  label       String
+
+  resumeId Int    @map("resume_id")
+  resume   Resume @relation(fields: [resumeId], references: [id], onDelete: Cascade)
+
+  @@index([resumeId])
+  @@map("resume_snapshots")
 }
 
 model CoverLetter {

@@ -21,6 +21,7 @@ import { ChatOverlay } from "./ChatOverlay";
 import { CustomizationDrawer } from "./CustomizationDrawer";
 import { DocumentCanvas } from "./DocumentCanvas";
 import { FloatingActionBar } from "./FloatingActionBar";
+import { HistoryDrawer } from "./HistoryDrawer";
 import { SectionOutlinePanel } from "./resume/SectionOutlinePanel";
 
 /**
@@ -53,6 +54,7 @@ export function InlineJobPageLayout() {
   const [isAtsOpen, setIsAtsOpen] = useState(false);
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [isOutlineOpen, setIsOutlineOpen] = useState(false);
+  const [isHistoryOpen, setIsHistoryOpen] = useState(false);
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
   const [isPendingStatus, startStatusTransition] = useTransition();
 
@@ -130,7 +132,7 @@ export function InlineJobPageLayout() {
         <div className="bg-agent-tertiary-fixed-dim pointer-events-none absolute -right-20 -bottom-20 h-72 w-72 rounded-full opacity-40 blur-3xl" />
 
         <div className="relative h-full p-3 md:p-4">
-          <div className="border-agent-outline-variant bg-agent-surface-lowest shadow-agent-modal h-full overflow-hidden rounded-2xl border backdrop-blur">
+          <div className="border-agent-outline-variant bg-agent-surface-lowest shadow-agent-modal h-full overflow-hidden rounded-2xl border">
             <div className="bg-agent-surface-lowest flex h-full flex-col overflow-hidden">
               {/* ── Header ───────────────────────────────────────────────── */}
               <header className="bg-agent-surface border-agent-outline-variant shrink-0 border-b">
@@ -290,6 +292,12 @@ export function InlineJobPageLayout() {
                         setIsCustomizationOpen(false);
                         setIsAtsOpen(false);
                       }}
+                      isHistoryOpen={isHistoryOpen}
+                      onToggleHistory={() => {
+                        setIsHistoryOpen((o) => !o);
+                        setIsCustomizationOpen(false);
+                        setIsAtsOpen(false);
+                      }}
                     />
                   )}
 
@@ -304,6 +312,14 @@ export function InlineJobPageLayout() {
                     <SectionOutlinePanel
                       open={isOutlineOpen}
                       onClose={() => setIsOutlineOpen(false)}
+                    />
+                  )}
+
+                  {/* Version history drawer — slides over the canvas */}
+                  {contentType === "resume" && (
+                    <HistoryDrawer
+                      open={isHistoryOpen}
+                      onClose={() => setIsHistoryOpen(false)}
                     />
                   )}
                 </div>

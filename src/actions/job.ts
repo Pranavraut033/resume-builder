@@ -241,31 +241,121 @@ export async function getResumeByJobId(jobId: number): Promise<
     });
 }
 
+const MAX_RESUME_SNAPSHOTS = 20;
+
 /**
- * Update resume for a job
+ * Update resume for a job. Snapshots the prior content first so it can be restored later.
  */
 export async function updateResume(
   jobId: number,
   contentJson: ResumeJSON,
-  customization: SanitizedCustomization
+  customization: SanitizedCustomization,
+  label = "Manual save"
 ) {
+  const job = await prisma.job.findUniqueOrThrow({
+    where: { id: jobId },
+    select: { resume: { select: { id: true, contentJson: true } } },
+  });
+
+  const nextContentJson = JSON.stringify(contentJson);
+
   await Promise.all([
     prisma.job.update({
       where: { id: jobId },
       data: {
         resume: {
           update: {
-            contentJson: JSON.stringify(contentJson),
+            contentJson: nextContentJson,
             updatedAt: new Date(),
           },
         },
       },
     }),
     updateOrCreateCustomization(customization),
+    job.resume && job.resume.contentJson !== nextContentJson
+      ? snapshotResume(job.resume.id, job.resume.contentJson, label)
+      : Promise.resolve(),
   ]);
 
   revalidatePath(`/job/${jobId}/resume`);
   return { success: true };
+}
+
+async function snapshotResume(
+  resumeId: number,
+  contentJson: string,
+  label: string
+) {
+  await prisma.resumeSnapshot.create({
+    data: { resumeId, contentJson, label },
+  });
+
+  const stale = await prisma.resumeSnapshot.findMany({
+    where: { resumeId },
+    orderBy: { createdAt: "desc" },
+    skip: MAX_RESUME_SNAPSHOTS,
+    select: { id: true },
+  });
+  if (stale.length > 0) {
+    await prisma.resumeSnapshot.deleteMany({
+      where: { id: { in: stale.map((s) => s.id) } },
+    });
+  }
+}
+
+/**
+ * List saved version snapshots for a job's resume, newest first.
+ */
+export async function getResumeSnapshots(jobId: number) {
+  const job = await prisma.job.findUniqueOrThrow({
+    where: { id: jobId },
+    select: {
+      resume: {
+        select: {
+          snapshots: {
+            orderBy: { createdAt: "desc" },
+            select: { id: true, label: true, createdAt: true },
+          },
+        },
+      },
+    },
+  });
+
+  return job.resume?.snapshots ?? [];
+}
+
+/**
+ * Restore a resume to a prior snapshot, snapshotting the current content first.
+ */
+export async function restoreResumeSnapshot(
+  jobId: number,
+  snapshotId: number
+): Promise<ResumeJSON> {
+  const job = await prisma.job.findUniqueOrThrow({
+    where: { id: jobId },
+    select: { resume: { select: { id: true, contentJson: true } } },
+  });
+
+  if (!job.resume) {
+    throw new Error(`Resume not found for job ${jobId}`);
+  }
+
+  const snapshot = await prisma.resumeSnapshot.findUniqueOrThrow({
+    where: { id: snapshotId },
+  });
+
+  if (snapshot.resumeId !== job.resume.id) {
+    throw new Error(`Snapshot ${snapshotId} does not belong to job ${jobId}`);
+  }
+
+  await snapshotResume(job.resume.id, job.resume.contentJson, "Before restore");
+  await prisma.resume.update({
+    where: { id: job.resume.id },
+    data: { contentJson: snapshot.contentJson, updatedAt: new Date() },
+  });
+
+  revalidatePath(`/job/${jobId}/resume`);
+  return JSON.parse(snapshot.contentJson) as ResumeJSON;
 }
 
 export async function saveAtsAnalysis(
@@ -339,6 +429,79 @@ export async function getAllJob(
   });
 
   return jobList as JobRecord[];
+}
+
+export type DocumentRecord = {
+  jobId: number;
+  docType: "resume" | "coverLetter";
+  role: string;
+  companyName: string;
+  status: JobStatus;
+  atsScore: number | null;
+  createdAt: Date;
+  updatedAt: Date;
+};
+
+/**
+ * List every resume and cover letter across all jobs, for the Documents page.
+ */
+export async function getAllDocuments(
+  profileId?: number | null
+): Promise<DocumentRecord[]> {
+  const jobs = await prisma.job.findMany({
+    where: profileId ? { profileId } : undefined,
+    orderBy: { updatedAt: "desc" },
+    include: {
+      company: true,
+      resume: { include: { atsAnalysis: true } },
+      coverLetter: true,
+    },
+  });
+
+  const documents: DocumentRecord[] = [];
+
+  for (const job of jobs) {
+    const base = {
+      jobId: job.id,
+      role: job.role,
+      companyName: job.company.name,
+      status: job.status as JobStatus,
+    };
+
+    if (job.resume) {
+      let atsScore: number | null = null;
+      if (job.resume.atsAnalysis?.contentJson) {
+        try {
+          const parsed = JSON.parse(
+            job.resume.atsAnalysis.contentJson
+          ) as ATSAnalysisJSON;
+          atsScore = parsed.scores.composite_score;
+        } catch {
+          atsScore = null;
+        }
+      }
+
+      documents.push({
+        ...base,
+        docType: "resume",
+        atsScore,
+        createdAt: job.resume.createdAt,
+        updatedAt: job.resume.updatedAt,
+      });
+    }
+
+    if (job.coverLetter) {
+      documents.push({
+        ...base,
+        docType: "coverLetter",
+        atsScore: null,
+        createdAt: job.coverLetter.createdAt,
+        updatedAt: job.coverLetter.updatedAt,
+      });
+    }
+  }
+
+  return documents;
 }
 
 /**

@@ -21,6 +21,8 @@ interface FloatingActionBarProps {
   onToggleChat: () => void;
   isOutlineOpen: boolean;
   onToggleOutline: () => void;
+  isHistoryOpen: boolean;
+  onToggleHistory: () => void;
 }
 
 /**
@@ -41,6 +43,8 @@ export function FloatingActionBar({
   onToggleChat,
   isOutlineOpen,
   onToggleOutline,
+  isHistoryOpen,
+  onToggleHistory,
 }: FloatingActionBarProps) {
   const { isExportingPdf, onJSONExport, onPDFExport, redoResume, undoResume } =
     useJobPageContext();
@@ -90,6 +94,20 @@ export function FloatingActionBar({
           title={historyState.redoLabel || "Redo"}
         >
           <Icon name="redo" className="h-3.5 w-3.5" />
+        </button>
+
+        {/* History */}
+        <button
+          onClick={onToggleHistory}
+          className={cn(
+            "flex h-7 w-7 items-center justify-center rounded-full transition-all",
+            isHistoryOpen
+              ? "bg-agent-primary text-agent-on-primary"
+              : "text-agent-on-surface-variant hover:bg-agent-surface-container hover:text-agent-on-surface"
+          )}
+          title="Version history"
+        >
+          <Icon name="history" className="h-3.5 w-3.5" />
         </button>
 
         <span className="bg-agent-outline-variant mx-0.5 h-5 w-px" />
