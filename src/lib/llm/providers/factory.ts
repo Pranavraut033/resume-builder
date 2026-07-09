@@ -18,6 +18,8 @@ import {
 // Side-effect import: registers the 6 built-in providers with the shared
 // registry. MUST happen before any getInstance calls.
 import "@pranavraut033/llm-core/providers/register-builtins";
+// Side-effect import: registers the managed (paid) provider.
+import "./managedProvider";
 
 /**
  * Get a provider instance by type.

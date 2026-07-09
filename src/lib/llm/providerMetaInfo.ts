@@ -5,6 +5,7 @@ import {
   OllamaIcon,
   PerplexityIcon,
   AnthropicIcon,
+  CloudIcon,
 } from "@/components/icons";
 import { ProviderMetadata, getAvailableProviders } from "@/lib/llm/providers";
 import { ProviderType } from "@/types/llm";
@@ -19,15 +20,16 @@ export const PROVIDER_ICONS: Record<
   [ProviderType.OLLAMA]: OllamaIcon,
   [ProviderType.PERPLEXITY]: PerplexityIcon,
   [ProviderType.ANTHROPIC]: AnthropicIcon,
+  [ProviderType.MANAGED]: CloudIcon,
 };
 
 // Build provider info map
 function buildProviderInfo(): Record<ProviderType, ProviderMetadata> {
   return getAvailableProviders().reduce(
     (acc, provider) => {
-      // Only the 6 builtins are ever registered (see providers/factory.ts),
-      // so narrowing the package's open ProviderId back to our closed enum
-      // is safe.
+      // Only the 7 registered providers (6 builtins + managed) are ever
+      // registered (see providers/factory.ts), so narrowing the package's
+      // open ProviderId back to our closed enum is safe.
       acc[provider.type as ProviderType] = provider;
       return acc;
     },

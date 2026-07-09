@@ -14,6 +14,7 @@ export const EMPTY_MODELS_MAPS = Object.freeze({
   [ProviderType.PERPLEXITY]: [],
   [ProviderType.OLLAMA]: [],
   [ProviderType.ANTHROPIC]: [],
+  [ProviderType.MANAGED]: [],
 } as Record<ProviderType, string[]>);
 
 const logger = createLogger("ClientLLM");

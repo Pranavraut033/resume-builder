@@ -98,6 +98,17 @@ export function ProviderCard({
             </p>
           )}
         </div>
+        {providerType === ProviderType.MANAGED &&
+          process.env.NEXT_PUBLIC_STRIPE_PAYMENT_URL && (
+            <a
+              href={process.env.NEXT_PUBLIC_STRIPE_PAYMENT_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="bg-agent-primary shrink-0 rounded-full px-3 py-1.5 text-xs font-semibold text-white hover:opacity-90"
+            >
+              Buy credits
+            </a>
+          )}
         <span
           className={clsx(
             "shrink-0 rounded-full px-2.5 py-0.5 text-xs font-medium",

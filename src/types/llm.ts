@@ -16,6 +16,7 @@ export enum ProviderType {
   PERPLEXITY = "perplexity",
   OLLAMA = "ollama",
   ANTHROPIC = "anthropic",
+  MANAGED = "managed",
 }
 
 export interface ResumePromptInput {

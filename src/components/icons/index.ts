@@ -2,6 +2,7 @@ import ArrowRightIcon from "./ArrowRightIcon";
 import BoltIcon from "./BoltIcon";
 import CalendarIcon from "./CalendarIcon";
 import AnthropicIcon from "./ClaudeIcon";
+import CloudIcon from "./CloudIcon";
 import GeminiIcon from "./GeminiIcon";
 import GrokIcon from "./GrokIcon";
 import OllamaIcon from "./OllamaIcon";
@@ -17,6 +18,7 @@ export {
   ArrowRightIcon,
   BoltIcon,
   CalendarIcon,
+  CloudIcon,
   OpenAIIcon,
   GeminiIcon,
   GrokIcon,
