@@ -5,7 +5,11 @@ import { useModelStore } from "@/store/modelStore";
 import { LLMResult } from "@/types/llm";
 import { JobDetailsJSON, ResumeJSON } from "@/types/resume";
 
-type Args = { resume?: ResumeJSON | null; jobData?: JobDetailsJSON | null; customInstructions?: string };
+type Args = {
+  resume?: ResumeJSON | null;
+  jobData?: JobDetailsJSON | null;
+  customInstructions?: string;
+};
 
 function useGenerateCoverLetter(
   options?: Omit<

@@ -10,7 +10,9 @@ import {
  * scalar columns so old rows render identically until the user edits and a
  * real ThemeConfig gets persisted. Lazy migration: no backfill needed.
  */
-export function legacyToTheme(customization: SanitizedCustomization): ThemeConfig {
+export function legacyToTheme(
+  customization: SanitizedCustomization
+): ThemeConfig {
   if (customization.themeJson) {
     try {
       return JSON.parse(customization.themeJson) as ThemeConfig;

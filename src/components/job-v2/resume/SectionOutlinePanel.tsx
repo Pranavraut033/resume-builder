@@ -45,7 +45,10 @@ interface SectionOutlinePanelProps {
  * callback out of TemplateEngine when that's worth the complexity; until
  * then the flat list still gives full reorder/hide/custom-section control.
  */
-export function SectionOutlinePanel({ open, onClose }: SectionOutlinePanelProps) {
+export function SectionOutlinePanel({
+  open,
+  onClose,
+}: SectionOutlinePanelProps) {
   const { resume, updateResumeState } = useJobPageContext();
   const sectionLayout = getSectionLayout(resume);
   const [renamingId, setRenamingId] = useState<string | null>(null);
@@ -142,7 +145,8 @@ export function SectionOutlinePanel({ open, onClose }: SectionOutlinePanelProps)
     sectionLayout.custom.find((c) => c.id === id)?.title ??
     id;
 
-  const isCustom = (id: string) => sectionLayout.custom.some((c) => c.id === id);
+  const isCustom = (id: string) =>
+    sectionLayout.custom.some((c) => c.id === id);
 
   return (
     <>
@@ -242,8 +246,14 @@ function SectionChip({
   onStartRename: () => void;
   onCommitRename: (title: string) => void;
 }) {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
-    useSortable({ id });
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id });
 
   return (
     <div
@@ -278,7 +288,7 @@ function SectionChip({
           onKeyDown={(e) => {
             if (e.key === "Enter") (e.target as HTMLInputElement).blur();
           }}
-          className="text-agent-on-surface min-w-0 flex-1 rounded border-none bg-transparent px-1 text-xs outline-none ring-1 ring-agent-primary"
+          className="text-agent-on-surface ring-agent-primary min-w-0 flex-1 rounded border-none bg-transparent px-1 text-xs ring-1 outline-none"
         />
       ) : (
         <span

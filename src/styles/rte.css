@@ -7,7 +7,7 @@
 
 /* Document-canvas variant: white bg, no border/radius, toolbar sticks to scroll container */
 .rte-wrapper--sticky-toolbar {
-  @apply border-none rounded-none overflow-visible ring-0 focus-within:ring-0 focus-within:ring-offset-0;
+  @apply overflow-visible rounded-none border-none ring-0 focus-within:ring-0 focus-within:ring-offset-0;
   background-color: #ffffff;
   color: #111827;
 }

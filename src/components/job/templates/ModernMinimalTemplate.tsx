@@ -208,9 +208,12 @@ export const ModernMinimalTemplate: React.FC<TemplateRendererProps> = ({
                 <ul
                   className={`${textSize} ${lineHeight} list-inside list-disc space-y-1`}
                 >
-                  {v.split("\n").filter(Boolean).map((a, i) => (
-                    <li key={i}>{a}</li>
-                  ))}
+                  {v
+                    .split("\n")
+                    .filter(Boolean)
+                    .map((a, i) => (
+                      <li key={i}>{a}</li>
+                    ))}
                 </ul>
               )}
             />
@@ -307,7 +310,10 @@ export const ModernMinimalTemplate: React.FC<TemplateRendererProps> = ({
             value={resume.skills.join(", ")}
             onCommit={(v) =>
               edit.updateSkills(
-                v.split(",").map((s) => s.trim()).filter(Boolean)
+                v
+                  .split(",")
+                  .map((s) => s.trim())
+                  .filter(Boolean)
               )
             }
             fieldType="textarea"
@@ -425,7 +431,9 @@ export const ModernMinimalTemplate: React.FC<TemplateRendererProps> = ({
             {(cert.url || edit.editable) && (
               <EditableLink
                 href={cert.url ?? ""}
-                onCommit={(v) => edit.updateCertification(certIndex, { url: v })}
+                onCommit={(v) =>
+                  edit.updateCertification(certIndex, { url: v })
+                }
                 placeholder="https://…"
                 className="ml-2 hover:underline"
                 style={{ color: secondaryColor }}
@@ -472,7 +480,9 @@ export const ModernMinimalTemplate: React.FC<TemplateRendererProps> = ({
     blocks.push({
       sectionKey: "languages",
       node: (
-        <div className={`${textSize} ${lineHeight} flex flex-wrap gap-x-4 gap-y-1`}>
+        <div
+          className={`${textSize} ${lineHeight} flex flex-wrap gap-x-4 gap-y-1`}
+        >
           {(resume.languages ?? []).map((l, idx) => (
             <LanguageField
               key={idx}

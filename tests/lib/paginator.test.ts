@@ -8,9 +8,7 @@ describe("groupBlocksIntoPages", () => {
   });
 
   it("packs all blocks onto one page when they all fit", () => {
-    expect(groupBlocksIntoPages([100, 100, 100], 1000)).toEqual([
-      [0, 1, 2],
-    ]);
+    expect(groupBlocksIntoPages([100, 100, 100], 1000)).toEqual([[0, 1, 2]]);
   });
 
   it("starts a new page when the next block would overflow", () => {
@@ -26,10 +24,7 @@ describe("groupBlocksIntoPages", () => {
   });
 
   it("reduces page-0 capacity by firstPageReserved", () => {
-    expect(groupBlocksIntoPages([500, 500], 1000, 600)).toEqual([
-      [0],
-      [1],
-    ]);
+    expect(groupBlocksIntoPages([500, 500], 1000, 600)).toEqual([[0], [1]]);
   });
 
   it("does not apply firstPageReserved to subsequent pages", () => {

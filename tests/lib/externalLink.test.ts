@@ -25,9 +25,7 @@ describe("isExternalHref", () => {
   });
 
   it("returns false for a same-origin absolute URL", () => {
-    expect(isExternalHref(window.location.origin + "/some/path")).toBe(
-      false
-    );
+    expect(isExternalHref(window.location.origin + "/some/path")).toBe(false);
   });
 
   it("returns true for a different-origin absolute URL", () => {

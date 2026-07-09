@@ -47,7 +47,10 @@ export interface InlineEditContextValue {
   updateCertification: (index: number, patch: Partial<Certification>) => void;
   updateSkill: (index: number, value: string) => void;
   updateSkills: (skills: string[]) => void;
-  updateExperienceAchievements: (expIndex: number, achievements: string[]) => void;
+  updateExperienceAchievements: (
+    expIndex: number,
+    achievements: string[]
+  ) => void;
   updateLanguage: (index: number, patch: Partial<Language>) => void;
   addLanguage: () => void;
   removeLanguage: (index: number) => void;
@@ -250,7 +253,12 @@ export function InlineEditProvider({
         ),
       addLanguage: () =>
         updateResume(
-          { languages: [...(resume.languages ?? []), { name: "", proficiency: "" }] },
+          {
+            languages: [
+              ...(resume.languages ?? []),
+              { name: "", proficiency: "" },
+            ],
+          },
           "Added language"
         ),
       removeLanguage: (index) =>

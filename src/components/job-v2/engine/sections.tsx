@@ -44,175 +44,184 @@ const summary: DomSectionBuilder = ({ resume, theme, edit }) => {
 };
 
 const experience: DomSectionBuilder = ({ resume, theme, edit }) =>
-  resume.experience.map((exp, expIndex): Block => ({
-    sectionKey: "experience",
-    itemIndex: expIndex,
-    node: (
-      <div>
-        <div className="mb-1 flex items-start justify-between gap-4">
-          <div>
-            <h3 className="font-semibold" style={{ color: theme.accentColor }}>
-              <EditableText
-                value={exp.role}
-                onCommit={(v) => edit.updateExperience(expIndex, { role: v })}
-                placeholder="Role"
-              />
-            </h3>
-            <p
-              className={`${theme.textSize} ${theme.lineHeight}`}
+  resume.experience.map(
+    (exp, expIndex): Block => ({
+      sectionKey: "experience",
+      itemIndex: expIndex,
+      node: (
+        <div>
+          <div className="mb-1 flex items-start justify-between gap-4">
+            <div>
+              <h3
+                className="font-semibold"
+                style={{ color: theme.accentColor }}
+              >
+                <EditableText
+                  value={exp.role}
+                  onCommit={(v) => edit.updateExperience(expIndex, { role: v })}
+                  placeholder="Role"
+                />
+              </h3>
+              <p
+                className={`${theme.textSize} ${theme.lineHeight}`}
+                style={{ color: theme.secondaryColor }}
+              >
+                <EditableText
+                  value={exp.company}
+                  onCommit={(v) =>
+                    edit.updateExperience(expIndex, { company: v })
+                  }
+                  placeholder="Company"
+                />
+              </p>
+            </div>
+            <span
+              className={`${theme.textSize} shrink-0`}
               style={{ color: theme.secondaryColor }}
             >
               <EditableText
-                value={exp.company}
+                value={exp.startDate}
                 onCommit={(v) =>
-                  edit.updateExperience(expIndex, { company: v })
+                  edit.updateExperience(expIndex, { startDate: v })
                 }
-                placeholder="Company"
+                placeholder="Start"
+              />
+              {" - "}
+              <EditableText
+                value={exp.endDate || ""}
+                onCommit={(v) =>
+                  edit.updateExperience(expIndex, { endDate: v })
+                }
+                placeholder="Present"
+              />
+            </span>
+          </div>
+          {(exp.description || edit.editable) && (
+            <p className={`${theme.textSize} ${theme.lineHeight} mb-2`}>
+              <EditableText
+                value={exp.description}
+                onCommit={(v) =>
+                  edit.updateExperience(expIndex, { description: v })
+                }
+                fieldType="textarea"
+                placeholder="Describe your role…"
               />
             </p>
-          </div>
-          <span
-            className={`${theme.textSize} shrink-0`}
-            style={{ color: theme.secondaryColor }}
-          >
+          )}
+          {(exp.achievements.length > 0 || edit.editable) && (
             <EditableText
-              value={exp.startDate}
+              value={exp.achievements.join("\n")}
               onCommit={(v) =>
-                edit.updateExperience(expIndex, { startDate: v })
+                edit.updateExperienceAchievements(
+                  expIndex,
+                  v.split("\n").filter(Boolean)
+                )
               }
-              placeholder="Start"
+              fieldType="bullet"
+              placeholder="Add bullet points, one per line…"
+              renderDisplay={(v) => (
+                <ul
+                  className={`${theme.textSize} ${theme.lineHeight} list-inside list-disc space-y-1`}
+                >
+                  {v
+                    .split("\n")
+                    .filter(Boolean)
+                    .map((a, i) => (
+                      <li key={i}>{a}</li>
+                    ))}
+                </ul>
+              )}
             />
-            {" - "}
-            <EditableText
-              value={exp.endDate || ""}
-              onCommit={(v) => edit.updateExperience(expIndex, { endDate: v })}
-              placeholder="Present"
-            />
-          </span>
+          )}
         </div>
-        {(exp.description || edit.editable) && (
-          <p className={`${theme.textSize} ${theme.lineHeight} mb-2`}>
-            <EditableText
-              value={exp.description}
-              onCommit={(v) =>
-                edit.updateExperience(expIndex, { description: v })
-              }
-              fieldType="textarea"
-              placeholder="Describe your role…"
-            />
-          </p>
-        )}
-        {(exp.achievements.length > 0 || edit.editable) && (
-          <EditableText
-            value={exp.achievements.join("\n")}
-            onCommit={(v) =>
-              edit.updateExperienceAchievements(
-                expIndex,
-                v.split("\n").filter(Boolean)
-              )
-            }
-            fieldType="bullet"
-            placeholder="Add bullet points, one per line…"
-            renderDisplay={(v) => (
-              <ul
-                className={`${theme.textSize} ${theme.lineHeight} list-inside list-disc space-y-1`}
-              >
-                {v
-                  .split("\n")
-                  .filter(Boolean)
-                  .map((a, i) => (
-                    <li key={i}>{a}</li>
-                  ))}
-              </ul>
-            )}
-          />
-        )}
-      </div>
-    ),
-  }));
+      ),
+    })
+  );
 
 const projects: DomSectionBuilder = ({ resume, theme, edit }) =>
-  resume.projects.map((project, projectIndex): Block => ({
-    sectionKey: "projects",
-    itemIndex: projectIndex,
-    node: (
-      <div>
-        <h3 className="font-semibold" style={{ color: theme.accentColor }}>
-          <EditableText
-            value={project.name}
-            onCommit={(v) => edit.updateProject(projectIndex, { name: v })}
-            placeholder="Project name"
-          />
-          {(project.url || edit.editable) && (
-            <EditableLink
-              href={project.url ?? ""}
-              onCommit={(v) => edit.updateProject(projectIndex, { url: v })}
-              placeholder="https://…"
-              className={`${theme.textSize} ml-2 hover:underline`}
+  resume.projects.map(
+    (project, projectIndex): Block => ({
+      sectionKey: "projects",
+      itemIndex: projectIndex,
+      node: (
+        <div>
+          <h3 className="font-semibold" style={{ color: theme.accentColor }}>
+            <EditableText
+              value={project.name}
+              onCommit={(v) => edit.updateProject(projectIndex, { name: v })}
+              placeholder="Project name"
+            />
+            {(project.url || edit.editable) && (
+              <EditableLink
+                href={project.url ?? ""}
+                onCommit={(v) => edit.updateProject(projectIndex, { url: v })}
+                placeholder="https://…"
+                className={`${theme.textSize} ml-2 hover:underline`}
+                style={{ color: theme.secondaryColor }}
+              >
+                [Link]
+              </EditableLink>
+            )}
+          </h3>
+          {(project.startDate || project.endDate || edit.editable) && (
+            <div
+              className={`${theme.textSize}`}
               style={{ color: theme.secondaryColor }}
             >
-              [Link]
-            </EditableLink>
+              <EditableText
+                value={project.startDate || ""}
+                onCommit={(v) =>
+                  edit.updateProject(projectIndex, { startDate: v })
+                }
+                placeholder="Start"
+              />
+              {" - "}
+              <EditableText
+                value={project.endDate || ""}
+                onCommit={(v) =>
+                  edit.updateProject(projectIndex, { endDate: v })
+                }
+                placeholder="Present"
+              />
+            </div>
           )}
-        </h3>
-        {(project.startDate || project.endDate || edit.editable) && (
-          <div
-            className={`${theme.textSize}`}
-            style={{ color: theme.secondaryColor }}
-          >
+          <p className={`${theme.textSize} ${theme.lineHeight} mb-1`}>
             <EditableText
-              value={project.startDate || ""}
+              value={project.description}
               onCommit={(v) =>
-                edit.updateProject(projectIndex, { startDate: v })
+                edit.updateProject(projectIndex, { description: v })
               }
-              placeholder="Start"
+              fieldType="textarea"
+              placeholder="Describe the project…"
             />
-            {" - "}
-            <EditableText
-              value={project.endDate || ""}
-              onCommit={(v) =>
-                edit.updateProject(projectIndex, { endDate: v })
-              }
-              placeholder="Present"
-            />
-          </div>
-        )}
-        <p className={`${theme.textSize} ${theme.lineHeight} mb-1`}>
-          <EditableText
-            value={project.description}
-            onCommit={(v) =>
-              edit.updateProject(projectIndex, { description: v })
-            }
-            fieldType="textarea"
-            placeholder="Describe the project…"
-          />
-        </p>
-        {project.technologies.length > 0 && (
-          <div
-            className={`${theme.textSize}`}
-            style={{ color: theme.secondaryColor }}
-          >
-            <span className="font-medium">Technologies:</span>{" "}
-            {project.technologies.map((tech, i) => (
-              <span key={i}>
-                {i > 0 && ", "}
-                <EditableText
-                  value={tech}
-                  onCommit={(v) => {
-                    const next = project.technologies.map((t, ti) =>
-                      ti === i ? v : t
-                    );
-                    edit.updateProjectTechnologies(projectIndex, next);
-                  }}
-                  placeholder="Tech"
-                />
-              </span>
-            ))}
-          </div>
-        )}
-      </div>
-    ),
-  }));
+          </p>
+          {project.technologies.length > 0 && (
+            <div
+              className={`${theme.textSize}`}
+              style={{ color: theme.secondaryColor }}
+            >
+              <span className="font-medium">Technologies:</span>{" "}
+              {project.technologies.map((tech, i) => (
+                <span key={i}>
+                  {i > 0 && ", "}
+                  <EditableText
+                    value={tech}
+                    onCommit={(v) => {
+                      const next = project.technologies.map((t, ti) =>
+                        ti === i ? v : t
+                      );
+                      edit.updateProjectTechnologies(projectIndex, next);
+                    }}
+                    placeholder="Tech"
+                  />
+                </span>
+              ))}
+            </div>
+          )}
+        </div>
+      ),
+    })
+  );
 
 const skills: DomSectionBuilder = ({ resume, theme, edit }) => {
   if (resume.skills.length === 0 && !edit.editable) return [];
@@ -242,148 +251,170 @@ const skills: DomSectionBuilder = ({ resume, theme, edit }) => {
 };
 
 const education: DomSectionBuilder = ({ resume, theme, edit }) =>
-  resume.education.map((edu, eduIndex): Block => ({
-    sectionKey: "education",
-    itemIndex: eduIndex,
-    node: (
-      <div>
-        <div className="flex items-start justify-between gap-4">
-          <div>
-            <h3 className="font-semibold" style={{ color: theme.accentColor }}>
-              <EditableText
-                value={edu.degree}
-                onCommit={(v) => edit.updateEducation(eduIndex, { degree: v })}
-                placeholder="Degree"
-              />
-              {(edu.field || edit.editable) && (
-                <>
-                  {" in "}
-                  <EditableText
-                    value={edu.field}
-                    onCommit={(v) =>
-                      edit.updateEducation(eduIndex, { field: v })
-                    }
-                    placeholder="Field"
-                  />
-                </>
-              )}
-            </h3>
-            <p
-              className={`${theme.textSize} ${theme.lineHeight}`}
+  resume.education.map(
+    (edu, eduIndex): Block => ({
+      sectionKey: "education",
+      itemIndex: eduIndex,
+      node: (
+        <div>
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <h3
+                className="font-semibold"
+                style={{ color: theme.accentColor }}
+              >
+                <EditableText
+                  value={edu.degree}
+                  onCommit={(v) =>
+                    edit.updateEducation(eduIndex, { degree: v })
+                  }
+                  placeholder="Degree"
+                />
+                {(edu.field || edit.editable) && (
+                  <>
+                    {" in "}
+                    <EditableText
+                      value={edu.field}
+                      onCommit={(v) =>
+                        edit.updateEducation(eduIndex, { field: v })
+                      }
+                      placeholder="Field"
+                    />
+                  </>
+                )}
+              </h3>
+              <p
+                className={`${theme.textSize} ${theme.lineHeight}`}
+                style={{ color: theme.secondaryColor }}
+              >
+                <EditableText
+                  value={edu.institution}
+                  onCommit={(v) =>
+                    edit.updateEducation(eduIndex, { institution: v })
+                  }
+                  placeholder="Institution"
+                />
+              </p>
+            </div>
+            <span
+              className={`${theme.textSize} shrink-0`}
               style={{ color: theme.secondaryColor }}
             >
               <EditableText
-                value={edu.institution}
+                value={edu.startDate}
                 onCommit={(v) =>
-                  edit.updateEducation(eduIndex, { institution: v })
+                  edit.updateEducation(eduIndex, { startDate: v })
                 }
-                placeholder="Institution"
+                placeholder="Start"
+              />
+              {" - "}
+              <EditableText
+                value={edu.endDate || ""}
+                onCommit={(v) => edit.updateEducation(eduIndex, { endDate: v })}
+                placeholder="Present"
+              />
+            </span>
+          </div>
+          {(edu.gpa || edit.editable) && (
+            <p
+              className={`${theme.textSize}`}
+              style={{ color: theme.secondaryColor }}
+            >
+              GPA:{" "}
+              <EditableText
+                value={edu.gpa || ""}
+                onCommit={(v) => edit.updateEducation(eduIndex, { gpa: v })}
+                placeholder="—"
               />
             </p>
-          </div>
-          <span
-            className={`${theme.textSize} shrink-0`}
+          )}
+        </div>
+      ),
+    })
+  );
+
+const certifications: DomSectionBuilder = ({ resume, theme, edit }) =>
+  resume.certifications.map(
+    (cert, certIndex): Block => ({
+      sectionKey: "certifications",
+      itemIndex: certIndex,
+      node: (
+        <div>
+          <h3 className="font-semibold" style={{ color: theme.accentColor }}>
+            <EditableText
+              value={cert.name}
+              onCommit={(v) => edit.updateCertification(certIndex, { name: v })}
+              placeholder="Certification"
+            />
+          </h3>
+          <p
+            className={`${theme.textSize}`}
             style={{ color: theme.secondaryColor }}
           >
             <EditableText
-              value={edu.startDate}
+              value={cert.issuer}
               onCommit={(v) =>
-                edit.updateEducation(eduIndex, { startDate: v })
+                edit.updateCertification(certIndex, { issuer: v })
               }
-              placeholder="Start"
+              placeholder="Issuer"
             />
-            {" - "}
+            {" • "}
             <EditableText
-              value={edu.endDate || ""}
-              onCommit={(v) => edit.updateEducation(eduIndex, { endDate: v })}
-              placeholder="Present"
+              value={cert.date}
+              onCommit={(v) => edit.updateCertification(certIndex, { date: v })}
+              placeholder="Date"
             />
-          </span>
-        </div>
-        {(edu.gpa || edit.editable) && (
-          <p className={`${theme.textSize}`} style={{ color: theme.secondaryColor }}>
-            GPA:{" "}
-            <EditableText
-              value={edu.gpa || ""}
-              onCommit={(v) => edit.updateEducation(eduIndex, { gpa: v })}
-              placeholder="—"
-            />
+            {(cert.url || edit.editable) && (
+              <EditableLink
+                href={cert.url ?? ""}
+                onCommit={(v) =>
+                  edit.updateCertification(certIndex, { url: v })
+                }
+                placeholder="https://…"
+                className="ml-2 hover:underline"
+                style={{ color: theme.secondaryColor }}
+              >
+                [Verify]
+              </EditableLink>
+            )}
           </p>
-        )}
-      </div>
-    ),
-  }));
-
-const certifications: DomSectionBuilder = ({ resume, theme, edit }) =>
-  resume.certifications.map((cert, certIndex): Block => ({
-    sectionKey: "certifications",
-    itemIndex: certIndex,
-    node: (
-      <div>
-        <h3 className="font-semibold" style={{ color: theme.accentColor }}>
-          <EditableText
-            value={cert.name}
-            onCommit={(v) => edit.updateCertification(certIndex, { name: v })}
-            placeholder="Certification"
-          />
-        </h3>
-        <p className={`${theme.textSize}`} style={{ color: theme.secondaryColor }}>
-          <EditableText
-            value={cert.issuer}
-            onCommit={(v) =>
-              edit.updateCertification(certIndex, { issuer: v })
-            }
-            placeholder="Issuer"
-          />
-          {" • "}
-          <EditableText
-            value={cert.date}
-            onCommit={(v) => edit.updateCertification(certIndex, { date: v })}
-            placeholder="Date"
-          />
-          {(cert.url || edit.editable) && (
-            <EditableLink
-              href={cert.url ?? ""}
-              onCommit={(v) => edit.updateCertification(certIndex, { url: v })}
-              placeholder="https://…"
-              className="ml-2 hover:underline"
-              style={{ color: theme.secondaryColor }}
-            >
-              [Verify]
-            </EditableLink>
-          )}
-        </p>
-      </div>
-    ),
-  }));
+        </div>
+      ),
+    })
+  );
 
 const publications: DomSectionBuilder = ({ resume, theme }) =>
-  (resume.publications ?? []).map((pub): Block => ({
-    sectionKey: "publications",
-    node: (
-      <div>
-        <h3 className="font-semibold" style={{ color: theme.accentColor }}>
-          {pub.title}
-        </h3>
-        <p className={`${theme.textSize} ${theme.lineHeight}`}>
-          {pub.authors.join(", ")}
-        </p>
-        <p className={`${theme.textSize}`} style={{ color: theme.secondaryColor }}>
-          {pub.venue} • {pub.date}
-          {pub.doi && ` • DOI: ${pub.doi}`}
-          {pub.url && (
-            <a
-              href={pub.url}
-              className="ml-2 hover:underline"
-              style={{ color: theme.secondaryColor }}
-            >
-              [View]
-            </a>
-          )}
-        </p>
-      </div>
-    ),
-  }));
+  (resume.publications ?? []).map(
+    (pub): Block => ({
+      sectionKey: "publications",
+      node: (
+        <div>
+          <h3 className="font-semibold" style={{ color: theme.accentColor }}>
+            {pub.title}
+          </h3>
+          <p className={`${theme.textSize} ${theme.lineHeight}`}>
+            {pub.authors.join(", ")}
+          </p>
+          <p
+            className={`${theme.textSize}`}
+            style={{ color: theme.secondaryColor }}
+          >
+            {pub.venue} • {pub.date}
+            {pub.doi && ` • DOI: ${pub.doi}`}
+            {pub.url && (
+              <a
+                href={pub.url}
+                className="ml-2 hover:underline"
+                style={{ color: theme.secondaryColor }}
+              >
+                [View]
+              </a>
+            )}
+          </p>
+        </div>
+      ),
+    })
+  );
 
 const languages: DomSectionBuilder = ({ resume, theme, edit }) => {
   if ((resume.languages ?? []).length === 0 && !edit.editable) return [];
@@ -417,57 +448,67 @@ const languages: DomSectionBuilder = ({ resume, theme, edit }) => {
 };
 
 const volunteer: DomSectionBuilder = ({ resume, theme }) =>
-  (resume.volunteer ?? []).map((v): Block => ({
-    sectionKey: "volunteer",
-    node: (
-      <div>
-        <div className="mb-1 flex items-start justify-between gap-4">
-          <div>
-            <h3 className="font-semibold" style={{ color: theme.accentColor }}>
-              {v.role}
-            </h3>
-            <p
-              className={`${theme.textSize} ${theme.lineHeight}`}
+  (resume.volunteer ?? []).map(
+    (v): Block => ({
+      sectionKey: "volunteer",
+      node: (
+        <div>
+          <div className="mb-1 flex items-start justify-between gap-4">
+            <div>
+              <h3
+                className="font-semibold"
+                style={{ color: theme.accentColor }}
+              >
+                {v.role}
+              </h3>
+              <p
+                className={`${theme.textSize} ${theme.lineHeight}`}
+                style={{ color: theme.secondaryColor }}
+              >
+                {v.organization}
+              </p>
+            </div>
+            <span
+              className={`${theme.textSize} shrink-0`}
               style={{ color: theme.secondaryColor }}
             >
-              {v.organization}
-            </p>
+              {v.startDate} - {v.endDate || "Present"}
+            </span>
           </div>
-          <span
-            className={`${theme.textSize} shrink-0`}
-            style={{ color: theme.secondaryColor }}
-          >
-            {v.startDate} - {v.endDate || "Present"}
-          </span>
+          {v.description && (
+            <p className={`${theme.textSize} ${theme.lineHeight}`}>
+              {v.description}
+            </p>
+          )}
         </div>
-        {v.description && (
-          <p className={`${theme.textSize} ${theme.lineHeight}`}>
-            {v.description}
-          </p>
-        )}
-      </div>
-    ),
-  }));
+      ),
+    })
+  );
 
 const awards: DomSectionBuilder = ({ resume, theme }) =>
-  (resume.awards ?? []).map((award): Block => ({
-    sectionKey: "awards",
-    node: (
-      <div>
-        <h3 className="font-semibold" style={{ color: theme.accentColor }}>
-          {award.title}
-        </h3>
-        <p className={`${theme.textSize}`} style={{ color: theme.secondaryColor }}>
-          {award.issuer} • {award.date}
-        </p>
-        {award.description && (
-          <p className={`${theme.textSize} ${theme.lineHeight}`}>
-            {award.description}
+  (resume.awards ?? []).map(
+    (award): Block => ({
+      sectionKey: "awards",
+      node: (
+        <div>
+          <h3 className="font-semibold" style={{ color: theme.accentColor }}>
+            {award.title}
+          </h3>
+          <p
+            className={`${theme.textSize}`}
+            style={{ color: theme.secondaryColor }}
+          >
+            {award.issuer} • {award.date}
           </p>
-        )}
-      </div>
-    ),
-  }));
+          {award.description && (
+            <p className={`${theme.textSize} ${theme.lineHeight}`}>
+              {award.description}
+            </p>
+          )}
+        </div>
+      ),
+    })
+  );
 
 // ponytail: custom sections render bullets/text only (matches
 // CustomSectionSchema.type in src/types/resume.ts). Add a richer renderer
@@ -507,9 +548,7 @@ const txtExperience: TxtSectionBuilder = ({ resume }) => {
   if (resume.experience.length === 0) return "";
   const body = resume.experience
     .map((exp) => {
-      const achievements = exp.achievements
-        .map((a) => `  - ${a}`)
-        .join("\n");
+      const achievements = exp.achievements.map((a) => `  - ${a}`).join("\n");
       return `${exp.role} at ${exp.company}\n${exp.startDate} - ${exp.endDate || "Present"}\n${exp.description}${achievements ? `\n${achievements}` : ""}`;
     })
     .join("\n\n");
@@ -519,7 +558,10 @@ const txtExperience: TxtSectionBuilder = ({ resume }) => {
 const txtProjects: TxtSectionBuilder = ({ resume }) => {
   if (resume.projects.length === 0) return "";
   const body = resume.projects
-    .map((p) => `${p.name}\n${p.description}${p.technologies.length ? `\nTechnologies: ${p.technologies.join(", ")}` : ""}`)
+    .map(
+      (p) =>
+        `${p.name}\n${p.description}${p.technologies.length ? `\nTechnologies: ${p.technologies.join(", ")}` : ""}`
+    )
     .join("\n\n");
   return `Projects:\n${body}\n`;
 };
@@ -530,7 +572,10 @@ const txtSkills: TxtSectionBuilder = ({ resume }) =>
 const txtEducation: TxtSectionBuilder = ({ resume }) => {
   if (resume.education.length === 0) return "";
   const body = resume.education
-    .map((edu) => `${edu.degree} in ${edu.field}, ${edu.institution}, ${edu.startDate} - ${edu.endDate || "Present"}`)
+    .map(
+      (edu) =>
+        `${edu.degree} in ${edu.field}, ${edu.institution}, ${edu.startDate} - ${edu.endDate || "Present"}`
+    )
     .join("\n");
   return `Education:\n${body}\n`;
 };
@@ -562,7 +607,10 @@ const txtVolunteer: TxtSectionBuilder = ({ resume }) => {
   const vols = resume.volunteer ?? [];
   if (vols.length === 0) return "";
   const body = vols
-    .map((v) => `${v.role} at ${v.organization}, ${v.startDate} - ${v.endDate || "Present"}\n${v.description}`)
+    .map(
+      (v) =>
+        `${v.role} at ${v.organization}, ${v.startDate} - ${v.endDate || "Present"}\n${v.description}`
+    )
     .join("\n\n");
   return `Volunteer:\n${body}\n`;
 };
@@ -571,7 +619,10 @@ const txtAwards: TxtSectionBuilder = ({ resume }) => {
   const awardList = resume.awards ?? [];
   if (awardList.length === 0) return "";
   const body = awardList
-    .map((a) => `${a.title}, ${a.issuer}, ${a.date}${a.description ? `\n${a.description}` : ""}`)
+    .map(
+      (a) =>
+        `${a.title}, ${a.issuer}, ${a.date}${a.description ? `\n${a.description}` : ""}`
+    )
     .join("\n");
   return `Awards:\n${body}\n`;
 };

@@ -43,7 +43,13 @@ const SectionHeading = memo(function SectionHeading({
   headingStyle: "uppercase" | "underline" | "bar" | "serif";
   isSidebar?: boolean;
 }) {
-  const { primaryColor, secondaryColor, fontFamily, headingFontSize, fontSize } = s;
+  const {
+    primaryColor,
+    secondaryColor,
+    fontFamily,
+    headingFontSize,
+    fontSize,
+  } = s;
 
   const isUppercase = headingStyle === "uppercase";
   const isBar = headingStyle === "bar";
@@ -212,7 +218,10 @@ export const PDFTemplateEngine: React.FC<PDFTemplateEngineProps> = ({
   );
 
   // ── Helper: Render section with heading ──────────────────────────────────
-  const renderSection = (instance: { id: string; type: string; title: string }, isSidebar = false) => {
+  const renderSection = (
+    instance: { id: string; type: string; title: string },
+    isSidebar = false
+  ) => {
     const builder = PDF_SECTION_REGISTRY[instance.type];
     if (!builder) return null;
 
@@ -269,8 +278,12 @@ export const PDFTemplateEngine: React.FC<PDFTemplateEngineProps> = ({
   const [ratio0, ratio1] = config.columnRatio ?? [0.35, 0.65];
   const sidebarBg = secondaryColor + "10";
 
-  const col0Sections = col0Instances.map((instance) => renderSection(instance, true));
-  const col1Sections = col1Instances.map((instance) => renderSection(instance, false));
+  const col0Sections = col0Instances.map((instance) =>
+    renderSection(instance, true)
+  );
+  const col1Sections = col1Instances.map((instance) =>
+    renderSection(instance, false)
+  );
 
   return (
     <Document>

@@ -29,9 +29,7 @@ describe("buildSearchUrls", () => {
 
   it("trims surrounding whitespace from query and location before encoding", () => {
     const urls = buildSearchUrls("  engineer  ", "  remote  ");
-    expect(urls.indeed).toBe(
-      "https://www.indeed.com/jobs?q=engineer&l=remote"
-    );
+    expect(urls.indeed).toBe("https://www.indeed.com/jobs?q=engineer&l=remote");
   });
 
   it("produces the expected literal URL per site", () => {

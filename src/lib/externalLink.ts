@@ -6,7 +6,9 @@ export function isExternalHref(href: string): boolean {
   if (/^(mailto|tel):/i.test(href)) return false;
   if (typeof window === "undefined") return /^https?:\/\//i.test(href);
   try {
-    return new URL(href, window.location.href).origin !== window.location.origin;
+    return (
+      new URL(href, window.location.href).origin !== window.location.origin
+    );
   } catch {
     return false;
   }

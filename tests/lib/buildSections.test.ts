@@ -32,7 +32,11 @@ const baseResume: ResumeJSON = {
   awards: null,
 };
 
-const CONFIG: TemplateConfig = { columns: 1, heading: "underline", defaultFont: "Inter" };
+const CONFIG: TemplateConfig = {
+  columns: 1,
+  heading: "underline",
+  defaultFont: "Inter",
+};
 
 describe("buildSections", () => {
   it("falls back to canonical built-in order when sectionLayout is absent", () => {
@@ -65,7 +69,12 @@ describe("buildSections", () => {
         order: ["custom-1", "summary"],
         hidden: [],
         custom: [
-          { id: "custom-1", title: "Publications List", type: "bullets", items: ["A paper"] },
+          {
+            id: "custom-1",
+            title: "Publications List",
+            type: "bullets",
+            items: ["A paper"],
+          },
         ],
       },
     };

@@ -88,8 +88,14 @@ export default function RichTextEditor({
   if (!editor) return <div className="rte-skeleton" />;
 
   return (
-    <div className={`rte-wrapper${stickyToolbar ? " rte-wrapper--sticky-toolbar" : ""}${className ? ` ${className}` : ""}`}>
-      <RichTextEditorToolbar editor={editor} onSetLink={setLink} stickyToolbar={stickyToolbar} />
+    <div
+      className={`rte-wrapper${stickyToolbar ? "rte-wrapper--sticky-toolbar" : ""}${className ? ` ${className}` : ""}`}
+    >
+      <RichTextEditorToolbar
+        editor={editor}
+        onSetLink={setLink}
+        stickyToolbar={stickyToolbar}
+      />
 
       <EditorContent editor={editor} />
     </div>

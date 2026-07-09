@@ -231,7 +231,9 @@ const ThemeCustomizationPanel: React.FC<Props> = ({}) => {
           </p>
           <FontSelector
             value={customization.fontFamily ?? "Inter"}
-            onChange={(font: string) => updateCustomization({ fontFamily: font })}
+            onChange={(font: string) =>
+              updateCustomization({ fontFamily: font })
+            }
           />
         </div>
       </Card>

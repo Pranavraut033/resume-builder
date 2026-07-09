@@ -17,7 +17,9 @@ export type PDFSectionBuilderArgs = {
   styles: ResolvedPDFStyles;
 };
 
-export type PDFSectionBuilder = (args: PDFSectionBuilderArgs) => React.ReactNode;
+export type PDFSectionBuilder = (
+  args: PDFSectionBuilderArgs
+) => React.ReactNode;
 
 // ── PDF Section Builders ────────────────────────────────────────────────────
 // Mirror of DOM section builders, but emit react-pdf Views/Texts instead of DOM nodes.
@@ -26,7 +28,13 @@ export type PDFSectionBuilder = (args: PDFSectionBuilderArgs) => React.ReactNode
 const pdfSummary: PDFSectionBuilder = ({ resume, styles: s }) => {
   if (!resume.summary) return null;
   return (
-    <Text style={{ fontSize: s.fontSize, lineHeight: s.lineHeight, color: "#374151" }}>
+    <Text
+      style={{
+        fontSize: s.fontSize,
+        lineHeight: s.lineHeight,
+        color: "#374151",
+      }}
+    >
       {plain(resume.summary)}
     </Text>
   );
@@ -61,13 +69,24 @@ const pdfExperience: PDFSectionBuilder = ({ resume, styles: s }) => {
             </Text>
           </View>
           {exp.description ? (
-            <Text style={{ fontSize, lineHeight, color: "#374151", marginBottom: 3 }}>
+            <Text
+              style={{
+                fontSize,
+                lineHeight,
+                color: "#374151",
+                marginBottom: 3,
+              }}
+            >
               {plain(exp.description)}
             </Text>
           ) : null}
           {exp.achievements.map((a, j) => (
-            <Text key={j} style={{ fontSize, lineHeight, color: "#374151", marginLeft: 8 }}>
-              {"• "}{a}
+            <Text
+              key={j}
+              style={{ fontSize, lineHeight, color: "#374151", marginLeft: 8 }}
+            >
+              {"• "}
+              {a}
             </Text>
           ))}
         </View>
@@ -77,7 +96,8 @@ const pdfExperience: PDFSectionBuilder = ({ resume, styles: s }) => {
 };
 
 const pdfProjects: PDFSectionBuilder = ({ resume, styles: s }) => {
-  const { fontSize, smallFontSize, lineHeight, accentColor, secondaryColor } = s;
+  const { fontSize, smallFontSize, lineHeight, accentColor, secondaryColor } =
+    s;
   if (resume.projects.length === 0) return null;
 
   return (
@@ -108,7 +128,9 @@ const pdfProjects: PDFSectionBuilder = ({ resume, styles: s }) => {
               </Text>
             ) : null}
           </View>
-          <Text style={{ fontSize, lineHeight, color: "#374151", marginBottom: 3 }}>
+          <Text
+            style={{ fontSize, lineHeight, color: "#374151", marginBottom: 3 }}
+          >
             {plain(proj.description)}
           </Text>
           {proj.technologies.length > 0 ? (
@@ -126,7 +148,13 @@ const pdfProjects: PDFSectionBuilder = ({ resume, styles: s }) => {
 const pdfSkills: PDFSectionBuilder = ({ resume, styles: s }) => {
   if (resume.skills.length === 0) return null;
   return (
-    <Text style={{ fontSize: s.fontSize, lineHeight: s.lineHeight, color: "#374151" }}>
+    <Text
+      style={{
+        fontSize: s.fontSize,
+        lineHeight: s.lineHeight,
+        color: "#374151",
+      }}
+    >
       {resume.skills.join("  •  ")}
     </Text>
   );
@@ -213,7 +241,9 @@ const pdfPublications: PDFSectionBuilder = ({ resume, styles: s }) => {
           <Text style={{ fontSize, fontWeight: 700, color: accentColor }}>
             {pub.title}
           </Text>
-          <Text style={{ fontSize: smallFontSize, lineHeight, color: "#374151" }}>
+          <Text
+            style={{ fontSize: smallFontSize, lineHeight, color: "#374151" }}
+          >
             {pub.authors.join(", ")}
           </Text>
           <Text style={{ fontSize: smallFontSize, color: "#6b7280" }}>
@@ -232,7 +262,13 @@ const pdfLanguages: PDFSectionBuilder = ({ resume, styles: s }) => {
   const langs = resume.languages ?? [];
   if (langs.length === 0) return null;
   return (
-    <Text style={{ fontSize: s.fontSize, lineHeight: s.lineHeight, color: "#374151" }}>
+    <Text
+      style={{
+        fontSize: s.fontSize,
+        lineHeight: s.lineHeight,
+        color: "#374151",
+      }}
+    >
       {langs.map((l) => `${l.name} (${l.proficiency})`).join("  •  ")}
     </Text>
   );
@@ -316,7 +352,10 @@ const pdfCustom: PDFSectionBuilder = ({ resume, instance }) => {
   ) : (
     <>
       {section.items.map((item, i) => (
-        <Text key={i}>{"• "}{item}</Text>
+        <Text key={i}>
+          {"• "}
+          {item}
+        </Text>
       ))}
     </>
   );

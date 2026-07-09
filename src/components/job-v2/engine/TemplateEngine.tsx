@@ -155,7 +155,9 @@ export const TemplateEngine: React.FC<TemplateEngineProps> = ({
   useEffect(() => {
     const el = headerRef.current;
     if (!el) return;
-    const obs = new ResizeObserver(([e]) => setHeaderHeight(e.contentRect.height));
+    const obs = new ResizeObserver(([e]) =>
+      setHeaderHeight(e.contentRect.height)
+    );
     obs.observe(el);
     setHeaderHeight(el.getBoundingClientRect().height);
     return () => obs.disconnect();
@@ -197,8 +199,14 @@ export const TemplateEngine: React.FC<TemplateEngineProps> = ({
   };
 
   const headerNode = headerHidden ? null : (
-    <header className="mb-8 border-b-2 pb-4" style={{ borderColor: primaryColor }}>
-      <h1 className={`mb-2 ${nameSize} font-bold`} style={{ color: primaryColor }}>
+    <header
+      className="mb-8 border-b-2 pb-4"
+      style={{ borderColor: primaryColor }}
+    >
+      <h1
+        className={`mb-2 ${nameSize} font-bold`}
+        style={{ color: primaryColor }}
+      >
         <EditableText
           value={resume.header.name}
           onCommit={(v) => edit.updateHeader({ name: v })}
@@ -224,29 +232,62 @@ export const TemplateEngine: React.FC<TemplateEngineProps> = ({
         <div className="flex flex-wrap gap-4">
           {(resume.header.email || edit.editable) && (
             <span>
-              ✉ <EditableText value={resume.header.email} onCommit={(v) => edit.updateHeader({ email: v })} placeholder="email@example.com" />
+              ✉{" "}
+              <EditableText
+                value={resume.header.email}
+                onCommit={(v) => edit.updateHeader({ email: v })}
+                placeholder="email@example.com"
+              />
             </span>
           )}
           {(resume.header.phone || edit.editable) && (
             <span>
-              📞 <EditableText value={resume.header.phone || ""} onCommit={(v) => edit.updateHeader({ phone: v })} placeholder="Phone" />
+              📞{" "}
+              <EditableText
+                value={resume.header.phone || ""}
+                onCommit={(v) => edit.updateHeader({ phone: v })}
+                placeholder="Phone"
+              />
             </span>
           )}
           {(resume.header.location || edit.editable) && (
             <span>
-              📍 <EditableText value={resume.header.location || ""} onCommit={(v) => edit.updateHeader({ location: v })} placeholder="Location" />
+              📍{" "}
+              <EditableText
+                value={resume.header.location || ""}
+                onCommit={(v) => edit.updateHeader({ location: v })}
+                placeholder="Location"
+              />
             </span>
           )}
         </div>
         <div className="flex flex-wrap gap-4">
           {(resume.header.linkedin || edit.editable) && (
-            <EditableLink href={resume.header.linkedin ?? ""} onCommit={(v) => edit.updateHeader({ linkedin: v })} placeholder="LinkedIn URL" className="hover:underline" style={{ color: theme.accentColor }} />
+            <EditableLink
+              href={resume.header.linkedin ?? ""}
+              onCommit={(v) => edit.updateHeader({ linkedin: v })}
+              placeholder="LinkedIn URL"
+              className="hover:underline"
+              style={{ color: theme.accentColor }}
+            />
           )}
           {(resume.header.github || edit.editable) && (
-            <EditableLink href={resume.header.github ?? ""} onCommit={(v) => edit.updateHeader({ github: v })} placeholder="GitHub URL" className="hover:underline" style={{ color: theme.accentColor }} />
+            <EditableLink
+              href={resume.header.github ?? ""}
+              onCommit={(v) => edit.updateHeader({ github: v })}
+              placeholder="GitHub URL"
+              className="hover:underline"
+              style={{ color: theme.accentColor }}
+            />
           )}
           {(resume.header.website || edit.editable) && (
-            <EditableLink href={resume.header.website ?? ""} onCommit={(v) => edit.updateHeader({ website: v })} placeholder="Website URL" className="hover:underline" style={{ color: theme.accentColor }} />
+            <EditableLink
+              href={resume.header.website ?? ""}
+              onCommit={(v) => edit.updateHeader({ website: v })}
+              placeholder="Website URL"
+              className="hover:underline"
+              style={{ color: theme.accentColor }}
+            />
           )}
         </div>
       </div>
@@ -266,7 +307,9 @@ export const TemplateEngine: React.FC<TemplateEngineProps> = ({
       const isNewSection = block.sectionKey !== currentSection;
       currentSection = block.sectionKey;
       const reorderable =
-        edit.editable && isListSection(block.sectionKey) && block.itemIndex !== undefined;
+        edit.editable &&
+        isListSection(block.sectionKey) &&
+        block.itemIndex !== undefined;
 
       return (
         <div key={idx} className="mb-4">
@@ -278,7 +321,10 @@ export const TemplateEngine: React.FC<TemplateEngineProps> = ({
           {reorderable ? (
             <EditableItem
               id={`${block.sectionKey}-${block.itemIndex}`}
-              label={instanceFor(block.sectionKey, instances)?.title ?? block.sectionKey}
+              label={
+                instanceFor(block.sectionKey, instances)?.title ??
+                block.sectionKey
+              }
               onDelete={() =>
                 edit.removeItem(
                   block.sectionKey as Parameters<typeof edit.removeItem>[0],
@@ -298,7 +344,11 @@ export const TemplateEngine: React.FC<TemplateEngineProps> = ({
 
   const measurement = (
     <MeasurementContainer
-      widthMm={config.columns === 2 ? widthMm * (config.columnRatio?.[0] ?? 0.35) : widthMm}
+      widthMm={
+        config.columns === 2
+          ? widthMm * (config.columnRatio?.[0] ?? 0.35)
+          : widthMm
+      }
     >
       <div style={{ padding: marginPx, paddingBottom: 0 }}>
         <div ref={headerRef}>{headerNode}</div>
@@ -308,7 +358,9 @@ export const TemplateEngine: React.FC<TemplateEngineProps> = ({
           <div key={i} ref={col0.setRef(i)}>
             {(i === 0 || col0Blocks[i - 1].sectionKey !== block.sectionKey) && (
               <div className="mb-2">
-                {sectionHeadingNode(instanceFor(block.sectionKey, col0Instances))}
+                {sectionHeadingNode(
+                  instanceFor(block.sectionKey, col0Instances)
+                )}
               </div>
             )}
             {block.node}
@@ -320,13 +372,18 @@ export const TemplateEngine: React.FC<TemplateEngineProps> = ({
 
   const measurementCol1 =
     config.columns === 2 ? (
-      <MeasurementContainer widthMm={widthMm * (config.columnRatio?.[1] ?? 0.65)}>
+      <MeasurementContainer
+        widthMm={widthMm * (config.columnRatio?.[1] ?? 0.65)}
+      >
         <div style={{ paddingLeft: marginPx, paddingRight: marginPx }}>
           {col1Blocks.map((block, i) => (
             <div key={i} ref={col1.setRef(i)}>
-              {(i === 0 || col1Blocks[i - 1].sectionKey !== block.sectionKey) && (
+              {(i === 0 ||
+                col1Blocks[i - 1].sectionKey !== block.sectionKey) && (
                 <div className="mb-2">
-                  {sectionHeadingNode(instanceFor(block.sectionKey, col1Instances))}
+                  {sectionHeadingNode(
+                    instanceFor(block.sectionKey, col1Instances)
+                  )}
                 </div>
               )}
               {block.node}
@@ -345,7 +402,9 @@ export const TemplateEngine: React.FC<TemplateEngineProps> = ({
     const group0 = col0.pageGroups[pageIndex] ?? [];
     const prevGroup0 = col0.pageGroups[pageIndex - 1] ?? [];
     const prevSection0 =
-      pageIndex === 0 ? "" : (col0Blocks[prevGroup0[prevGroup0.length - 1]]?.sectionKey ?? "");
+      pageIndex === 0
+        ? ""
+        : (col0Blocks[prevGroup0[prevGroup0.length - 1]]?.sectionKey ?? "");
 
     if (config.columns === 1) {
       return (
@@ -358,9 +417,20 @@ export const TemplateEngine: React.FC<TemplateEngineProps> = ({
           background={background}
           colors={colorsTuple}
         >
-          <div style={{ padding: marginPx, height: "100%", boxSizing: "border-box" }}>
+          <div
+            style={{
+              padding: marginPx,
+              height: "100%",
+              boxSizing: "border-box",
+            }}
+          >
             {pageIndex === 0 && headerNode}
-            {renderColumnBlocks(col0Blocks, col0Instances, group0, prevSection0)}
+            {renderColumnBlocks(
+              col0Blocks,
+              col0Instances,
+              group0,
+              prevSection0
+            )}
           </div>
         </ResumePage>
       );
@@ -369,7 +439,9 @@ export const TemplateEngine: React.FC<TemplateEngineProps> = ({
     const group1 = col1.pageGroups[pageIndex] ?? [];
     const prevGroup1 = col1.pageGroups[pageIndex - 1] ?? [];
     const prevSection1 =
-      pageIndex === 0 ? "" : (col1Blocks[prevGroup1[prevGroup1.length - 1]]?.sectionKey ?? "");
+      pageIndex === 0
+        ? ""
+        : (col1Blocks[prevGroup1[prevGroup1.length - 1]]?.sectionKey ?? "");
     const [ratio0, ratio1] = config.columnRatio ?? [0.35, 0.65];
 
     return (
@@ -385,7 +457,9 @@ export const TemplateEngine: React.FC<TemplateEngineProps> = ({
         {pageIndex === 0 && headerNode}
         <div
           className="flex"
-          style={{ height: pageIndex === 0 ? `calc(100% - ${headerHeight}px)` : "100%" }}
+          style={{
+            height: pageIndex === 0 ? `calc(100% - ${headerHeight}px)` : "100%",
+          }}
         >
           <div
             style={{
@@ -395,10 +469,26 @@ export const TemplateEngine: React.FC<TemplateEngineProps> = ({
               overflowY: "hidden",
             }}
           >
-            {renderColumnBlocks(col0Blocks, col0Instances, group0, prevSection0)}
+            {renderColumnBlocks(
+              col0Blocks,
+              col0Instances,
+              group0,
+              prevSection0
+            )}
           </div>
-          <div style={{ width: `${ratio1 * 100}%`, padding: "24px", overflowY: "hidden" }}>
-            {renderColumnBlocks(col1Blocks, col1Instances, group1, prevSection1)}
+          <div
+            style={{
+              width: `${ratio1 * 100}%`,
+              padding: "24px",
+              overflowY: "hidden",
+            }}
+          >
+            {renderColumnBlocks(
+              col1Blocks,
+              col1Instances,
+              group1,
+              prevSection1
+            )}
           </div>
         </div>
       </ResumePage>
@@ -425,8 +515,16 @@ export const TemplateEngine: React.FC<TemplateEngineProps> = ({
   if (!edit.editable) return body;
 
   return (
-    <DndContext id="template-engine" sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleItemDragEnd}>
-      <SortableContext items={sortableIds} strategy={verticalListSortingStrategy}>
+    <DndContext
+      id="template-engine"
+      sensors={sensors}
+      collisionDetection={closestCenter}
+      onDragEnd={handleItemDragEnd}
+    >
+      <SortableContext
+        items={sortableIds}
+        strategy={verticalListSortingStrategy}
+      >
         {body}
       </SortableContext>
     </DndContext>

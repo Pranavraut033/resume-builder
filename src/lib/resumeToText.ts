@@ -139,7 +139,7 @@ export function coverLetterToText(
   return `${header}\n\n${date}\n\n${htmlToText(coverLetter)}`;
 }
 
-function htmlToText(html: string): string {
+export function htmlToText(html: string): string {
   const tempDiv = document.createElement("div");
   tempDiv.innerHTML = html;
 

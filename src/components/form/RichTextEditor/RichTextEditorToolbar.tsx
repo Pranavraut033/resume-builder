@@ -22,7 +22,11 @@ export default function RichTextEditorToolbar({
         : null;
 
   return (
-    <div className={`rte-toolbar${stickyToolbar ? " rte-toolbar--sticky" : ""}`} role="toolbar" aria-label="Text formatting">
+    <div
+      className={`rte-toolbar${stickyToolbar ? "rte-toolbar--sticky" : ""}`}
+      role="toolbar"
+      aria-label="Text formatting"
+    >
       {/* Headings */}
       <div className="rte-group">
         {([1, 2, 3] as const).map((level) => (

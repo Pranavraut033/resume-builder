@@ -17,7 +17,9 @@ test.describe("new job form", () => {
     const submit = page.getByRole("button", { name: /Analyze & Start/ });
     await expect(submit).toBeDisabled();
 
-    await page.locator("#description").fill("We are hiring a backend engineer.");
+    await page
+      .locator("#description")
+      .fill("We are hiring a backend engineer.");
 
     // Still disabled if no LLM model/provider is selected yet (env-dependent),
     // but the description field itself must register the input either way.

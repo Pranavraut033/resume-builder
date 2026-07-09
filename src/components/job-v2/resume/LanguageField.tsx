@@ -90,9 +90,7 @@ function InlineInput({
       }}
       className={hoverClass}
     >
-      {value || (
-        <span className="italic opacity-40">{placeholder}</span>
-      )}
+      {value || <span className="italic opacity-40">{placeholder}</span>}
     </span>
   );
 }
@@ -235,7 +233,7 @@ export function LanguageField({
         type="button"
         onClick={onRemove}
         title="Remove"
-        className="ml-0.5 opacity-0 transition-opacity group-hover/lang:opacity-40 hover:!opacity-100 hover:text-red-500 text-agent-on-surface-variant leading-none"
+        className="text-agent-on-surface-variant ml-0.5 leading-none opacity-0 transition-opacity group-hover/lang:opacity-40 hover:text-red-500 hover:!opacity-100"
       >
         ×
       </button>

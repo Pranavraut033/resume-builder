@@ -3,7 +3,11 @@
 import { useJobPageContext } from "@/contexts/JobPageContext";
 import { legacyToTheme } from "@/lib/theme/legacyToTheme";
 import { HeadingStyle, PerSectionOverride } from "@/types/customization";
-import { BUILTIN_SECTION_LABELS, BuiltinSectionId, getSectionLayout } from "@/types/resume";
+import {
+  BUILTIN_SECTION_LABELS,
+  BuiltinSectionId,
+  getSectionLayout,
+} from "@/types/resume";
 
 const HEADING_STYLE_OPTIONS: { value: HeadingStyle; label: string }[] = [
   { value: "underline", label: "Underline" },
@@ -23,7 +27,8 @@ const HEADING_STYLE_OPTIONS: { value: HeadingStyle; label: string }[] = [
  * a follow-up (see plan) — this drives the screen renderer only for now.
  */
 export function SectionThemeOverrides() {
-  const { resume, customization, updateCustomizationState } = useJobPageContext();
+  const { resume, customization, updateCustomizationState } =
+    useJobPageContext();
   const sectionLayout = getSectionLayout(resume);
   const theme = legacyToTheme(customization);
 

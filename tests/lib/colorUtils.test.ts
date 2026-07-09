@@ -16,9 +16,7 @@ describe("colorsToCSV", () => {
       "#444444",
       "#555555",
     ];
-    expect(colorsToCSV(colors)).toBe(
-      "#111111,#222222,#333333,#444444,#555555"
-    );
+    expect(colorsToCSV(colors)).toBe("#111111,#222222,#333333,#444444,#555555");
   });
 });
 
