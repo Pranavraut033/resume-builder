@@ -10,10 +10,13 @@
  * - Request ID tracking for analytics
  */
 
+import { LLMProvider } from "@pranavraut033/llm-core";
+
 import { LLMUsageInfo } from "@/actions/tokenUsage";
 import { ProviderFactory } from "@/lib/llm/providers/factory";
 import { generateRequestId, trackTokenUsage } from "@/lib/llm/tokenTracker";
 import { createLogger } from "@/lib/logger";
+import { HumanizerJSON } from "@/types/humanizer";
 import {
   ProviderType,
   LLMResult,
@@ -23,8 +26,6 @@ import {
   ATSAnalysisResult,
 } from "@/types/llm";
 import { ResumeJSON, JobDetailsJSON, ATSAnalysisJSON } from "@/types/resume";
-
-import { LLMProvider } from "@pranavraut033/llm-core";
 
 import * as domainOps from "./domainOps";
 import {
@@ -302,6 +303,13 @@ class LLMService {
       { baseProfile, jobDetails, atsAnalysis },
       options
     );
+  }
+
+  static async humanizeContent(
+    text: string,
+    options: LLMServiceOptions
+  ): Promise<LLMResult<HumanizerJSON>> {
+    return this.executeCall("humanize_content", { userInput: text }, options);
   }
 
   static async analyzeATS(

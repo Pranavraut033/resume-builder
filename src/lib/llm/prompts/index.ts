@@ -36,6 +36,7 @@ import "./templates/parsing";
 import "./templates/ats";
 import "./templates/resume-tailoring";
 import "./templates/cover-letter";
+import "./templates/humanizer";
 
 // Re-export registry instance
 export { templateRegistry } from "./registry";
@@ -47,7 +48,6 @@ import {
   jobDetailsToCompactPositional,
   atsAnalysisToCompactPositional,
 } from "@/types/resume";
-
 import { resolveTemplate } from "@pranavraut033/llm-core/prompts";
 
 import { templateRegistry } from "./registry";
@@ -71,7 +71,7 @@ export function getPromptByPurpose(
 
 function normalizedFieldsToString(
   context: PromptContext
-): Partial<Record<keyof PromptContext, string | undefined>> {
+): Record<string, unknown> {
   return {
     ...context,
     baseProfile: context.baseProfile
@@ -84,6 +84,12 @@ function normalizedFieldsToString(
     atsAnalysis: context.atsAnalysis
       ? atsAnalysisToCompactPositional(context.atsAnalysis)
       : "",
+    // Small scalar anchors for templates that need to name the role/company
+    // in a sentence — the compact-positional strings above are deliberately
+    // unstructured (token-size optimization), so templates can't dot-path
+    // into them (e.g. `{{jobDetails.job.job_title}}` never resolves).
+    jobTitle: context.jobDetails?.job.job_title ?? "",
+    companyName: context.jobDetails?.company.company_name ?? "",
   };
 }
 

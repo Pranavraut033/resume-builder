@@ -7,7 +7,12 @@ import { Icon } from "@/components/ui/Icon";
 import { useToast } from "@/components/ui/ToastProvider";
 import { useJobPageContext } from "@/contexts/JobPageContext";
 import useGenerateCoverLetter from "@/hooks/useGenerateCoverLetter";
+import useHumanizeContent from "@/hooks/useHumanizeContent";
 import cn from "@/lib/cn";
+import { applyChangesToText } from "@/lib/humanizer/applyChanges";
+import { htmlToText } from "@/lib/resumeToText";
+
+import { HumanizerModal } from "./HumanizerModal";
 
 const INSTRUCTION_SUGGESTIONS = [
   "Keep it under 250 words",
@@ -23,7 +28,7 @@ const INSTRUCTION_SUGGESTIONS = [
  */
 export function CoverLetterActionBar() {
   const {
-    coverLetter: _cl,
+    coverLetter,
     resume,
     job,
     customization,
@@ -34,6 +39,7 @@ export function CoverLetterActionBar() {
 
   const [customInstructions, setCustomInstructions] = useState("");
   const [showTip, setShowTip] = useState(false);
+  const [isHumanizerOpen, setIsHumanizerOpen] = useState(false);
   const tipRef = useRef<HTMLDivElement>(null);
 
   const { pushToast } = useToast();
@@ -53,7 +59,36 @@ export function CoverLetterActionBar() {
     },
   });
 
+  const {
+    mutate: humanize,
+    data: humanizeResult,
+    status: humanizeStatus,
+    reset: resetHumanize,
+  } = useHumanizeContent({
+    onError: (err) => {
+      pushToast({
+        title: "Humanize failed",
+        description: err instanceof Error ? err.message : "Unknown error",
+        variant: "error",
+      });
+      setIsHumanizerOpen(false);
+    },
+  });
+
   const isGenerating = status === "pending";
+  const isHumanizing = humanizeStatus === "pending";
+
+  const handleHumanizeAccept = (
+    selected: NonNullable<typeof humanizeResult>["result"]["changes"]
+  ) => {
+    const next = applyChangesToText(coverLetter, selected);
+    updateCoverLetterState(next);
+    refetch(undefined, "coverLetter");
+    saveToDb("coverLetter", next, customization);
+    setIsHumanizerOpen(false);
+    resetHumanize();
+    pushToast({ title: "Cover letter updated", variant: "success" });
+  };
 
   return (
     <div
@@ -95,6 +130,25 @@ export function CoverLetterActionBar() {
           )}
           {isGenerating ? "Generating…" : "Generate"}
         </button>
+
+        <button
+          onClick={() => {
+            setIsHumanizerOpen(true);
+            humanize({ text: htmlToText(coverLetter) });
+          }}
+          disabled={isHumanizing || !coverLetter.trim()}
+          className={cn(
+            "border-agent-outline-variant text-agent-on-surface-variant hover:bg-agent-surface-container hover:text-agent-on-surface flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-semibold transition-all",
+            "disabled:cursor-not-allowed disabled:opacity-50"
+          )}
+          title="Humanize"
+        >
+          <Icon
+            name={isHumanizing ? "spinner" : "wand"}
+            className={cn("h-3.5 w-3.5", isHumanizing && "animate-spin")}
+          />
+          {isHumanizing ? "Humanizing…" : "Humanize"}
+        </button>
       </div>
 
       {/* Instructions row */}
@@ -119,8 +173,10 @@ export function CoverLetterActionBar() {
             <Icon name="lightbulb" className="h-3.5 w-3.5" />
           </button>
           {showTip && (
-            <div className="border-agent-outline-variant bg-agent-surface-container shadow-agent-float absolute bottom-full right-0 z-20 mb-2 w-52 rounded-xl border p-2.5">
-              <p className="text-agent-on-surface mb-1.5 text-xs font-medium">Suggestions</p>
+            <div className="border-agent-outline-variant bg-agent-surface-container shadow-agent-float absolute right-0 bottom-full z-20 mb-2 w-52 rounded-xl border p-2.5">
+              <p className="text-agent-on-surface mb-1.5 text-xs font-medium">
+                Suggestions
+              </p>
               <ul className="space-y-0.5">
                 {INSTRUCTION_SUGGESTIONS.map((s) => (
                   <li key={s}>
@@ -142,6 +198,18 @@ export function CoverLetterActionBar() {
           )}
         </div>
       </div>
+
+      <HumanizerModal
+        key={humanizeResult ? "result" : "pending"}
+        isOpen={isHumanizerOpen}
+        isLoading={isHumanizing}
+        changes={humanizeResult?.result.changes ?? []}
+        onAccept={handleHumanizeAccept}
+        onClose={() => {
+          setIsHumanizerOpen(false);
+          resetHumanize();
+        }}
+      />
     </div>
   );
 }

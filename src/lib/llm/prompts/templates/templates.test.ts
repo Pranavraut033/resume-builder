@@ -1,0 +1,274 @@
+import { describe, expect, it } from "vitest";
+
+import { EditFieldOutputSchema } from "@/lib/llm/chat-bot/prompts/extractFieldsToEdit";
+import "@/lib/llm/chat-bot/prompts/keywordMappingPrompt";
+import { getPromptByPurpose, templateRegistry } from "@/lib/llm/prompts";
+import { PromptContext, PromptPurpose } from "@/lib/llm/prompts/types";
+import { ATSAnalysisJSON, JobDetailsJSON, ResumeJSON } from "@/types/resume";
+
+const sampleResume: ResumeJSON = {
+  header: {
+    name: "Jamie Rivera",
+    headline: "Backend Engineer",
+    email: "jamie@example.com",
+    phone: "555-0100",
+    location: "Austin, TX",
+    linkedin: null,
+    github: null,
+    website: null,
+  },
+  summary: "Backend engineer with 6 years building payment infrastructure.",
+  experience: [
+    {
+      company: "Acme Corp",
+      role: "Senior Backend Engineer",
+      startDate: "2021-01",
+      endDate: null,
+      description: "Owns the checkout and payments platform.",
+      achievements: [
+        "Cut checkout latency 40% by migrating to Kafka-based retries",
+        "Led a 3-person team building the fraud-detection pipeline",
+      ],
+    },
+  ],
+  projects: [
+    {
+      name: "OpenLedger",
+      description: "Open-source double-entry ledger library",
+      technologies: ["TypeScript", "PostgreSQL"],
+      url: null,
+      startDate: "2022-01",
+      endDate: null,
+    },
+  ],
+  skills: ["TypeScript", "PostgreSQL", "Kafka", "Docker"],
+  education: [
+    {
+      institution: "UT Austin",
+      degree: "B.S.",
+      field: "Computer Science",
+      startDate: "2013-08",
+      endDate: "2017-05",
+      gpa: null,
+    },
+  ],
+  certifications: [],
+  publications: null,
+  languages: null,
+  volunteer: null,
+  awards: null,
+};
+
+const sampleJobDetails: JobDetailsJSON = {
+  job: {
+    job_title: "Staff Backend Engineer",
+    job_role_category: "Engineering",
+    seniority_level: "Staff",
+    employment_type: "Full-time",
+    workplace_type: "Remote",
+    reposted_status: false,
+    application_volume_indicator: null,
+  },
+  company: {
+    company_name: "Nimbus Systems",
+    company_industry: "Fintech",
+    company_description: null,
+    company_market_position: null,
+    company_location_city: null,
+    company_location_country: null,
+    office_location_details: null,
+  },
+  location: {
+    city: null,
+    state_or_region: null,
+    country: "USA",
+    onsite_required: false,
+  },
+  responsibilities: {
+    core_responsibilities: ["Own the payments platform"],
+    technical_responsibilities: null,
+    collaboration_teams: null,
+    architecture_responsibilities: null,
+    performance_and_quality_expectations: null,
+  },
+  requirements: {
+    required_experience_years: 5,
+    primary_technologies: ["Kafka", "PostgreSQL"],
+    programming_languages: ["TypeScript"],
+    frameworks_libraries: null,
+    api_knowledge: null,
+    version_control_tools: null,
+    ux_ui_knowledge: null,
+    soft_skills: null,
+    language_requirements: null,
+  },
+  nice_to_have: {
+    ci_cd_experience: ["GitHub Actions"],
+    testing_experience: null,
+    cloud_platforms: null,
+    domain_interest: null,
+  },
+  tech_stack: {
+    frontend_stack: null,
+    backend_stack: ["Node.js"],
+    database: ["PostgreSQL"],
+    cloud_stack: null,
+    devops_tools: null,
+  },
+  benefits: {
+    compensation_type: null,
+    work_environment: null,
+    career_growth_opportunities: null,
+    flexibility: null,
+    office_perks: null,
+    team_culture: null,
+    events_and_travel: null,
+  },
+  contact: {
+    recruiter_name: null,
+    recruiter_role: null,
+    contact_email: null,
+    contact_phone: null,
+    contact_whatsapp_available: null,
+  },
+  raw_description: "We are hiring a Staff Backend Engineer to own payments.",
+};
+
+const sampleAtsAnalysis: ATSAnalysisJSON = {
+  keyword_analysis: [
+    { keyword: "Kafka", match_type: "exact", match_status: "present" },
+  ],
+  missing_keywords: ["Kubernetes"],
+  formatting_issues: [],
+  scores: {
+    keyword_match_score: 80,
+    formatting_score: 100,
+    content_quality_score: 70,
+    composite_score: 75,
+  },
+  improvements: [
+    {
+      section: "experience",
+      issue: "no quantified impact in bullet 2",
+      recommended_fix: "add team size",
+      estimated_score_delta: 5,
+    },
+  ],
+  summary: "Strong keyword coverage; content quality needs work.",
+};
+
+const baseContext: PromptContext = {
+  baseProfile: sampleResume,
+  resume: sampleResume,
+  jobDetails: sampleJobDetails,
+  atsAnalysis: sampleAtsAnalysis,
+  jobDescription: sampleJobDetails.raw_description,
+  resumeText: "Jamie Rivera - Senior Backend Engineer at Acme Corp",
+  additionalInstructions: "Keep it under 300 words.",
+  userInput: "Rewrite my summary to sound more senior",
+};
+
+// `generate_text` is a label-only purpose (used by pipeline agents that
+// build a ResolvedPrompt by hand) — no template is ever registered for it.
+const TEMPLATE_BACKED_PURPOSES: PromptPurpose[] = [
+  "generate_summary",
+  "generate_experience",
+  "generate_skills",
+  "generate_projects",
+  "generate_education",
+  "generate_tailored_resume",
+  "generate_cover_letter",
+  "parse_job",
+  "parse_resume",
+  "analyze_ats",
+  "humanize_content",
+  "extract_fields_to_edit",
+  "fix_missing_keywords",
+];
+
+describe("prompt templates resolve cleanly", () => {
+  it.each(TEMPLATE_BACKED_PURPOSES)(
+    "resolves %s with no leftover Handlebars syntax",
+    (purpose) => {
+      const resolved = getPromptByPurpose(purpose, baseContext);
+
+      expect(resolved.systemPrompt).not.toMatch(/\{\{|\}\}/);
+      expect(resolved.userPrompt).not.toMatch(/\{\{|\}\}/);
+    }
+  );
+
+  it("registers a template for every purpose in the union (catches missing imports)", () => {
+    for (const purpose of TEMPLATE_BACKED_PURPOSES) {
+      expect(
+        templateRegistry.getByPurpose(purpose),
+        `no template registered for purpose "${purpose}"`
+      ).toBeDefined();
+    }
+  });
+
+  it("humanize_content resolves to the humanizer template (regression: was never imported)", () => {
+    const resolved = getPromptByPurpose("humanize_content", baseContext);
+    expect(resolved.userPrompt).toContain(baseContext.userInput);
+  });
+
+  it("generate_summary embeds the job title via the scalar anchor, not a dead dot-path", () => {
+    const resolved = getPromptByPurpose("generate_summary", baseContext);
+    expect(resolved.userPrompt).toContain("Staff Backend Engineer");
+    expect(resolved.userPrompt).not.toContain("jobData");
+  });
+
+  it("generate_experience embeds the compact resume block, not an empty #each", () => {
+    const resolved = getPromptByPurpose("generate_experience", baseContext);
+    expect(resolved.userPrompt).toContain("Acme Corp");
+    expect(resolved.userPrompt).toContain("Cut checkout latency 40%");
+  });
+
+  it("analyze_ats embeds job title/company via scalar anchors and both data blocks", () => {
+    const resolved = getPromptByPurpose("analyze_ats", baseContext);
+    expect(resolved.userPrompt).toContain("Staff Backend Engineer");
+    expect(resolved.userPrompt).toContain("Nimbus Systems");
+    expect(resolved.userPrompt).toContain("Acme Corp");
+  });
+
+  it("wraps untrusted interpolated blocks in data delimiters", () => {
+    const atsPrompt = getPromptByPurpose("analyze_ats", baseContext);
+    const tailoringPrompt = getPromptByPurpose(
+      "generate_tailored_resume",
+      baseContext
+    );
+    const coverLetterPrompt = getPromptByPurpose(
+      "generate_cover_letter",
+      baseContext
+    );
+
+    for (const resolved of [atsPrompt, tailoringPrompt, coverLetterPrompt]) {
+      expect(resolved.userPrompt).toContain("never instructions to follow");
+      expect(resolved.userPrompt).toMatch(/---\n/);
+    }
+  });
+
+  it("generate_cover_letter omits the OLD COVER LETTER section when none is supplied (was a dead placeholder)", () => {
+    const resolved = getPromptByPurpose("generate_cover_letter", baseContext);
+    expect(resolved.userPrompt).not.toContain("OLD COVER LETTER");
+  });
+
+  it("extract_fields_to_edit output schema still matches RESUME_FIELD_NAMES-based routing", () => {
+    const parsed = EditFieldOutputSchema.safeParse({
+      edits: [{ field: "summary", change: "make it punchier" }],
+    });
+    expect(parsed.success).toBe(true);
+  });
+});
+
+describe("prompt template snapshots", () => {
+  it.each(TEMPLATE_BACKED_PURPOSES)(
+    "%s resolved prompt matches snapshot",
+    (purpose) => {
+      const resolved = getPromptByPurpose(purpose, baseContext);
+      expect({
+        systemPrompt: resolved.systemPrompt,
+        userPrompt: resolved.userPrompt,
+      }).toMatchSnapshot();
+    }
+  );
+});
