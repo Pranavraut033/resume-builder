@@ -1,3 +1,4 @@
+import { LLMProvider } from "@pranavraut033/llm-core";
 import { describe, expect, it } from "vitest";
 
 import { LLMUsageInfo } from "@/actions/tokenUsage";
@@ -6,7 +7,6 @@ import { JobDetailsJSON, ResumeJSON } from "@/types/resume";
 
 import { HallucinationFlag } from "./agents";
 import { PipelineDeps, runTailoringPipeline } from "./pipeline";
-import { LLMProvider } from "@pranavraut033/llm-core";
 
 const usage: LLMUsageInfo = {
   promptTokens: 10,

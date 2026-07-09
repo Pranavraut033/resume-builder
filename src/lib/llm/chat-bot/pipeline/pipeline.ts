@@ -8,6 +8,8 @@
  * with a for-loop. Reach for a real graph lib only if the topology grows beyond
  * a linear chain plus one loop.
  */
+import { LLMProvider } from "@pranavraut033/llm-core";
+
 import { LLMUsageInfo } from "@/actions/tokenUsage";
 import { JobDetailsJSON, ResumeJSON } from "@/types/resume";
 
@@ -18,7 +20,6 @@ import {
   rewriteBullets,
   scoreResume,
 } from "./agents";
-import { LLMProvider } from "@pranavraut033/llm-core";
 import { mergeLLMUsageInfo } from "../../tokenTracker";
 
 export type PipelineStageEvent =

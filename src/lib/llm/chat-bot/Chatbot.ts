@@ -1,3 +1,5 @@
+import { LLMProvider } from "@pranavraut033/llm-core";
+
 import { LLMUsageInfo } from "@/actions/tokenUsage";
 import { ProviderFactory } from "@/lib/llm/providers";
 import logger from "@/lib/logger";
@@ -17,6 +19,7 @@ import {
   INTERVIEW_PROMPT,
   QUESTION_PROMPT,
 } from "./prompts";
+import * as domainOps from "../domainOps";
 import { PromptSystem } from "../prompts";
 import { mergeLLMUsageInfo } from "../tokenTracker";
 import {
@@ -34,10 +37,7 @@ import {
   groupMappingsByField,
   KeywordMappingSchema,
 } from "./prompts/keywordMappingPrompt";
-import * as domainOps from "../domainOps";
 import { FieldEdit, RESUME_TOOLS, validateEditFieldArgs } from "./tools";
-
-import { LLMProvider } from "@pranavraut033/llm-core";
 
 export type ChatBotOptions = {
   provider: ProviderType;
