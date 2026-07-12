@@ -17,8 +17,9 @@ import {
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
+import { SideDrawer } from "@/components/job-v2/SideDrawer";
 import { Icon } from "@/components/ui/Icon";
 import { useJobPageContext } from "@/contexts/JobPageContext";
 import cn from "@/lib/cn";
@@ -52,15 +53,6 @@ export function SectionOutlinePanel({
   const { resume, updateResumeState } = useJobPageContext();
   const sectionLayout = getSectionLayout(resume);
   const [renamingId, setRenamingId] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (!open) return;
-    const handler = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
-    };
-    window.addEventListener("keydown", handler);
-    return () => window.removeEventListener("keydown", handler);
-  }, [open, onClose]);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
@@ -149,68 +141,13 @@ export function SectionOutlinePanel({
     sectionLayout.custom.some((c) => c.id === id);
 
   return (
-    <>
-      {open && (
-        <div
-          className="absolute inset-0 z-30 bg-black/10 backdrop-blur-[1px]"
-          onClick={onClose}
-          aria-hidden
-        />
-      )}
-
-      <div
-        className={cn(
-          "border-agent-outline-variant bg-agent-surface-lowest shadow-agent-modal absolute top-0 right-0 z-40 flex h-full w-80 flex-col overflow-hidden border-l transition-transform duration-200",
-          open ? "translate-x-0" : "translate-x-full"
-        )}
-        aria-hidden={!open}
-      >
-        <div className="border-agent-outline-variant flex items-center gap-2 border-b px-4 py-3">
-          <Icon name="panelLeftClose" className="text-agent-primary h-4 w-4" />
-          <h2 className="text-agent-on-surface flex-1 text-sm font-semibold">
-            Sections
-          </h2>
-          <button
-            onClick={onClose}
-            className="text-agent-on-surface-variant hover:bg-agent-surface-container flex h-7 w-7 items-center justify-center rounded-md transition-colors"
-            aria-label="Close sections drawer"
-          >
-            <Icon name="x" className="h-4 w-4" />
-          </button>
-        </div>
-
-        <DndContext
-          id="section-outline-panel"
-          sensors={sensors}
-          collisionDetection={closestCenter}
-          onDragEnd={handleDragEnd}
-        >
-          <SortableContext
-            items={sectionLayout.order}
-            strategy={verticalListSortingStrategy}
-          >
-            <nav className="flex flex-1 flex-col gap-1 overflow-y-auto p-2">
-              {sectionLayout.order.map((id) => (
-                <SectionChip
-                  key={id}
-                  id={id}
-                  label={labelFor(id)}
-                  hidden={sectionLayout.hidden.includes(id)}
-                  custom={isCustom(id)}
-                  renaming={renamingId === id}
-                  onToggleHidden={() => toggleHidden(id)}
-                  onRemove={() => removeCustomSection(id)}
-                  onStartRename={() => setRenamingId(id)}
-                  onCommitRename={(title) => {
-                    renameCustomSection(id, title || "New Section");
-                    setRenamingId(null);
-                  }}
-                />
-              ))}
-            </nav>
-          </SortableContext>
-        </DndContext>
-
+    <SideDrawer
+      open={open}
+      onClose={onClose}
+      icon="panelLeftClose"
+      title="Sections"
+      widthClass="w-80"
+      footer={
         <div className="border-agent-outline-variant border-t p-2">
           <button
             onClick={addCustomSection}
@@ -220,8 +157,40 @@ export function SectionOutlinePanel({
             Add section
           </button>
         </div>
-      </div>
-    </>
+      }
+    >
+      <DndContext
+        id="section-outline-panel"
+        sensors={sensors}
+        collisionDetection={closestCenter}
+        onDragEnd={handleDragEnd}
+      >
+        <SortableContext
+          items={sectionLayout.order}
+          strategy={verticalListSortingStrategy}
+        >
+          <nav className="flex flex-1 flex-col gap-1 overflow-y-auto p-2">
+            {sectionLayout.order.map((id) => (
+              <SectionChip
+                key={id}
+                id={id}
+                label={labelFor(id)}
+                hidden={sectionLayout.hidden.includes(id)}
+                custom={isCustom(id)}
+                renaming={renamingId === id}
+                onToggleHidden={() => toggleHidden(id)}
+                onRemove={() => removeCustomSection(id)}
+                onStartRename={() => setRenamingId(id)}
+                onCommitRename={(title) => {
+                  renameCustomSection(id, title || "New Section");
+                  setRenamingId(null);
+                }}
+              />
+            ))}
+          </nav>
+        </SortableContext>
+      </DndContext>
+    </SideDrawer>
   );
 }
 

@@ -1,9 +1,8 @@
 "use client";
 
-import { useEffect } from "react";
-
 import ThemeCustomizationPanel from "@/components/job/ThemeCustomizationPanel";
 import { Icon } from "@/components/ui/Icon";
+import { useEscapeKey } from "@/hooks/useEscapeKey";
 import cn from "@/lib/cn";
 
 import { SectionThemeOverrides } from "./SectionThemeOverrides";
@@ -22,15 +21,7 @@ export function CustomizationDrawer({
   open,
   onClose,
 }: CustomizationDrawerProps) {
-  // Close on Escape
-  useEffect(() => {
-    if (!open) return;
-    const handler = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
-    };
-    window.addEventListener("keydown", handler);
-    return () => window.removeEventListener("keydown", handler);
-  }, [open, onClose]);
+  useEscapeKey(open, onClose);
 
   return (
     <aside

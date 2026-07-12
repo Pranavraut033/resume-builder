@@ -4,6 +4,7 @@ import { useRef, useState, useEffect } from "react";
 
 import { Icon } from "@/components/ui/Icon";
 import { useJobPageContext } from "@/contexts/JobPageContext";
+import { useEscapeKey } from "@/hooks/useEscapeKey";
 import cn from "@/lib/cn";
 import { AVAILABLE_TEMPLATES, TemplateType } from "@/types/customization";
 
@@ -32,15 +33,7 @@ export function TemplatePicker() {
     return () => document.removeEventListener("mousedown", handler);
   }, [open]);
 
-  // Close on Escape
-  useEffect(() => {
-    if (!open) return;
-    const handler = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setOpen(false);
-    };
-    window.addEventListener("keydown", handler);
-    return () => window.removeEventListener("keydown", handler);
-  }, [open]);
+  useEscapeKey(open, () => setOpen(false));
 
   return (
     <div ref={ref} className="relative">
