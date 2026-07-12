@@ -78,10 +78,12 @@ const eslintConfig = defineConfig([
     "src-tauri/**",
     "drizzle/meta/_journal.json",
     "drizzle/0000_*.sql",
-    "dist/**",
+    "**/dist/**",
     "node_modules/**",
     ".vscode/**",
     "prisma/migrations/**",
+    "landing/**",
+    "packages/**",
   ]),
 ]);
 
