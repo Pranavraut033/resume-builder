@@ -25,7 +25,8 @@ export const TemplateRenderer: React.FC<TemplateRendererProps> = ({
   // All 9 templates are config objects dispatched to the shared engine.
   // validateCustomization rejects unrecognized template ids at the write
   // boundary, so this falls back to modern-minimal only for legacy/corrupt data.
-  const engineConfig = TEMPLATE_CONFIG[template] ?? TEMPLATE_CONFIG["modern-minimal"]!;
+  const engineConfig =
+    TEMPLATE_CONFIG[template] ?? TEMPLATE_CONFIG["modern-minimal"]!;
 
   return (
     <TemplateEngine
