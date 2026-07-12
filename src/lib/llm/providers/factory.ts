@@ -7,13 +7,13 @@
  * (clientLLM, llmService, atsLLMClient, Chatbot) don't need to change.
  */
 
-import { getApiKey } from "@/lib/keyStorage";
-import { ProviderType } from "@/types/llm";
-
 import {
   getProviderInstance as coreGetProviderInstance,
   LLMProvider,
 } from "@pranavraut033/llm-core";
+
+import { getApiKey } from "@/lib/keyStorage";
+import { ProviderType } from "@/types/llm";
 
 // Side-effect import: registers the 6 built-in providers with the shared
 // registry. MUST happen before any getInstance calls.

@@ -8,7 +8,10 @@
  * they take a provider instance and use only its public API plus the
  * domain prompt system and Zod schemas.
  */
+import { LLMProvider } from "@pranavraut033/llm-core";
+
 import { PromptSystem, ResolvedPrompt } from "@/lib/llm/prompts";
+import { HumanizerSchema } from "@/types/humanizer";
 import {
   ResumePromptInput,
   CoverLetterPromptInput,
@@ -22,15 +25,12 @@ import {
   HumanizeContentResult,
   ATSAnalysisPromptInput,
 } from "@/types/llm";
-import { HumanizerSchema } from "@/types/humanizer";
 import {
   JobDetailsSchema,
   ATSAnalysisSchema,
   ATSAnalysisJSON,
   ResumeSchema,
 } from "@/types/resume";
-
-import { LLMProvider } from "@pranavraut033/llm-core";
 
 export async function generateResume(
   provider: LLMProvider,
