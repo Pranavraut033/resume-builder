@@ -9,7 +9,7 @@ import { createJob } from "@/actions/job";
 import { getAllProfiles } from "@/actions/profile";
 import { fetchJobDescriptionFromUrl } from "@/actions/urlFetcher";
 import { SelectedModelCard } from "@/components/SelectedModelCard";
-import { BackButton } from "@/components/ui";
+import { BackButton, StepProgressButton } from "@/components/ui";
 import { useToast } from "@/components/ui/ToastProvider";
 import { useProfileQuery } from "@/hooks/useProfileQuery";
 import { useProfileSelection } from "@/hooks/useProfileSelection";
@@ -19,11 +19,18 @@ import { useModelStore } from "@/store/modelStore";
 
 const logger = createLogger("NewJobPage");
 
+const GENERATION_STEPS = [
+  "Parsing job description…",
+  "Scoring resume against ATS…",
+  "Tailoring resume & cover letter…",
+  "Saving your application…",
+];
+
 export default function NewJobPage() {
   const [description, setDescription] = useState("");
   const [url, setUrl] = useState("");
   const [inputMode, setInputMode] = useState<"text" | "url">("text");
-  const [loading, setLoading] = useState(false);
+  const [activeStep, setActiveStep] = useState(-1);
   const [fetchingUrl, setFetchingUrl] = useState(false);
   const router = useRouter();
 
@@ -78,7 +85,6 @@ export default function NewJobPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
     try {
       if (!currentSelectedModel || !currentSelectedProvider) {
         pushToast({
@@ -86,7 +92,6 @@ export default function NewJobPage() {
           description: "Please select a model first.",
           variant: "error",
         });
-        setLoading(false);
         return;
       }
 
@@ -96,23 +101,46 @@ export default function NewJobPage() {
           description: "Profile not loaded.",
           variant: "error",
         });
-        setLoading(false);
         return;
       }
 
-      const result = await LLMService.generateApplicationMaterials({
-        jobDescription: description,
+      const modelOptions = {
         model: currentSelectedModel,
         provider: currentSelectedProvider,
-        profile,
-      });
+      };
 
+      setActiveStep(0);
+      const jobDetails = await LLMService.parseJob(description, modelOptions);
+
+      setActiveStep(1);
+      const atsAnalysis = await LLMService.analyzeATS(
+        profile,
+        jobDetails.result,
+        modelOptions
+      );
+
+      setActiveStep(2);
+      const [resume, coverLetter] = await Promise.all([
+        LLMService.generateTailoredResume(
+          profile,
+          jobDetails.result,
+          atsAnalysis.result,
+          modelOptions
+        ),
+        LLMService.generateCoverLetter(
+          profile,
+          jobDetails.result,
+          modelOptions
+        ),
+      ]);
+
+      setActiveStep(3);
       await createJob({
-        jobDetails: result.jobDetails.result,
+        jobDetails: jobDetails.result,
         url: inputMode === "url" && url.trim() ? url : undefined,
-        tailoredResume: result.resume.result,
-        coverLetterText: result.coverLetter.result,
-        atsAnalysis: result.atsAnalysis.result,
+        tailoredResume: resume.result,
+        coverLetterText: coverLetter.result,
+        atsAnalysis: atsAnalysis.result,
         profileId: selectedProfileId ?? undefined,
       });
 
@@ -125,7 +153,7 @@ export default function NewJobPage() {
         variant: "error",
       });
     } finally {
-      setLoading(false);
+      setActiveStep(-1);
     }
   };
 
@@ -325,17 +353,12 @@ export default function NewJobPage() {
             </div>
 
             {/* ── Submit button ── */}
-            <button
+            <StepProgressButton
               type="submit"
-              disabled={loading || !description.trim() || !currentSelectedModel}
-              className="bg-agent-primary flex w-full items-center justify-center gap-2 rounded-xl px-6 py-3 text-sm font-semibold text-white transition hover:opacity-90 disabled:opacity-40"
-            >
-              {loading ? (
-                <>
-                  <span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
-                  Analyzing &amp; building…
-                </>
-              ) : (
+              steps={GENERATION_STEPS}
+              activeStep={activeStep}
+              disabled={!description.trim() || !currentSelectedModel}
+              idleLabel={
                 <>
                   Analyze &amp; Start
                   <svg
@@ -352,8 +375,8 @@ export default function NewJobPage() {
                     />
                   </svg>
                 </>
-              )}
-            </button>
+              }
+            />
           </form>
         </div>
 

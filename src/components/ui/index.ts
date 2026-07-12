@@ -20,3 +20,5 @@ export { SortableSection } from "./SortableSection";
 export { Toggle } from "./Toggle";
 export { default as BackButton } from "./BackButton";
 export { SaveButton } from "./SaveButton";
+export { StepProgressButton } from "./StepProgressButton";
+export type { StepProgressButtonProps } from "./StepProgressButton";
