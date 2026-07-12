@@ -1,9 +1,8 @@
-import type { ReactNode } from "react";
-
 import type { useInlineEdit } from "@/components/job-v2/resume/InlineEditContext";
 import type useResolveCustomizationFn from "@/hooks/useResolveCustomization";
 import type { HeadingStyle, ThemeConfig } from "@/types/customization";
 import type { ResumeJSON, SectionLayout } from "@/types/resume";
+import type { ReactNode } from "react";
 
 /** A measured/paginated unit of content, same shape every template used internally. */
 export type Block = {

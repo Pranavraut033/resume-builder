@@ -17,7 +17,12 @@ interface ATSDrawerProps {
  */
 export function ATSDrawer({ open, onClose }: ATSDrawerProps) {
   return (
-    <SideDrawer open={open} onClose={onClose} icon="barChart" title="ATS Analysis">
+    <SideDrawer
+      open={open}
+      onClose={onClose}
+      icon="barChart"
+      title="ATS Analysis"
+    >
       <div className="flex-1 overflow-y-auto">
         <ATSAnalysisPanel />
       </div>

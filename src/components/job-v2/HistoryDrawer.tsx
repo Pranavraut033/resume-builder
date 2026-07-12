@@ -56,7 +56,12 @@ export function HistoryDrawer({ open, onClose }: HistoryDrawerProps) {
 
   return (
     <>
-      <SideDrawer open={open} onClose={onClose} icon="history" title="Version History">
+      <SideDrawer
+        open={open}
+        onClose={onClose}
+        icon="history"
+        title="Version History"
+      >
         <div className="flex-1 overflow-y-auto p-3">
           {isLoading ? (
             <div className="text-agent-on-surface-variant flex items-center justify-center py-10 text-sm">

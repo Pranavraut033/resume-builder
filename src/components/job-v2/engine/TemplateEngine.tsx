@@ -14,17 +14,17 @@ import {
 } from "@dnd-kit/sortable";
 import React, { useEffect, useRef, useState } from "react";
 
+import MeasurementContainer from "@/components/job/templates/shared/MeasurementContainer";
+import ResumePage from "@/components/job/templates/shared/ResumePage";
+import { TemplateRendererProps } from "@/components/job/templates/TemplateRenderer";
 import { EditableItem } from "@/components/job-v2/resume/EditableItem";
 import { EditableLink } from "@/components/job-v2/resume/EditableLink";
 import { EditableText } from "@/components/job-v2/resume/EditableText";
 import { useInlineEdit } from "@/components/job-v2/resume/InlineEditContext";
-import MeasurementContainer from "@/components/job/templates/shared/MeasurementContainer";
-import ResumePage from "@/components/job/templates/shared/ResumePage";
-import { TemplateRendererProps } from "@/components/job/templates/TemplateRenderer";
 import { useBlockPaginator } from "@/hooks/useBlockPaginator";
 import useResolveCustomization from "@/hooks/useResolveCustomization";
-import { legacyToTheme } from "@/lib/theme/legacyToTheme";
 import { getPageDimensions } from "@/lib/pageDimensions";
+import { legacyToTheme } from "@/lib/theme/legacyToTheme";
 import { HeadingStyle } from "@/types/customization";
 import { getSectionLayout } from "@/types/resume";
 

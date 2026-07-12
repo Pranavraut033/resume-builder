@@ -2,10 +2,10 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 
-import type { Language } from "@/types/resume";
-
 import { useInlineEdit } from "./InlineEditContext";
 import { InlineField } from "./InlineField";
+
+import type { Language } from "@/types/resume";
 
 const LEVELS = [
   "Native",
