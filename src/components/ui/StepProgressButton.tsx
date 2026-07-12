@@ -12,11 +12,16 @@ import { cn } from "@/lib/cn";
  */
 function useStepProgress(activeStep: number, totalSteps: number) {
   const [segmentProgress, setSegmentProgress] = useState(0);
+  const [trackedStep, setTrackedStep] = useState(activeStep);
   const ceiling = 92;
+
+  if (activeStep !== trackedStep) {
+    setTrackedStep(activeStep);
+    setSegmentProgress(0);
+  }
 
   useEffect(() => {
     if (activeStep < 0 || activeStep >= totalSteps) return;
-    setSegmentProgress(0);
     const id = setInterval(() => {
       setSegmentProgress((prev) => prev + (ceiling - prev) * 0.08);
     }, 200);
