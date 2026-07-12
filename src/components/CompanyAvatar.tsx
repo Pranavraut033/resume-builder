@@ -5,7 +5,7 @@ import { useMemo, useState } from "react";
 
 import { cn } from "@/lib/cn";
 
-// Displays a company logo (fetched via Clearbit) with graceful fallbacks
+// Displays a company logo (via Google's favicon service) with graceful fallbacks
 interface CompanyAvatarProps {
   name?: string | null;
   size?: number;
@@ -36,7 +36,9 @@ function buildLogoUrl(name?: string | null) {
     .replace(/[^a-z0-9]+/g, "")
     .slice(0, 40);
   if (!domain) return null;
-  return `https://logo.clearbit.com/${domain}.com`;
+  // ponytail: clearbit logo API is dead; Google's favicon service is free and
+  // never 404s (returns a globe fallback). Domain is still a name.com guess.
+  return `https://www.google.com/s2/favicons?domain=${domain}.com&sz=128`;
 }
 
 export function CompanyAvatar({ name, size = 48 }: CompanyAvatarProps) {
@@ -64,6 +66,7 @@ export function CompanyAvatar({ name, size = 48 }: CompanyAvatarProps) {
           alt={`${name ?? "Company"} logo`}
           width={size}
           height={size}
+          unoptimized
           className="bg-white object-contain p-1.5"
           onError={() => setFailed(true)}
           draggable={false}

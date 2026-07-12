@@ -66,14 +66,6 @@ const nextConfig: NextConfig = {
   // Turbopack is the default bundler in Next.js 16+.
   // An empty config here silences the "webpack config present but no turbopack config" warning.
   turbopack: {},
-  images: {
-    remotePatterns: [
-      {
-        protocol: "https",
-        hostname: "logo.clearbit.com",
-      },
-    ],
-  },
   webpack(config, { dev, isServer }) {
     // Only needed in the browser bundle during development.
     if (dev && !isServer) {

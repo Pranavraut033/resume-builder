@@ -1,5 +1,5 @@
-import { Link } from "lucide-react";
 import { Metadata } from "next";
+import Link from "next/link";
 
 import { getCoverLetterByJobId, getJob, getResumeByJobId } from "@/actions/job";
 import { getProfileById } from "@/actions/profile";
