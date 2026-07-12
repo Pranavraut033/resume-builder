@@ -27,11 +27,15 @@ function useStepProgress(activeStep: number, totalSteps: number) {
   if (activeStep >= totalSteps) return 100;
 
   const segmentSpan = 100 / totalSteps;
-  return (activeStep / totalSteps) * 100 + (segmentProgress / 100) * segmentSpan;
+  return (
+    (activeStep / totalSteps) * 100 + (segmentProgress / 100) * segmentSpan
+  );
 }
 
-export interface StepProgressButtonProps
-  extends Omit<ButtonHTMLAttributes<HTMLButtonElement>, "children"> {
+export interface StepProgressButtonProps extends Omit<
+  ButtonHTMLAttributes<HTMLButtonElement>,
+  "children"
+> {
   /** Label for each step, in order. Also determines the step count. */
   steps: string[];
   /** 0-based index of the in-flight step, `steps.length` when done, or -1 when idle. */
@@ -72,10 +76,7 @@ export function StepProgressButton({
           <>
             <span className="h-4 w-4 shrink-0 animate-spin rounded-full border-2 border-white border-t-transparent" />
             <span className="cuboid-stage h-5 overflow-hidden">
-              <span
-                key={activeStep}
-                className="animate-cuboid-roll-in block"
-              >
+              <span key={activeStep} className="animate-cuboid-roll-in block">
                 {steps[activeStep]}
               </span>
             </span>
