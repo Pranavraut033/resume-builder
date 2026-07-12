@@ -58,7 +58,7 @@ const eslintConfig = defineConfig([
 
       // React/Next.js best practices
       "react/no-unescaped-entities": "off",
-      "react-hooks/exhaustive-deps": "warn",
+      // "react-hooks/exhaustive-deps": "warn",
 
       // General code quality
       "no-console": ["warn", { allow: ["warn", "error"] }],
