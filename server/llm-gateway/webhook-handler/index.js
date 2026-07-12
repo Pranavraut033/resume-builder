@@ -18,7 +18,9 @@ async function litellmFetch(path, options) {
     },
   });
   if (!res.ok) {
-    throw new Error(`LiteLLM ${path} failed: ${res.status} ${await res.text()}`);
+    throw new Error(
+      `LiteLLM ${path} failed: ${res.status} ${await res.text()}`
+    );
   }
   return res.json();
 }
