@@ -36,16 +36,10 @@ export interface InlineEditContextValue {
   updateHeader: (patch: Partial<ContactInfo>) => void;
   updateSummary: (value: string) => void;
   updateExperience: (index: number, patch: Partial<Experience>) => void;
-  updateExperienceAchievement: (
-    expIndex: number,
-    achievementIndex: number,
-    value: string
-  ) => void;
   updateEducation: (index: number, patch: Partial<Education>) => void;
   updateProject: (index: number, patch: Partial<Project>) => void;
   updateProjectTechnologies: (index: number, technologies: string[]) => void;
   updateCertification: (index: number, patch: Partial<Certification>) => void;
-  updateSkill: (index: number, value: string) => void;
   updateSkills: (skills: string[]) => void;
   updateExperienceAchievements: (
     expIndex: number,
@@ -69,12 +63,10 @@ const NON_EDITABLE: InlineEditContextValue = {
   updateHeader: noop,
   updateSummary: noop,
   updateExperience: noop,
-  updateExperienceAchievement: noop,
   updateEducation: noop,
   updateProject: noop,
   updateProjectTechnologies: noop,
   updateCertification: noop,
-  updateSkill: noop,
   updateSkills: noop,
   updateExperienceAchievements: noop,
   updateLanguage: noop,
@@ -164,24 +156,6 @@ export function InlineEditProvider({
           },
           "Edited experience"
         ),
-      updateExperienceAchievement: (expIndex, achievementIndex, value) => {
-        const exp = resume.experience[expIndex];
-        if (!exp) return;
-        const achievements = replaceAt(
-          exp.achievements,
-          achievementIndex,
-          value
-        );
-        updateResume(
-          {
-            experience: replaceAt(resume.experience, expIndex, {
-              ...exp,
-              achievements,
-            }),
-          },
-          "Edited achievement"
-        );
-      },
       updateEducation: (index, patch) =>
         updateResume(
           {
@@ -221,11 +195,6 @@ export function InlineEditProvider({
             }),
           },
           "Edited certification"
-        ),
-      updateSkill: (index, value) =>
-        updateResume(
-          { skills: replaceAt(resume.skills, index, value) },
-          "Edited skill"
         ),
       updateSkills: (skills) => updateResume({ skills }, "Edited skills"),
       updateExperienceAchievements: (expIndex, achievements) => {

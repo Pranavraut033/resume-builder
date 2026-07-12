@@ -184,3 +184,25 @@ body {
     background-color 180ms ease,
     color 180ms ease;
 }
+
+/* Cuboid-roll status text: each new stage rotates in from below as the
+   previous one rotates away up top, like a face of a rotating cube. */
+@keyframes cuboid-roll-in {
+  from {
+    transform: translateY(60%) rotateX(-90deg);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0) rotateX(0deg);
+    opacity: 1;
+  }
+}
+
+.animate-cuboid-roll-in {
+  transform-origin: top center;
+  animation: cuboid-roll-in 0.4s ease-out;
+}
+
+.cuboid-stage {
+  perspective: 200px;
+}

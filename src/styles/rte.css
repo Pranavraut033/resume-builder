@@ -1,51 +1,32 @@
 /* ─── Wrapper ─────────────────────────────────────────────────────────────── */
+/* No background/color here on purpose — the editor is embedded directly inside
+   template chrome (cover letter, resume field) and should inherit both. */
 .rte-wrapper {
-  @apply border-agent-surface-bright bg-agent-bg flex flex-col overflow-hidden rounded-md border;
-  @apply focus-within:ring-agent-primary/50 focus-within:ring-2 focus-within:ring-offset-1;
-  @apply overflow-hidden transition-shadow duration-150 ease-in-out;
+  @apply relative flex flex-col overflow-visible;
 }
 
-/* Document-canvas variant: white bg, no border/radius, toolbar sticks to scroll container */
-.rte-wrapper--sticky-toolbar {
-  @apply overflow-visible rounded-none border-none ring-0 focus-within:ring-0 focus-within:ring-offset-0;
-  background-color: #ffffff;
-  color: #111827;
+/* ─── Floating toolbars (block pill + selection bubble) ──────────────────── */
+.rte-pill {
+  @apply rounded-full border p-1 shadow-sm backdrop-blur-xs;
+  border-color: #e5e7eb;
+  background-color: rgba(255, 255, 255, 0.92);
 }
 
-/* ─── Toolbar ─────────────────────────────────────────────────────────────── */
-.rte-toolbar {
-  @apply bg-agent-surface-container border-agent-surface-bright flex items-center gap-0.5 border-b px-2 py-1;
-}
-
-.rte-toolbar--sticky {
-  @apply sticky top-0 z-20 rounded-t-md shadow-sm;
-  background-color: #f9fafb;
-  border-bottom: 1px solid #e5e7eb;
-  color: #374151;
-}
-
-/* Force button colors to light-mode values inside sticky (document-canvas) toolbar */
-.rte-toolbar--sticky .rte-btn {
+.rte-pill .rte-btn {
   color: #6b7280;
 }
-.rte-toolbar--sticky .rte-btn:hover {
+.rte-pill .rte-btn:hover {
   background-color: #f3f4f6;
   color: #111827;
 }
-.rte-toolbar--sticky .rte-btn--active {
+.rte-pill .rte-btn--active {
   background-color: #eff6ff;
   color: #2563eb;
 }
-.rte-toolbar--sticky .rte-divider {
-  background-color: #e5e7eb;
-}
-
-.rte-group {
-  @apply flex items-center gap-0.5;
-}
 
 .rte-divider {
-  @apply bg-agent-surface-bright mx-1 h-5 w-px shrink-0;
+  @apply mx-1 h-5 w-px shrink-0;
+  background-color: #e5e7eb;
 }
 
 /* ─── Toolbar Buttons ─────────────────────────────────────────────────────── */

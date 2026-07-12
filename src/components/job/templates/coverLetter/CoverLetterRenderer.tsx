@@ -23,12 +23,16 @@ export interface CoverLetterRendererProps {
   coverLetter: string;
   resume: ResumeJSON | null;
   customization: SanitizedCustomization;
+  editable?: boolean;
+  onChange?: (html: string) => void;
 }
 
 export const CoverLetterRenderer: React.FC<CoverLetterRendererProps> = ({
   coverLetter,
   resume,
   customization,
+  editable,
+  onChange,
 }) => {
   const template = customization.template as TemplateType;
 
@@ -59,6 +63,8 @@ export const CoverLetterRenderer: React.FC<CoverLetterRendererProps> = ({
       coverLetter={coverLetter}
       resume={resume}
       customization={customization}
+      editable={editable}
+      onChange={onChange}
     />
   );
 };

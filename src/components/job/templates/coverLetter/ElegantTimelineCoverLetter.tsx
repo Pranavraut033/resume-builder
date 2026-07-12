@@ -5,10 +5,11 @@
 
 import React from "react";
 
-import { RichTextEditorContent } from "@/components/form/RichTextEditor";
 import useResolveCustomization from "@/hooks/useResolveCustomization";
 import BackgroundSvg from "@/lib/backgrounds/BackgroundSvg";
 import { getPageDimensions } from "@/lib/pageDimensions";
+
+import { CoverLetterBody } from "./CoverLetterBody";
 
 import type { CoverLetterRendererProps } from "./CoverLetterRenderer";
 
@@ -16,6 +17,8 @@ export const ElegantTimelineCoverLetter: React.FC<CoverLetterRendererProps> = ({
   coverLetter,
   resume,
   customization,
+  editable,
+  onChange,
 }) => {
   const {
     primaryColor,
@@ -109,8 +112,10 @@ export const ElegantTimelineCoverLetter: React.FC<CoverLetterRendererProps> = ({
           </div>
 
           {/* Cover Letter Content */}
-          <RichTextEditorContent
+          <CoverLetterBody
             content={coverLetter}
+            editable={editable}
+            onChange={onChange}
             className={`${textSize} ${lineHeight}`}
           />
         </div>

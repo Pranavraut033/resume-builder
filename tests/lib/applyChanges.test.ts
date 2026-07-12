@@ -36,6 +36,7 @@ const baseResume: ResumeJSON = {
   languages: null,
   volunteer: null,
   awards: null,
+  sectionLayout: null,
 };
 
 describe("applyChangesToText", () => {

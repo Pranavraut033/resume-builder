@@ -10,8 +10,6 @@ import { simpleI32HashString, toStableJsonString } from "@/lib";
 import { SanitizedCustomization, TemplateType } from "@/types/customization";
 import { ResumeJSON } from "@/types/resume";
 
-import { ModernMinimalTemplate } from "./ModernMinimalTemplate";
-
 export interface TemplateRendererProps {
   resume: ResumeJSON;
   customization: SanitizedCustomization;
@@ -24,26 +22,17 @@ export const TemplateRenderer: React.FC<TemplateRendererProps> = ({
   const template = customization.template as TemplateType;
   const rerenderHash = simpleI32HashString(toStableJsonString(customization));
 
-  // All 9 templates are now config objects dispatched to the shared engine
-  // (see migration plan). ModernMinimalTemplate stays as the legacy fallback
-  // for a corrupt/unrecognized `template` value only.
-  const engineConfig = TEMPLATE_CONFIG[template];
-  if (engineConfig) {
-    return (
-      <TemplateEngine
-        key={rerenderHash}
-        resume={resume}
-        customization={customization}
-        config={engineConfig}
-      />
-    );
-  }
+  // All 9 templates are config objects dispatched to the shared engine.
+  // validateCustomization rejects unrecognized template ids at the write
+  // boundary, so this falls back to modern-minimal only for legacy/corrupt data.
+  const engineConfig = TEMPLATE_CONFIG[template] ?? TEMPLATE_CONFIG["modern-minimal"]!;
 
   return (
-    <ModernMinimalTemplate
+    <TemplateEngine
       key={rerenderHash}
       resume={resume}
       customization={customization}
+      config={engineConfig}
     />
   );
 };

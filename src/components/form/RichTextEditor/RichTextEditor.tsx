@@ -8,14 +8,23 @@ import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import { useCallback, useEffect } from "react";
 
-import RichTextEditorToolbar from "./RichTextEditorToolbar";
+import cn from "@/lib/cn";
+
+import { BlockToolbar, BubbleToolbar } from "./RichTextEditorToolbar";
 
 interface RichTextEditorProps {
   value: string;
   onChange: (html: string) => void;
   placeholder?: string;
   className?: string;
-  stickyToolbar?: boolean;
+  /** Extra classes for the contentEditable area itself (e.g. to strip padding when embedding inline). */
+  contentClassName?: string;
+  /**
+   * "block-only" shows just the list/alignment pill, hiding the selection
+   * bubble menu. "bubble-only" shows just the bold/italic bubble menu on
+   * selection, hiding the list/alignment pill.
+   */
+  toolbarMode?: "full" | "block-only" | "bubble-only";
 }
 
 export default function RichTextEditor({
@@ -23,7 +32,8 @@ export default function RichTextEditor({
   onChange,
   placeholder,
   className,
-  stickyToolbar,
+  contentClassName,
+  toolbarMode = "full",
 }: RichTextEditorProps) {
   const editor = useEditor({
     extensions: [
@@ -43,12 +53,13 @@ export default function RichTextEditor({
       }),
     ],
     content: value,
+    autofocus: "end",
     onUpdate({ editor }) {
       onChange(editor.getHTML());
     },
     editorProps: {
       attributes: {
-        class: "rte-content",
+        class: cn("rte-content", contentClassName),
         spellcheck: "true",
       },
     },
@@ -88,14 +99,11 @@ export default function RichTextEditor({
   if (!editor) return <div className="rte-skeleton" />;
 
   return (
-    <div
-      className={`rte-wrapper${stickyToolbar ? "rte-wrapper--sticky-toolbar" : ""}${className ? ` ${className}` : ""}`}
-    >
-      <RichTextEditorToolbar
-        editor={editor}
-        onSetLink={setLink}
-        stickyToolbar={stickyToolbar}
-      />
+    <div className={`rte-wrapper${className ? ` ${className}` : ""}`}>
+      {toolbarMode !== "bubble-only" && <BlockToolbar editor={editor} />}
+      {toolbarMode !== "block-only" && (
+        <BubbleToolbar editor={editor} onSetLink={setLink} />
+      )}
 
       <EditorContent editor={editor} />
     </div>

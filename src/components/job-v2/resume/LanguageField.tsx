@@ -5,6 +5,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type { Language } from "@/types/resume";
 
 import { useInlineEdit } from "./InlineEditContext";
+import { InlineField } from "./InlineField";
 
 const LEVELS = [
   "Native",
@@ -19,10 +20,6 @@ interface LanguageFieldProps {
   language: Language;
   onUpdate: (patch: Partial<Language>) => void;
   onRemove: () => void;
-  /** Custom display renderer for non-edit mode. Defaults to "Name (Proficiency)". */
-  renderDisplay?: (language: Language) => React.ReactNode;
-  /** Classes applied to the wrapper span in display mode only. */
-  className?: string;
 }
 
 const hoverClass =
@@ -31,69 +28,6 @@ const hoverClass =
 
 const editClass =
   "bg-transparent outline-none ring-1 ring-agent-primary rounded-sm px-0.5 -mx-0.5";
-
-/** Inline editable field that shows plain text until clicked. */
-function InlineInput({
-  value,
-  onCommit,
-  placeholder,
-}: {
-  value: string;
-  onCommit: (v: string) => void;
-  placeholder: string;
-}) {
-  const [editing, setEditing] = useState(false);
-  const [draft, setDraft] = useState(value);
-  const ref = useRef<HTMLInputElement>(null);
-
-  useEffect(() => {
-    if (editing) ref.current?.focus();
-  }, [editing]);
-
-  const commit = useCallback(() => {
-    setEditing(false);
-    if (draft !== value) onCommit(draft);
-  }, [draft, onCommit, value]);
-
-  if (editing) {
-    return (
-      <input
-        ref={ref}
-        value={draft}
-        onChange={(e) => setDraft(e.target.value)}
-        onBlur={commit}
-        onKeyDown={(e) => {
-          if (e.key === "Enter" || e.key === "Escape") e.currentTarget.blur();
-        }}
-        style={{
-          font: "inherit",
-          width: `${Math.max(draft.length, placeholder.length, 3)}ch`,
-        }}
-        className={editClass}
-      />
-    );
-  }
-
-  return (
-    <span
-      role="button"
-      tabIndex={0}
-      onClick={() => {
-        setDraft(value);
-        setEditing(true);
-      }}
-      onKeyDown={(e) => {
-        if (e.key === "Enter" || e.key === " ") {
-          setDraft(value);
-          setEditing(true);
-        }
-      }}
-      className={hoverClass}
-    >
-      {value || <span className="italic opacity-40">{placeholder}</span>}
-    </span>
-  );
-}
 
 /** Proficiency: shows text until clicked, then shows a select or free-text input. */
 function ProficiencyField({
@@ -201,15 +135,12 @@ export function LanguageField({
   language,
   onUpdate,
   onRemove,
-  renderDisplay,
-  className,
 }: LanguageFieldProps) {
   const { editable } = useInlineEdit();
 
   if (!editable) {
-    if (renderDisplay) return <>{renderDisplay(language)}</>;
     return (
-      <span className={className}>
+      <span>
         {language.name}
         {language.proficiency ? ` (${language.proficiency})` : ""}
       </span>
@@ -218,9 +149,9 @@ export function LanguageField({
 
   return (
     <span className="group/lang inline-flex items-baseline gap-0">
-      <InlineInput
+      <InlineField
         value={language.name}
-        onCommit={(v) => onUpdate({ name: v })}
+        onChange={(v) => onUpdate({ name: v })}
         placeholder="Language"
       />
       <span className="opacity-50 select-none">{" ("}</span>

@@ -274,7 +274,7 @@ export const ResumeSchema = z.object({
   languages: z.array(LanguageSchema).nullable(),
   volunteer: z.array(VolunteerSchema).nullable(),
   awards: z.array(AwardSchema).nullable(),
-  sectionLayout: SectionLayoutSchema.optional(),
+  sectionLayout: SectionLayoutSchema.nullable(),
 });
 
 export type ResumeJSON = z.infer<typeof ResumeSchema>;

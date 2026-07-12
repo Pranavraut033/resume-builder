@@ -2,18 +2,17 @@
 
 import { useEffect, useRef, useState } from "react";
 
-import { RichTextEditor } from "@/components/form/RichTextEditor";
 import { CoverLetterRenderer } from "@/components/job/templates/coverLetter/CoverLetterRenderer";
 import { TemplateRenderer } from "@/components/job/templates/TemplateRenderer";
 import { Icon } from "@/components/ui/Icon";
 import { useJobPageContext } from "@/contexts/JobPageContext";
+import { useEscapeKey } from "@/hooks/useEscapeKey";
 import useResolveCustomization from "@/hooks/useResolveCustomization";
 import cn from "@/lib/cn";
 import { getPageDimensions } from "@/lib/pageDimensions";
 
 import { CoverLetterActionBar } from "./CoverLetterActionBar";
 import { InlineEditProvider } from "./resume/InlineEditContext";
-import { InlineSuggestionData } from "./resume/InlineSuggestion";
 
 const MIN_ZOOM = 0.25;
 const MAX_ZOOM = 2;
@@ -24,12 +23,6 @@ function clampZoom(z: number) {
   return Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, z));
 }
 
-interface DocumentCanvasProps {
-  activeSuggestions?: InlineSuggestionData[];
-  onSuggestionAccept?: (suggestion: InlineSuggestionData) => void;
-  onSuggestionDismiss?: (id: string) => void;
-}
-
 /**
  * DocumentCanvas — the central WYSIWYG editing surface for the V2 inline editor.
  *
@@ -38,11 +31,7 @@ interface DocumentCanvasProps {
  * InlineJobPageLayout), not as an overlay here. For cover letter it renders
  * CoverLetterRenderer with a click-to-edit overlay.
  */
-export function DocumentCanvas({
-  activeSuggestions: _suggestions = [],
-  onSuggestionAccept: _onAccept,
-  onSuggestionDismiss: _onDismiss,
-}: DocumentCanvasProps) {
+export function DocumentCanvas() {
   const {
     resume,
     coverLetter,
@@ -57,6 +46,8 @@ export function DocumentCanvas({
 
   const [isCoverLetterEditing, setIsCoverLetterEditing] = useState(false);
   const clContainerRef = useRef<HTMLDivElement>(null);
+
+  useEscapeKey(isCoverLetterEditing, () => setIsCoverLetterEditing(false));
 
   // ── Zoom (resume canvas only) ────────────────────────────────────────────
   const { widthPx } = getPageDimensions(
@@ -103,33 +94,23 @@ export function DocumentCanvas({
             "rounded-sm bg-white ring-1 ring-black/5"
           )}
           onClick={() => setIsCoverLetterEditing(true)}
+          onBlur={() => {
+            // Toolbar buttons preventDefault on mousedown, so focus only
+            // leaves the container on a genuine click/tab away from it.
+            setTimeout(() => {
+              if (!clContainerRef.current?.contains(document.activeElement)) {
+                setIsCoverLetterEditing(false);
+              }
+            }, 0);
+          }}
         >
-          {isCoverLetterEditing ? (
-            /* Inline RTE overlay — mounted over the rendered position */
-            <div className="relative z-10 min-h-[1056px] w-full">
-              <RichTextEditor
-                value={coverLetter}
-                onChange={updateCoverLetterState}
-                placeholder="Your cover letter…"
-                stickyToolbar
-              />
-              <button
-                className="bg-agent-surface-container text-agent-on-surface-variant hover:bg-agent-surface-high absolute top-2 right-2 z-20 rounded-md px-2 py-1 text-xs shadow"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setIsCoverLetterEditing(false);
-                }}
-              >
-                Done
-              </button>
-            </div>
-          ) : (
-            <CoverLetterRenderer
-              coverLetter={coverLetter}
-              resume={resume}
-              customization={customization}
-            />
-          )}
+          <CoverLetterRenderer
+            coverLetter={coverLetter}
+            resume={resume}
+            customization={customization}
+            editable={isCoverLetterEditing}
+            onChange={updateCoverLetterState}
+          />
         </div>
         {/* Bottom spacer */}
         <div className="h-16" />

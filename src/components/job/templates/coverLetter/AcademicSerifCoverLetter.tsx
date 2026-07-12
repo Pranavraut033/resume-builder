@@ -6,17 +6,19 @@
 
 import React from "react";
 
-import { RichTextEditorContent } from "@/components/form/RichTextEditor";
 import useResolveCustomization from "@/hooks/useResolveCustomization";
 import BackgroundSvg from "@/lib/backgrounds/BackgroundSvg";
 import { getPageDimensions } from "@/lib/pageDimensions";
 
+import { CoverLetterBody } from "./CoverLetterBody";
 import { CoverLetterRendererProps } from "./CoverLetterRenderer";
 
 export const AcademicSerifCoverLetter: React.FC<CoverLetterRendererProps> = ({
   coverLetter,
   resume,
   customization,
+  editable,
+  onChange,
 }) => {
   const {
     primaryColor,
@@ -88,8 +90,10 @@ export const AcademicSerifCoverLetter: React.FC<CoverLetterRendererProps> = ({
         <div className={`${textSize} mb-6`}>{today}</div>
 
         {/* Cover Letter Content */}
-        <RichTextEditorContent
+        <CoverLetterBody
           content={coverLetter}
+          editable={editable}
+          onChange={onChange}
           className={`${textSize} ${lineHeight} text-justify`}
         />
       </div>

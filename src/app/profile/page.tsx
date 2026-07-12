@@ -78,6 +78,7 @@ export default function ProfilePage() {
     languages: [],
     volunteer: [],
     awards: [],
+    sectionLayout: null,
   };
 
   const [profile, setProfile] = useState<ResumeJSON>(data ?? emptyProfile);

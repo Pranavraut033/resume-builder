@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 
 import type { useInlineEdit } from "@/components/job-v2/resume/InlineEditContext";
 import type useResolveCustomizationFn from "@/hooks/useResolveCustomization";
-import type { ThemeConfig } from "@/types/customization";
+import type { HeadingStyle, ThemeConfig } from "@/types/customization";
 import type { ResumeJSON, SectionLayout } from "@/types/resume";
 
 /** A measured/paginated unit of content, same shape every template used internally. */
@@ -25,7 +25,6 @@ export type SectionInstance = {
   /** Registry key — for custom sections this is always "custom". */
   type: string;
   title: string;
-  hidden: boolean;
   column: 0 | 1;
 };
 
@@ -41,19 +40,10 @@ export type TxtSectionBuilder = (args: {
   instance: SectionInstance;
 }) => string;
 
-export type PDFSectionBuilder = (args: {
-  resume: ResumeJSON;
-  instance: SectionInstance;
-  styles: any; // ResolvedPDFStyles, imported from lib/pdf to avoid circular deps
-}) => any; // ReactNode
-
 export type SectionRegistryEntry = {
   dom: DomSectionBuilder;
   txt: TxtSectionBuilder;
-  defaultTitle: string;
 };
-
-export type HeadingStyle = "uppercase" | "underline" | "bar" | "serif";
 
 export type TemplateConfig = {
   columns: 1 | 2;

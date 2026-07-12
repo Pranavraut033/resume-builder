@@ -1,10 +1,15 @@
 "use client";
 
+import {
+  RichTextEditor,
+  RichTextEditorContent,
+} from "@/components/form/RichTextEditor";
+
 import { BulletListField } from "./BulletListField";
 import { useInlineEdit } from "./InlineEditContext";
 import { InlineField } from "./InlineField";
 
-type FieldType = "text" | "textarea" | "bullet";
+type FieldType = "text" | "textarea" | "bullet" | "richtext";
 
 interface EditableTextProps {
   value: string;
@@ -32,6 +37,29 @@ export function EditableText({
   renderDisplay,
 }: EditableTextProps) {
   const { editable } = useInlineEdit();
+
+  if (fieldType === "richtext") {
+    if (!editable) {
+      return renderDisplay ? (
+        <>{renderDisplay(value)}</>
+      ) : (
+        <RichTextEditorContent
+          content={value}
+          className={displayClassName ?? ""}
+        />
+      );
+    }
+    return (
+      <RichTextEditor
+        value={value}
+        onChange={onCommit}
+        placeholder={placeholder}
+        className={className}
+        contentClassName="p-0! min-h-0!"
+        toolbarMode="bubble-only"
+      />
+    );
+  }
 
   if (!editable) {
     return <>{renderDisplay ? renderDisplay(value) : value}</>;

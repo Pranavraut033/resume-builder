@@ -66,14 +66,6 @@ export function BulletListField({
     }
   };
 
-  // const insertAfter = (i: number, value = "") => {
-  //   const next = [...bullets];
-  //   next.splice(i + 1, 0, value);
-  //   setBullets(next);
-  //   commit(next);
-  //   focus(i + 1, false);
-  // };
-
   const removeAt = (i: number, focusPrev: boolean) => {
     if (bullets.length === 1) {
       setBullets([""]);

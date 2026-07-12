@@ -1,8 +1,8 @@
-import { EditableItem } from "@/components/job-v2/resume/EditableItem";
 import { EditableLink } from "@/components/job-v2/resume/EditableLink";
 import { EditableText } from "@/components/job-v2/resume/EditableText";
-import { LanguageField } from "@/components/job-v2/resume/LanguageField";
 import { ListSectionId } from "@/components/job-v2/resume/InlineEditContext";
+import { LanguageField } from "@/components/job-v2/resume/LanguageField";
+import { isHtml, htmlToPlainText } from "@/lib/htmlUtils";
 
 import {
   Block,
@@ -97,16 +97,16 @@ const experience: DomSectionBuilder = ({ resume, theme, edit }) =>
             </span>
           </div>
           {(exp.description || edit.editable) && (
-            <p className={`${theme.textSize} ${theme.lineHeight} mb-2`}>
+            <div className={`${theme.textSize} ${theme.lineHeight} mb-2`}>
               <EditableText
                 value={exp.description}
                 onCommit={(v) =>
                   edit.updateExperience(expIndex, { description: v })
                 }
-                fieldType="textarea"
+                fieldType="richtext"
                 placeholder="Describe your role…"
               />
-            </p>
+            </div>
           )}
           {(exp.achievements.length > 0 || edit.editable) && (
             <EditableText
@@ -185,16 +185,16 @@ const projects: DomSectionBuilder = ({ resume, theme, edit }) =>
               />
             </div>
           )}
-          <p className={`${theme.textSize} ${theme.lineHeight} mb-1`}>
+          <div className={`${theme.textSize} ${theme.lineHeight} mb-1`}>
             <EditableText
               value={project.description}
               onCommit={(v) =>
                 edit.updateProject(projectIndex, { description: v })
               }
-              fieldType="textarea"
+              fieldType="richtext"
               placeholder="Describe the project…"
             />
-          </p>
+          </div>
           {project.technologies.length > 0 && (
             <div
               className={`${theme.textSize}`}
@@ -541,6 +541,9 @@ const custom: DomSectionBuilder = ({ resume, instance }) => {
 // fixes the old txtExport.ts silently dropping publications/languages/
 // volunteer/awards (it had its own hardcoded, incomplete section list).
 
+const plain = (text: string): string =>
+  isHtml(text) ? htmlToPlainText(text) : text;
+
 const txtSummary: TxtSectionBuilder = ({ resume }) =>
   resume.summary ? `Summary:\n${resume.summary}\n` : "";
 
@@ -549,7 +552,7 @@ const txtExperience: TxtSectionBuilder = ({ resume }) => {
   const body = resume.experience
     .map((exp) => {
       const achievements = exp.achievements.map((a) => `  - ${a}`).join("\n");
-      return `${exp.role} at ${exp.company}\n${exp.startDate} - ${exp.endDate || "Present"}\n${exp.description}${achievements ? `\n${achievements}` : ""}`;
+      return `${exp.role} at ${exp.company}\n${exp.startDate} - ${exp.endDate || "Present"}\n${plain(exp.description)}${achievements ? `\n${achievements}` : ""}`;
     })
     .join("\n\n");
   return `Experience:\n${body}\n`;
@@ -560,7 +563,7 @@ const txtProjects: TxtSectionBuilder = ({ resume }) => {
   const body = resume.projects
     .map(
       (p) =>
-        `${p.name}\n${p.description}${p.technologies.length ? `\nTechnologies: ${p.technologies.join(", ")}` : ""}`
+        `${p.name}\n${plain(p.description)}${p.technologies.length ? `\nTechnologies: ${p.technologies.join(", ")}` : ""}`
     )
     .join("\n\n");
   return `Projects:\n${body}\n`;
@@ -636,39 +639,15 @@ const txtCustom: TxtSectionBuilder = ({ resume, instance }) => {
 };
 
 export const SECTION_REGISTRY: Record<string, SectionRegistryEntry> = {
-  summary: { dom: summary, txt: txtSummary, defaultTitle: "Summary" },
-  experience: {
-    dom: experience,
-    txt: txtExperience,
-    defaultTitle: "Experience",
-  },
-  projects: { dom: projects, txt: txtProjects, defaultTitle: "Projects" },
-  skills: { dom: skills, txt: txtSkills, defaultTitle: "Skills" },
-  education: {
-    dom: education,
-    txt: txtEducation,
-    defaultTitle: "Education",
-  },
-  certifications: {
-    dom: certifications,
-    txt: txtCertifications,
-    defaultTitle: "Certifications",
-  },
-  publications: {
-    dom: publications,
-    txt: txtPublications,
-    defaultTitle: "Publications",
-  },
-  languages: {
-    dom: languages,
-    txt: txtLanguages,
-    defaultTitle: "Languages",
-  },
-  volunteer: {
-    dom: volunteer,
-    txt: txtVolunteer,
-    defaultTitle: "Volunteer",
-  },
-  awards: { dom: awards, txt: txtAwards, defaultTitle: "Awards" },
-  custom: { dom: custom, txt: txtCustom, defaultTitle: "Custom" },
+  summary: { dom: summary, txt: txtSummary },
+  experience: { dom: experience, txt: txtExperience },
+  projects: { dom: projects, txt: txtProjects },
+  skills: { dom: skills, txt: txtSkills },
+  education: { dom: education, txt: txtEducation },
+  certifications: { dom: certifications, txt: txtCertifications },
+  publications: { dom: publications, txt: txtPublications },
+  languages: { dom: languages, txt: txtLanguages },
+  volunteer: { dom: volunteer, txt: txtVolunteer },
+  awards: { dom: awards, txt: txtAwards },
+  custom: { dom: custom, txt: txtCustom },
 };

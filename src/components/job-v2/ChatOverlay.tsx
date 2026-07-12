@@ -1,8 +1,7 @@
 "use client";
 
-import { useEffect } from "react";
-
 import { ChatPanel } from "@/components/chat/ChatPanel";
+import { useEscapeKey } from "@/hooks/useEscapeKey";
 import cn from "@/lib/cn";
 
 interface ChatOverlayProps {
@@ -15,14 +14,7 @@ interface ChatOverlayProps {
  * No backdrop, no absolute positioning — the document canvas shrinks to make room.
  */
 export function ChatOverlay({ open, onClose }: ChatOverlayProps) {
-  useEffect(() => {
-    if (!open) return;
-    const handler = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
-    };
-    window.addEventListener("keydown", handler);
-    return () => window.removeEventListener("keydown", handler);
-  }, [open, onClose]);
+  useEscapeKey(open, onClose);
 
   return (
     <aside

@@ -21,6 +21,7 @@ export function buildSections(
   const layout = getSectionLayout(resume);
 
   return layout.order
+    .filter((id) => !layout.hidden.includes(id))
     .map((id): SectionInstance | null => {
       const custom = layout.custom.find((c) => c.id === id);
       if (custom) {
@@ -28,7 +29,6 @@ export function buildSections(
           id,
           type: "custom",
           title: custom.title,
-          hidden: layout.hidden.includes(id),
           column: config.sectionColumn?.["custom"] ?? 0,
         };
       }
@@ -40,9 +40,8 @@ export function buildSections(
         id: builtinId,
         type: builtinId,
         title: BUILTIN_SECTION_LABELS[builtinId],
-        hidden: layout.hidden.includes(builtinId),
         column: config.sectionColumn?.[builtinId] ?? 0,
       };
     })
-    .filter((s): s is SectionInstance => s !== null && !s.hidden);
+    .filter((s): s is SectionInstance => s !== null);
 }

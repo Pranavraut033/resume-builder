@@ -87,10 +87,6 @@ export interface JobPageContextType {
   chatSnapPosition: ChatSnapPosition;
   setChatSnapPosition: (position: ChatSnapPosition) => void;
   setContentType: (type: EditorContentType) => void;
-  resumeMeta: {
-    createdAt: Date;
-    updatedAt: Date;
-  };
 }
 
 const JobPageContext = createContext<JobPageContextType | null>(null);
@@ -163,10 +159,12 @@ export function JobPageProvider({
       setResumeState((prev) => {
         const updated = { ...prev, ...updates };
 
-        historyRef.current.addEntry(
-          { ...updated, ...updates },
-          note ?? "Resume updated"
-        );
+        // Deferred: addEntry synchronously notifies history-change listeners
+        // (e.g. InlineJobPageLayout's setHistoryState), which must not run
+        // while this updater is still executing inside React's render phase.
+        queueMicrotask(() => {
+          historyRef.current.addEntry(updated, note ?? "Resume updated");
+        });
 
         return updated;
       });
@@ -421,31 +419,6 @@ export function JobPageProvider({
           ? "saved"
           : "idle";
 
-  if (!data) {
-    return (
-      <FallbackState
-        title="Editor context unavailable"
-        description="We couldn’t load your editor data right now. Refresh the app or try again later."
-        action={
-          <Button variant="secondary" onClick={() => window.location.reload()}>
-            Reload
-          </Button>
-        }
-      />
-    );
-  }
-
-  if (isLoading) {
-    return (
-      <FallbackState
-        iconName="loader"
-        title="Loading editor context"
-        description="Fetching your resume and cover letter data. This should only take a moment."
-        action={null}
-      />
-    );
-  }
-
   const value: JobPageContextType = {
     atsAnalysis,
     chatSnapPosition,
@@ -475,10 +448,6 @@ export function JobPageProvider({
     updateResumeState,
     undoResume,
     redoResume,
-    resumeMeta: {
-      createdAt: data.resume!.createdAt,
-      updatedAt: data.resume!.updatedAt,
-    },
   };
 
   return (

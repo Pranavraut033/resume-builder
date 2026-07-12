@@ -5,10 +5,6 @@ import { TemplateConfig } from "./types";
 /**
  * A "template" is now a config object (layout + style tokens), not a
  * ~850-line component. New template = one entry here.
- *
- * Only modern-minimal (1-col reference) and tech-sidebar (2-col reference)
- * are ported so far — TemplateRenderer falls back to the legacy per-template
- * components for any id not listed here (see migration plan step 3/4).
  */
 export const TEMPLATE_CONFIG: Partial<Record<TemplateType, TemplateConfig>> = {
   "modern-minimal": {

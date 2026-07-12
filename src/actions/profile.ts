@@ -159,6 +159,7 @@ function profileDataToResumeJson(
     languages: profile.languagesJson ? JSON.parse(profile.languagesJson) : [],
     volunteer: profile.volunteerJson ? JSON.parse(profile.volunteerJson) : [],
     awards: profile.awardsJson ? JSON.parse(profile.awardsJson) : [],
+    sectionLayout: null,
   } satisfies ResumeJSON & { label: string };
 }
 
