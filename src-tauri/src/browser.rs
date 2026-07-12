@@ -1,3 +1,6 @@
+use std::time::{Duration, Instant};
+
+use base64::{engine::general_purpose::STANDARD, Engine};
 use tauri::Manager;
 
 /// Injected into every child browser webview as an initialization script.
@@ -109,6 +112,67 @@ pub fn browser_get_url(app: tauri::AppHandle, label: String) -> Result<String, S
         .url()
         .map(|u| u.to_string())
         .map_err(|e| e.to_string())
+}
+
+/// Injected by `browser_extract_content` to read the rendered page's visible
+/// text and hand it back to Rust.
+///
+/// `eval()` is fire-and-forget — Tauri has no API to read a return value
+/// from evaluated JS without granting the page IPC access (which we don't
+/// want for third-party origins like LinkedIn/Indeed/Glassdoor). Instead we
+/// reuse the read-only `url()` accessor: this script base64-encodes the
+/// extracted text into a `data:` URL and navigates the webview to it, and
+/// `browser_extract_content` polls `url()` until it observes that
+/// navigation and decodes the payload.
+const EXTRACT_CONTENT_SCRIPT: &str = r#"
+(function () {
+  var text = document.body ? (document.body.innerText || document.body.textContent || '') : '';
+  text = text.replace(/\s+/g, ' ').trim().slice(0, 50000);
+  var b64 = btoa(unescape(encodeURIComponent(text)));
+  location.replace('data:text/plain;base64,' + b64);
+})();
+"#;
+
+const EXTRACTED_CONTENT_URL_PREFIX: &str = "data:text/plain;base64,";
+
+/// Extracts the visible text content of the child webview identified by
+/// `label`, then restores the URL it was showing before extraction.
+///
+/// Used instead of a server-side `fetch()` of the job posting URL: sites
+/// like LinkedIn/Indeed/Glassdoor block automated server-side requests with
+/// a 403, but the page already rendered inside the user's own webview is
+/// not blocked — reading it directly sidesteps the block entirely.
+#[tauri::command]
+pub fn browser_extract_content(app: tauri::AppHandle, label: String) -> Result<String, String> {
+    let webview = app
+        .get_webview(&label)
+        .ok_or_else(|| format!("webview '{label}' not found"))?;
+
+    let original_url = webview.url().map_err(|e| e.to_string())?;
+
+    webview
+        .eval(EXTRACT_CONTENT_SCRIPT)
+        .map_err(|e| e.to_string())?;
+
+    let deadline = Instant::now() + Duration::from_secs(5);
+    let encoded = loop {
+        let current = webview.url().map_err(|e| e.to_string())?.to_string();
+        if let Some(encoded) = current.strip_prefix(EXTRACTED_CONTENT_URL_PREFIX) {
+            break encoded.to_string();
+        }
+        if Instant::now() >= deadline {
+            return Err("Timed out extracting page content".to_string());
+        }
+        std::thread::sleep(Duration::from_millis(50));
+    };
+
+    // Restore the page the user was looking at, regardless of decode outcome.
+    let _ = webview.navigate(original_url);
+
+    let bytes = STANDARD
+        .decode(encoded)
+        .map_err(|e| format!("Failed to decode extracted content: {e}"))?;
+    String::from_utf8(bytes).map_err(|e| format!("Extracted content was not valid UTF-8: {e}"))
 }
 
 /// Repositions and resizes a child webview in a single Rust call.

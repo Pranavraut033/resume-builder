@@ -174,6 +174,20 @@ export async function getBrowserWebviewUrl(label: string): Promise<string> {
 }
 
 /**
+ * Extracts the visible text content of the webview identified by `label`.
+ *
+ * Reads the content the user's own webview already rendered instead of
+ * doing a separate server-side fetch of the URL — job sites like LinkedIn,
+ * Indeed, and Glassdoor block automated server-side requests with a 403,
+ * but the page already loaded in the webview is not blocked.
+ */
+export async function extractBrowserWebviewContent(
+  label: string
+): Promise<string> {
+  return invoke<string>("browser_extract_content", { label });
+}
+
+/**
  * Triggers history.back() inside the webview via a Rust eval command.
  */
 export async function goBackBrowserWebview(label: string): Promise<void> {

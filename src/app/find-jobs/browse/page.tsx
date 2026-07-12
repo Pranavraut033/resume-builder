@@ -5,7 +5,6 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useCallback, useEffect, useRef, useState } from "react";
 
 import { createJob } from "@/actions/job";
-import { fetchJobDescriptionFromUrl } from "@/actions/urlFetcher";
 import JobBrowserTabs from "@/components/find-jobs/JobBrowserTabs";
 import JobBrowserToolbar from "@/components/find-jobs/JobBrowserToolbar";
 import { useToast } from "@/components/ui/ToastProvider";
@@ -16,6 +15,7 @@ import {
   destroyAllBrowserWebviews,
   destroyBrowserWebview,
   domRectToWebviewBounds,
+  extractBrowserWebviewContent,
   getBrowserWebviewUrl,
   goBackBrowserWebview,
   OFFSCREEN_POSITION,
@@ -236,13 +236,15 @@ function BrowsePageInner() {
     try {
       const url = await getBrowserWebviewUrl(activeKeyRef.current);
 
-      const fetchResult = await fetchJobDescriptionFromUrl(url);
-      if (!fetchResult.success || !fetchResult.content) {
-        throw new Error(fetchResult.error ?? "Failed to fetch job description");
+      const content = await extractBrowserWebviewContent(activeKeyRef.current);
+      if (!content || content.trim().length < 50) {
+        throw new Error(
+          "Could not find a job description on this page. Open a specific job listing (not a search results page) and try again."
+        );
       }
 
       const result = await LLMService.generateApplicationMaterials({
-        jobDescription: fetchResult.content,
+        jobDescription: content,
         model: currentSelectedModel,
         provider: currentSelectedProvider,
         profile,

@@ -233,6 +233,7 @@ pub fn run() {
             browser::browser_go_back,
             browser::browser_reload,
             browser::browser_get_url,
+            browser::browser_extract_content,
             browser::browser_set_bounds,
             browser::browser_destroy_all,
         ])
