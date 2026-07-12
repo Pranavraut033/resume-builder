@@ -5,9 +5,9 @@
  * BYOK key; billing/budget enforcement is entirely server-side in LiteLLM.
  */
 import { LLMProvider } from "@pranavraut033/llm-core";
-import { OpenAICompatibleProvider } from "@pranavraut033/llm-core/providers/openai-compatible";
 
 import { createLogger } from "@/lib/logger";
+import { OpenAICompatibleProvider } from "@pranavraut033/llm-core/providers/openai-compatible";
 
 declare module "@pranavraut033/llm-core" {
   interface ProviderIdRegistry {

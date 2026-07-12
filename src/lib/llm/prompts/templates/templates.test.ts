@@ -57,6 +57,7 @@ const sampleResume: ResumeJSON = {
   languages: null,
   volunteer: null,
   awards: null,
+  sectionLayout: null,
 };
 
 const sampleJobDetails: JobDetailsJSON = {

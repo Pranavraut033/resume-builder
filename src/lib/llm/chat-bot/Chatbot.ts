@@ -1,4 +1,4 @@
-import { LLMProvider } from "@pranavraut033/llm-core";
+import { LLMProvider, textOnly } from "@pranavraut033/llm-core";
 
 import { LLMUsageInfo } from "@/actions/tokenUsage";
 import { ProviderFactory } from "@/lib/llm/providers";
@@ -290,17 +290,19 @@ class ResumeChatBot {
       let fullResponse = "";
       let chunkCount = 0;
 
-      const stream = this.provider.runLLM(messages, {
-        model: options.model,
-        maxTokens: 2000,
-        stream: true,
-        onUsage: (usage) => {
-          logger.info(
-            "ResumeChatBot",
-            `Usage for intent ${intent}: ${JSON.stringify(usage)}`
-          );
-        },
-      });
+      const stream = textOnly(
+        this.provider.runLLM(messages, {
+          model: options.model,
+          maxTokens: 2000,
+          stream: true,
+          onUsage: (usage) => {
+            logger.info(
+              "ResumeChatBot",
+              `Usage for intent ${intent}: ${JSON.stringify(usage)}`
+            );
+          },
+        })
+      );
 
       for await (const chunk of stream) {
         fullResponse += chunk;
