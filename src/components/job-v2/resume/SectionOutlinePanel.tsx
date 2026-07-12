@@ -87,7 +87,7 @@ export function SectionOutlinePanel({
   };
 
   const addCustomSection = () => {
-    const id = `custom-${Date.now()}`;
+    const id = `custom-${crypto.randomUUID()}`;
     updateResumeState(
       {
         sectionLayout: {
