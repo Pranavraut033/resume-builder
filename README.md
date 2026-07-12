@@ -173,7 +173,7 @@ resume-builder/
 │   │   └── settings/             # API key management
 │   ├── actions/                  # Server Actions (Prisma CRUD only)
 │   ├── components/
-│   │   ├── job/templates/        # TemplateRenderer + legacy fallback template
+│   │   ├── job/templates/        # TemplateRenderer (dispatches to engine, falls back to modern-minimal)
 │   │   └── job-v2/
 │   │       └── engine/            # Shared template engine (DOM rendering, section registry, template configs)
 │   ├── lib/
