@@ -260,15 +260,14 @@ const hookWords: [string, ('s' | 'ins')?][] = [
               The inline editor <em>is</em> the resume. Click any line on the rendered page and
               type — what you see on screen is exactly what exports to PDF.
             </p>
-            <div
-              role="img"
-              aria-label="Placeholder for a screenshot of the inline WYSIWYG editor"
-              class="mt-6 grid aspect-[16/10] place-items-center rounded-xl border-2 border-dashed border-line bg-surface"
-            >
-              <p class="px-4 text-center font-mono text-xs text-ink-muted">
-                [ screenshot — inline WYSIWYG editor ]
-              </p>
-            </div>
+            <img
+              src="/screenshots/editor.png"
+              alt="The inline WYSIWYG resume editor showing a tailored resume with the toolbar for PDF export, templates, sections, ATS analysis, humanizing, and chat"
+              width="1440"
+              height="940"
+              loading="lazy"
+              class="mt-6 aspect-[16/10] w-full rounded-xl border border-line object-cover object-top"
+            />
           </article>
 
           <!-- Privacy / multi-LLM -->
@@ -325,10 +324,23 @@ const hookWords: [string, ('s' | 'ins')?][] = [
             <p class="mt-2 text-sm leading-relaxed text-ink-muted">
               Multiple resume templates with per-job color, font, and layout customization.
             </p>
-            <div class="mt-4 grid grid-cols-3 gap-2" role="img" aria-label="Placeholder thumbnails for resume template screenshots">
-              <div class="aspect-[3/4] rounded-md border-2 border-dashed border-line bg-surface"></div>
-              <div class="aspect-[3/4] rounded-md border-2 border-dashed border-line bg-surface"></div>
-              <div class="aspect-[3/4] rounded-md border-2 border-dashed border-line bg-surface"></div>
+            <div class="mt-4 grid grid-cols-3 gap-2">
+              {
+                [
+                  { file: 'template-tech-sidebar', name: 'Tech Sidebar' },
+                  { file: 'template-modern-minimal', name: 'Modern Minimal' },
+                  { file: 'template-creative-modern', name: 'Creative Modern' },
+                ].map((tpl) => (
+                  <img
+                    src={`/screenshots/${tpl.file}.png`}
+                    alt={`${tpl.name} resume template`}
+                    width="866"
+                    height="1120"
+                    loading="lazy"
+                    class="aspect-[3/4] rounded-md border border-line object-cover object-top"
+                  />
+                ))
+              }
             </div>
           </article>
           <article class="reveal reveal-2 rounded-3xl border border-transparent bg-raised p-6 transition duration-300 hover:-translate-y-1 hover:shadow-block-lg dark:border-line">
