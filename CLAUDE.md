@@ -26,6 +26,8 @@ npm run test:run         # Vitest single run
 npm run test:run -- path/to/file.test.ts   # Run a single test file
 npm run test:ui          # Vitest UI
 npm run test:coverage    # Vitest with coverage
+npm run test:e2e         # Playwright e2e suite
+npm run test:e2e:ui      # Playwright UI mode
 
 npm run db:generate      # prisma generate
 npm run db:push          # prisma db push (apply schema to SQLite)
@@ -51,9 +53,11 @@ Local-first desktop resume/cover-letter builder: Next.js 16 (App Router) + Tauri
   - `tokenUsage.ts` — token usage analytics persistence
   - `urlFetcher.ts`, `getServerUrl.ts` — misc server-side helpers
 - **LLM operations run entirely client-side** (`src/lib/llm/`, `src/lib/clientLLM.ts`) so API keys never leave the client/Tauri secure storage.
-  - `src/lib/llm/providers/factory.ts` + `registry.ts` — central provider factory/registry. All providers (OpenAI, Gemini, Grok, Perplexity, Ollama, Anthropic) implement `LLMProvider.ts` and self-register via `providers/index.ts`. Always go through `ProviderFactory`, never instantiate a provider class directly.
-  - `src/lib/llm/llmService.ts` — high-level operations: `parseJobDescription()`, `generateResume()`, `generateCoverLetter()`, ATS analysis, humanizer.
-  - `src/lib/llm/prompts/` — prompt templates per operation.
+  - Provider base classes (`LLMProvider`, `OpenAICompatibleProvider`), the prompt resolver/validation, and provider registry now live in the `@pranavraut033/llm-core` submodule package (`packages/llm-core/`, consumed via `file:packages/llm-core`). App-local providers (`src/lib/llm/providers/`: `factory.ts`, `index.ts`, `managedProvider.ts`) extend those base classes and self-register via `ProviderFactory` — never instantiate a provider class directly.
+  - `managedProvider.ts` — `ManagedProvider`, an OpenAI-compatible provider pointed at the self-hosted LiteLLM gateway (`server/llm-gateway/`) for users without their own API key (paid, prepaid-credit access). Same client-only call path as BYOK providers; the gateway just proxies upstream.
+  - `src/lib/llm/domainOps.ts` — free functions for resume-domain operations (parsing, tailoring, ATS analysis, humanizer) shared across providers.
+  - `src/lib/llm/llmService.ts` — high-level operations: `parseJobDescription()`, `generateResume()`, `generateCoverLetter()`, ATS analysis, `humanizeContent()`.
+  - `src/lib/llm/prompts/` — prompt templates per operation; untrusted/user-supplied data is wrapped in delimiters before interpolation to block prompt injection.
   - `src/lib/llm/chat-bot/` — chat-based editing assistant.
   - `src/lib/llm/tokenTracker.ts` — tracks token usage, persisted via `tokenUsage` server action.
   - `src/lib/keyStorage.ts` — API key storage (Tauri encrypted store on desktop, localStorage on web). Use `getApiKey()`/`setKey()`, never store plaintext elsewhere.
@@ -64,21 +68,27 @@ SQLite via Prisma. Core models: `Profile` (base profile, with skills/experience/
 
 ### Resume rendering / templates
 
-- `src/components/job/templates/` — PDF/preview resume templates (e.g. `ModernMinimalTemplate.tsx`), adapted from the Resumify project (see `LICENSE-THIRD-PARTY.md`).
-- `src/lib/pdf/` and `src/lib/pdfExport.ts` — PDF generation via `@react-pdf/renderer` / `pdf-lib`.
-- `src/lib/txtExport.ts` — TXT export.
+Section content (order, visibility, custom sections) is resolved once via `buildSections()` (`src/components/job-v2/engine/buildSections.ts`) and rendered by three engines from the same `TemplateConfig`/section registry — DOM, PDF, and TXT stay in sync by construction:
+
+- `src/components/job-v2/engine/` — `TemplateEngine.tsx` (DOM/WYSIWYG rendering), `sections.tsx` (section registry), `templates.ts` (all resume templates — `modern-minimal`, `tech-sidebar`, `creative-modern`, `two-tone`, etc. — as layout/style config objects, not components), `types.ts`.
+- `src/components/job/templates/TemplateRenderer.tsx` dispatches `customization.template` to `TemplateEngine` via `engine/templates.ts`, falling back to the `modern-minimal` config for a legacy/unrecognized `template` value (originally adapted from the Resumify project, see `LICENSE-THIRD-PARTY.md`).
+- `src/lib/pdf/` — `PDFTemplateEngine.tsx` + `sections.tsx` mirror the DOM engine for `@react-pdf/renderer` resume output (`resolveStyles.ts`, `fonts.ts`, `htmlToPdf.tsx`); `templates/` holds cover-letter PDF templates only, still one component per resume template (e.g. `ModernMinimalCoverLetterPDF.tsx`).
+- `src/lib/pdfExport.ts` — PDF export entry point. `src/lib/txtExport.ts` — TXT export.
 - `src/types/customization.ts` — `Customization`/`SanitizedCustomization` types and `DEFAULT_CUSTOMIZATION`/`validateCustomization` for per-job template styling (colors, fonts, layout).
 
-### Job page (two coexisting implementations)
+### Job page
 
-- `src/app/job/[jobId]/` + `src/components/job/` — original job detail page (`JobPageLayout.tsx`, `JobPageContext.tsx`), drag-and-drop resume editor.
-- `src/app/job/[jobId]/inline/` + `src/components/job-v2/` — newer "Inline Editor V2": WYSIWYG inline editing (`InlineJobPageLayout.tsx`, `DocumentCanvas.tsx`, `resume/EditableSection.tsx`, `resume/InlineField.tsx`, `InlineEditContext.tsx`, `ChatOverlay.tsx`, `CustomizationDrawer.tsx`, `TemplatePicker.tsx`). See `docs/plans/inline-editor-v2-refined-plan.md` for the plan/rollout. When working on job-page UI, check which of these two trees the task targets — avoid mixing patterns between them.
+`src/app/job/[jobId]/` + `src/components/job-v2/` — the Inline Editor: WYSIWYG inline editing directly on the rendered document (`InlineJobPageLayout.tsx`, `DocumentCanvas.tsx` with zoom controls, `resume/InlineField.tsx`, `InlineEditContext.tsx`, `ChatOverlay.tsx`, `CustomizationDrawer.tsx`, `TemplatePicker.tsx`, `HistoryDrawer.tsx` for resume version history, `HumanizerModal.tsx` for AI humanizing). This is now the only job detail page implementation — the earlier drag-and-drop editor and its standalone `/inline` route were removed. `src/app/documents/` lists all generated resumes/cover letters with version history across jobs.
+
+### External links
+
+`src/components/ExternalLinkGuard.tsx` intercepts anchor clicks app-wide and confirms with the user before opening external URLs via `src/lib/externalLink.ts` (`tauri-plugin-opener` on desktop, `window.open` on web) instead of navigating in-app.
 
 ### State management
 
 - `src/contexts/` — React context (`JobPageContext`, `ThemeContext`).
 - `src/store/modelStore.ts` — Zustand store for selected LLM model/provider.
-- No React Query; data flows via Server Actions + local component/context state.
+- TanStack Query (`QueryClientProvider` in `src/components/AppShell.tsx`) wraps Server Action calls — `useQuery`/`useMutation` for data fetching/mutation (e.g. `useProfileQuery.ts`, `useJobPageDataQuery.ts`, `JobPageContext.tsx`), `useReactTable` (`@tanstack/react-table`) for the job/table list views (`ui/Table.tsx`, `JobTableClient.tsx`).
 
 ### Styling
 

@@ -9,7 +9,7 @@ This guide explains how to build, code-sign, and distribute Resume Builder as a 
 - macOS 11 or later (for building)
 - Xcode Command Line Tools: `xcode-select --install`
 - Rust + Cargo: `curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh`
-- Node.js 20+: `brew install node`
+- Node.js 22 (pinned in `.nvmrc`): `brew install node` or `nvm install`
 
 ---
 
