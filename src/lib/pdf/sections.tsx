@@ -2,9 +2,9 @@ import { Link, Text, View } from "@react-pdf/renderer";
 import React from "react";
 
 import { htmlToPlainText, isHtml } from "@/lib/htmlUtils";
-import { ResumeJSON, getSectionLayout } from "@/types/resume";
+import { ResumeJSON } from "@/types/resume";
 
-import { ResolvedPDFStyles, withAlpha } from "./resolveStyles";
+import { ResolvedPDFStyles } from "./resolveStyles";
 
 const plain = (text: string | null | undefined): string => {
   if (!text) return "";

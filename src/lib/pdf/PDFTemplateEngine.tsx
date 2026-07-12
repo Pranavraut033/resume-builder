@@ -9,8 +9,8 @@ import { ResumeJSON, getSectionLayout } from "@/types/resume";
 
 import { ResolvedPDFStyles } from "./resolveStyles";
 import { PDF_SECTION_REGISTRY } from "./sections";
-import { SectionGroup } from "./templates/shared/SectionGroup";
 import { PDFTemplateProps } from "./templates/ModernMinimalPDF";
+import { SectionGroup } from "./templates/shared/SectionGroup";
 
 const plain = (text: string | null | undefined): string => {
   if (!text) return "";

@@ -1,15 +1,14 @@
 import React from "react";
 
 import { TEMPLATE_CONFIG } from "@/components/job-v2/engine/templates";
-import type { TemplateType } from "@/types/customization";
 import { SanitizedCustomization } from "@/types/customization";
 import { ResumeJSON } from "@/types/resume";
 
+import { PDFTemplateEngine } from "./pdf/PDFTemplateEngine";
 import {
   ResolvedPDFStyles,
   resolvePDFCustomization,
 } from "./pdf/resolveStyles";
-import { PDFTemplateEngine } from "./pdf/PDFTemplateEngine";
 import { AcademicSerifCoverLetterPDF } from "./pdf/templates/AcademicSerifCoverLetterPDF";
 import { BJetProfessionalCoverLetterPDF } from "./pdf/templates/BJetProfessionalCoverLetterPDF";
 import { BusinessProfessionalCoverLetterPDF } from "./pdf/templates/BusinessProfessionalCoverLetterPDF";
@@ -20,6 +19,8 @@ import { ModernMinimalCoverLetterPDF } from "./pdf/templates/ModernMinimalCoverL
 import { ModernMinimalPDF } from "./pdf/templates/ModernMinimalPDF";
 import { TechSidebarCoverLetterPDF } from "./pdf/templates/TechSidebarCoverLetterPDF";
 import { TwoToneCoverLetterPDF } from "./pdf/templates/TwoToneCoverLetterPDF";
+
+import type { TemplateType } from "@/types/customization";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const COVER_LETTER_TEMPLATE_MAP: Record<string, React.ComponentType<any>> = {
