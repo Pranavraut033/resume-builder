@@ -220,6 +220,28 @@ export function ATSScorePanel({
         </Card>
       )}
 
+      {/* Skill Experience Gaps */}
+      {analysis.skillExperienceGaps && analysis.skillExperienceGaps.length > 0 && (
+        <Card>
+          <h4 className="mb-2 text-sm font-semibold text-gray-900 dark:text-white">
+            Skill Experience Gaps
+          </h4>
+          <div className="space-y-1">
+            {analysis.skillExperienceGaps.map((gap) => (
+              <div
+                key={gap.skill}
+                className="flex items-center justify-between rounded bg-yellow-100 px-2 py-1 text-xs text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300"
+              >
+                <span>{gap.skill}</span>
+                <span>
+                  {gap.resumeYears}y / {gap.requiredYears}y required
+                </span>
+              </div>
+            ))}
+          </div>
+        </Card>
+      )}
+
       {/* Suggestions */}
       {analysis.suggestions && analysis.suggestions.length > 0 && (
         <Card>
