@@ -47,7 +47,8 @@ function ProficiencyField({
 
   useEffect(() => {
     if (editing) {
-      customMode ? inputRef.current?.focus() : selectRef.current?.focus();
+      if (customMode) inputRef.current?.focus();
+      else selectRef.current?.focus();
     }
   }, [editing, customMode]);
 

@@ -129,7 +129,7 @@ export default function DocumentsPage() {
         id: "actions",
         header: "",
         enableSorting: false,
-        cell: ({ row }) => (
+        cell: () => (
           <span className="text-agent-primary inline-flex items-center gap-1 text-sm font-medium">
             Open
             <Icon name="arrowRight" size={14} />

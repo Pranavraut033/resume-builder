@@ -4,18 +4,12 @@ import React, { memo } from "react";
 import { buildSections } from "@/components/job-v2/engine/buildSections";
 import { TemplateConfig } from "@/components/job-v2/engine/types";
 import BackgroundPdf from "@/lib/backgrounds/BackgroundPdf";
-import { htmlToPlainText, isHtml } from "@/lib/htmlUtils";
 import { ResumeJSON, getSectionLayout } from "@/types/resume";
 
 import { ResolvedPDFStyles } from "./resolveStyles";
 import { PDF_SECTION_REGISTRY } from "./sections";
 import { PDFTemplateProps } from "./templates/ModernMinimalPDF";
 import { SectionGroup } from "./templates/shared/SectionGroup";
-
-const plain = (text: string | null | undefined): string => {
-  if (!text) return "";
-  return isHtml(text) ? htmlToPlainText(text) : text;
-};
 
 function buildContactLine(header: ResumeJSON["header"]): string {
   return [
@@ -171,7 +165,6 @@ export const PDFTemplateEngine: React.FC<PDFTemplateEngineProps> = ({
   config,
 }) => {
   const {
-    primaryColor,
     secondaryColor,
     accentColor,
     textColor,
@@ -180,7 +173,6 @@ export const PDFTemplateEngine: React.FC<PDFTemplateEngineProps> = ({
     fontSize,
     smallFontSize,
     nameFontSize,
-    lineHeight,
     marginPt,
     pageFormat,
   } = s;
