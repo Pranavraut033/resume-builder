@@ -1,6 +1,10 @@
 # Dependencies
 node_modules/
 
+# Git submodules (own repo, own formatting config)
+packages/llm-core/
+packages/ats-checker/
+
 # Next.js
 .next/
 out/
