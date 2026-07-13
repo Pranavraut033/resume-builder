@@ -62,6 +62,9 @@ src-tauri/resources/next
 .understand-anything
 .scratch/
 
+# Claude Code plan-mode scratch files
+.claude/plans/
+
 # Playwright
 /test-results/
 /playwright-report/
