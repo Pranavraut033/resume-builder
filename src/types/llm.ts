@@ -13,9 +13,13 @@ export enum ProviderType {
   OPENAI = "openai",
   GEMINI = "gemini",
   GROK = "grok",
+  GROQ = "groq",
   PERPLEXITY = "perplexity",
   OLLAMA = "ollama",
   ANTHROPIC = "anthropic",
+  DEEPSEEK = "deepseek",
+  MISTRAL = "mistral",
+  OPENROUTER = "openrouter",
   MANAGED = "managed",
 }
 

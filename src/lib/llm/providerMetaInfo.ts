@@ -21,6 +21,11 @@ export const PROVIDER_ICONS: Record<
   [ProviderType.PERPLEXITY]: PerplexityIcon,
   [ProviderType.ANTHROPIC]: AnthropicIcon,
   [ProviderType.MANAGED]: CloudIcon,
+  // ponytail: no dedicated brand icon yet, generic cloud icon as placeholder
+  [ProviderType.GROQ]: CloudIcon,
+  [ProviderType.DEEPSEEK]: CloudIcon,
+  [ProviderType.MISTRAL]: CloudIcon,
+  [ProviderType.OPENROUTER]: CloudIcon,
 };
 
 // Build provider info map

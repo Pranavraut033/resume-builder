@@ -11,9 +11,13 @@ export const EMPTY_MODELS_MAPS = Object.freeze({
   [ProviderType.OPENAI]: [],
   [ProviderType.GEMINI]: [],
   [ProviderType.GROK]: [],
+  [ProviderType.GROQ]: [],
   [ProviderType.PERPLEXITY]: [],
   [ProviderType.OLLAMA]: [],
   [ProviderType.ANTHROPIC]: [],
+  [ProviderType.DEEPSEEK]: [],
+  [ProviderType.MISTRAL]: [],
+  [ProviderType.OPENROUTER]: [],
   [ProviderType.MANAGED]: [],
 } as Record<ProviderType, string[]>);
 
