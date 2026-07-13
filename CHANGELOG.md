@@ -2,12 +2,9 @@
 
 All notable changes to this project are documented in this file.
 
-## [1.1.0] - 2026-07-12
+## [1.0.0] - 2026-07-13
 
-### Breaking Changes
-
-- The legacy drag-and-drop job page (v1) and its standalone `/inline` route have been removed. The inline WYSIWYG editor is now the only job page — update any bookmarks/links pointing at the old route ([d15c0af])
-- Provider base classes, the prompt resolver, and provider registry moved out of the app into the `@pranavraut033/llm-core` submodule package. Custom providers must now extend the base classes from `llm-core` rather than the old in-app locations ([c42b70f])
+Initial release.
 
 ### Added
 
@@ -36,9 +33,12 @@ All notable changes to this project are documented in this file.
 - Unstable `DndContext` ids that could cause hydration mismatches ([aa74b07])
 - Webhook handler and document page fixes ([66ce49b])
 - Step progress button styling ([0f4a23e])
+- Segment progress no longer carries over stale state when switching editor steps ([251480c])
+- Custom section IDs now use `crypto.randomUUID` instead of a collision-prone generator ([fffda50])
 
 ### Internal
 
-- Extracted provider/prompt infrastructure into the `@pranavraut033/llm-core` submodule ([c42b70f])
+- The inline WYSIWYG editor replaced the legacy drag-and-drop job page, which has been removed along with its standalone `/inline` route ([d15c0af])
+- Provider base classes, the prompt resolver, and the provider registry extracted into the `@pranavraut033/llm-core` submodule package ([c42b70f])
 - Reorganized the PDF template engine, template renderer imports, and inline editor components ([1f6bfd5], [7dbd590], [ff4b664])
 - Updated CLAUDE.md, README, and distribution guide ([4d71beb])
