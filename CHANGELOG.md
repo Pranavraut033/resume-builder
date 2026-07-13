@@ -5,10 +5,12 @@ All notable changes to this project are documented in this file.
 ## [1.1.0] - 2026-07-12
 
 ### Breaking Changes
+
 - The legacy drag-and-drop job page (v1) and its standalone `/inline` route have been removed. The inline WYSIWYG editor is now the only job page — update any bookmarks/links pointing at the old route ([d15c0af])
 - Provider base classes, the prompt resolver, and provider registry moved out of the app into the `@pranavraut033/llm-core` submodule package. Custom providers must now extend the base classes from `llm-core` rather than the old in-app locations ([c42b70f])
 
 ### Added
+
 - AI humanizer for resume and cover letter content, with a review modal before applying changes ([3e0aaad])
 - Managed LLM provider backed by a self-hosted gateway, for users without their own API key ([93efa5a])
 - Resume version history and a new Documents page listing all generated resumes/cover letters ([efa7eb2])
@@ -27,6 +29,7 @@ All notable changes to this project are documented in this file.
 - Playwright e2e suite and additional unit test coverage ([1b94e98])
 
 ### Fixed
+
 - Untrusted job/profile data now wrapped in delimiters before prompt interpolation, closing a prompt-injection gap ([efaf642])
 - Dead Clearbit logo API call and a broken lucide `Link` import ([b00fb32])
 - Missing italic font registration that broke italic styling (e.g. the Academic template) ([830a9ba])
@@ -35,6 +38,7 @@ All notable changes to this project are documented in this file.
 - Step progress button styling ([0f4a23e])
 
 ### Internal
+
 - Extracted provider/prompt infrastructure into the `@pranavraut033/llm-core` submodule ([c42b70f])
 - Reorganized the PDF template engine, template renderer imports, and inline editor components ([1f6bfd5], [7dbd590], [ff4b664])
 - Updated CLAUDE.md, README, and distribution guide ([4d71beb])
