@@ -66,6 +66,14 @@ const nextConfig: NextConfig = {
   // Turbopack is the default bundler in Next.js 16+.
   // An empty config here silences the "webpack config present but no turbopack config" warning.
   turbopack: {},
+  typescript: {
+    // `npm run type-check` already gates every release before it's tagged
+    // (see git-release.sh). Next's own in-build type-check duplicates that
+    // work on every CI platform and, with this project's submodule-heavy
+    // type graph, runs 25-38min and OOMs even at an 8GB heap in CI — so skip
+    // it here rather than chase heap size.
+    ignoreBuildErrors: true,
+  },
   webpack(config, { dev, isServer }) {
     // Only needed in the browser bundle during development.
     if (dev && !isServer) {

@@ -22,7 +22,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Resolve tag name
         id: resolve_tag
@@ -35,7 +35,7 @@ jobs:
 
       - name: Create GitHub release (draft)
         id: create_release
-        uses: actions/github-script@v7
+        uses: actions/github-script@v8
         with:
           script: |
             const { data } = await github.rest.repos.createRelease({
@@ -43,7 +43,7 @@ jobs:
               repo: context.repo.repo,
               tag_name: '${{ steps.resolve_tag.outputs.tag }}',
               name: 'Resume Builder ${{ steps.resolve_tag.outputs.tag }}',
-              body: `## Resume Builder ${{ steps.resolve_tag.outputs.tag }}\n\n### Installation\n\n**macOS**\n1. Download \`Resume.Builder_*_universal.dmg\` below\n2. Open the downloaded file\n3. Drag **Resume Builder** into **Applications**\n4. On first launch: right-click → Open → Open (to bypass macOS Gatekeeper)\n\n**Windows**\n1. Download the \`*-setup.exe\` installer below\n2. Run it and follow the prompts (Windows SmartScreen may warn about an unsigned app — click **More info → Run anyway**)\n\n**Linux**\n1. Download the \`.AppImage\` (portable) or \`.deb\` (Debian/Ubuntu) below\n2. For AppImage: \`chmod +x *.AppImage && ./*.AppImage\`\n3. For deb: \`sudo dpkg -i *.deb\`\n\n### Changelog\n\nSee [commits since last release](https://github.com/${{ github.repository }}/commits/${{ steps.resolve_tag.outputs.tag }}) for full changes.`,
+              body: `## Resume Builder ${{ steps.resolve_tag.outputs.tag }}\n\nInitial release. Resume Builder is a local-first desktop app for tailoring resumes and cover letters to a specific job with AI — all data and API keys stay on your machine.\n\n### Features\n\n- **Base profile** — one reusable profile (skills, experience, projects, education) that every resume is tailored from\n- **AI tailoring** — paste a job description and generate a matched resume and cover letter\n- **Inline WYSIWYG editor** — edit the rendered document directly, no separate form view\n- **Chat-based editing assistant** — refine sections by describing the change instead of hand-editing\n- **AI humanizer** — rewrite AI-flavored text to read more naturally\n- **Multiple templates** — several resume layouts with per-job color/font/layout customization\n- **Version history** — every generated resume/cover letter is versioned per job\n- **PDF and TXT export**\n- **Bring your own API key** (OpenAI-compatible providers) or use the built-in managed LLM gateway — no server ever sees your key\n- **Local SQLite storage** — no account, no cloud sync, your data never leaves the device\n\n### Installation\n\n**macOS**\n1. Download \`Resume.Builder_*_universal.dmg\` below\n2. Open the downloaded file\n3. Drag **Resume Builder** into **Applications**\n4. On first launch: right-click → Open → Open (to bypass macOS Gatekeeper)\n\n**Windows**\n1. Download the \`*-setup.exe\` installer below\n2. Run it and follow the prompts (Windows SmartScreen may warn about an unsigned app — click **More info → Run anyway**)\n\n**Linux**\n1. Download the \`.AppImage\` (portable) or \`.deb\` (Debian/Ubuntu) below\n2. For AppImage: \`chmod +x *.AppImage && ./*.AppImage\`\n3. For deb: \`sudo dpkg -i *.deb\`\n\n### Changelog\n\nSee [commits since last release](https://github.com/${{ github.repository }}/commits/${{ steps.resolve_tag.outputs.tag }}) for full changes.`,
               draft: true,
               prerelease: false
             });
@@ -61,16 +61,24 @@ jobs:
             args: "--target universal-apple-darwin"
             rust-targets: "aarch64-apple-darwin,x86_64-apple-darwin"
           - platform: ubuntu-22.04
-            args: ""
+            # linuxdeploy's real failure reason gets swallowed into a generic
+            # "failed to run linuxdeploy" otherwise (tauri-apps/tauri#14796)
+            args: "--verbose"
             rust-targets: ""
           - platform: windows-latest
             args: ""
             rust-targets: ""
     runs-on: ${{ matrix.platform }}
+    # Linux AppImage bundling is unreliable in GH Actions (linuxdeploy on
+    # ubuntu-22.04, tauri-apps/tauri#14796) and shouldn't hold up shipping
+    # macOS/Windows. Remove once that's root-caused and fixed for real.
+    continue-on-error: ${{ matrix.platform == 'ubuntu-22.04' }}
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
+        with:
+          submodules: true
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -92,7 +100,13 @@ jobs:
         if: matrix.platform == 'ubuntu-22.04'
         run: |
           sudo apt-get update
-          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf libxdo-dev
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf libxdo-dev libfuse2
+
+      - name: Build llm-core submodule
+        working-directory: packages/llm-core
+        run: |
+          npm ci
+          npm run build
 
       - name: Install Node.js dependencies
         run: npm ci
@@ -152,10 +166,20 @@ jobs:
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
           APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY || '-' }}
+          # next build's TypeScript check step OOMs on the default ~2GB V8 heap
+          # on GitHub-hosted runners; raise the ceiling well above what's needed.
+          NODE_OPTIONS: --max-old-space-size=8192
+          # linuxdeploy is itself an AppImage and can't mount via FUSE inside
+          # the GH Actions VM; this makes it extract-and-run instead.
+          APPIMAGE_EXTRACT_AND_RUN: "1"
+          # linuxdeploy's bundled `strip` errors on the `.relr.dyn` section
+          # modern glibc/ld produces on ubuntu-22.04+, killing the AppImage
+          # step (tauri-apps/tauri#14796). Skip stripping instead of chasing it.
+          NO_STRIP: "true"
         with:
           releaseId: ${{ needs.create-release.outputs.release_id }}
           args: ${{ matrix.platform == 'windows-latest' && '--config windows-signing.conf.json' || matrix.args }}
-          uploadUpdaterJson: false
+          includeUpdaterJson: false
 
       - name: Cleanup keychain
         if: always() && matrix.platform == 'macos-latest'
@@ -167,9 +191,9 @@ jobs:
         env:
           TAG: ${{ needs.create-release.outputs.tag }}
         run: |
-          DMG=$(find src-tauri/target/universal-apple-darwin/release/bundle/dmg -name "*.dmg" | head -1)
-          SIGNATURE=$(cat "${DMG}.sig")
-          FILENAME=$(basename "$DMG" | sed 's/ /./g')
+          ARCHIVE=$(find src-tauri/target/universal-apple-darwin/release/bundle/macos -name "*.app.tar.gz" | head -1)
+          SIGNATURE=$(cat "${ARCHIVE}.sig")
+          FILENAME=$(basename "$ARCHIVE" | sed 's/ /./g')
           URL="https://github.com/${{ github.repository }}/releases/download/${TAG}/${FILENAME}"
           jq -n --arg url "$URL" --arg sig "$SIGNATURE" \
             '{"darwin-x86_64": {"url": $url, "signature": $sig}, "darwin-aarch64": {"url": $url, "signature": $sig}}' \
@@ -240,7 +264,7 @@ jobs:
             > update.json
 
       - name: Upload update manifest to release
-        uses: actions/github-script@v7
+        uses: actions/github-script@v8
         env:
           RELEASE_ID: ${{ needs.create-release.outputs.release_id }}
         with:
@@ -255,7 +279,7 @@ jobs:
             });
 
       - name: Publish release
-        uses: actions/github-script@v7
+        uses: actions/github-script@v8
         env:
           RELEASE_ID: ${{ needs.create-release.outputs.release_id }}
         with:
