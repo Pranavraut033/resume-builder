@@ -1,3 +1,12 @@
+# v1.1.0 — 2026-07-16
+
+A polish release: more template flexibility, a smoother generation experience, and a couple of settings/chat fixes.
+
+- **More control over resume layout.** New header and entry-style variants, plus configurable date formatting, give templates more flexibility.
+- **Clearer generation progress.** AI-generation buttons now show an animated progress fill while a resume or cover letter is being drafted.
+- **Fixed:** the Ollama model picker in Settings now actually saves your selection.
+- **Fixed:** chat messages render correctly instead of producing invalid markup.
+
 # v1.0.0 — 2026-07-13
 
 The first release of Udaan: a local-first desktop app that turns a job description into a tailored resume and cover letter, then lets you polish the result right on the page.

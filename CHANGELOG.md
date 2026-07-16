@@ -2,6 +2,30 @@
 
 All notable changes to this project are documented in this file.
 
+## [1.1.0] - 2026-07-16
+
+### Added
+
+- Animated progress fill on AI-generation buttons ([65109be])
+- Header/entry-style layout variants and configurable date formatting for resume templates ([175f6a7])
+
+### Changed
+
+- Product renamed to Udaan ([1faeccf])
+
+### Fixed
+
+- Chat messages now render markdown in a `div` instead of a `p`, fixing invalid nested-block markup ([aa675c8])
+- Ollama model multi-select in Settings is now wired up ([9c0eef9])
+- The tailoring pipeline now refuses to act on a gutted/empty resume and no longer logs expected missing-API-key errors as failures ([02a4a73])
+
+### Internal
+
+- Seeded LLM API keys from env vars for local web development ([06ac6a1])
+- Bumped Next.js, `ats-checker`, and `llm-core`; pinned the Node engine version ([abc9891])
+- Landing page now deploys to GitHub Pages on push ([e3e70bb])
+- Added `haiku-builder` and `sonnet-builder` subagent definitions ([be85588])
+
 ## [1.0.0] - 2026-07-13
 
 Initial release.
