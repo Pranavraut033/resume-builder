@@ -39,13 +39,14 @@ function buildColumnBlocks(
   instances: SectionInstance[],
   resume: TemplateEngineProps["resume"],
   theme: ReturnType<typeof useResolveCustomization>,
-  edit: ReturnType<typeof useInlineEdit>
+  edit: ReturnType<typeof useInlineEdit>,
+  entryStyle: TemplateConfig["entryStyle"]
 ): Block[] {
   const blocks: Block[] = [];
   for (const instance of instances) {
     const entry = SECTION_REGISTRY[instance.type];
     if (!entry) continue;
-    blocks.push(...entry.dom({ resume, instance, theme, edit }));
+    blocks.push(...entry.dom({ resume, instance, theme, edit, entryStyle }));
   }
   return blocks;
 }
@@ -140,10 +141,16 @@ export const TemplateEngine: React.FC<TemplateEngineProps> = ({
     );
   };
 
-  const col0Blocks = buildColumnBlocks(col0Instances, resume, theme, edit);
+  const col0Blocks = buildColumnBlocks(
+    col0Instances,
+    resume,
+    theme,
+    edit,
+    config.entryStyle
+  );
   const col1Blocks =
     config.columns === 2
-      ? buildColumnBlocks(col1Instances, resume, theme, edit)
+      ? buildColumnBlocks(col1Instances, resume, theme, edit, config.entryStyle)
       : [];
 
   const instanceFor = (sectionKey: string, list: SectionInstance[]) =>
@@ -198,14 +205,44 @@ export const TemplateEngine: React.FC<TemplateEngineProps> = ({
     edit.moveItem(from.section, from.index, to.index);
   };
 
+  // ── Header style branch ──────────────────────────────────────────────────
+  // "band" fills the header in primaryColor with text in backgroundColor
+  // (the two-tone/creative-modern "colour-block header"); the others vary
+  // border/alignment only — content structure stays identical.
+  const headerVariant = config.header ?? "underline";
+  const isBand = headerVariant === "band";
+  const isCentered = headerVariant === "centered";
+  const isLeftAccent = headerVariant === "left-accent";
+  const isMinimal = headerVariant === "minimal";
+
+  const headerNameColor = isBand ? theme.backgroundColor : primaryColor;
+  const headerHeadlineColor = isBand
+    ? theme.backgroundColor
+    : theme.accentColor;
+  const headerContactColor = isBand ? theme.backgroundColor : secondaryColor;
+  const headerLinkColor = isBand ? theme.backgroundColor : theme.accentColor;
+
+  const headerWrapperClassName = [
+    isMinimal ? "mb-4 pb-2" : "mb-8 pb-4",
+    isCentered && "text-center",
+    isBand && "px-6 pt-6 rounded-md",
+    isLeftAccent && "border-l-4 pl-4",
+    !isBand && !isLeftAccent && "border-b-2",
+  ]
+    .filter(Boolean)
+    .join(" ");
+
   const headerNode = headerHidden ? null : (
     <header
-      className="mb-8 border-b-2 pb-4"
-      style={{ borderColor: primaryColor }}
+      className={headerWrapperClassName}
+      style={{
+        borderColor: isLeftAccent ? theme.accentColor : primaryColor,
+        backgroundColor: isBand ? primaryColor : undefined,
+      }}
     >
       <h1
         className={`mb-2 ${nameSize} font-bold`}
-        style={{ color: primaryColor }}
+        style={{ color: headerNameColor }}
       >
         <EditableText
           value={resume.header.name}
@@ -216,7 +253,7 @@ export const TemplateEngine: React.FC<TemplateEngineProps> = ({
       {(resume.header.headline || edit.editable) && (
         <div
           className={`${textSize} ${lineHeight} mb-2 font-medium`}
-          style={{ color: theme.accentColor }}
+          style={{ color: headerHeadlineColor }}
         >
           <EditableText
             value={resume.header.headline || ""}
@@ -227,9 +264,11 @@ export const TemplateEngine: React.FC<TemplateEngineProps> = ({
       )}
       <div
         className={`${textSize} ${lineHeight} space-y-1`}
-        style={{ color: secondaryColor }}
+        style={{ color: headerContactColor }}
       >
-        <div className="flex flex-wrap gap-4">
+        <div
+          className={`flex flex-wrap gap-4 ${isCentered ? "justify-center" : ""}`}
+        >
           {(resume.header.email || edit.editable) && (
             <span>
               ✉{" "}
@@ -261,14 +300,16 @@ export const TemplateEngine: React.FC<TemplateEngineProps> = ({
             </span>
           )}
         </div>
-        <div className="flex flex-wrap gap-4">
+        <div
+          className={`flex flex-wrap gap-4 ${isCentered ? "justify-center" : ""}`}
+        >
           {(resume.header.linkedin || edit.editable) && (
             <EditableLink
               href={resume.header.linkedin ?? ""}
               onCommit={(v) => edit.updateHeader({ linkedin: v })}
               placeholder="LinkedIn URL"
               className="hover:underline"
-              style={{ color: theme.accentColor }}
+              style={{ color: headerLinkColor }}
             />
           )}
           {(resume.header.github || edit.editable) && (
@@ -277,7 +318,7 @@ export const TemplateEngine: React.FC<TemplateEngineProps> = ({
               onCommit={(v) => edit.updateHeader({ github: v })}
               placeholder="GitHub URL"
               className="hover:underline"
-              style={{ color: theme.accentColor }}
+              style={{ color: headerLinkColor }}
             />
           )}
           {(resume.header.website || edit.editable) && (
@@ -286,7 +327,7 @@ export const TemplateEngine: React.FC<TemplateEngineProps> = ({
               onCommit={(v) => edit.updateHeader({ website: v })}
               placeholder="Website URL"
               className="hover:underline"
-              style={{ color: theme.accentColor }}
+              style={{ color: headerLinkColor }}
             />
           )}
         </div>
@@ -464,7 +505,7 @@ export const TemplateEngine: React.FC<TemplateEngineProps> = ({
           <div
             style={{
               width: `${ratio0 * 100}%`,
-              padding: "24px",
+              padding: marginPx * 0.7,
               backgroundColor: secondaryColor + "10",
               overflowY: "hidden",
             }}
@@ -479,7 +520,7 @@ export const TemplateEngine: React.FC<TemplateEngineProps> = ({
           <div
             style={{
               width: `${ratio1 * 100}%`,
-              padding: "24px",
+              padding: marginPx * 0.7,
               overflowY: "hidden",
             }}
           >

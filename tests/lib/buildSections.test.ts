@@ -36,7 +36,6 @@ const baseResume: ResumeJSON = {
 const CONFIG: TemplateConfig = {
   columns: 1,
   heading: "underline",
-  defaultFont: "Inter",
 };
 
 describe("buildSections", () => {

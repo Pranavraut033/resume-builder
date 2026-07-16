@@ -1,6 +1,8 @@
+import { DateRangeField } from "@/components/form";
 import { PageSection, SurfacePanel } from "@/components/ui";
 import { Button } from "@/components/ui/Button";
 import { FormField } from "@/components/ui/FormField";
+import { isValidDateRange } from "@/lib/date";
 import { Project } from "@/types/resume";
 
 interface ProjectsSectionProps {
@@ -95,11 +97,21 @@ export function ProjectsSection({ projects, onChange }: ProjectsSectionProps) {
                     onChange={(v) => update(index, { ...proj, url: v })}
                     placeholder="https://github.com/..."
                   />
-                  <FormField
-                    label="Start Date"
-                    value={proj.startDate || ""}
-                    onChange={(v) => update(index, { ...proj, startDate: v })}
-                    placeholder="Jan 2023"
+                  <DateRangeField
+                    label="Dates"
+                    startDate={proj.startDate || ""}
+                    endDate={proj.endDate || ""}
+                    onStartDateChange={(v) =>
+                      update(index, { ...proj, startDate: v })
+                    }
+                    onEndDateChange={(v) =>
+                      update(index, { ...proj, endDate: v })
+                    }
+                    error={
+                      isValidDateRange(proj.startDate, proj.endDate)
+                        ? undefined
+                        : "End date must be after start date"
+                    }
                   />
                 </div>
               </div>

@@ -173,6 +173,7 @@ model Customization {
   marginSize String @map("margin_size") // CSV: top,right,bottom,left in inches (e.g. 1,1,1,1)
   colors     String @default("#3b82f6,#64748b,#8b5cf6,#1f2937,#ffffff")
   background String @default("none") // page background pattern id
+  dateFormat String @default("locale") @map("date_format") // locale, MMM yyyy, MM/yyyy, yyyy-MM, MM.yyyy
 
   // ThemeConfig JSON (fonts/spacing/per-section overrides). Null = derive
   // from the legacy scalar columns above via legacyToTheme().

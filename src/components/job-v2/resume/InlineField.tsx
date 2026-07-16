@@ -11,7 +11,7 @@ import {
 
 import cn from "@/lib/cn";
 
-type FieldType = "text" | "textarea" | "bullet";
+type FieldType = "text" | "textarea" | "bullet" | "date";
 
 interface InlineFieldProps {
   value: string;
@@ -66,13 +66,13 @@ export function InlineField({
   useEffect(() => {
     if (isEditing) {
       inputRef.current?.focus();
-      // Move cursor to end
-      if (inputRef.current instanceof HTMLInputElement) {
+      // Move cursor to end (unsupported on some input types, e.g. "month")
+      if (inputRef.current instanceof HTMLInputElement && fieldType !== "date") {
         inputRef.current.selectionStart = inputRef.current.value.length;
         inputRef.current.selectionEnd = inputRef.current.value.length;
       }
     }
-  }, [isEditing]);
+  }, [isEditing, fieldType]);
 
   const resizeTextarea = useCallback((el: HTMLTextAreaElement) => {
     el.style.height = "auto";
@@ -81,9 +81,12 @@ export function InlineField({
 
   const resizeInput = useCallback(
     (el: HTMLInputElement) => {
-      el.style.width = `${Math.max(el.value.length || placeholder.length, 3)}ch`;
+      el.style.width =
+        fieldType === "date"
+          ? "9ch"
+          : `${Math.max(el.value.length || placeholder.length, 3)}ch`;
     },
-    [placeholder]
+    [placeholder, fieldType]
   );
 
   useLayoutEffect(() => {
@@ -137,7 +140,7 @@ export function InlineField({
     return (
       <input
         ref={inputRef as React.RefObject<HTMLInputElement>}
-        type="text"
+        type={fieldType === "date" ? "month" : "text"}
         value={draft}
         onChange={(e) => {
           setDraft(e.target.value);

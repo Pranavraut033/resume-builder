@@ -1,6 +1,8 @@
+import { DateRangeField } from "@/components/form";
 import { PageSection, SurfacePanel } from "@/components/ui";
 import { Button } from "@/components/ui/Button";
 import { FormField } from "@/components/ui/FormField";
+import { isValidDateRange } from "@/lib/date";
 import { Education } from "@/types/resume";
 
 interface EducationSectionProps {
@@ -85,18 +87,22 @@ export function EducationSection({
                     placeholder="Computer Science"
                   />
                 </div>
-                <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
-                  <FormField
-                    label="Start Date"
-                    value={edu.startDate}
-                    onChange={(v) => update(index, { ...edu, startDate: v })}
-                    placeholder="2015"
-                  />
-                  <FormField
-                    label="End Date"
-                    value={edu.endDate || ""}
-                    onChange={(v) => update(index, { ...edu, endDate: v })}
-                    placeholder="2019"
+                <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                  <DateRangeField
+                    label="Dates"
+                    startDate={edu.startDate}
+                    endDate={edu.endDate || ""}
+                    onStartDateChange={(v) =>
+                      update(index, { ...edu, startDate: v })
+                    }
+                    onEndDateChange={(v) =>
+                      update(index, { ...edu, endDate: v })
+                    }
+                    error={
+                      isValidDateRange(edu.startDate, edu.endDate)
+                        ? undefined
+                        : "End date must be after start date"
+                    }
                   />
                   <FormField
                     label="GPA"

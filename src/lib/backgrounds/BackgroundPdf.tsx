@@ -125,6 +125,7 @@ export const BackgroundPdf: React.FC<{ styles: ResolvedPDFStyles }> = ({
 
   return (
     <Svg
+      fixed
       width={w}
       height={h}
       viewBox={`0 0 ${w} ${h}`}

@@ -1,6 +1,11 @@
 import type { useInlineEdit } from "@/components/job-v2/resume/InlineEditContext";
 import type useResolveCustomizationFn from "@/hooks/useResolveCustomization";
-import type { HeadingStyle, ThemeConfig } from "@/types/customization";
+import type {
+  EntryStyle,
+  HeaderStyle,
+  HeadingStyle,
+  ThemeConfig,
+} from "@/types/customization";
 import type { ResumeJSON, SectionLayout } from "@/types/resume";
 import type { ReactNode } from "react";
 
@@ -32,6 +37,7 @@ export type DomSectionBuilder = (args: {
   instance: SectionInstance;
   theme: ResolvedTheme;
   edit: EditApi;
+  entryStyle?: EntryStyle;
 }) => Block[];
 
 export type TxtSectionBuilder = (args: {
@@ -53,7 +59,10 @@ export type TemplateConfig = {
   heading: HeadingStyle;
   /** Optional: apply small-caps to section headings (for Academic Serif template). */
   headingSmallCaps?: boolean;
-  defaultFont: string;
+  /** Header block layout. Defaults to "underline" when unset. */
+  header?: HeaderStyle;
+  /** How dated entries (experience/education/projects/volunteer) render. Defaults to "standard". */
+  entryStyle?: EntryStyle;
 };
 
 export type { ThemeConfig, SectionLayout };

@@ -1,6 +1,8 @@
+import { DateRangeField } from "@/components/form";
 import { PageSection, SurfacePanel } from "@/components/ui";
 import { Button } from "@/components/ui/Button";
 import { FormField } from "@/components/ui/FormField";
+import { isValidDateRange } from "@/lib/date";
 import { Experience } from "@/types/resume";
 
 interface ExperienceSectionProps {
@@ -77,18 +79,24 @@ export function ExperienceSection({
                     value={exp.role}
                     onChange={(v) => update(index, { ...exp, role: v })}
                   />
-                  <FormField
-                    label="Start Date"
-                    value={exp.startDate}
-                    onChange={(v) => update(index, { ...exp, startDate: v })}
-                    placeholder="Jan 2020"
-                  />
-                  <FormField
-                    label="End Date"
-                    value={exp.endDate || ""}
-                    onChange={(v) => update(index, { ...exp, endDate: v })}
-                    placeholder="Present or Dec 2022"
-                  />
+                  <div className="md:col-span-2">
+                    <DateRangeField
+                      label="Dates"
+                      startDate={exp.startDate}
+                      endDate={exp.endDate || ""}
+                      onStartDateChange={(v) =>
+                        update(index, { ...exp, startDate: v })
+                      }
+                      onEndDateChange={(v) =>
+                        update(index, { ...exp, endDate: v })
+                      }
+                      error={
+                        isValidDateRange(exp.startDate, exp.endDate)
+                          ? undefined
+                          : "End date must be after start date"
+                      }
+                    />
+                  </div>
                 </div>
                 <FormField
                   label="Description"

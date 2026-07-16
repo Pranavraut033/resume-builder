@@ -1,7 +1,9 @@
 import { Link, Text, View } from "@react-pdf/renderer";
 import React from "react";
 
+import { formatDateRange } from "@/lib/date";
 import { htmlToPlainText, isHtml } from "@/lib/htmlUtils";
+import { EntryStyle } from "@/types/customization";
 import { ResumeJSON } from "@/types/resume";
 
 import { ResolvedPDFStyles } from "./resolveStyles";
@@ -15,6 +17,7 @@ export type PDFSectionBuilderArgs = {
   resume: ResumeJSON;
   instance: { id: string; title: string };
   styles: ResolvedPDFStyles;
+  entryStyle?: EntryStyle;
 };
 
 export type PDFSectionBuilder = (
@@ -40,9 +43,104 @@ const pdfSummary: PDFSectionBuilder = ({ resume, styles: s }) => {
   );
 };
 
-const pdfExperience: PDFSectionBuilder = ({ resume, styles: s }) => {
-  const { fontSize, smallFontSize, lineHeight, accentColor } = s;
+const pdfExperience: PDFSectionBuilder = ({
+  resume,
+  styles: s,
+  entryStyle,
+}) => {
+  const { fontSize, smallFontSize, lineHeight, accentColor, dateFormat } = s;
   if (resume.experience.length === 0) return null;
+
+  if (entryStyle === "compact") {
+    return (
+      <>
+        {resume.experience.map((exp, i) => (
+          <View key={i} wrap={false} style={{ marginBottom: 5 }}>
+            <Text style={{ fontSize, color: "#374151" }}>
+              <Text style={{ fontWeight: 700, color: accentColor }}>
+                {exp.role}
+              </Text>
+              {" — "}
+              {exp.company}
+              <Text style={{ fontSize: smallFontSize, color: "#6b7280" }}>
+                {"  ·  "}
+                {formatDateRange(exp.startDate, exp.endDate, dateFormat)}
+              </Text>
+            </Text>
+            {exp.achievements.map((a, j) => (
+              <Text
+                key={j}
+                style={{
+                  fontSize: smallFontSize,
+                  lineHeight,
+                  color: "#374151",
+                  marginLeft: 8,
+                }}
+              >
+                {"• "}
+                {a}
+              </Text>
+            ))}
+          </View>
+        ))}
+      </>
+    );
+  }
+
+  if (entryStyle === "timeline") {
+    return (
+      <>
+        {resume.experience.map((exp, i) => (
+          <View
+            key={i}
+            wrap={false}
+            style={{
+              marginBottom: 10,
+              paddingLeft: 10,
+              borderLeftWidth: 2,
+              borderLeftColor: accentColor,
+            }}
+          >
+            <Text style={{ fontSize, fontWeight: 700, color: accentColor }}>
+              {"● "}
+              {exp.role}
+            </Text>
+            <Text style={{ fontSize: smallFontSize, color: "#6b7280" }}>
+              {exp.company} ·{" "}
+              {formatDateRange(exp.startDate, exp.endDate, dateFormat)}
+            </Text>
+            {exp.description ? (
+              <Text
+                style={{
+                  fontSize,
+                  lineHeight,
+                  color: "#374151",
+                  marginTop: 2,
+                  marginBottom: 3,
+                }}
+              >
+                {plain(exp.description)}
+              </Text>
+            ) : null}
+            {exp.achievements.map((a, j) => (
+              <Text
+                key={j}
+                style={{
+                  fontSize,
+                  lineHeight,
+                  color: "#374151",
+                  marginLeft: 8,
+                }}
+              >
+                {"• "}
+                {a}
+              </Text>
+            ))}
+          </View>
+        ))}
+      </>
+    );
+  }
 
   return (
     <>
@@ -65,7 +163,7 @@ const pdfExperience: PDFSectionBuilder = ({ resume, styles: s }) => {
               </Text>
             </View>
             <Text style={{ fontSize: smallFontSize, color: "#6b7280" }}>
-              {exp.startDate} – {exp.endDate || "Present"}
+              {formatDateRange(exp.startDate, exp.endDate, dateFormat)}
             </Text>
           </View>
           {exp.description ? (
@@ -95,10 +193,69 @@ const pdfExperience: PDFSectionBuilder = ({ resume, styles: s }) => {
   );
 };
 
-const pdfProjects: PDFSectionBuilder = ({ resume, styles: s }) => {
-  const { fontSize, smallFontSize, lineHeight, accentColor, secondaryColor } =
-    s;
+const pdfProjects: PDFSectionBuilder = ({ resume, styles: s, entryStyle }) => {
+  const {
+    fontSize,
+    smallFontSize,
+    lineHeight,
+    accentColor,
+    secondaryColor,
+    dateFormat,
+  } = s;
   if (resume.projects.length === 0) return null;
+
+  if (entryStyle === "compact") {
+    return (
+      <>
+        {resume.projects.map((proj, i) => (
+          <View key={i} wrap={false} style={{ marginBottom: 5 }}>
+            <Text style={{ fontSize, color: "#374151" }}>
+              <Text style={{ fontWeight: 700, color: accentColor }}>
+                {proj.name}
+              </Text>
+              {proj.technologies.length > 0 &&
+                `  ·  ${proj.technologies.join(", ")}`}
+            </Text>
+          </View>
+        ))}
+      </>
+    );
+  }
+
+  if (entryStyle === "timeline") {
+    return (
+      <>
+        {resume.projects.map((proj, i) => (
+          <View
+            key={i}
+            wrap={false}
+            style={{
+              marginBottom: 10,
+              paddingLeft: 10,
+              borderLeftWidth: 2,
+              borderLeftColor: accentColor,
+            }}
+          >
+            <Text style={{ fontSize, fontWeight: 700, color: accentColor }}>
+              {"● "}
+              {proj.name}
+            </Text>
+            <Text
+              style={{
+                fontSize,
+                lineHeight,
+                color: "#374151",
+                marginTop: 2,
+                marginBottom: 3,
+              }}
+            >
+              {plain(proj.description)}
+            </Text>
+          </View>
+        ))}
+      </>
+    );
+  }
 
   return (
     <>
@@ -124,7 +281,7 @@ const pdfProjects: PDFSectionBuilder = ({ resume, styles: s }) => {
             </Text>
             {proj.startDate || proj.endDate ? (
               <Text style={{ fontSize: smallFontSize, color: "#6b7280" }}>
-                {proj.startDate || ""} – {proj.endDate || "Present"}
+                {formatDateRange(proj.startDate, proj.endDate, dateFormat)}
               </Text>
             ) : null}
           </View>
@@ -160,9 +317,61 @@ const pdfSkills: PDFSectionBuilder = ({ resume, styles: s }) => {
   );
 };
 
-const pdfEducation: PDFSectionBuilder = ({ resume, styles: s }) => {
-  const { fontSize, smallFontSize, accentColor } = s;
+const pdfEducation: PDFSectionBuilder = ({ resume, styles: s, entryStyle }) => {
+  const { fontSize, smallFontSize, accentColor, dateFormat } = s;
   if (resume.education.length === 0) return null;
+
+  if (entryStyle === "compact") {
+    return (
+      <>
+        {resume.education.map((edu, i) => (
+          <View key={i} wrap={false} style={{ marginBottom: 5 }}>
+            <Text style={{ fontSize, color: "#374151" }}>
+              <Text style={{ fontWeight: 700, color: accentColor }}>
+                {edu.degree}
+                {edu.field ? ` in ${edu.field}` : ""}
+              </Text>
+              {" — "}
+              {edu.institution}
+              <Text style={{ fontSize: smallFontSize, color: "#6b7280" }}>
+                {"  ·  "}
+                {formatDateRange(edu.startDate, edu.endDate, dateFormat)}
+              </Text>
+            </Text>
+          </View>
+        ))}
+      </>
+    );
+  }
+
+  if (entryStyle === "timeline") {
+    return (
+      <>
+        {resume.education.map((edu, i) => (
+          <View
+            key={i}
+            wrap={false}
+            style={{
+              marginBottom: 10,
+              paddingLeft: 10,
+              borderLeftWidth: 2,
+              borderLeftColor: accentColor,
+            }}
+          >
+            <Text style={{ fontSize, fontWeight: 700, color: accentColor }}>
+              {"● "}
+              {edu.degree}
+              {edu.field ? ` in ${edu.field}` : ""}
+            </Text>
+            <Text style={{ fontSize: smallFontSize, color: "#6b7280" }}>
+              {edu.institution} ·{" "}
+              {formatDateRange(edu.startDate, edu.endDate, dateFormat)}
+            </Text>
+          </View>
+        ))}
+      </>
+    );
+  }
 
   return (
     <>
@@ -185,7 +394,7 @@ const pdfEducation: PDFSectionBuilder = ({ resume, styles: s }) => {
               </Text>
             </View>
             <Text style={{ fontSize: smallFontSize, color: "#6b7280" }}>
-              {edu.startDate} – {edu.endDate || "Present"}
+              {formatDateRange(edu.startDate, edu.endDate, dateFormat)}
             </Text>
           </View>
           {edu.gpa ? (
@@ -274,10 +483,72 @@ const pdfLanguages: PDFSectionBuilder = ({ resume, styles: s }) => {
   );
 };
 
-const pdfVolunteer: PDFSectionBuilder = ({ resume, styles: s }) => {
-  const { fontSize, smallFontSize, lineHeight, accentColor } = s;
+const pdfVolunteer: PDFSectionBuilder = ({ resume, styles: s, entryStyle }) => {
+  const { fontSize, smallFontSize, lineHeight, accentColor, dateFormat } = s;
   const vols = resume.volunteer ?? [];
   if (vols.length === 0) return null;
+
+  if (entryStyle === "compact") {
+    return (
+      <>
+        {vols.map((v, i) => (
+          <View key={i} wrap={false} style={{ marginBottom: 5 }}>
+            <Text style={{ fontSize, color: "#374151" }}>
+              <Text style={{ fontWeight: 700, color: accentColor }}>
+                {v.role}
+              </Text>
+              {" — "}
+              {v.organization}
+              <Text style={{ fontSize: smallFontSize, color: "#6b7280" }}>
+                {"  ·  "}
+                {formatDateRange(v.startDate, v.endDate, dateFormat)}
+              </Text>
+            </Text>
+          </View>
+        ))}
+      </>
+    );
+  }
+
+  if (entryStyle === "timeline") {
+    return (
+      <>
+        {vols.map((v, i) => (
+          <View
+            key={i}
+            wrap={false}
+            style={{
+              marginBottom: 10,
+              paddingLeft: 10,
+              borderLeftWidth: 2,
+              borderLeftColor: accentColor,
+            }}
+          >
+            <Text style={{ fontSize, fontWeight: 700, color: accentColor }}>
+              {"● "}
+              {v.role}
+            </Text>
+            <Text style={{ fontSize: smallFontSize, color: "#6b7280" }}>
+              {v.organization} ·{" "}
+              {formatDateRange(v.startDate, v.endDate, dateFormat)}
+            </Text>
+            {v.description ? (
+              <Text
+                style={{
+                  fontSize,
+                  lineHeight,
+                  color: "#374151",
+                  marginTop: 2,
+                }}
+              >
+                {plain(v.description)}
+              </Text>
+            ) : null}
+          </View>
+        ))}
+      </>
+    );
+  }
 
   return (
     <>
@@ -299,7 +570,7 @@ const pdfVolunteer: PDFSectionBuilder = ({ resume, styles: s }) => {
               </Text>
             </View>
             <Text style={{ fontSize: smallFontSize, color: "#6b7280" }}>
-              {v.startDate} – {v.endDate || "Present"}
+              {formatDateRange(v.startDate, v.endDate, dateFormat)}
             </Text>
           </View>
           {v.description ? (

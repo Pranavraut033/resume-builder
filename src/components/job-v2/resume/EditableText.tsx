@@ -9,7 +9,7 @@ import { BulletListField } from "./BulletListField";
 import { useInlineEdit } from "./InlineEditContext";
 import { InlineField } from "./InlineField";
 
-type FieldType = "text" | "textarea" | "bullet" | "richtext";
+type FieldType = "text" | "textarea" | "bullet" | "richtext" | "date";
 
 interface EditableTextProps {
   value: string;

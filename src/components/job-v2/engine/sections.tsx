@@ -1,7 +1,9 @@
+import { EditableDateRange } from "@/components/job-v2/resume/EditableDateRange";
 import { EditableLink } from "@/components/job-v2/resume/EditableLink";
 import { EditableText } from "@/components/job-v2/resume/EditableText";
 import { ListSectionId } from "@/components/job-v2/resume/InlineEditContext";
 import { LanguageField } from "@/components/job-v2/resume/LanguageField";
+import { formatDateRange } from "@/lib/date";
 import { isHtml, htmlToPlainText } from "@/lib/htmlUtils";
 
 import {
@@ -43,9 +45,132 @@ const summary: DomSectionBuilder = ({ resume, theme, edit }) => {
   ];
 };
 
-const experience: DomSectionBuilder = ({ resume, theme, edit }) =>
-  resume.experience.map(
-    (exp, expIndex): Block => ({
+const experience: DomSectionBuilder = ({ resume, theme, edit, entryStyle }) =>
+  resume.experience.map((exp, expIndex): Block => {
+    const dates = (
+      <EditableDateRange
+        startDate={exp.startDate}
+        endDate={exp.endDate}
+        dateFormat={theme.dateFormat}
+        onCommitStart={(v) => edit.updateExperience(expIndex, { startDate: v })}
+        onCommitEnd={(v) => edit.updateExperience(expIndex, { endDate: v })}
+      />
+    );
+
+    const achievements = (exp.achievements.length > 0 || edit.editable) && (
+      <EditableText
+        value={exp.achievements.join("\n")}
+        onCommit={(v) =>
+          edit.updateExperienceAchievements(
+            expIndex,
+            v.split("\n").filter(Boolean)
+          )
+        }
+        fieldType="bullet"
+        placeholder="Add bullet points, one per line…"
+        renderDisplay={(v) => (
+          <ul
+            className={`${theme.textSize} ${theme.lineHeight} list-inside list-disc space-y-1`}
+          >
+            {v
+              .split("\n")
+              .filter(Boolean)
+              .map((a, i) => (
+                <li key={i}>{a}</li>
+              ))}
+          </ul>
+        )}
+      />
+    );
+
+    if (entryStyle === "compact") {
+      return {
+        sectionKey: "experience",
+        itemIndex: expIndex,
+        node: (
+          <div>
+            <p className={`${theme.textSize}`}>
+              <span
+                className="font-semibold"
+                style={{ color: theme.accentColor }}
+              >
+                <EditableText
+                  value={exp.role}
+                  onCommit={(v) => edit.updateExperience(expIndex, { role: v })}
+                  placeholder="Role"
+                />
+              </span>
+              {" — "}
+              <EditableText
+                value={exp.company}
+                onCommit={(v) =>
+                  edit.updateExperience(expIndex, { company: v })
+                }
+                placeholder="Company"
+              />
+              <span style={{ color: theme.secondaryColor }}>
+                {"  ·  "}
+                {dates}
+              </span>
+            </p>
+            {achievements}
+          </div>
+        ),
+      };
+    }
+
+    if (entryStyle === "timeline") {
+      return {
+        sectionKey: "experience",
+        itemIndex: expIndex,
+        node: (
+          <div
+            className="border-l-2 pl-3"
+            style={{ borderColor: theme.accentColor }}
+          >
+            <h3 className="font-semibold" style={{ color: theme.accentColor }}>
+              <span className="mr-1">●</span>
+              <EditableText
+                value={exp.role}
+                onCommit={(v) => edit.updateExperience(expIndex, { role: v })}
+                placeholder="Role"
+              />
+            </h3>
+            <p
+              className={`${theme.textSize}`}
+              style={{ color: theme.secondaryColor }}
+            >
+              <EditableText
+                value={exp.company}
+                onCommit={(v) =>
+                  edit.updateExperience(expIndex, { company: v })
+                }
+                placeholder="Company"
+              />
+              {" · "}
+              {dates}
+            </p>
+            {(exp.description || edit.editable) && (
+              <div
+                className={`${theme.textSize} ${theme.lineHeight} mt-1 mb-2`}
+              >
+                <EditableText
+                  value={exp.description}
+                  onCommit={(v) =>
+                    edit.updateExperience(expIndex, { description: v })
+                  }
+                  fieldType="richtext"
+                  placeholder="Describe your role…"
+                />
+              </div>
+            )}
+            {achievements}
+          </div>
+        ),
+      };
+    }
+
+    return {
       sectionKey: "experience",
       itemIndex: expIndex,
       node: (
@@ -79,21 +204,7 @@ const experience: DomSectionBuilder = ({ resume, theme, edit }) =>
               className={`${theme.textSize} shrink-0`}
               style={{ color: theme.secondaryColor }}
             >
-              <EditableText
-                value={exp.startDate}
-                onCommit={(v) =>
-                  edit.updateExperience(expIndex, { startDate: v })
-                }
-                placeholder="Start"
-              />
-              {" - "}
-              <EditableText
-                value={exp.endDate || ""}
-                onCommit={(v) =>
-                  edit.updateExperience(expIndex, { endDate: v })
-                }
-                placeholder="Present"
-              />
+              {dates}
             </span>
           </div>
           {(exp.description || edit.editable) && (
@@ -108,39 +219,74 @@ const experience: DomSectionBuilder = ({ resume, theme, edit }) =>
               />
             </div>
           )}
-          {(exp.achievements.length > 0 || edit.editable) && (
-            <EditableText
-              value={exp.achievements.join("\n")}
-              onCommit={(v) =>
-                edit.updateExperienceAchievements(
-                  expIndex,
-                  v.split("\n").filter(Boolean)
-                )
-              }
-              fieldType="bullet"
-              placeholder="Add bullet points, one per line…"
-              renderDisplay={(v) => (
-                <ul
-                  className={`${theme.textSize} ${theme.lineHeight} list-inside list-disc space-y-1`}
-                >
-                  {v
-                    .split("\n")
-                    .filter(Boolean)
-                    .map((a, i) => (
-                      <li key={i}>{a}</li>
-                    ))}
-                </ul>
-              )}
-            />
-          )}
+          {achievements}
         </div>
       ),
-    })
-  );
+    };
+  });
 
-const projects: DomSectionBuilder = ({ resume, theme, edit }) =>
-  resume.projects.map(
-    (project, projectIndex): Block => ({
+const projects: DomSectionBuilder = ({ resume, theme, edit, entryStyle }) =>
+  resume.projects.map((project, projectIndex): Block => {
+    if (entryStyle === "compact") {
+      return {
+        sectionKey: "projects",
+        itemIndex: projectIndex,
+        node: (
+          <p className={`${theme.textSize}`}>
+            <span
+              className="font-semibold"
+              style={{ color: theme.accentColor }}
+            >
+              <EditableText
+                value={project.name}
+                onCommit={(v) => edit.updateProject(projectIndex, { name: v })}
+                placeholder="Project name"
+              />
+            </span>
+            {project.technologies.length > 0 && (
+              <span style={{ color: theme.secondaryColor }}>
+                {"  ·  "}
+                {project.technologies.join(", ")}
+              </span>
+            )}
+          </p>
+        ),
+      };
+    }
+
+    if (entryStyle === "timeline") {
+      return {
+        sectionKey: "projects",
+        itemIndex: projectIndex,
+        node: (
+          <div
+            className="border-l-2 pl-3"
+            style={{ borderColor: theme.accentColor }}
+          >
+            <h3 className="font-semibold" style={{ color: theme.accentColor }}>
+              <span className="mr-1">●</span>
+              <EditableText
+                value={project.name}
+                onCommit={(v) => edit.updateProject(projectIndex, { name: v })}
+                placeholder="Project name"
+              />
+            </h3>
+            <div className={`${theme.textSize} ${theme.lineHeight} mt-1`}>
+              <EditableText
+                value={project.description}
+                onCommit={(v) =>
+                  edit.updateProject(projectIndex, { description: v })
+                }
+                fieldType="richtext"
+                placeholder="Describe the project…"
+              />
+            </div>
+          </div>
+        ),
+      };
+    }
+
+    return {
       sectionKey: "projects",
       itemIndex: projectIndex,
       node: (
@@ -168,20 +314,16 @@ const projects: DomSectionBuilder = ({ resume, theme, edit }) =>
               className={`${theme.textSize}`}
               style={{ color: theme.secondaryColor }}
             >
-              <EditableText
-                value={project.startDate || ""}
-                onCommit={(v) =>
+              <EditableDateRange
+                startDate={project.startDate ?? null}
+                endDate={project.endDate ?? null}
+                dateFormat={theme.dateFormat}
+                onCommitStart={(v) =>
                   edit.updateProject(projectIndex, { startDate: v })
                 }
-                placeholder="Start"
-              />
-              {" - "}
-              <EditableText
-                value={project.endDate || ""}
-                onCommit={(v) =>
+                onCommitEnd={(v) =>
                   edit.updateProject(projectIndex, { endDate: v })
                 }
-                placeholder="Present"
               />
             </div>
           )}
@@ -220,8 +362,8 @@ const projects: DomSectionBuilder = ({ resume, theme, edit }) =>
           )}
         </div>
       ),
-    })
-  );
+    };
+  });
 
 const skills: DomSectionBuilder = ({ resume, theme, edit }) => {
   if (resume.skills.length === 0 && !edit.editable) return [];
@@ -250,9 +392,99 @@ const skills: DomSectionBuilder = ({ resume, theme, edit }) => {
   ];
 };
 
-const education: DomSectionBuilder = ({ resume, theme, edit }) =>
-  resume.education.map(
-    (edu, eduIndex): Block => ({
+const education: DomSectionBuilder = ({ resume, theme, edit, entryStyle }) =>
+  resume.education.map((edu, eduIndex): Block => {
+    const degreeField = (
+      <>
+        <EditableText
+          value={edu.degree}
+          onCommit={(v) => edit.updateEducation(eduIndex, { degree: v })}
+          placeholder="Degree"
+        />
+        {(edu.field || edit.editable) && (
+          <>
+            {" in "}
+            <EditableText
+              value={edu.field}
+              onCommit={(v) => edit.updateEducation(eduIndex, { field: v })}
+              placeholder="Field"
+            />
+          </>
+        )}
+      </>
+    );
+    const dates = (
+      <EditableDateRange
+        startDate={edu.startDate}
+        endDate={edu.endDate}
+        dateFormat={theme.dateFormat}
+        onCommitStart={(v) => edit.updateEducation(eduIndex, { startDate: v })}
+        onCommitEnd={(v) => edit.updateEducation(eduIndex, { endDate: v })}
+      />
+    );
+
+    if (entryStyle === "compact") {
+      return {
+        sectionKey: "education",
+        itemIndex: eduIndex,
+        node: (
+          <p className={`${theme.textSize}`}>
+            <span
+              className="font-semibold"
+              style={{ color: theme.accentColor }}
+            >
+              {degreeField}
+            </span>
+            {" — "}
+            <EditableText
+              value={edu.institution}
+              onCommit={(v) =>
+                edit.updateEducation(eduIndex, { institution: v })
+              }
+              placeholder="Institution"
+            />
+            <span style={{ color: theme.secondaryColor }}>
+              {"  ·  "}
+              {dates}
+            </span>
+          </p>
+        ),
+      };
+    }
+
+    if (entryStyle === "timeline") {
+      return {
+        sectionKey: "education",
+        itemIndex: eduIndex,
+        node: (
+          <div
+            className="border-l-2 pl-3"
+            style={{ borderColor: theme.accentColor }}
+          >
+            <h3 className="font-semibold" style={{ color: theme.accentColor }}>
+              <span className="mr-1">●</span>
+              {degreeField}
+            </h3>
+            <p
+              className={`${theme.textSize}`}
+              style={{ color: theme.secondaryColor }}
+            >
+              <EditableText
+                value={edu.institution}
+                onCommit={(v) =>
+                  edit.updateEducation(eduIndex, { institution: v })
+                }
+                placeholder="Institution"
+              />
+              {" · "}
+              {dates}
+            </p>
+          </div>
+        ),
+      };
+    }
+
+    return {
       sectionKey: "education",
       itemIndex: eduIndex,
       node: (
@@ -263,25 +495,7 @@ const education: DomSectionBuilder = ({ resume, theme, edit }) =>
                 className="font-semibold"
                 style={{ color: theme.accentColor }}
               >
-                <EditableText
-                  value={edu.degree}
-                  onCommit={(v) =>
-                    edit.updateEducation(eduIndex, { degree: v })
-                  }
-                  placeholder="Degree"
-                />
-                {(edu.field || edit.editable) && (
-                  <>
-                    {" in "}
-                    <EditableText
-                      value={edu.field}
-                      onCommit={(v) =>
-                        edit.updateEducation(eduIndex, { field: v })
-                      }
-                      placeholder="Field"
-                    />
-                  </>
-                )}
+                {degreeField}
               </h3>
               <p
                 className={`${theme.textSize} ${theme.lineHeight}`}
@@ -300,19 +514,7 @@ const education: DomSectionBuilder = ({ resume, theme, edit }) =>
               className={`${theme.textSize} shrink-0`}
               style={{ color: theme.secondaryColor }}
             >
-              <EditableText
-                value={edu.startDate}
-                onCommit={(v) =>
-                  edit.updateEducation(eduIndex, { startDate: v })
-                }
-                placeholder="Start"
-              />
-              {" - "}
-              <EditableText
-                value={edu.endDate || ""}
-                onCommit={(v) => edit.updateEducation(eduIndex, { endDate: v })}
-                placeholder="Present"
-              />
+              {dates}
             </span>
           </div>
           {(edu.gpa || edit.editable) && (
@@ -330,8 +532,8 @@ const education: DomSectionBuilder = ({ resume, theme, edit }) =>
           )}
         </div>
       ),
-    })
-  );
+    };
+  });
 
 const certifications: DomSectionBuilder = ({ resume, theme, edit }) =>
   resume.certifications.map(
@@ -447,9 +649,60 @@ const languages: DomSectionBuilder = ({ resume, theme, edit }) => {
   ];
 };
 
-const volunteer: DomSectionBuilder = ({ resume, theme }) =>
-  (resume.volunteer ?? []).map(
-    (v): Block => ({
+const volunteer: DomSectionBuilder = ({ resume, theme, entryStyle }) =>
+  (resume.volunteer ?? []).map((v): Block => {
+    if (entryStyle === "compact") {
+      return {
+        sectionKey: "volunteer",
+        node: (
+          <p className={`${theme.textSize}`}>
+            <span
+              className="font-semibold"
+              style={{ color: theme.accentColor }}
+            >
+              {v.role}
+            </span>
+            {" — "}
+            {v.organization}
+            <span style={{ color: theme.secondaryColor }}>
+              {"  ·  "}
+              {formatDateRange(v.startDate, v.endDate, theme.dateFormat)}
+            </span>
+          </p>
+        ),
+      };
+    }
+
+    if (entryStyle === "timeline") {
+      return {
+        sectionKey: "volunteer",
+        node: (
+          <div
+            className="border-l-2 pl-3"
+            style={{ borderColor: theme.accentColor }}
+          >
+            <h3 className="font-semibold" style={{ color: theme.accentColor }}>
+              <span className="mr-1">●</span>
+              {v.role}
+            </h3>
+            <p
+              className={`${theme.textSize}`}
+              style={{ color: theme.secondaryColor }}
+            >
+              {v.organization} ·{" "}
+              {formatDateRange(v.startDate, v.endDate, theme.dateFormat)}
+            </p>
+            {v.description && (
+              <p className={`${theme.textSize} ${theme.lineHeight} mt-1`}>
+                {v.description}
+              </p>
+            )}
+          </div>
+        ),
+      };
+    }
+
+    return {
       sectionKey: "volunteer",
       node: (
         <div>
@@ -472,7 +725,7 @@ const volunteer: DomSectionBuilder = ({ resume, theme }) =>
               className={`${theme.textSize} shrink-0`}
               style={{ color: theme.secondaryColor }}
             >
-              {v.startDate} - {v.endDate || "Present"}
+              {formatDateRange(v.startDate, v.endDate, theme.dateFormat)}
             </span>
           </div>
           {v.description && (
@@ -482,8 +735,8 @@ const volunteer: DomSectionBuilder = ({ resume, theme }) =>
           )}
         </div>
       ),
-    })
-  );
+    };
+  });
 
 const awards: DomSectionBuilder = ({ resume, theme }) =>
   (resume.awards ?? []).map(
@@ -552,7 +805,7 @@ const txtExperience: TxtSectionBuilder = ({ resume }) => {
   const body = resume.experience
     .map((exp) => {
       const achievements = exp.achievements.map((a) => `  - ${a}`).join("\n");
-      return `${exp.role} at ${exp.company}\n${exp.startDate} - ${exp.endDate || "Present"}\n${plain(exp.description)}${achievements ? `\n${achievements}` : ""}`;
+      return `${exp.role} at ${exp.company}\n${formatDateRange(exp.startDate, exp.endDate)}\n${plain(exp.description)}${achievements ? `\n${achievements}` : ""}`;
     })
     .join("\n\n");
   return `Experience:\n${body}\n`;
@@ -577,7 +830,7 @@ const txtEducation: TxtSectionBuilder = ({ resume }) => {
   const body = resume.education
     .map(
       (edu) =>
-        `${edu.degree} in ${edu.field}, ${edu.institution}, ${edu.startDate} - ${edu.endDate || "Present"}`
+        `${edu.degree} in ${edu.field}, ${edu.institution}, ${formatDateRange(edu.startDate, edu.endDate)}`
     )
     .join("\n");
   return `Education:\n${body}\n`;
@@ -612,7 +865,7 @@ const txtVolunteer: TxtSectionBuilder = ({ resume }) => {
   const body = vols
     .map(
       (v) =>
-        `${v.role} at ${v.organization}, ${v.startDate} - ${v.endDate || "Present"}\n${v.description}`
+        `${v.role} at ${v.organization}, ${formatDateRange(v.startDate, v.endDate)}\n${v.description}`
     )
     .join("\n\n");
   return `Volunteer:\n${body}\n`;

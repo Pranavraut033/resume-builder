@@ -6,6 +6,7 @@ import { Document, Link, Page, Text, View } from "@react-pdf/renderer";
 import React, { memo } from "react";
 
 import BackgroundPdf from "@/lib/backgrounds/BackgroundPdf";
+import { formatDateRange } from "@/lib/date";
 import { htmlToPlainText, isHtml } from "@/lib/htmlUtils";
 import { ResumeJSON } from "@/types/resume";
 
@@ -159,7 +160,7 @@ export const ModernMinimalPDF: React.FC<PDFTemplateProps> = ({
                     </Text>
                   </View>
                   <Text style={{ fontSize: smallFontSize, color: "#6b7280" }}>
-                    {exp.startDate} – {exp.endDate || "Present"}
+                    {formatDateRange(exp.startDate, exp.endDate, s.dateFormat)}
                   </Text>
                 </View>
                 {exp.description ? (
@@ -220,7 +221,11 @@ export const ModernMinimalPDF: React.FC<PDFTemplateProps> = ({
                   </Text>
                   {proj.startDate || proj.endDate ? (
                     <Text style={{ fontSize: smallFontSize, color: "#6b7280" }}>
-                      {proj.startDate || ""} – {proj.endDate || "Present"}
+                      {formatDateRange(
+                        proj.startDate,
+                        proj.endDate,
+                        s.dateFormat
+                      )}
                     </Text>
                   ) : null}
                 </View>
@@ -284,7 +289,7 @@ export const ModernMinimalPDF: React.FC<PDFTemplateProps> = ({
                     </Text>
                   </View>
                   <Text style={{ fontSize: smallFontSize, color: "#6b7280" }}>
-                    {edu.startDate} – {edu.endDate || "Present"}
+                    {formatDateRange(edu.startDate, edu.endDate, s.dateFormat)}
                   </Text>
                 </View>
                 {edu.gpa ? (
@@ -386,7 +391,7 @@ export const ModernMinimalPDF: React.FC<PDFTemplateProps> = ({
                     </Text>
                   </View>
                   <Text style={{ fontSize: smallFontSize, color: "#6b7280" }}>
-                    {v.startDate} – {v.endDate || "Present"}
+                    {formatDateRange(v.startDate, v.endDate, s.dateFormat)}
                   </Text>
                 </View>
                 {v.description ? (

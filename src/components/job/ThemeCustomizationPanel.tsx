@@ -1,6 +1,7 @@
 import { useJobPageContext } from "@/contexts/JobPageContext";
 import BackgroundSvg from "@/lib/backgrounds/BackgroundSvg";
 import { AVAILABLE_BACKGROUNDS, BackgroundId } from "@/lib/backgrounds/types";
+import { DateFormat, formatMonthYear, VALID_DATE_FORMATS } from "@/lib/date";
 import {
   TemplateType,
   COLOR_PRESETS,
@@ -10,6 +11,8 @@ import {
   VALID_MARGIN_SIZES,
   VALID_LETTER_SPACINGS,
 } from "@/types/customization";
+
+const DATE_FORMAT_EXAMPLE = "2020-01";
 
 import { Card } from "../ui";
 import DownloadButton from "./DownloadButton";
@@ -152,6 +155,40 @@ const ThemeCustomizationPanel: React.FC<Props> = ({}) => {
                 }
               >
                 {spacing}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div>
+          <p
+            className="mb-2 text-xs font-medium"
+            style={{ color: "var(--color-agent-on-surface-variant)" }}
+          >
+            Date Format
+          </p>
+          <div className="flex flex-wrap gap-1.5">
+            {VALID_DATE_FORMATS.map((format) => (
+              <button
+                key={format}
+                onClick={() => updateCustomization({ dateFormat: format })}
+                className="rounded-md px-2 py-1.5 text-xs font-medium transition-all"
+                style={
+                  (customization.dateFormat as DateFormat | undefined) ===
+                  format
+                    ? {
+                        background: "var(--color-agent-primary-container)",
+                        color: "var(--color-agent-on-primary-container)",
+                      }
+                    : {
+                        background: "var(--color-agent-surface-container)",
+                        color: "var(--color-agent-on-surface-variant)",
+                      }
+                }
+              >
+                {format === "locale"
+                  ? "Locale"
+                  : formatMonthYear(DATE_FORMAT_EXAMPLE, format)}
               </button>
             ))}
           </div>

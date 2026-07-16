@@ -1,6 +1,9 @@
 import { Customization } from "@prisma/client";
 
 import { BackgroundId, VALID_BACKGROUND_IDS } from "@/lib/backgrounds/types";
+import { DateFormat, VALID_DATE_FORMATS } from "@/lib/date";
+
+export type { DateFormat } from "@/lib/date";
 
 /**
  * Adapted from Resumify (https://github.com/Afif718/Resumify)
@@ -54,6 +57,7 @@ export const DEFAULT_CUSTOMIZATION: SanitizedCustomization = {
   colors: DEFAULT_COLORS.join(","),
   marginSize: "normal",
   background: "none",
+  dateFormat: "locale",
   themeJson: null,
 };
 
@@ -70,35 +74,31 @@ export const AVAILABLE_TEMPLATES: Array<Template> = [
   {
     id: "tech-sidebar",
     name: "Tech Sidebar",
-    description: "Perfect for developers and engineers with sidebar layout",
+    description: "Two-column sidebar layout for developers and engineers",
     fontFamily: "Inter",
-    features: [
-      "Two-column layout",
-      "Tech-focused design",
-      "Profile photo support",
-    ],
+    features: ["Two-column layout", "Uppercase headings", "Tech-focused"],
     bestFor: "Software developers, engineers, technical roles",
   },
   {
     id: "business-professional",
     name: "Business Professional",
-    description: "Clean and formal design for corporate roles",
+    description: "Centered header, clean and formal design for corporate roles",
     fontFamily: "Georgia",
-    features: ["Single column", "Professional typography", "Minimal design"],
+    features: ["Single column", "Centered header", "Professional typography"],
     bestFor: "Corporate positions, management roles, traditional industries",
   },
   {
     id: "modern-minimal",
     name: "Modern Minimal",
-    description: "Balanced design for creative and technical roles",
+    description: "Balanced single-column design with clean typography",
     fontFamily: "Poppins",
-    features: ["Two-column layout", "Clean typography", "Modern aesthetics"],
+    features: ["Single column", "Underlined headings", "Modern aesthetics"],
     bestFor: "Creative professionals, designers, modern companies",
   },
   {
     id: "elegant-timeline",
     name: "Elegant Timeline",
-    description: "Timeline-based layout emphasizing career progression",
+    description: "Timeline layout emphasizing career progression",
     fontFamily: "Lora",
     features: ["Timeline visualization", "Elegant typography", "Career focus"],
     bestFor: "Experienced professionals, career changers",
@@ -106,39 +106,39 @@ export const AVAILABLE_TEMPLATES: Array<Template> = [
   {
     id: "creative-modern",
     name: "Creative Modern",
-    description: "Bold and creative design for standout applications",
+    description: "Bold colour-block header with a sidebar layout",
     fontFamily: "Montserrat",
-    features: ["Creative layout", "Bold colors", "Visual hierarchy"],
+    features: ["Colour-block header", "Two-column layout", "Bold colors"],
     bestFor: "Creative roles, startups, design-focused companies",
   },
   {
     id: "bjet-professional",
     name: "BJet Professional",
-    description: "Executive-level professional template",
+    description: "Left-accent header, executive-level professional template",
     fontFamily: "Playfair Display",
-    features: ["Executive style", "Premium look", "Professional layout"],
+    features: ["Left-accent header", "Executive style", "Premium look"],
     bestFor: "Senior positions, executive roles, premium applications",
   },
   {
     id: "compact-modern",
     name: "Compact",
-    description: "Dense single-column layout that fits more on every page",
+    description: "Dense single-column layout with tight one-line entries",
     fontFamily: "Inter",
-    features: ["Single column", "Space-efficient", "ATS-friendly"],
+    features: ["Compact entries", "Space-efficient", "ATS-friendly"],
     bestFor: "Experienced candidates with lots to fit, ATS submissions",
   },
   {
     id: "two-tone",
     name: "Two-Tone",
-    description: "Bold colour-block header with a clean, contemporary body",
-    fontFamily: "Montserrat",
-    features: ["Colour-block header", "Strong contrast", "Modern aesthetics"],
+    description: "Bold colour-block header with a two-column body",
+    fontFamily: "Poppins",
+    features: ["Colour-block header", "Two-column layout", "Strong contrast"],
     bestFor: "Marketing, sales, and design-forward roles",
   },
   {
     id: "academic-serif",
     name: "Academic",
-    description: "Traditional serif layout for academic and research profiles",
+    description: "Centered serif header for academic and research profiles",
     fontFamily: "Merriweather",
     features: ["Serif typography", "Small-caps headings", "Formal structure"],
     bestFor: "Academics, researchers, education, legal roles",
@@ -204,6 +204,7 @@ export function validateCustomization({
   marginSize,
   lineHeight,
   background,
+  dateFormat,
   themeJson,
 }: SanitizedCustomization) {
   if (template && !VALID_TEMPLATE_IDS.has(template as TemplateType)) {
@@ -237,6 +238,10 @@ export function validateCustomization({
 
   if (background && !VALID_BACKGROUND_IDS.has(background as BackgroundId)) {
     throw new Error("Invalid background selected.");
+  }
+
+  if (dateFormat && !VALID_DATE_FORMATS.includes(dateFormat as DateFormat)) {
+    throw new Error("Invalid date format selected.");
   }
 
   if (themeJson) {
@@ -308,6 +313,17 @@ export const COLOR_PRESETS: Array<{
 // so old rows render identically until the user edits and it gets persisted.
 
 export type HeadingStyle = "uppercase" | "underline" | "bar" | "serif";
+
+/** Header block layout — how name/headline/contacts are arranged. */
+export type HeaderStyle =
+  | "underline"
+  | "centered"
+  | "band"
+  | "left-accent"
+  | "minimal";
+
+/** How dated entries (experience/education/projects/volunteer) render. */
+export type EntryStyle = "standard" | "timeline" | "compact";
 
 export type PerSectionOverride = Partial<{
   color: string;

@@ -1,4 +1,5 @@
 import { BackgroundId, isBackgroundId } from "@/lib/backgrounds/types";
+import { DateFormat, VALID_DATE_FORMATS } from "@/lib/date";
 import {
   FontSize,
   Leading,
@@ -36,6 +37,13 @@ export default function useResolveCustomization(
 ) {
   const { colors, fontSize, fontFamily, lineHeight, marginSize } =
     customization;
+
+  const rawDateFormat = customization.dateFormat as DateFormat | undefined;
+  const dateFormat: DateFormat = VALID_DATE_FORMATS.includes(
+    rawDateFormat as DateFormat
+  )
+    ? (rawDateFormat as DateFormat)
+    : "locale";
 
   const textSize = fontSizeMap[fontSize as FontSize] || fontSizeMap.medium;
   const marginClass =
@@ -81,5 +89,6 @@ export default function useResolveCustomization(
     marginClass,
     headingSize,
     nameSize: nameSizeMap[fontSize as FontSize] || nameSizeMap.medium,
+    dateFormat,
   };
 }

@@ -31,11 +31,13 @@ const SectionHeading = memo(function SectionHeading({
   s,
   headingStyle,
   isSidebar,
+  smallCaps,
 }: {
   title: string;
   s: ResolvedPDFStyles;
   headingStyle: "uppercase" | "underline" | "bar" | "serif";
   isSidebar?: boolean;
+  smallCaps?: boolean;
 }) {
   const {
     primaryColor,
@@ -48,6 +50,9 @@ const SectionHeading = memo(function SectionHeading({
   const isUppercase = headingStyle === "uppercase";
   const isBar = headingStyle === "bar";
   const isSerif = headingStyle === "serif";
+  // ponytail: @react-pdf has no reliable fontVariant: small-caps support, so
+  // approximate it with an uppercase title at a slightly reduced size.
+  const displayTitle = smallCaps ? title.toUpperCase() : title;
 
   if (isUppercase) {
     return (
@@ -113,13 +118,14 @@ const SectionHeading = memo(function SectionHeading({
         <Text
           style={{
             fontFamily: "Georgia",
-            fontSize: headingFontSize,
+            fontSize: smallCaps ? headingFontSize - 1 : headingFontSize,
             fontWeight: 700,
             fontStyle: "italic",
+            letterSpacing: smallCaps ? 1 : 0,
             color: primaryColor,
           }}
         >
-          {title}
+          {displayTitle}
         </Text>
       </View>
     );
@@ -186,7 +192,122 @@ export const PDFTemplateEngine: React.FC<PDFTemplateEngineProps> = ({
   const col1Instances = instances.filter((s) => s.column === 1);
 
   // ── Header ──────────────────────────────────────────────────────────────
-  const headerNode = headerHidden ? null : (
+  const headerStyle = config.header ?? "underline";
+  const contactLine = buildContactLine(resume.header);
+
+  const headerNode = headerHidden ? null : headerStyle === "band" ? (
+    <View
+      style={{
+        marginBottom: 14,
+        backgroundColor: s.primaryColor,
+        padding: marginPt * 0.6,
+      }}
+    >
+      <Text
+        style={{
+          fontSize: nameFontSize,
+          fontWeight: 700,
+          color: backgroundColor,
+          marginBottom: 3,
+        }}
+      >
+        {resume.header.name}
+      </Text>
+      {resume.header.headline ? (
+        <Text style={{ fontSize, color: backgroundColor, marginBottom: 3 }}>
+          {resume.header.headline}
+        </Text>
+      ) : null}
+      <Text style={{ fontSize: smallFontSize, color: backgroundColor }}>
+        {contactLine}
+      </Text>
+    </View>
+  ) : headerStyle === "left-accent" ? (
+    <View
+      style={{
+        marginBottom: 14,
+        paddingLeft: 10,
+        borderLeftWidth: 4,
+        borderLeftColor: s.accentColor,
+      }}
+    >
+      <Text
+        style={{
+          fontSize: nameFontSize,
+          fontWeight: 700,
+          color: textColor,
+          marginBottom: 3,
+        }}
+      >
+        {resume.header.name}
+      </Text>
+      {resume.header.headline ? (
+        <Text style={{ fontSize, color: accentColor, marginBottom: 3 }}>
+          {resume.header.headline}
+        </Text>
+      ) : null}
+      <Text style={{ fontSize: smallFontSize, color: "#6b7280" }}>
+        {contactLine}
+      </Text>
+    </View>
+  ) : headerStyle === "centered" ? (
+    <View style={{ marginBottom: 14, alignItems: "center" }}>
+      <Text
+        style={{
+          fontSize: nameFontSize,
+          fontWeight: 700,
+          color: textColor,
+          marginBottom: 3,
+          textAlign: "center",
+        }}
+      >
+        {resume.header.name}
+      </Text>
+      {resume.header.headline ? (
+        <Text
+          style={{
+            fontSize,
+            color: accentColor,
+            marginBottom: 3,
+            textAlign: "center",
+          }}
+        >
+          {resume.header.headline}
+        </Text>
+      ) : null}
+      <Text
+        style={{
+          fontSize: smallFontSize,
+          color: "#6b7280",
+          textAlign: "center",
+        }}
+      >
+        {contactLine}
+      </Text>
+    </View>
+  ) : headerStyle === "minimal" ? (
+    <View style={{ marginBottom: 10 }}>
+      <Text
+        style={{
+          fontSize: nameFontSize,
+          fontWeight: 700,
+          color: textColor,
+          marginBottom: 2,
+        }}
+      >
+        {resume.header.name}
+        {resume.header.headline ? (
+          <Text style={{ fontSize, fontWeight: 400, color: accentColor }}>
+            {"  •  "}
+            {resume.header.headline}
+          </Text>
+        ) : null}
+      </Text>
+      <Text style={{ fontSize: smallFontSize, color: "#6b7280" }}>
+        {contactLine}
+      </Text>
+    </View>
+  ) : (
     <View style={{ marginBottom: 14 }}>
       <Text
         style={{
@@ -204,7 +325,7 @@ export const PDFTemplateEngine: React.FC<PDFTemplateEngineProps> = ({
         </Text>
       ) : null}
       <Text style={{ fontSize: smallFontSize, color: "#6b7280" }}>
-        {buildContactLine(resume.header)}
+        {contactLine}
       </Text>
     </View>
   );
@@ -221,6 +342,7 @@ export const PDFTemplateEngine: React.FC<PDFTemplateEngineProps> = ({
       resume,
       instance,
       styles: s,
+      entryStyle: config.entryStyle,
     });
 
     if (!content) return null;
@@ -231,6 +353,7 @@ export const PDFTemplateEngine: React.FC<PDFTemplateEngineProps> = ({
         s={s}
         headingStyle={config.heading}
         isSidebar={isSidebar}
+        smallCaps={config.headingSmallCaps}
       />
     );
 
@@ -310,11 +433,15 @@ export const PDFTemplateEngine: React.FC<PDFTemplateEngineProps> = ({
             {col0Sections}
           </View>
 
-          {/* Main column (column 1) */}
+          {/* Main column (column 1) — extra left padding forms the gutter
+              against the sidebar, since react-pdf Views have no column gap. */}
           <View
             style={{
               width: `${ratio1 * 100}%`,
-              padding: marginPt * 0.7,
+              paddingTop: marginPt * 0.7,
+              paddingRight: marginPt * 0.7,
+              paddingBottom: marginPt * 0.7,
+              paddingLeft: marginPt,
             }}
           >
             {col1Sections}

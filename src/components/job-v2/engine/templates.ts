@@ -5,12 +5,17 @@ import { TemplateConfig } from "./types";
 /**
  * A "template" is now a config object (layout + style tokens), not a
  * ~850-line component. New template = one entry here.
+ *
+ * Each template is a distinct combination of columns/header/heading/entryStyle
+ * so no two collapse visually (font comes from AVAILABLE_TEMPLATES via the
+ * TemplatePicker, kept in sync with this table — see customization.ts).
  */
 export const TEMPLATE_CONFIG: Partial<Record<TemplateType, TemplateConfig>> = {
   "modern-minimal": {
     columns: 1,
+    header: "underline",
     heading: "underline",
-    defaultFont: "Poppins",
+    entryStyle: "standard",
   },
   "tech-sidebar": {
     columns: 2,
@@ -28,8 +33,9 @@ export const TEMPLATE_CONFIG: Partial<Record<TemplateType, TemplateConfig>> = {
       volunteer: 1,
       custom: 1,
     },
+    header: "underline",
     heading: "uppercase",
-    defaultFont: "Inter",
+    entryStyle: "standard",
   },
   "creative-modern": {
     columns: 2,
@@ -47,17 +53,19 @@ export const TEMPLATE_CONFIG: Partial<Record<TemplateType, TemplateConfig>> = {
       publications: 1,
       custom: 1,
     },
-    heading: "underline",
-    defaultFont: "Inter",
+    header: "band",
+    heading: "uppercase",
+    entryStyle: "standard",
   },
   "bjet-professional": {
     columns: 1,
-    heading: "underline",
-    defaultFont: "Georgia",
+    header: "left-accent",
+    heading: "bar",
+    entryStyle: "standard",
   },
   "two-tone": {
     columns: 2,
-    columnRatio: [0.4, 0.6],
+    columnRatio: [0.38, 0.62],
     sectionColumn: {
       summary: 0,
       skills: 0,
@@ -71,28 +79,33 @@ export const TEMPLATE_CONFIG: Partial<Record<TemplateType, TemplateConfig>> = {
       publications: 1,
       custom: 1,
     },
+    header: "band",
     heading: "underline",
-    defaultFont: "Inter",
+    entryStyle: "standard",
   },
   "business-professional": {
     columns: 1,
+    header: "centered",
     heading: "underline",
-    defaultFont: "Georgia",
+    entryStyle: "standard",
   },
   "compact-modern": {
     columns: 1,
+    header: "minimal",
     heading: "uppercase",
-    defaultFont: "Inter",
+    entryStyle: "compact",
   },
   "academic-serif": {
     columns: 1,
+    header: "centered",
     heading: "serif",
     headingSmallCaps: true,
-    defaultFont: "Georgia",
+    entryStyle: "standard",
   },
   "elegant-timeline": {
     columns: 1,
-    heading: "uppercase",
-    defaultFont: "Poppins",
+    header: "underline",
+    heading: "bar",
+    entryStyle: "timeline",
   },
 };

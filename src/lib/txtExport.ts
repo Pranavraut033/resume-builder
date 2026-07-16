@@ -8,7 +8,6 @@ import { ResumeJSON } from "@/types/resume";
 const TXT_LAYOUT_CONFIG = {
   columns: 1 as const,
   heading: "underline" as const,
-  defaultFont: "",
 };
 
 export function generateResumeTXT(resume: ResumeJSON): string {

@@ -14,6 +14,8 @@ interface DateRangeFieldProps {
   onStartDateChange: (date: string) => void;
   onEndDateChange: (date: string) => void;
   helpText?: string;
+  /** Validation message (e.g. end before start); rendered in place of helpText. */
+  error?: string;
   /** When true, show the "Present" toggle; when false, always show end date input */
   showPresentOption?: boolean;
 }
@@ -25,6 +27,7 @@ export function DateRangeField({
   onStartDateChange,
   onEndDateChange,
   helpText,
+  error,
   showPresentOption = true,
 }: DateRangeFieldProps) {
   const [isPresent, setIsPresent] = useState(
@@ -110,13 +113,19 @@ export function DateRangeField({
         </div>
       </div>
 
-      {helpText && (
-        <p
-          className="text-xs"
-          style={{ color: "var(--color-agent-on-surface-variant)" }}
-        >
-          {helpText}
+      {error ? (
+        <p className="text-xs" style={{ color: "var(--color-agent-error)" }}>
+          {error}
         </p>
+      ) : (
+        helpText && (
+          <p
+            className="text-xs"
+            style={{ color: "var(--color-agent-on-surface-variant)" }}
+          >
+            {helpText}
+          </p>
+        )
       )}
     </div>
   );

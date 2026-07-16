@@ -1,4 +1,5 @@
 import { BackgroundId, isBackgroundId } from "@/lib/backgrounds/types";
+import { DateFormat, VALID_DATE_FORMATS } from "@/lib/date";
 import { SanitizedCustomization, ThemeColors } from "@/types/customization";
 
 import { registerPDFFont } from "./fonts";
@@ -59,6 +60,7 @@ export interface ResolvedPDFStyles {
   pageFormat: "A4" | "LETTER";
   background: BackgroundId;
   colorsTuple: ThemeColors;
+  dateFormat: DateFormat;
 }
 
 /**
@@ -105,6 +107,12 @@ export function resolvePDFCustomization(
   const sizeKey = (customization.fontSize as string) ?? "medium";
   const marginKey = (customization.marginSize as string) ?? "normal";
   const lineHeightKey = (customization.lineHeight as string) ?? "medium";
+  const rawDateFormat = customization.dateFormat as DateFormat | undefined;
+  const dateFormat: DateFormat = VALID_DATE_FORMATS.includes(
+    rawDateFormat as DateFormat
+  )
+    ? (rawDateFormat as DateFormat)
+    : "locale";
 
   return {
     primaryColor,
@@ -122,5 +130,6 @@ export function resolvePDFCustomization(
     pageFormat: customization.pageFormat === "letter" ? "LETTER" : "A4",
     background,
     colorsTuple,
+    dateFormat,
   };
 }
