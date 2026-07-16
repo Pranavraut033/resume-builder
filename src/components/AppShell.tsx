@@ -8,6 +8,7 @@ import Sidebar from "@/components/Nav";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 
 import { CacheInitializer } from "./CacheInitializer";
+import { DevKeySeeder } from "./DevKeySeeder";
 import { ExternalLinkGuard } from "./ExternalLinkGuard";
 import { Header } from "./ui";
 import { ToastProvider } from "./ui/ToastProvider";
@@ -25,6 +26,7 @@ export default function AppShell({ children }: AppShellProps) {
         <ToastProvider>
           <AppShellContent>{children}</AppShellContent>
           <CacheInitializer />
+          <DevKeySeeder />
           <ExternalLinkGuard />
         </ToastProvider>
       </ThemeProvider>
