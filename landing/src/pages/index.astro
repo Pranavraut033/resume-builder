@@ -1,6 +1,9 @@
 ---
 import '../styles/global.css';
 
+const base = import.meta.env.BASE_URL.endsWith('/')
+  ? import.meta.env.BASE_URL
+  : `${import.meta.env.BASE_URL}/`;
 const REPO = 'https://github.com/Pranavraut033/resume-builder';
 const RELEASES = `${REPO}/releases`;
 
@@ -62,7 +65,7 @@ const hookWords: [string, ('s' | 'ins')?][] = [
     <meta property="og:title" content={title} />
     <meta property="og:description" content={description} />
     <meta name="theme-color" content="#ffffff" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="icon" type="image/svg+xml" href={`${base}favicon.svg`} />
     <meta name="generator" content={Astro.generator} />
     <script is:inline>
       document.documentElement.dataset.theme = localStorage.theme || 'light';
@@ -261,7 +264,7 @@ const hookWords: [string, ('s' | 'ins')?][] = [
               type — what you see on screen is exactly what exports to PDF.
             </p>
             <img
-              src="/screenshots/editor.png"
+              src={`${base}screenshots/editor.png`}
               alt="The inline WYSIWYG resume editor showing a tailored resume with the toolbar for PDF export, templates, sections, ATS analysis, humanizing, and chat"
               width="1440"
               height="940"
@@ -332,7 +335,7 @@ const hookWords: [string, ('s' | 'ins')?][] = [
                   { file: 'template-creative-modern', name: 'Creative Modern' },
                 ].map((tpl) => (
                   <img
-                    src={`/screenshots/${tpl.file}.png`}
+                    src={`${base}screenshots/${tpl.file}.png`}
                     alt={`${tpl.name} resume template`}
                     width="866"
                     height="1120"
