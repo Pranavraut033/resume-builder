@@ -30,7 +30,37 @@ import {
   ATSAnalysisSchema,
   ATSAnalysisJSON,
   ResumeSchema,
+  ResumeJSON,
 } from "@/types/resume";
+
+// ponytail: ResumeSchema allows empty arrays (a resume mid-edit is valid), so
+// Zod alone can't catch a model that silently drops every section — observed
+// live with Ollama, where a truncated/degenerate structured-output response
+// still parses as a "valid" empty resume and overwrites the real one. Refuse
+// to apply a tailored resume that has fewer populated sections than the
+// profile it was built from, rather than trusting schema validity alone.
+function assertResumeNotGutted(base: ResumeJSON, tailored: ResumeJSON) {
+  const gutted = (
+    [
+      ["summary", base.summary.trim(), tailored.summary.trim()],
+      ["experience", base.experience.length, tailored.experience.length],
+      ["skills", base.skills.length, tailored.skills.length],
+      ["education", base.education.length, tailored.education.length],
+    ] as const
+  )
+    .filter(([, baseHasContent, tailoredHasContent]) =>
+      typeof baseHasContent === "string"
+        ? baseHasContent && !tailoredHasContent
+        : baseHasContent > 0 && tailoredHasContent === 0
+    )
+    .map(([field]) => field);
+
+  if (gutted.length > 0) {
+    throw new Error(
+      `Model returned a resume with ${gutted.join(", ")} emptied out — refusing to apply. This usually means the output got truncated (try a model/provider with a larger context window).`
+    );
+  }
+}
 
 export async function generateResume(
   provider: LLMProvider,
@@ -48,6 +78,8 @@ export async function generateResume(
     ResumeSchema,
     "ResumeSchema"
   );
+
+  assertResumeNotGutted(input.baseProfile, result);
 
   return { result, usage };
 }

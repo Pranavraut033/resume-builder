@@ -51,10 +51,18 @@ export class ProviderFactory {
       this.instances.set(cacheKey, instance);
       return instance;
     } catch (error) {
-      console.error(
-        `Failed to get provider instance for ${providerName}:`,
-        error
-      );
+      // Missing API key is an expected state for an unconfigured provider,
+      // not a failure — callers (e.g. fetchModels) already treat a null
+      // return as "not available" and log accordingly.
+      const isMissingKey =
+        error instanceof Error &&
+        error.message.includes("No API key configured");
+      if (!isMissingKey) {
+        console.error(
+          `Failed to get provider instance for ${providerName}:`,
+          error
+        );
+      }
       return null;
     }
   }
