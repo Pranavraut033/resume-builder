@@ -8,6 +8,7 @@ export { FormField } from "./FormField";
 export { Icon } from "./Icon";
 export { Modal } from "./Modal";
 export { PageHeader } from "./PageHeader";
+export { ProgressFill } from "./ProgressFill";
 export { Header } from "./Header";
 export { PageSection, SurfacePanel } from "./PageSection";
 export { Section } from "./Section";

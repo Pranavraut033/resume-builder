@@ -5,7 +5,9 @@ import { useMemo, useState } from "react";
 import SparklesIcon from "@/components/icons/SparklesIcon";
 import { Button } from "@/components/ui/Button";
 import { Icon } from "@/components/ui/Icon";
+import { ProgressFill } from "@/components/ui/ProgressFill";
 import { useJobPageContext } from "@/contexts/JobPageContext";
+import { useFakeProgress } from "@/hooks/useFakeProgress";
 import { cn } from "@/lib/cn";
 import LLMService from "@/lib/llm/llmService";
 import { resumeToText } from "@/lib/resumeToText";
@@ -138,6 +140,8 @@ function EmptyOrLoadingState({
   error?: string;
   onGenerate: () => void;
 }) {
+  const percent = useFakeProgress(loading);
+
   return (
     <section className="border-agent-outline-variant bg-agent-surface overflow-hidden rounded-(--radius-agent-xl) border shadow-(--shadow-agent-card)">
       <div className="border-agent-outline-variant/70 bg-agent-surface-low border-b px-5 py-4">
@@ -192,9 +196,12 @@ function EmptyOrLoadingState({
           onClick={onGenerate}
           disabled={loading}
           variant="gradient"
-          className="w-full rounded-lg"
+          className="relative w-full overflow-hidden rounded-lg"
         >
-          {loading ? "Generating Analysis..." : "Generate ATS Analysis"}
+          <ProgressFill percent={percent} />
+          <span className="relative z-10">
+            {loading ? "Generating Analysis..." : "Generate ATS Analysis"}
+          </span>
         </Button>
       </div>
     </section>
@@ -208,21 +215,26 @@ function FixKeywordsButton({
   isLoading: boolean;
   onClick: () => void;
 }) {
+  const percent = useFakeProgress(isLoading);
+
   return (
     <Button
       size="sm"
       variant="primary"
       disabled={isLoading}
       onClick={onClick}
-      className="mt-2 inline-flex w-full items-center justify-center gap-1.5 rounded-lg"
+      className="relative mt-2 inline-flex w-full items-center justify-center gap-1.5 overflow-hidden rounded-lg"
     >
-      <SparklesIcon
-        width="11"
-        height="11"
-        className={cn(isLoading && "animate-pulse")}
-        aria-hidden
-      />
-      {isLoading ? "Fixing keywords..." : "Fix with AI"}
+      <ProgressFill percent={percent} />
+      <span className="relative z-10 inline-flex items-center gap-1.5">
+        <SparklesIcon
+          width="11"
+          height="11"
+          className={cn(isLoading && "animate-pulse")}
+          aria-hidden
+        />
+        {isLoading ? "Fixing keywords..." : "Fix with AI"}
+      </span>
     </Button>
   );
 }
@@ -310,6 +322,8 @@ export function ATSAnalysisPanel(props: ATSAnalysisPanelProps) {
       });
     },
   });
+
+  const regeneratePercent = useFakeProgress(isPending);
 
   const onGenerate = () => {
     generateATSAnalysis();
@@ -462,15 +476,18 @@ export function ATSAnalysisPanel(props: ATSAnalysisPanelProps) {
             variant="primary"
             onClick={onGenerate}
             disabled={isPending}
-            className="rounded-agent inline-flex items-center gap-2"
+            className="rounded-agent relative inline-flex items-center gap-2 overflow-hidden"
           >
-            <SparklesIcon
-              width="14"
-              height="14"
-              className={cn(isPending && "animate-pulse")}
-              aria-hidden
-            />
-            {isPending ? "Regenerating..." : "Regenerate"}
+            <ProgressFill percent={regeneratePercent} />
+            <span className="relative z-10 inline-flex items-center gap-2">
+              <SparklesIcon
+                width="14"
+                height="14"
+                className={cn(isPending && "animate-pulse")}
+                aria-hidden
+              />
+              {isPending ? "Regenerating..." : "Regenerate"}
+            </span>
           </Button>
         </div>
       )}

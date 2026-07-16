@@ -4,8 +4,10 @@ import { useRef, useState } from "react";
 
 import { ModelSelector } from "@/components/ModelSelector";
 import { Icon } from "@/components/ui/Icon";
+import { ProgressFill } from "@/components/ui/ProgressFill";
 import { useToast } from "@/components/ui/ToastProvider";
 import { useJobPageContext } from "@/contexts/JobPageContext";
+import { useFakeProgress } from "@/hooks/useFakeProgress";
 import useGenerateCoverLetter from "@/hooks/useGenerateCoverLetter";
 import useHumanizeContent from "@/hooks/useHumanizeContent";
 import cn from "@/lib/cn";
@@ -77,6 +79,8 @@ export function CoverLetterActionBar() {
 
   const isGenerating = status === "pending";
   const isHumanizing = humanizeStatus === "pending";
+  const generatePercent = useFakeProgress(isGenerating);
+  const humanizePercent = useFakeProgress(isHumanizing);
 
   const handleHumanizeAccept = (
     selected: NonNullable<typeof humanizeResult>["result"]["changes"]
@@ -115,20 +119,23 @@ export function CoverLetterActionBar() {
           }
           disabled={isGenerating}
           className={cn(
-            "flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-all",
+            "relative flex items-center gap-1.5 overflow-hidden rounded-lg px-3 py-1.5 text-xs font-semibold transition-all",
             "from-agent-primary to-agent-primary-container bg-linear-to-r text-white",
             "hover:-translate-y-px hover:opacity-90",
-            "disabled:animate-pulse disabled:cursor-not-allowed disabled:opacity-60"
+            "disabled:cursor-not-allowed disabled:opacity-90"
           )}
         >
-          {isGenerating ? (
-            <span className="animate-spin">
-              <Icon name="loader-2" className="h-3.5 w-3.5" />
-            </span>
-          ) : (
-            <Icon name="zap" className="h-3.5 w-3.5" />
-          )}
-          {isGenerating ? "Generating…" : "Generate"}
+          <ProgressFill percent={generatePercent} />
+          <span className="relative z-10 flex items-center gap-1.5">
+            {isGenerating ? (
+              <span className="animate-spin">
+                <Icon name="loader-2" className="h-3.5 w-3.5" />
+              </span>
+            ) : (
+              <Icon name="zap" className="h-3.5 w-3.5" />
+            )}
+            {isGenerating ? "Generating…" : "Generate"}
+          </span>
         </button>
 
         <button
@@ -138,16 +145,22 @@ export function CoverLetterActionBar() {
           }}
           disabled={isHumanizing || !coverLetter.trim()}
           className={cn(
-            "border-agent-outline-variant text-agent-on-surface-variant hover:bg-agent-surface-container hover:text-agent-on-surface flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-semibold transition-all",
-            "disabled:cursor-not-allowed disabled:opacity-50"
+            "border-agent-outline-variant text-agent-on-surface-variant hover:bg-agent-surface-container hover:text-agent-on-surface relative flex items-center gap-1.5 overflow-hidden rounded-lg border px-3 py-1.5 text-xs font-semibold transition-all",
+            "disabled:cursor-not-allowed disabled:opacity-90"
           )}
           title="Humanize"
         >
-          <Icon
-            name={isHumanizing ? "spinner" : "wand"}
-            className={cn("h-3.5 w-3.5", isHumanizing && "animate-spin")}
+          <ProgressFill
+            percent={humanizePercent}
+            className="bg-agent-primary/10"
           />
-          {isHumanizing ? "Humanizing…" : "Humanize"}
+          <span className="relative z-10 flex items-center gap-1.5">
+            <Icon
+              name={isHumanizing ? "spinner" : "wand"}
+              className={cn("h-3.5 w-3.5", isHumanizing && "animate-spin")}
+            />
+            {isHumanizing ? "Humanizing…" : "Humanize"}
+          </span>
         </button>
       </div>
 
