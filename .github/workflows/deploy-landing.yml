@@ -4,8 +4,8 @@ on:
   push:
     branches: [main]
     paths:
-      - 'landing/**'
-      - '.github/workflows/deploy-landing.yml'
+      - "landing/**"
+      - ".github/workflows/deploy-landing.yml"
   workflow_dispatch:
 
 permissions:

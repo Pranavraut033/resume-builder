@@ -67,7 +67,10 @@ export function InlineField({
     if (isEditing) {
       inputRef.current?.focus();
       // Move cursor to end (unsupported on some input types, e.g. "month")
-      if (inputRef.current instanceof HTMLInputElement && fieldType !== "date") {
+      if (
+        inputRef.current instanceof HTMLInputElement &&
+        fieldType !== "date"
+      ) {
         inputRef.current.selectionStart = inputRef.current.value.length;
         inputRef.current.selectionEnd = inputRef.current.value.length;
       }

@@ -10,7 +10,9 @@ const hasCustomDomain = existsSync(new URL("./public/CNAME", import.meta.url));
 // https://astro.build/config
 export default defineConfig({
   output: "static",
-  site: hasCustomDomain ? "https://nextrole.pranavraut.dev" : "https://pranavraut033.github.io",
+  site: hasCustomDomain
+    ? "https://nextrole.pranavraut.dev"
+    : "https://pranavraut033.github.io",
   base: hasCustomDomain ? "/" : "/resume-builder",
   vite: {
     plugins: [tailwindcss()],
