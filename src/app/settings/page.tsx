@@ -47,6 +47,7 @@ export default function SettingsPage() {
     loadModels,
     refreshModels,
     clearError,
+    setProviderModels,
   } = useModelStore();
 
   useEffect(() => {
@@ -229,7 +230,9 @@ export default function SettingsPage() {
                 </p>
                 <MultiSelect
                   value={selectedModelsByProvider.ollama ?? []}
-                  onChange={(models) => (ProviderType.OLLAMA, models)}
+                  onChange={(models) =>
+                    setProviderModels(ProviderType.OLLAMA, models)
+                  }
                   options={modelsByProvider.ollama ?? []}
                   placeholder={isLoading ? "Loading…" : "Select Ollama models"}
                   disabled={isLoading}
@@ -237,7 +240,7 @@ export default function SettingsPage() {
               </div>
             )}
 
-            <div className="flex justify-end">
+            <div className="mt-3 flex justify-end">
               <Button
                 variant="gradient"
                 size="sm"
