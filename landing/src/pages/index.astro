@@ -7,9 +7,9 @@ const base = import.meta.env.BASE_URL.endsWith('/')
 const REPO = 'https://github.com/Pranavraut033/resume-builder';
 const RELEASES = `${REPO}/releases`;
 
-const title = 'Resume Builder — AI-tailored resumes that never leave your machine';
+const title = 'Udaan — give your career the takeoff it deserves';
 const description =
-  'Free, open-source desktop app that turns a job description and your base profile into a tailored, ATS-friendly resume and cover letter. Bring your own AI key or run Ollama locally — all data stays in a local database.';
+  'Free, open-source desktop app that turns a job description and your base profile into a tailored, ATS-friendly resume and cover letter — so every application is your best shot at flight. Bring your own AI key or run Ollama locally, all data stays on your machine.';
 
 const steps = [
   {
@@ -34,24 +34,27 @@ const steps = [
 // reveal. 's' = struck words, 'ins' = inserted words. A sr-only sibling
 // carries the real <s>/<ins> semantics.
 const hookWords: [string, ('s' | 'ins')?][] = [
-  ['Recruiters'],
-  ['skim.'],
-  ['Parsers'],
-  ['filter.'],
-  ['The'],
+  ['Every'],
+  ['career'],
+  ['needs'],
+  ['a'],
+  ['runway.'],
+  ['One'],
+  ['generic'],
   ['resume'],
-  ['written'],
   ['for'],
   ['every', 's'],
   ['job', 's'],
-  ['this', 'ins'],
-  ['job', 'ins'],
+  ['a', 'ins'],
+  ['tailored', 'ins'],
+  ['one', 'ins'],
+  ['for'],
+  ['each'],
   ['is'],
-  ['the'],
-  ['one'],
-  ['that'],
+  ['what'],
   ['gets'],
-  ['read.'],
+  ['you'],
+  ['airborne.'],
 ];
 ---
 
@@ -83,7 +86,7 @@ const hookWords: [string, ('s' | 'ins')?][] = [
     <header id="site-header" class="sticky top-0 z-40 border-b bg-surface/85 backdrop-blur">
       <nav aria-label="Main" class="mx-auto flex h-14 max-w-6xl items-center justify-between px-5">
         <a href="#main" class="font-mono text-sm font-semibold tracking-tight">
-          <span aria-hidden="true" class="text-add">+</span> resume-builder
+          <span aria-hidden="true" class="text-add">+</span> udaan
         </a>
         <div class="hidden items-center gap-6 text-sm text-ink-muted sm:flex">
           <a href="#features" class="transition-colors hover:text-ink">Features</a>
@@ -127,13 +130,13 @@ const hookWords: [string, ('s' | 'ins')?][] = [
                 Free · Open source · macOS / Windows / Linux
               </p>
               <h1 class="reveal mt-5 font-display text-5xl leading-[0.95] tracking-tight text-balance sm:text-6xl lg:text-7xl xl:text-8xl">
-                Your resume,
-                <em class="block text-accent">tailored line by line.</em>
+                Every application,
+                <em class="block text-accent">ready for takeoff.</em>
               </h1>
               <p class="reveal reveal-2 mt-6 max-w-xl text-lg leading-relaxed text-ink-muted">
-                Resume Builder is a desktop app that reads a job description and rewrites your base
-                profile into an ATS-friendly resume and cover letter — with an AI provider you choose,
-                on data that never leaves your machine.
+                Udaan is a desktop app that reads a job description and rewrites your base profile
+                into an ATS-friendly resume and cover letter — with an AI provider you choose, on
+                data that never leaves your machine. One job closer, every time.
               </p>
               <div class="reveal reveal-3 mt-8 flex flex-wrap items-center gap-3">
                 <a
@@ -213,7 +216,7 @@ const hookWords: [string, ('s' | 'ins')?][] = [
             }
           </p>
           <p class="sr-only">
-            Recruiters skim. Parsers filter. The resume written for <s>every job</s> <ins>this job</ins> is the one that gets read.
+            Every career needs a runway. One generic resume for <s>every job</s> <ins>a tailored one for each</ins> is what gets you airborne.
           </p>
         </div>
       </section>
@@ -376,7 +379,7 @@ const hookWords: [string, ('s' | 'ins')?][] = [
             @@ how it works @@
           </p>
           <h2 class="reveal mt-5 font-display text-4xl tracking-tight text-balance sm:text-5xl">
-            From job post to job-ready.
+            From job post to cleared for takeoff.
           </h2>
 
           <div class="mt-14 gap-16 lg:grid lg:grid-cols-2">
@@ -477,9 +480,9 @@ const hookWords: [string, ('s' | 'ins')?][] = [
       <!-- ============ Final CTA — cinematic bookend ============ -->
       <section class="border-t border-term-line bg-term">
         <div class="mx-auto max-w-3xl px-5 py-24 text-center md:py-36">
-          <p class="reveal mx-auto w-fit font-mono text-xs tracking-[0.2em] text-accent-2">@@ ready when you are @@</p>
+          <p class="reveal mx-auto w-fit font-mono text-xs tracking-[0.2em] text-accent-2">@@ cleared for takeoff @@</p>
           <h2 class="reveal mt-5 font-display text-4xl leading-tight tracking-tight text-balance text-term-fg sm:text-5xl md:text-6xl">
-            Send the resume <em class="text-term-accent">the job was asking for.</em>
+            Your next role <em class="text-term-accent">is one udaan away.</em>
           </h2>
           <div class="reveal reveal-2 mt-9 flex flex-wrap items-center justify-center gap-3">
             <a
@@ -507,7 +510,7 @@ const hookWords: [string, ('s' | 'ins')?][] = [
     <footer class="border-t border-line">
       <div class="mx-auto flex max-w-6xl flex-col gap-4 px-5 py-10 text-sm text-ink-muted sm:flex-row sm:items-center sm:justify-between">
         <p>
-          <span class="font-mono font-semibold text-ink"><span aria-hidden="true" class="text-add">+</span> resume-builder</span>
+          <span class="font-mono font-semibold text-ink"><span aria-hidden="true" class="text-add">+</span> udaan</span>
           ·
           <a href={`${REPO}/blob/main/LICENSE`} rel="noopener" class="underline-offset-4 transition-colors hover:text-ink hover:underline">MIT License</a>
           · Resume templates adapted from

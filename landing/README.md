@@ -1,6 +1,6 @@
-# Resume Builder — Landing Page
+# Udaan — Landing Page
 
-Standalone marketing site for [Resume Builder](https://github.com/Pranavraut033/resume-builder),
+Standalone marketing site for [Udaan](https://github.com/Pranavraut033/resume-builder),
 built with Astro + Tailwind CSS v4. Fully isolated from the main app — it has its own
 `package.json` and shares no code with the Next.js/Tauri project.
 

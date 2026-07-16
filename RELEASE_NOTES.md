@@ -1,6 +1,6 @@
 # v1.0.0 — 2026-07-13
 
-The first release of Resume Builder: a local-first desktop app that turns a job description into a tailored resume and cover letter, then lets you polish the result right on the page.
+The first release of Udaan: a local-first desktop app that turns a job description into a tailored resume and cover letter, then lets you polish the result right on the page.
 
 - **Paste a job description, get a tailored resume and cover letter.** AI drafts both from your base profile and the job posting — bring your own API key, or use the managed, prepaid-credit option if you don't have one.
 - **Edit right on the document.** Bullets, links, and language proficiency fields can all be edited inline, directly on the rendered resume or cover letter — no separate form to hop between.

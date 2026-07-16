@@ -41,14 +41,14 @@ export class ManagedProvider extends OpenAICompatibleProvider {
 LLMProvider.register(
   "managed",
   {
-    name: "Resume Builder Cloud",
+    name: "Udaan Cloud",
     requiresAuth: true,
     description:
       "No API key needed — buy prepaid credits and use any supported model.",
   },
   (apiKey?: string) => {
     if (!apiKey) {
-      throw new Error("Resume Builder Cloud key is required");
+      throw new Error("Udaan Cloud key is required");
     }
     return new ManagedProvider(apiKey);
   }

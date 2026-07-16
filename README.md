@@ -1,11 +1,11 @@
-# Resume Builder
+# Udaan
 
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
 ![Next.js](https://img.shields.io/badge/Next.js-16-black.svg)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5-blue.svg)
 ![Tauri](https://img.shields.io/badge/Tauri-2-orange.svg)
 
-A local-first, AI-powered desktop app that turns a job description and your base profile into a tailored, ATS-friendly resume and cover letter — for job seekers who want full control of their data and a choice of AI provider, instead of a subscription-locked cloud service.
+**Udaan** (उड़ान — "flight, takeoff") is a local-first, AI-powered desktop app that turns a job description and your base profile into a tailored, ATS-friendly resume and cover letter. Every application deserves its own shot at flight, not a copy-pasted resume sent into the void — for job seekers who want full control of their data and a choice of AI provider, instead of a subscription-locked cloud service.
 
 ## Demo
 
@@ -40,8 +40,8 @@ The app is **self-signed** (not signed by a CA-trusted/registered publisher), so
 
 ### macOS
 
-1. Open the downloaded `.dmg` and drag **Resume Builder** into **Applications**
-2. On first launch, Gatekeeper will say _"Resume Builder cannot be verified"_ — **right-click the app → Open → Open** in the dialog
+1. Open the downloaded `.dmg` and drag **Udaan** into **Applications**
+2. On first launch, Gatekeeper will say _"Udaan cannot be verified"_ — **right-click the app → Open → Open** in the dialog
 3. If you instead see _"The application is damaged and can't be opened"_, clear the quarantine flag:
    ```bash
    xattr -d com.apple.quarantine /Applications/Resume\ Builder.app
@@ -161,7 +161,7 @@ npm run tauri build  # produces .dmg / .exe / .AppImage
 ## Project Structure
 
 ```
-resume-builder/
+udaan/
 ├── src/
 │   ├── app/                      # Next.js App Router pages
 │   │   ├── job/new/              # Create job + AI generation

@@ -13,7 +13,7 @@ const CloudIcon: React.FC<Props> = (props) => {
       xmlns="http://www.w3.org/2000/svg"
       {...props}
     >
-      <title>Resume Builder Cloud</title>
+      <title>Udaan Cloud</title>
       <path d="M6.5 19a4.5 4.5 0 01-.5-8.973 5.5 5.5 0 0110.653-2.02A4.5 4.5 0 0117.5 19h-11z" />
     </svg>
   );

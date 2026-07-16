@@ -9,13 +9,9 @@
       <stop offset="0" stop-color="#ffffff" stop-opacity="0.28"/>
       <stop offset="0.5" stop-color="#ffffff" stop-opacity="0"/>
     </radialGradient>
-    <linearGradient id="spark" x1="0" y1="0" x2="0" y2="1" gradientUnits="objectBoundingBox">
+    <linearGradient id="plane" x1="0" y1="0" x2="1" y2="1" gradientUnits="objectBoundingBox">
       <stop offset="0" stop-color="#fde047"/>
       <stop offset="1" stop-color="#f59e0b"/>
-    </linearGradient>
-    <linearGradient id="avatar" x1="0" y1="0" x2="0" y2="1" gradientUnits="objectBoundingBox">
-      <stop offset="0" stop-color="#bfdbfe"/>
-      <stop offset="1" stop-color="#60a5fa"/>
     </linearGradient>
   </defs>
 
@@ -24,33 +20,32 @@
   <rect x="0" y="0" width="1024" height="1024" rx="232" fill="url(#glow)"/>
 
   <!-- Document drop shadow -->
-  <rect x="252" y="196" width="520" height="660" rx="44" fill="#0b173f" opacity="0.28"/>
+  <rect x="228" y="220" width="500" height="640" rx="44" fill="#0b173f" opacity="0.28"/>
   <!-- Document -->
-  <rect x="252" y="182" width="520" height="660" rx="44" fill="#ffffff"/>
+  <rect x="228" y="206" width="500" height="640" rx="44" fill="#ffffff"/>
 
-  <!-- Header: avatar + name bars -->
-  <circle cx="368" cy="278" r="46" fill="url(#avatar)"/>
-  <rect x="440" y="246" width="184" height="30" rx="15" fill="#1e293b"/>
-  <rect x="440" y="292" width="120" height="20" rx="10" fill="#3b82f6"/>
+  <!-- Header bars -->
+  <rect x="292" y="270" width="220" height="30" rx="15" fill="#1e293b"/>
+  <rect x="292" y="316" width="140" height="20" rx="10" fill="#3b82f6"/>
 
   <!-- Divider -->
-  <rect x="324" y="378" width="376" height="5" rx="2.5" fill="#e2e8f0"/>
+  <rect x="292" y="392" width="372" height="5" rx="2.5" fill="#e2e8f0"/>
 
-  <!-- Body group 1 -->
-  <rect x="324" y="426" width="376" height="16" rx="8" fill="#cbd5e1"/>
-  <rect x="324" y="468" width="320" height="16" rx="8" fill="#cbd5e1"/>
-  <rect x="324" y="510" width="214" height="16" rx="8" fill="#cbd5e1"/>
+  <!-- Body lines -->
+  <rect x="292" y="436" width="372" height="16" rx="8" fill="#cbd5e1"/>
+  <rect x="292" y="478" width="316" height="16" rx="8" fill="#cbd5e1"/>
+  <rect x="292" y="520" width="210" height="16" rx="8" fill="#cbd5e1"/>
+  <rect x="292" y="576" width="150" height="20" rx="10" fill="#3b82f6"/>
+  <rect x="292" y="620" width="372" height="16" rx="8" fill="#cbd5e1"/>
+  <rect x="292" y="662" width="332" height="16" rx="8" fill="#cbd5e1"/>
+  <rect x="292" y="704" width="230" height="16" rx="8" fill="#cbd5e1"/>
 
-  <!-- Section header -->
-  <rect x="324" y="562" width="150" height="20" rx="10" fill="#3b82f6"/>
+  <!-- Ascending flight trail -->
+  <path d="M330 792 C 470 792, 560 700, 700 470" fill="none" stroke="#93c5fd" stroke-width="10" stroke-linecap="round" stroke-dasharray="2 34"/>
 
-  <!-- Body group 2 -->
-  <rect x="324" y="606" width="376" height="16" rx="8" fill="#cbd5e1"/>
-  <rect x="324" y="648" width="336" height="16" rx="8" fill="#cbd5e1"/>
-  <rect x="324" y="690" width="232" height="16" rx="8" fill="#cbd5e1"/>
-
-  <!-- AI sparkles -->
-  <path d="M760 110 C760 176 760 176 826 176 C760 176 760 176 760 242 C760 176 760 176 694 176 C760 176 760 176 760 110 Z" fill="url(#spark)"/>
-  <path d="M702 96 C702 122 702 122 728 122 C702 122 702 122 702 148 C702 122 702 122 676 122 C702 122 702 122 702 96 Z" fill="#fde047"/>
-  <circle cx="822" cy="118" r="11" fill="#fcd34d"/>
+  <!-- Paper plane taking off -->
+  <g transform="translate(700 470) rotate(-52)">
+    <path d="M0 -92 L64 46 L4 22 L-40 62 L-24 4 Z" fill="url(#plane)"/>
+    <path d="M0 -92 L4 22 L-24 4 Z" fill="#fbbf24"/>
+  </g>
 </svg>

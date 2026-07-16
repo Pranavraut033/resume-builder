@@ -1,6 +1,6 @@
 # LLM Gateway
 
-Managed, paid LLM access for resume-builder users who don't want to bring
+Managed, paid LLM access for Udaan users who don't want to bring
 their own API key. Prepaid credits via Stripe → a personal LiteLLM virtual
 key → pasted into the app exactly like a BYOK key.
 

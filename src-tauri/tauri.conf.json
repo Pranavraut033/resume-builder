@@ -1,6 +1,6 @@
 {
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
-  "productName": "Resume Builder",
+  "productName": "Udaan",
   "version": "1.0.0",
   "identifier": "com.resumebuilder.dev",
   "build": {
@@ -15,7 +15,7 @@
         "label": "main",
         "create": false,
         "url": "http://127.0.0.1:3008",
-        "title": "Resume Builder",
+        "title": "Udaan",
         "width": 1280,
         "height": 800,
         "minWidth": 960,

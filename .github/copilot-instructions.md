@@ -1,4 +1,4 @@
-# AI Coding Agent Instructions for Resume Builder
+# AI Coding Agent Instructions for Udaan
 
 ## Architecture Overview
 
