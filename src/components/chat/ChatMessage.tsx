@@ -71,14 +71,14 @@ export function ChatMessageItem({ message }: ChatMessageProps) {
       {/* Content */}
       <div className="max-w-[92%]">
         {message.content || message.isStreaming ? (
-          <p className={`rte-content min-h-0 space-y-2 font-sans text-sm`}>
+          <div className={`rte-content min-h-0 space-y-2 font-sans text-sm`}>
             <ReactMarkdown>{message.content}</ReactMarkdown>
             {message.isStreaming && (
               <span className="text-agent-primary ml-0.5 inline-block animate-pulse">
                 ▋
               </span>
             )}
-          </p>
+          </div>
         ) : message.isStreaming ? (
           /* Dots while waiting for first chunk */
           <span className="flex items-center gap-1 py-1">
