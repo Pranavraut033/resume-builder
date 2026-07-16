@@ -1,7 +1,10 @@
 {
-  "name": "resume-builder",
+  "name": "udaan",
   "version": "1.0.0",
   "private": true,
+  "engines": {
+    "node": "22.14.0"
+  },
   "scripts": {
     "dev": "next dev -p 3008",
     "tauri": "tauri",
@@ -31,7 +34,7 @@
     "@dnd-kit/utilities": "^3.2.2",
     "@google/genai": "^0.3.1",
     "@headlessui/react": "^2.2.9",
-    "@pranavraut033/ats-checker": "^1.4.0",
+    "@pranavraut033/ats-checker": "^2.0.0",
     "@pranavraut033/llm-core": "file:packages/llm-core",
     "@prisma/adapter-better-sqlite3": "^7.2.0",
     "@prisma/client": "^7.2.0",
@@ -59,7 +62,7 @@
     "fast-json-patch": "^3.1.1",
     "handlebars": "^4.7.8",
     "lucide-react": "^0.561.0",
-    "next": "16.0.10",
+    "next": "^16.2.10",
     "openai": "^6.10.0",
     "pdf-lib": "^1.17.1",
     "postcss": "^8.5.6",
@@ -90,7 +93,7 @@
     "@vitest/ui": "^4.0.16",
     "baseline-browser-mapping": "^2.10.31",
     "eslint": "^9",
-    "eslint-config-next": "16.0.10",
+    "eslint-config-next": "^16.2.10",
     "eslint-plugin-import": "^2.32.0",
     "eslint-plugin-unused-imports": "^4.3.0",
     "jsdom": "^27.3.0",

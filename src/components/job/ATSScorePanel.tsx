@@ -99,6 +99,10 @@ export function ATSScorePanel({
             label="Education"
             score={analysis.breakdown.education}
           />
+          <ScoreBreakdownItem
+            label="Parseability"
+            score={analysis.breakdown.parseability}
+          />
         </div>
       </Card>
 

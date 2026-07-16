@@ -66,6 +66,15 @@ const nextConfig: NextConfig = {
   // Turbopack is the default bundler in Next.js 16+.
   // An empty config here silences the "webpack config present but no turbopack config" warning.
   turbopack: {},
+  // Tauri's webview loads the dev server via 127.0.0.1 rather than localhost.
+  allowedDevOrigins: ["127.0.0.1"],
+  experimental: {
+    // Turbopack dev keeps every compiled module version in memory with no
+    // eviction, so RSS climbs unbounded over a long session on a bundle
+    // this size (WYSIWYG + PDF + TXT render engines). Cap it so it evicts
+    // instead of growing to 8-9GB+.
+    turbopackMemoryLimit: 2 * 1024 * 1024 * 1024,
+  },
   typescript: {
     // `npm run type-check` already gates every release before it's tagged
     // (see git-release.sh). Next's own in-build type-check duplicates that
