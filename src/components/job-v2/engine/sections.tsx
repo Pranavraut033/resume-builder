@@ -13,6 +13,8 @@ import {
   TxtSectionBuilder,
 } from "./types";
 
+import type { Skill } from "@/types/resume";
+
 export const LIST_SECTIONS: readonly ListSectionId[] = [
   "experience",
   "education",
@@ -365,6 +367,81 @@ const projects: DomSectionBuilder = ({ resume, theme, edit, entryStyle }) =>
     };
   });
 
+/** A run of skills sharing the same (optional) category, in first-seen order. */
+interface SkillGroup {
+  category?: string;
+  skills: Skill[];
+}
+
+/**
+ * Groups skills by `category` in first-seen order; skills with no category
+ * form a single trailing implicit group with no heading.
+ */
+function groupSkills(skills: Skill[]): SkillGroup[] {
+  const groups: SkillGroup[] = [];
+  const byCategory = new Map<string, SkillGroup>();
+  let uncategorized: SkillGroup | null = null;
+  for (const skill of skills) {
+    if (skill.category) {
+      let group = byCategory.get(skill.category);
+      if (!group) {
+        group = { category: skill.category, skills: [] };
+        byCategory.set(skill.category, group);
+        groups.push(group);
+      }
+      group.skills.push(skill);
+    } else {
+      if (!uncategorized) uncategorized = { skills: [] };
+      uncategorized.skills.push(skill);
+    }
+  }
+  if (uncategorized) groups.push(uncategorized);
+  return groups;
+}
+
+/**
+ * Serializes grouped skills into the editable text syntax:
+ * `Category: *PrimarySkill, secondarySkill | Category2: skill`
+ */
+function serializeSkillsForEdit(skills: Skill[]): string {
+  return groupSkills(skills)
+    .map((group) => {
+      const list = group.skills
+        .map((s) => (s.tier === "primary" ? `*${s.name}` : s.name))
+        .join(", ");
+      return group.category ? `${group.category}: ${list}` : list;
+    })
+    .join(" | ");
+}
+
+/** Inverse of {@link serializeSkillsForEdit}. */
+function parseSkillsFromEdit(text: string): Skill[] {
+  return text
+    .split("|")
+    .flatMap((segment) => {
+      const colonIndex = segment.indexOf(":");
+      const hasCategory = colonIndex !== -1;
+      const category = hasCategory
+        ? segment.slice(0, colonIndex).trim()
+        : undefined;
+      const skillsPart = hasCategory ? segment.slice(colonIndex + 1) : segment;
+      return skillsPart
+        .split(",")
+        .map((raw) => raw.trim())
+        .filter(Boolean)
+        .map((raw): Skill => {
+          const primary = raw.startsWith("*");
+          const name = primary ? raw.slice(1).trim() : raw;
+          return {
+            name,
+            ...(category ? { category } : {}),
+            ...(primary ? { tier: "primary" as const } : {}),
+          };
+        });
+    })
+    .filter((s) => s.name.length > 0);
+}
+
 const skills: DomSectionBuilder = ({ resume, theme, edit }) => {
   if (resume.skills.length === 0 && !edit.editable) return [];
   return [
@@ -373,18 +450,32 @@ const skills: DomSectionBuilder = ({ resume, theme, edit }) => {
       node: (
         <div className={`${theme.textSize} ${theme.lineHeight}`}>
           <EditableText
-            value={resume.skills.join(", ")}
-            onCommit={(v) =>
-              edit.updateSkills(
-                v
-                  .split(",")
-                  .map((s) => s.trim())
-                  .filter(Boolean)
-              )
-            }
+            value={serializeSkillsForEdit(resume.skills)}
+            onCommit={(v) => edit.updateSkills(parseSkillsFromEdit(v))}
             fieldType="textarea"
-            placeholder="JavaScript, TypeScript, React…"
-            renderDisplay={(v) => <>{v.split(", ").join(" • ")}</>}
+            placeholder="Languages: *TypeScript, JavaScript | Frameworks: React…"
+            renderDisplay={(v) => (
+              <>
+                {groupSkills(parseSkillsFromEdit(v)).map((group, gi) => (
+                  <span key={gi}>
+                    {gi > 0 && " | "}
+                    {group.category && (
+                      <span className="font-medium">{group.category}: </span>
+                    )}
+                    {group.skills.map((s, si) => (
+                      <span key={si}>
+                        {si > 0 && ", "}
+                        {s.tier === "primary" ? (
+                          <strong>{s.name}</strong>
+                        ) : (
+                          s.name
+                        )}
+                      </span>
+                    ))}
+                  </span>
+                ))}
+              </>
+            )}
           />
         </div>
       ),
@@ -822,8 +913,16 @@ const txtProjects: TxtSectionBuilder = ({ resume }) => {
   return `Projects:\n${body}\n`;
 };
 
-const txtSkills: TxtSectionBuilder = ({ resume }) =>
-  resume.skills.length ? `Skills:\n${resume.skills.join(", ")}\n` : "";
+const txtSkills: TxtSectionBuilder = ({ resume }) => {
+  if (resume.skills.length === 0) return "";
+  const body = groupSkills(resume.skills)
+    .map((group) => {
+      const list = group.skills.map((s) => s.name).join(", ");
+      return group.category ? `${group.category}: ${list}` : list;
+    })
+    .join("\n");
+  return `Skills:\n${body}\n`;
+};
 
 const txtEducation: TxtSectionBuilder = ({ resume }) => {
   if (resume.education.length === 0) return "";

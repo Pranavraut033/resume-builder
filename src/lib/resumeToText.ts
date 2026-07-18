@@ -1,4 +1,36 @@
-import { ResumeJSON } from "@/types/resume";
+import { ResumeJSON, Skill } from "@/types/resume";
+
+/** A run of skills sharing the same (optional) category, in first-seen order. */
+interface SkillGroup {
+  category?: string;
+  skills: Skill[];
+}
+
+/**
+ * Groups skills by `category` in first-seen order; skills with no category
+ * form a single trailing implicit group with no heading.
+ */
+function groupSkills(skills: Skill[]): SkillGroup[] {
+  const groups: SkillGroup[] = [];
+  const byCategory = new Map<string, SkillGroup>();
+  let uncategorized: SkillGroup | null = null;
+  for (const skill of skills) {
+    if (skill.category) {
+      let group = byCategory.get(skill.category);
+      if (!group) {
+        group = { category: skill.category, skills: [] };
+        byCategory.set(skill.category, group);
+        groups.push(group);
+      }
+      group.skills.push(skill);
+    } else {
+      if (!uncategorized) uncategorized = { skills: [] };
+      uncategorized.skills.push(skill);
+    }
+  }
+  if (uncategorized) groups.push(uncategorized);
+  return groups;
+}
 
 export function resumeToText(resume: ResumeJSON): string {
   const lines: string[] = [];
@@ -62,7 +94,10 @@ export function resumeToText(resume: ResumeJSON): string {
   // ── Skills ───────────────────────────────────────────────────
   if (resume.skills.length > 0) {
     section("Skills");
-    lines.push(resume.skills.join(", "));
+    groupSkills(resume.skills).forEach((group) => {
+      const list = group.skills.map((s) => s.name).join(", ");
+      lines.push(group.category ? `${group.category}: ${list}` : list);
+    });
   }
 
   // ── Education ────────────────────────────────────────────────

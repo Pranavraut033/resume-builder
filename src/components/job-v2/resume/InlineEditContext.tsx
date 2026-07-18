@@ -10,6 +10,7 @@ import type {
   Language,
   Project,
   ResumeJSON,
+  Skill,
 } from "@/types/resume";
 
 /**
@@ -40,7 +41,7 @@ export interface InlineEditContextValue {
   updateProject: (index: number, patch: Partial<Project>) => void;
   updateProjectTechnologies: (index: number, technologies: string[]) => void;
   updateCertification: (index: number, patch: Partial<Certification>) => void;
-  updateSkills: (skills: string[]) => void;
+  updateSkills: (skills: Skill[]) => void;
   updateExperienceAchievements: (
     expIndex: number,
     achievements: string[]

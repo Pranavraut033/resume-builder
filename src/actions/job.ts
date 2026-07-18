@@ -17,7 +17,12 @@ import {
   validateCustomization,
 } from "@/types/customization";
 import { JobStatus, JOB_STATUSES } from "@/types/job";
-import { ResumeJSON, JobDetailsJSON, ATSAnalysisJSON } from "@/types/resume";
+import {
+  ResumeJSON,
+  JobDetailsJSON,
+  ATSAnalysisJSON,
+  normalizeSkills,
+} from "@/types/resume";
 
 /**
  * Create a new job with parsed details, resume, and cover letter
@@ -231,9 +236,13 @@ export async function getResumeByJobId(jobId: number): Promise<
         throw new Error(`Resume not found for job ${jobId}`);
       }
 
+      const contentJson = JSON.parse(job.resume.contentJson) as ResumeJSON;
       return {
         ...job.resume,
-        contentJson: JSON.parse(job.resume.contentJson) as ResumeJSON,
+        contentJson: {
+          ...contentJson,
+          skills: normalizeSkills(contentJson.skills),
+        },
         atsAnalysis: job.resume.atsAnalysis?.contentJson
           ? (JSON.parse(job.resume.atsAnalysis.contentJson) as ATSAnalysisJSON)
           : null,
@@ -355,7 +364,8 @@ export async function restoreResumeSnapshot(
   });
 
   revalidatePath(`/job/${jobId}/resume`);
-  return JSON.parse(snapshot.contentJson) as ResumeJSON;
+  const restored = JSON.parse(snapshot.contentJson) as ResumeJSON;
+  return { ...restored, skills: normalizeSkills(restored.skills) };
 }
 
 export async function saveAtsAnalysis(

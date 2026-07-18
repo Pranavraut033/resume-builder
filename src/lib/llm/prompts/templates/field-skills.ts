@@ -5,6 +5,8 @@
 
 import z from "zod";
 
+import { SkillSchema } from "@/types/resume";
+
 import { templateRegistry } from "../registry";
 import { PromptTemplate } from "../types";
 
@@ -20,7 +22,8 @@ const skillsTemplate: PromptTemplate = {
     "Only include skills already present in the candidate's resume — never add new ones",
     "Order: exact required matches → semantic required matches → tech stack overlaps → nice-to-haves → remaining relevant skills",
     "Use the exact terminology from the job description where the candidate's skill is equivalent (e.g. prefer 'PostgreSQL' over 'SQL' if that's what the JD uses and the candidate knows it)",
-    "Group into categories where 4+ skills share a domain (e.g. Languages, Frameworks, Cloud, Tools)",
+    "Group into categories where 4+ skills share a domain (e.g. Languages, Frameworks, Cloud, Tools) — set each skill's `category` field accordingly, omit it for skills that don't fit a group",
+    "Mark the 6-8 most job-relevant skills (the strongest matches to the job requirements) with `tier: 'primary'`; leave the rest `tier: 'secondary'` or omit tier entirely",
     "Omit soft skills unless explicitly listed as required in the job description",
     "Remove duplicates and near-duplicates — keep the more specific term",
   ],
@@ -30,8 +33,10 @@ const skillsTemplate: PromptTemplate = {
   systemPrompt: `You are a technical skills curator specializing in ATS-optimized resume optimization.
 
 OUTPUT CONTRACT:
-- Return ONLY valid JSON matching the schema: { skills: string[] }
-- Skills are plain strings — no markdown, no bullet prefixes, no category headers in the array
+- Return ONLY valid JSON matching the schema: { skills: { name: string; category?: string; tier?: 'primary' | 'secondary' }[] }
+- \`name\` is the plain skill string — no markdown, no bullet prefixes
+- \`category\` groups related skills (e.g. "Languages", "Frameworks") — omit when a skill doesn't share a domain with 3+ others
+- \`tier: 'primary'\` marks the 6-8 skills most relevant to this job; everything else should be \`'secondary'\` or omitted
 
 DATA INTEGRITY (non-negotiable):
 - Output ONLY skills explicitly present in the candidate's resume
@@ -62,13 +67,19 @@ TASK:
 5. Drop any candidate skill with no relevance to this role
 
 Return ONLY valid JSON: { "skills": [...] }. Example:
-{ "skills": ["PostgreSQL", "TypeScript", "React", "Docker", "AWS"] }`,
+{ "skills": [
+  { "name": "PostgreSQL", "category": "Databases", "tier": "primary" },
+  { "name": "TypeScript", "category": "Languages", "tier": "primary" },
+  { "name": "React", "category": "Frameworks", "tier": "secondary" },
+  { "name": "Docker", "category": "Tools" },
+  { "name": "AWS", "category": "Cloud" }
+] }`,
 
   outputSchema: z.object({
     skills: z
-      .array(z.string())
+      .array(SkillSchema)
       .describe(
-        "Prioritized, ATS-optimized skills list drawn exclusively from the candidate's existing profile"
+        "Prioritized, ATS-optimized skills list drawn exclusively from the candidate's existing profile, grouped by category with the 6-8 most job-relevant skills marked tier: 'primary'"
       ),
   }),
 };

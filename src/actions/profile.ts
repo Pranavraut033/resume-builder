@@ -3,7 +3,7 @@
 import { Prisma, Profile } from "@prisma/client";
 
 import { prisma } from "@/lib/prisma";
-import { ResumeJSON } from "@/types/resume";
+import { normalizeSkills, ResumeJSON } from "@/types/resume";
 
 export type ProfileSummary = {
   id: number;
@@ -150,7 +150,7 @@ function profileDataToResumeJson(
     summary: profile.summary || "",
     experience: JSON.parse(profile.experienceJson),
     projects: JSON.parse(profile.projectsJson),
-    skills: JSON.parse(profile.skillsJson),
+    skills: normalizeSkills(JSON.parse(profile.skillsJson)),
     education: JSON.parse(profile.educationJson),
     certifications: JSON.parse(profile.certificationsJson),
     publications: profile.publicationsJson

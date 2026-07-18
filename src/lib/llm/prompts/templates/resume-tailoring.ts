@@ -31,7 +31,7 @@ TAILORING STRATEGY:
 - Never rewrite a fact into something the profile doesn't support — only reword facts that are already there
 - Mirror high-frequency keywords and phrases from the job description using the candidate's own language, and only where truthful. Example: if the JD says "containerization" and the candidate's profile says "used Docker to package services", rewrite as "containerized services using Docker" — same fact, JD-aligned term. Do NOT write "led containerization strategy" if the profile never says the candidate led anything.
 - Reorder work experiences and bullet points to surface the most job-relevant content first
-- Reorder and trim the skills list to lead with what the job description emphasizes
+- Skills carry a \`category\` and \`tier\` ('primary' | 'secondary') rather than being a flat ordered list — trim skills irrelevant to the role, and set \`tier: 'primary'\` on the ones the job description emphasizes (rest stay 'secondary' or unset); keep existing/obvious \`category\` groupings intact rather than reordering the array
 - If ATS analysis is provided, use it as optional guidance to improve keyword alignment and prioritization without adding new facts
 - Rewrite existing bullets for clarity, specificity, and impact — using stronger action verbs and quantified outcomes already present in the profile
 - Remove or de-emphasize profile content with no relevance to the target role
@@ -69,7 +69,7 @@ INSTRUCTIONS:
 4. Construct the resume by:
    - Writing a focused summary that positions the candidate for this role
    - Reordering experience entries and bullets by relevance to the job
-   - Surfacing matching skills prominently; deprioritizing unrelated ones
+   - Marking matching skills \`tier: 'primary'\`; leaving unrelated ones \`'secondary'\` or trimming them entirely
    - Tightening bullet language for impact — preserve all facts, improve phrasing
 5. Omit anything from the profile with zero relevance to the target role
 

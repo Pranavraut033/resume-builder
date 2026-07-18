@@ -41,7 +41,12 @@ const sampleResume: ResumeJSON = {
       endDate: null,
     },
   ],
-  skills: ["TypeScript", "PostgreSQL", "Kafka", "Docker"],
+  skills: [
+    { name: "TypeScript", category: "Languages", tier: "primary" },
+    { name: "PostgreSQL", category: "Databases", tier: "primary" },
+    { name: "Kafka", category: "Tools" },
+    { name: "Docker", category: "Tools" },
+  ],
   education: [
     {
       institution: "UT Austin",

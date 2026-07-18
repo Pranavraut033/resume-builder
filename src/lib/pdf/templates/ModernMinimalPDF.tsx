@@ -8,7 +8,7 @@ import React, { memo } from "react";
 import BackgroundPdf from "@/lib/backgrounds/BackgroundPdf";
 import { formatDateRange } from "@/lib/date";
 import { htmlToPlainText, isHtml } from "@/lib/htmlUtils";
-import { ResumeJSON } from "@/types/resume";
+import { ResumeJSON, Skill } from "@/types/resume";
 
 import { ResolvedPDFStyles } from "../resolveStyles";
 import { SectionGroup } from "./shared/SectionGroup";
@@ -22,6 +22,38 @@ const plain = (text: string | null | undefined): string => {
   if (!text) return "";
   return isHtml(text) ? htmlToPlainText(text) : text;
 };
+
+/** A run of skills sharing the same (optional) category, in first-seen order. */
+interface SkillGroup {
+  category?: string;
+  skills: Skill[];
+}
+
+/**
+ * Groups skills by `category` in first-seen order; skills with no category
+ * form a single trailing implicit group with no heading.
+ */
+function groupSkills(skills: Skill[]): SkillGroup[] {
+  const groups: SkillGroup[] = [];
+  const byCategory = new Map<string, SkillGroup>();
+  let uncategorized: SkillGroup | null = null;
+  for (const skill of skills) {
+    if (skill.category) {
+      let group = byCategory.get(skill.category);
+      if (!group) {
+        group = { category: skill.category, skills: [] };
+        byCategory.set(skill.category, group);
+        groups.push(group);
+      }
+      group.skills.push(skill);
+    } else {
+      if (!uncategorized) uncategorized = { skills: [] };
+      uncategorized.skills.push(skill);
+    }
+  }
+  if (uncategorized) groups.push(uncategorized);
+  return groups;
+}
 
 function buildContactLine(header: ResumeJSON["header"]): string {
   return [
@@ -255,7 +287,22 @@ export const ModernMinimalPDF: React.FC<PDFTemplateProps> = ({
           <View wrap={false}>
             <SH s={s} title="Skills" />
             <Text style={{ fontSize, lineHeight, color: "#374151" }}>
-              {resume.skills.join("  •  ")}
+              {groupSkills(resume.skills).map((group, gi) => (
+                <Text key={gi}>
+                  {gi > 0 ? "  •  " : ""}
+                  {group.category ? `${group.category}: ` : ""}
+                  {group.skills.map((skill, si) => (
+                    <Text key={si}>
+                      {si > 0 ? ", " : ""}
+                      {skill.tier === "primary" ? (
+                        <Text style={{ fontWeight: 700 }}>{skill.name}</Text>
+                      ) : (
+                        skill.name
+                      )}
+                    </Text>
+                  ))}
+                </Text>
+              ))}
             </Text>
           </View>
         ) : null}

@@ -264,12 +264,39 @@ export function getSectionLayout(resume: ResumeJSON): SectionLayout {
   );
 }
 
+export const SkillSchema = z.object({
+  name: z.string(),
+  category: z.string().optional(),
+  tier: z.enum(["primary", "secondary"]).optional(),
+});
+export type Skill = z.infer<typeof SkillSchema>;
+
+/**
+ * Normalize a skills value read off a DB JSON blob into `Skill[]`.
+ *
+ * Existing rows stored `skillsJson` as a flat `string[]` (e.g.
+ * `["React", "TypeScript"]`) before grouping/tiering was introduced. Map
+ * legacy string entries to `{ name }` and validate/pass through object
+ * entries, so every DB-read boundary produces the current `Skill[]` shape
+ * regardless of when the row was written. Entries that don't validate as
+ * either shape are dropped rather than throwing — a malformed skill
+ * shouldn't fail the whole read.
+ */
+export function normalizeSkills(raw: unknown): Skill[] {
+  if (!Array.isArray(raw)) return [];
+  return raw.flatMap((entry): Skill[] => {
+    if (typeof entry === "string") return [{ name: entry }];
+    const parsed = SkillSchema.safeParse(entry);
+    return parsed.success ? [parsed.data] : [];
+  });
+}
+
 export const ResumeSchema = z.object({
   header: ContactInfoSchema,
   summary: z.string(),
   experience: z.array(ExperienceSchema),
   projects: z.array(ProjectSchema),
-  skills: z.array(z.string()),
+  skills: z.array(SkillSchema),
   education: z.array(EducationSchema),
   certifications: z.array(CertificationSchema),
   publications: z.array(PublicationSchema).nullable(),
@@ -387,7 +414,7 @@ export function resumeJsonToCompactPositional(resume: ResumeJSON): string {
         `${proj.name}|${proj.description}|${proj.technologies.join(",")}|${proj.url || ""}|${proj.startDate || ""}|${proj.endDate || ""}`
     )
     .join("\n")}
-  ${resume.skills.join(",")}
+  ${resume.skills.map((skill) => skill.name).join(",")}
   ${resume.education
     .map(
       (edu) =>

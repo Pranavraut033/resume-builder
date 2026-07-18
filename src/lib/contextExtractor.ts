@@ -35,9 +35,14 @@ export function extractSummaryContext(
     context.yearsOfExperience = yearsExp;
   }
 
-  // Add key skills (top 5)
+  // Add key skills (top 5, primary-tier first)
   if (resume.skills && resume.skills.length > 0) {
-    context.keySkills = resume.skills.slice(0, 5);
+    context.keySkills = [
+      ...resume.skills.filter((s) => s.tier === "primary"),
+      ...resume.skills.filter((s) => s.tier !== "primary"),
+    ]
+      .slice(0, 5)
+      .map((s) => s.name);
   }
 
   // Add target job title if available from job
@@ -96,9 +101,14 @@ export function extractExperienceContext(
     }
   }
 
-  // Add relevant skills from resume
+  // Add relevant skills from resume (primary-tier first)
   if (resume?.skills && resume.skills.length > 0) {
-    context.relevantSkills = resume.skills.slice(0, 5);
+    context.relevantSkills = [
+      ...resume.skills.filter((s) => s.tier === "primary"),
+      ...resume.skills.filter((s) => s.tier !== "primary"),
+    ]
+      .slice(0, 5)
+      .map((s) => s.name);
   }
 
   // Add job title for context

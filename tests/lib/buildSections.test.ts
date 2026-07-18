@@ -23,7 +23,7 @@ const baseResume: ResumeJSON = {
   summary: "A summary",
   experience: [],
   projects: [],
-  skills: ["TypeScript"],
+  skills: [{ name: "TypeScript" }],
   education: [],
   certifications: [],
   publications: null,
