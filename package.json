@@ -70,7 +70,6 @@
     "react": "19.2.1",
     "react-dom": "19.2.1",
     "react-markdown": "^10.1.0",
-    "react-quill-new": "^3.8.3",
     "recharts": "^3.6.0",
     "tailwind-merge": "^1.14.0",
     "uuid": "^13.0.0",
