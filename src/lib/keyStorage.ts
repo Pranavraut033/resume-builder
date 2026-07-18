@@ -7,6 +7,7 @@
  * Keys are encrypted with a master password before being written to disk.
  */
 
+import { invoke } from "@tauri-apps/api/core";
 import {
   exists,
   readTextFile,
@@ -23,11 +24,36 @@ const _KEY_LENGTH = 32;
 const IV_LENGTH = 16;
 const SALT_LENGTH = 32;
 
-// Master password for encryption
-const MASTER_PASSWORD = "resume-builder-master-key-change-in-production";
+/**
+ * LEGACY / MIGRATION-ONLY: the hardcoded master password every build used to
+ * ship before per-install keychain-backed keys were introduced. This is
+ * NEVER used to encrypt new data — it exists solely so that `getApiKey` can
+ * fall back to it when a key store written by an older version of the app
+ * fails to decrypt with the new keychain-derived key, transparently
+ * upgrading it in place. Do not use this for new encryption.
+ */
+const LEGACY_MASTER_PASSWORD = "resume-builder-master-key-change-in-production";
 
 // Storage file path (relative to AppData directory)
 const STORAGE_FILE = "keys.enc";
+
+// Cached per-install master key, fetched at most once per session from the
+// OS keychain via the `get_or_create_master_key` Tauri command.
+let cachedMasterKey: string | null = null;
+
+/**
+ * Returns the per-install master key used to derive the AES-256-GCM
+ * encryption key, generating and persisting it in the OS keychain on first
+ * use (see `src-tauri/src/keychain.rs`). Only valid to call in a Tauri
+ * context. Cached for the lifetime of the page/session.
+ */
+async function getMasterKey(): Promise<string> {
+  if (cachedMasterKey !== null) return cachedMasterKey;
+
+  const masterKey = await invoke<string>("get_or_create_master_key");
+  cachedMasterKey = masterKey;
+  return masterKey;
+}
 
 interface EncryptedData {
   iv: string;
@@ -240,11 +266,7 @@ export async function setApiKey(
   }
 
   try {
-    const store = await loadKeyStore();
-    const encrypted = await encrypt(apiKey, MASTER_PASSWORD);
-    store[provider] = encrypted;
-    keyStore = store;
-    await saveKeyStore();
+    await storeApiKeyWithNewMasterKey(provider, apiKey);
     logger.info("API key stored securely", { provider });
   } catch (error) {
     logger.error(`Failed to store API key for ${provider}`, {
@@ -255,6 +277,23 @@ export async function setApiKey(
       `Failed to store API key: ${error instanceof Error ? error.message : "Unknown error"}`
     );
   }
+}
+
+/**
+ * Encrypts `apiKey` with the current keychain-derived master key and
+ * persists it to the key store. Shared by `setApiKey` and the migration
+ * path in `getApiKey` (which re-encrypts legacy entries in place).
+ */
+async function storeApiKeyWithNewMasterKey(
+  provider: string,
+  apiKey: string
+): Promise<void> {
+  const masterKey = await getMasterKey();
+  const store = await loadKeyStore();
+  const encrypted = await encrypt(apiKey, masterKey);
+  store[provider] = encrypted;
+  keyStore = store;
+  await saveKeyStore();
 }
 
 /**
@@ -291,9 +330,50 @@ export async function getApiKey(provider: string): Promise<string | null> {
       return null;
     }
 
-    const decrypted = await decrypt(encrypted, MASTER_PASSWORD);
-    logger.debug("API key retrieved securely", { provider });
-    return decrypted;
+    try {
+      const masterKey = await getMasterKey();
+      const decrypted = await decrypt(encrypted, masterKey);
+      logger.debug("API key retrieved securely", { provider });
+      return decrypted;
+    } catch (newKeyError) {
+      // Fall through to the legacy-password migration path below.
+      logger.debug(
+        "Decrypt with keychain-derived key failed, attempting legacy migration decrypt",
+        { provider, error: newKeyError }
+      );
+    }
+
+    // Migration path: this entry may have been encrypted by a pre-keychain
+    // build using the old hardcoded master password. Try that, and if it
+    // succeeds, transparently re-encrypt and persist with the new
+    // keychain-derived key so the file is upgraded in place.
+    try {
+      const decrypted = await decrypt(encrypted, LEGACY_MASTER_PASSWORD);
+      logger.info(
+        "API key decrypted with legacy master password, upgrading to keychain-derived key",
+        { provider }
+      );
+
+      try {
+        await storeApiKeyWithNewMasterKey(provider, decrypted);
+      } catch (upgradeError) {
+        // Non-fatal: we still successfully retrieved the key this time, so
+        // return it even if the in-place upgrade write failed. It will be
+        // retried on the next read.
+        logger.error("Failed to persist migrated API key", {
+          provider,
+          error: upgradeError,
+        });
+      }
+
+      return decrypted;
+    } catch (legacyError) {
+      logger.error("Failed to retrieve API key", {
+        provider,
+        error: legacyError,
+      });
+      return null;
+    }
   } catch (error) {
     logger.error("Failed to retrieve API key", { provider, error });
     return null;

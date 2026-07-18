@@ -1,7 +1,5 @@
 use std::{
-    env,
-    fs,
-    io,
+    env, fs, io,
     net::TcpStream,
     path::PathBuf,
     process::{Child, Command, Stdio},
@@ -14,6 +12,7 @@ use tauri::Manager;
 use tauri_plugin_stronghold::Builder;
 
 mod browser;
+mod keychain;
 
 struct NextServerState(Mutex<Option<Child>>);
 
@@ -32,7 +31,10 @@ fn wait_for_local_server(host: &str, port: u16, timeout: Duration) -> bool {
 }
 
 fn spawn_bundled_next_server(resource_dir: PathBuf) -> Result<Child, String> {
-    let candidate_dirs = [resource_dir.join("next"), resource_dir.join("resources").join("next")];
+    let candidate_dirs = [
+        resource_dir.join("next"),
+        resource_dir.join("resources").join("next"),
+    ];
 
     let server_dir = candidate_dirs
         .iter()
@@ -112,7 +114,11 @@ fn node_command_candidates() -> Vec<String> {
         // fnm (fast node manager)
         for fnm_base in [
             home_path.join(".fnm").join("node-versions"),
-            home_path.join("Library").join("Application Support").join("fnm").join("node-versions"),
+            home_path
+                .join("Library")
+                .join("Application Support")
+                .join("fnm")
+                .join("node-versions"),
         ] {
             if let Ok(entries) = fs::read_dir(&fnm_base) {
                 let mut versions = entries
@@ -146,7 +152,12 @@ fn node_command_candidates() -> Vec<String> {
         }
 
         // mise (formerly rtx)
-        let mise_node = home_path.join(".local").join("share").join("mise").join("shims").join("node");
+        let mise_node = home_path
+            .join(".local")
+            .join("share")
+            .join("mise")
+            .join("shims")
+            .join("node");
         if mise_node.exists() {
             candidates.push(mise_node.to_string_lossy().into_owned());
         }
@@ -188,17 +199,18 @@ pub fn run() {
                     )
                 })?
                 .join("salt.txt");
-            app.handle().plugin(Builder::with_argon2(&salt_path).build())?;
+            app.handle()
+                .plugin(Builder::with_argon2(&salt_path).build())?;
 
             let mut next_server_child = None;
 
             if !cfg!(debug_assertions) {
-                let resource_dir = app
-                    .path()
-                    .resource_dir()
-                    .map_err(|_| {
-                        io::Error::new(io::ErrorKind::NotFound, "could not resolve resource directory")
-                    })?;
+                let resource_dir = app.path().resource_dir().map_err(|_| {
+                    io::Error::new(
+                        io::ErrorKind::NotFound,
+                        "could not resolve resource directory",
+                    )
+                })?;
 
                 let child = spawn_bundled_next_server(resource_dir).map_err(io::Error::other)?;
 
@@ -215,14 +227,9 @@ pub fn run() {
 
             app.manage(NextServerState(Mutex::new(next_server_child)));
 
-            let window_config = app
-                .config()
-                .app
-                .windows
-                .first()
-                .ok_or_else(|| {
-                    io::Error::new(io::ErrorKind::NotFound, "No window configuration found")
-                })?;
+            let window_config = app.config().app.windows.first().ok_or_else(|| {
+                io::Error::new(io::ErrorKind::NotFound, "No window configuration found")
+            })?;
 
             tauri::WebviewWindowBuilder::from_config(app, window_config)?.build()?;
 
@@ -236,6 +243,7 @@ pub fn run() {
             browser::browser_extract_content,
             browser::browser_set_bounds,
             browser::browser_destroy_all,
+            keychain::get_or_create_master_key,
         ])
         .build(tauri::generate_context!())
         .unwrap_or_else(|error| {

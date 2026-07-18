@@ -278,15 +278,18 @@ export default function SettingsPage() {
         >
           <SurfacePanel>
             <p className="text-agent-on-surface-variant text-sm leading-relaxed">
-              We use Tauri Stronghold to encrypt your API keys before they are
-              written to disk. Our &ldquo;Local-First&rdquo; philosophy ensures
+              Your API keys are encrypted with AES-256-GCM using a unique
+              encryption key generated for your device and stored in your
+              operating system&apos;s secure keychain before being written to
+              disk locally. Our &ldquo;Local-First&rdquo; philosophy ensures
               that Curator AI operates as a sovereign vault for your
               professional identity.
             </p>
             <ul className="space-y-2.5">
               {[
-                "AES-256-GCM Hardware Encryption",
-                "Zero-Knowledge Key Storage",
+                "AES-256-GCM Encrypted Storage",
+                "Per-Device Key in Your OS Keychain",
+                "Keys Never Leave Your Device",
                 "Process-Isolated Security Sprites",
               ].map((feature) => (
                 <li key={feature} className="flex items-center gap-2.5 text-sm">
