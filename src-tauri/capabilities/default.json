@@ -29,7 +29,6 @@
     "fs:default",
     "process:allow-restart",
     "process:default",
-    "stronghold:default",
     "updater:allow-check",
     "updater:allow-download-and-install",
     "updater:default",

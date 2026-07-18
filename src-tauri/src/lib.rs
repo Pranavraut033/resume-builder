@@ -9,7 +9,6 @@ use std::{
 };
 
 use tauri::Manager;
-use tauri_plugin_stronghold::Builder;
 
 mod browser;
 mod keychain;
@@ -189,19 +188,6 @@ pub fn run() {
         .plugin(tauri_plugin_process::init())
         .plugin(tauri_plugin_opener::init())
         .setup(|app| {
-            let salt_path = app
-                .path()
-                .app_local_data_dir()
-                .map_err(|_| {
-                    io::Error::new(
-                        io::ErrorKind::NotFound,
-                        "could not resolve app local data path",
-                    )
-                })?
-                .join("salt.txt");
-            app.handle()
-                .plugin(Builder::with_argon2(&salt_path).build())?;
-
             let mut next_server_child = None;
 
             if !cfg!(debug_assertions) {
