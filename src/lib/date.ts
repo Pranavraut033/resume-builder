@@ -65,6 +65,20 @@ export function formatDateRange(
 const MONTH_YEAR_RE = /^\d{4}-\d{2}$/;
 
 /**
+ * `<input type="month">` has no native picker UI in Safari/WebKit (incl. the
+ * Tauri desktop build on macOS) — it silently degrades to a plain text
+ * field. `<input type="date">` is supported everywhere, so pickers use that
+ * and pad/strip a fixed day instead.
+ */
+export function toDateInputValue(monthYear: string | null | undefined): string {
+  return monthYear && MONTH_YEAR_RE.test(monthYear) ? `${monthYear}-01` : "";
+}
+
+export function fromDateInputValue(dateValue: string): string {
+  return dateValue.slice(0, 7);
+}
+
+/**
  * True when start <= end (YYYY-MM sorts lexicographically), or either side is
  * empty/not in canonical YYYY-MM form (legacy free-text dates are left
  * unvalidated rather than flagged as false positives).

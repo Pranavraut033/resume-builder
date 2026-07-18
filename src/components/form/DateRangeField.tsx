@@ -7,6 +7,8 @@
 
 import React, { useState } from "react";
 
+import { fromDateInputValue, toDateInputValue } from "@/lib/date";
+
 interface DateRangeFieldProps {
   label: string;
   startDate?: string;
@@ -61,9 +63,11 @@ export function DateRangeField({
         {/* Start Date */}
         <div>
           <input
-            type="month"
-            value={startDate}
-            onChange={(e) => onStartDateChange(e.target.value)}
+            type="date"
+            value={toDateInputValue(startDate)}
+            onChange={(e) =>
+              onStartDateChange(fromDateInputValue(e.target.value))
+            }
             placeholder="Start Date"
             className="w-full rounded-lg border px-3 py-2 text-sm transition-colors focus:ring-2 focus:outline-none"
             style={{
@@ -79,9 +83,11 @@ export function DateRangeField({
         <div className="space-y-2">
           {(!showPresentOption || !isPresent) && (
             <input
-              type="month"
-              value={endDate}
-              onChange={(e) => handleEndDateChange(e.target.value)}
+              type="date"
+              value={toDateInputValue(endDate)}
+              onChange={(e) =>
+                handleEndDateChange(fromDateInputValue(e.target.value))
+              }
               placeholder="End Date"
               className="w-full rounded-lg border px-3 py-2 text-sm transition-colors focus:ring-2 focus:outline-none"
               style={{

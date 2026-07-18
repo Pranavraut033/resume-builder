@@ -10,6 +10,7 @@ import {
 } from "react";
 
 import cn from "@/lib/cn";
+import { fromDateInputValue, toDateInputValue } from "@/lib/date";
 
 type FieldType = "text" | "textarea" | "bullet" | "date";
 
@@ -86,7 +87,7 @@ export function InlineField({
     (el: HTMLInputElement) => {
       el.style.width =
         fieldType === "date"
-          ? "9ch"
+          ? "11ch"
           : `${Math.max(el.value.length || placeholder.length, 3)}ch`;
     },
     [placeholder, fieldType]
@@ -143,10 +144,14 @@ export function InlineField({
     return (
       <input
         ref={inputRef as React.RefObject<HTMLInputElement>}
-        type={fieldType === "date" ? "month" : "text"}
-        value={draft}
+        type={fieldType === "date" ? "date" : "text"}
+        value={fieldType === "date" ? toDateInputValue(draft) : draft}
         onChange={(e) => {
-          setDraft(e.target.value);
+          const next =
+            fieldType === "date"
+              ? fromDateInputValue(e.target.value)
+              : e.target.value;
+          setDraft(next);
           resizeInput(e.target);
         }}
         onBlur={commit}
