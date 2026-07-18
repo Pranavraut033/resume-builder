@@ -78,15 +78,17 @@ export interface TokenUsageByDay {
 export async function createTokenUsage(
   data: LLMUsageInfo
 ): Promise<TokenUsage> {
+  const { costUSD, ...rest } = data;
+
   return prisma.tokenUsage.create({
     data: {
-      ...data,
+      ...rest,
       purpose: Array.isArray(data.purpose)
         ? data.purpose.join(",")
         : data.purpose, // Store as comma-separated string if it's an array
       totalTokens:
         data.totalTokens || data.promptTokens + data.completionTokens || 0,
-      costMicrocents: data.costUSD ? data.costUSD * 1_000_000 : undefined, // Store as cents to avoid floating point issues
+      costMicrocents: costUSD ? costUSD * 1_000_000 : undefined, // Store as cents to avoid floating point issues
     },
   });
 }
