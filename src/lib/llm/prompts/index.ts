@@ -51,6 +51,7 @@ import {
 import { resolveTemplate } from "@pranavraut033/llm-core/prompts";
 
 import { templateRegistry } from "./registry";
+import { sanitizeUntrustedText } from "./sanitize";
 import { PromptContext, PromptPurpose, ResolvedPrompt } from "./types";
 
 /**
@@ -74,6 +75,18 @@ function normalizedFieldsToString(
 ): Record<string, unknown> {
   return {
     ...context,
+    // Free-text fields interpolated verbatim (unescaped `{{{...}}}`) into
+    // `---`-fenced prompt blocks by the templates in ./templates/*.ts. The
+    // *CompactPositional serializers already sanitize their own output (see
+    // @/types/resume), so only the fields that flow straight from the raw
+    // context need sanitizing here — this is the single chokepoint before
+    // Handlebars (noEscape:true) sees them. See ./sanitize.ts.
+    jobDescription: sanitizeUntrustedText(context.jobDescription),
+    resumeText: sanitizeUntrustedText(context.resumeText),
+    additionalInstructions: sanitizeUntrustedText(
+      context.additionalInstructions
+    ),
+    userInput: sanitizeUntrustedText(context.userInput),
     baseProfile: context.baseProfile
       ? resumeJsonToCompactPositional(context.baseProfile)
       : "",
@@ -87,9 +100,12 @@ function normalizedFieldsToString(
     // Small scalar anchors for templates that need to name the role/company
     // in a sentence — the compact-positional strings above are deliberately
     // unstructured (token-size optimization), so templates can't dot-path
-    // into them (e.g. `{{jobDetails.job.job_title}}` never resolves).
-    jobTitle: context.jobDetails?.job.job_title ?? "",
-    companyName: context.jobDetails?.company.company_name ?? "",
+    // into them (e.g. `{{jobDetails.job.job_title}}` never resolves). These
+    // are single-line, JD-derived, and interpolated unfenced, but routing
+    // them through the same sanitizer is free since we're already here.
+    jobTitle: sanitizeUntrustedText(context.jobDetails?.job.job_title) ?? "",
+    companyName:
+      sanitizeUntrustedText(context.jobDetails?.company.company_name) ?? "",
   };
 }
 

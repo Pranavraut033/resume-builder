@@ -2,6 +2,8 @@
 
 import { z } from "zod";
 
+import { sanitizeUntrustedText } from "@/lib/llm/prompts/sanitize";
+
 // Job Identification
 const JobIdentificationSchema = z.object({
   job_title: z.string(),
@@ -336,7 +338,12 @@ export type ATSAnalysisJSON = z.infer<typeof ATSAnalysisSchema>;
 export function atsAnalysisToCompactPositional(
   atsAnalysis: ATSAnalysisJSON
 ): string {
-  return `
+  // Sanitized before returning: this compact string is interpolated
+  // unescaped (`{{{atsAnalysis}}}`) into a `---`-fenced prompt block — an ATS
+  // analysis field (e.g. `summary`, `issue`, `recommended_fix`) that itself
+  // contains a standalone `---`/``` line could otherwise close the fence
+  // early. See @/lib/llm/prompts/sanitize.ts.
+  return sanitizeUntrustedText(`
 ATSKeyword_analysis:
 ${atsAnalysis.keyword_analysis
   .map((ka) => `${ka.keyword}|${ka.match_type}|${ka.match_status}`)
@@ -356,11 +363,16 @@ ${atsAnalysis.improvements
   )
   .join("\n")}
 ATSAnalysisSummary:
-${atsAnalysis.summary}`;
+${atsAnalysis.summary}`);
 }
 
 export function resumeJsonToCompactPositional(resume: ResumeJSON): string {
-  return `
+  // Sanitized before returning: this compact string is interpolated
+  // unescaped (`{{{resume}}}`/`{{{baseProfile}}}`) into `---`-fenced prompt
+  // blocks — free-text fields like `summary`, `description`, or
+  // `achievements` that themselves contain a standalone `---`/``` line could
+  // otherwise close the fence early. See @/lib/llm/prompts/sanitize.ts.
+  return sanitizeUntrustedText(`
   ${[resume.header.name, resume.header.email, resume.header.phone, resume.header.location, resume.header.linkedin, resume.header.github, resume.header.website].filter(Boolean).join("|")}
   ${resume.summary}
   ${resume.experience
@@ -414,13 +426,18 @@ export function resumeJsonToCompactPositional(resume: ResumeJSON): string {
       )
       .join("\n") || ""
   }
-  `;
+  `);
 }
 
 export function jobDetailsToCompactPositional(
   jobDetails: JobDetailsJSON
 ): string {
-  return `
+  // Sanitized before returning: this compact string is interpolated
+  // unescaped (`{{{jobDetails}}}`) into `---`-fenced prompt blocks —
+  // `raw_description` (and other free-text company/job fields) is the
+  // user-pasted job description verbatim, the primary vector for a stray
+  // `---`/``` line breaking the fence. See @/lib/llm/prompts/sanitize.ts.
+  return sanitizeUntrustedText(`
   ${[jobDetails.job.job_title, jobDetails.job.job_role_category, jobDetails.job.seniority_level, jobDetails.job.employment_type, jobDetails.job.workplace_type, jobDetails.job.reposted_status, jobDetails.job.application_volume_indicator].filter(Boolean).join("|")}
   ${[jobDetails.company.company_name, jobDetails.company.company_industry, jobDetails.company.company_description, jobDetails.company.company_market_position, jobDetails.company.company_location_city, jobDetails.company.company_location_country, jobDetails.company.office_location_details].filter(Boolean).join("|")}
   ${[jobDetails.location.city, jobDetails.location.state_or_region, jobDetails.location.country, jobDetails.location.onsite_required].filter(Boolean).join("|")}
@@ -431,5 +448,5 @@ export function jobDetailsToCompactPositional(
   ${[jobDetails.benefits.compensation_type, jobDetails.benefits.work_environment, jobDetails.benefits.career_growth_opportunities, jobDetails.benefits.flexibility?.join(";"), jobDetails.benefits.office_perks?.join(";"), jobDetails.benefits.team_culture?.join(";"), jobDetails.benefits.events_and_travel?.join(";")].filter(Boolean).join("|")}
   ${[jobDetails.contact.recruiter_name, jobDetails.contact.recruiter_role, jobDetails.contact.contact_email, jobDetails.contact.contact_phone, jobDetails.contact.contact_whatsapp_available].filter(Boolean).join("|")}
   ${jobDetails.raw_description}
-  `;
+  `);
 }
