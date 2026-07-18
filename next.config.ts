@@ -61,8 +61,30 @@ class SourceIgnoreListPlugin {
   }
 }
 
+// Tauri's main window loads this server directly via an external URL
+// (`http://127.0.0.1:3008`) rather than through Tauri's `tauri://` asset
+// protocol, so `security.csp` in tauri.conf.json is never actually injected
+// into the window — Tauri only sets that header for its own protocol.
+// Enforcement has to happen here instead, at the source.
+const CSP = [
+  "default-src 'self'",
+  "connect-src 'self' http://127.0.0.1:3008 http://localhost:3008 https:",
+  "img-src 'self' data: blob:",
+  "style-src 'self' 'unsafe-inline'",
+  "script-src 'self'",
+  "font-src 'self' data:",
+].join("; ");
+
 const nextConfig: NextConfig = {
   output: "standalone",
+  async headers() {
+    return [
+      {
+        source: "/:path*",
+        headers: [{ key: "Content-Security-Policy", value: CSP }],
+      },
+    ];
+  },
   // Turbopack is the default bundler in Next.js 16+.
   // An empty config here silences the "webpack config present but no turbopack config" warning.
   turbopack: {},
@@ -76,11 +98,11 @@ const nextConfig: NextConfig = {
     turbopackMemoryLimit: 2 * 1024 * 1024 * 1024,
   },
   typescript: {
-    // `npm run type-check` already gates every release before it's tagged
-    // (see git-release.sh). Next's own in-build type-check duplicates that
-    // work on every CI platform and, with this project's submodule-heavy
-    // type graph, runs 25-38min and OOMs even at an 8GB heap in CI — so skip
-    // it here rather than chase heap size.
+    // `npm run type-check` already gates every push/PR via
+    // `.github/workflows/ci.yml`. Next's own in-build type-check duplicates
+    // that work on every CI platform and, with this project's
+    // submodule-heavy type graph, runs 25-38min and OOMs even at an 8GB heap
+    // in CI — so skip it here rather than chase heap size.
     ignoreBuildErrors: true,
   },
   webpack(config, { dev, isServer }) {
