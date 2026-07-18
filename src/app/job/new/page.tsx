@@ -26,10 +26,17 @@ const GENERATION_STEPS = [
   "Saving your application…",
 ];
 
+const SKIP_TAILORING_STEPS = [
+  "Parsing job description…",
+  "Copying your base profile…",
+  "Saving your application…",
+];
+
 export default function NewJobPage() {
   const [description, setDescription] = useState("");
   const [url, setUrl] = useState("");
   const [inputMode, setInputMode] = useState<"text" | "url">("text");
+  const [skipTailoring, setSkipTailoring] = useState(false);
   const [activeStep, setActiveStep] = useState(-1);
   const [fetchingUrl, setFetchingUrl] = useState(false);
   const router = useRouter();
@@ -111,6 +118,22 @@ export default function NewJobPage() {
 
       setActiveStep(0);
       const jobDetails = await LLMService.parseJob(description, modelOptions);
+
+      if (skipTailoring) {
+        setActiveStep(1);
+        const { label: _label, ...baseResume } = profile;
+
+        setActiveStep(2);
+        await createJob({
+          jobDetails: jobDetails.result,
+          url: inputMode === "url" && url.trim() ? url : undefined,
+          tailoredResume: baseResume,
+          profileId: selectedProfileId ?? undefined,
+        });
+
+        router.push("/");
+        return;
+      }
 
       setActiveStep(1);
       const atsAnalysis = await LLMService.analyzeATS(
@@ -352,10 +375,24 @@ export default function NewJobPage() {
               </div>
             </div>
 
+            {/* ── Skip tailoring ── */}
+            <label className="flex items-start gap-2.5 text-sm">
+              <input
+                type="checkbox"
+                checked={skipTailoring}
+                onChange={(e) => setSkipTailoring(e.target.checked)}
+                className="border-agent-outline-variant text-agent-primary focus:ring-agent-primary mt-0.5 h-4 w-4 rounded"
+              />
+              <span className="text-agent-on-surface-variant">
+                Skip AI tailoring — just copy my base profile as the resume
+                (no ATS scoring, no cover letter)
+              </span>
+            </label>
+
             {/* ── Submit button ── */}
             <StepProgressButton
               type="submit"
-              steps={GENERATION_STEPS}
+              steps={skipTailoring ? SKIP_TAILORING_STEPS : GENERATION_STEPS}
               activeStep={activeStep}
               disabled={!description.trim() || !currentSelectedModel}
               idleLabel={
