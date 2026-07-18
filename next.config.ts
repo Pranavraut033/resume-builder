@@ -66,12 +66,18 @@ class SourceIgnoreListPlugin {
 // protocol, so `security.csp` in tauri.conf.json is never actually injected
 // into the window — Tauri only sets that header for its own protocol.
 // Enforcement has to happen here instead, at the source.
+//
+// Turbopack/webpack's dev-mode HMR runtime executes updated module code via
+// eval()/Function(), which CSP's script-src gates directly (it covers those
+// APIs, not just <script src> origins) — without 'unsafe-eval' the very
+// first HMR-eligible chunk throws and hydration breaks app-wide. Production
+// output has no eval, so only relax this in dev.
 const CSP = [
   "default-src 'self'",
   "connect-src 'self' http://127.0.0.1:3008 http://localhost:3008 https:",
   "img-src 'self' data: blob:",
   "style-src 'self' 'unsafe-inline'",
-  "script-src 'self'",
+  `script-src 'self'${process.env.NODE_ENV !== "production" ? " 'unsafe-eval'" : ""}`,
   "font-src 'self' data:",
 ].join("; ");
 
