@@ -1,0 +1,10 @@
+[env]
+# Keep this in sync with `macOS.minimumSystemVersion` in tauri.conf.json.
+# Some C dependencies (e.g. libsodium-sys-stable, pulled in transitively via
+# tauri-plugin-stronghold) read MACOSX_DEPLOYMENT_TARGET at compile time; if
+# it's unset they target whatever SDK the host has installed, which can be
+# newer than the `-mmacosx-version-min` the final link step is told to use
+# (from minimumSystemVersion). That mismatch leaves ARM-crypto-only symbols
+# (e.g. AEGIS) referenced but unlinked. Setting it explicitly here keeps
+# compile-time and link-time targets consistent.
+MACOSX_DEPLOYMENT_TARGET = "12.0"

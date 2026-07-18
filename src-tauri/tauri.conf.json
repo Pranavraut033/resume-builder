@@ -51,7 +51,7 @@
     "shortDescription": "Local-first, AI-powered resume builder",
     "longDescription": "A privacy-focused desktop application for creating tailored resumes and cover letters using AI. All data stays local.",
     "macOS": {
-      "minimumSystemVersion": "11.0",
+      "minimumSystemVersion": "12.0",
       "signingIdentity": "-",
       "entitlements": "entitlements.plist",
       "exceptionDomain": "localhost",
