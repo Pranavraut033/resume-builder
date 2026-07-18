@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState, useTransition } from "react";
+import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 
 import { updateJobStatus, JobRecord } from "@/actions/job";
 import { ChatContextProvider } from "@/components/chat/ChatContext";
@@ -12,6 +12,7 @@ import {
   EditorContentType,
   useJobPageContext,
 } from "@/contexts/JobPageContext";
+import { useHideOnScroll } from "@/hooks/useHideOnScroll";
 import cn from "@/lib/cn";
 import { HistoryChangeListener } from "@/lib/llm/ResumeHistory";
 import { JobStatus } from "@/types/job";
@@ -57,6 +58,9 @@ export function InlineJobPageLayout() {
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
   const [isPendingStatus, startStatusTransition] = useTransition();
+
+  const canvasColumnRef = useRef<HTMLDivElement>(null);
+  const isActionBarHidden = useHideOnScroll(canvasColumnRef, contentType);
 
   const [historyState, setHistoryState] = useState<{
     canUndo: boolean;
@@ -126,117 +130,112 @@ export function InlineJobPageLayout() {
 
   return (
     <ChatContextProvider>
-      <div className="bg-agent-bg text-agent-on-bg relative h-full overflow-hidden">
+      <div className="bg-agent-bg text-agent-on-bg relative h-full overflow-hidden pt-16">
         {/* Ambient orbs — matching V1 aesthetic */}
         <div className="bg-agent-primary-fixed-dim pointer-events-none absolute -top-36 -left-28 h-80 w-80 rounded-full opacity-35 blur-3xl" />
         <div className="bg-agent-tertiary-fixed-dim pointer-events-none absolute -right-20 -bottom-20 h-72 w-72 rounded-full opacity-40 blur-3xl" />
 
+        {/* ── Header — fixed to the viewport, page content is padded below it ── */}
+        <header className="bg-agent-surface border-agent-outline-variant fixed inset-x-0 top-0 z-50 h-16 border-b">
+          <div className="flex h-full items-center gap-2.5 px-3 py-2">
+            <BackButton />
+            <CompanyAvatar name={job?.company?.name} size={34} />
+
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-1.5">
+                <h1 className="text-agent-on-surface truncate text-sm leading-tight font-semibold">
+                  {job?.role || "Untitled Role"}
+                </h1>
+                {job?.url && (
+                  <a
+                    href={job.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-agent-primary shrink-0 opacity-60 transition-opacity hover:opacity-100"
+                    aria-label="Open job listing"
+                  >
+                    <Icon name="link" size={12} />
+                  </a>
+                )}
+              </div>
+              <p className="text-agent-on-surface-variant truncate text-xs leading-tight">
+                {job?.company?.name ?? "Unknown company"}
+                {(job?.company?.locationCity ||
+                  job?.company?.locationCountry) && (
+                  <span className="opacity-60">
+                    {" · "}
+                    {[job.company?.locationCity, job.company?.locationCountry]
+                      .filter(Boolean)
+                      .join(", ")}
+                  </span>
+                )}
+              </p>
+            </div>
+
+            {/* V2 badge */}
+            <span className="text-agent-primary bg-agent-primary/10 rounded-full px-2 py-0.5 text-[10px] font-semibold tracking-wide">
+              WYSIWYG
+            </span>
+
+            <StatusSelector
+              value={job?.status as JobStatus}
+              onChange={handleStatusChange}
+              disabled={isPendingStatus}
+            />
+
+            <button
+              onClick={() => setIsDetailsOpen(true)}
+              className="text-agent-on-surface-variant hover:bg-agent-surface-container flex shrink-0 items-center gap-1 rounded-lg px-2 py-1.5 text-xs transition-all"
+            >
+              <Icon name="info" size={13} />
+              <span className="hidden sm:inline">Details</span>
+            </button>
+
+            {/* Document-type switcher */}
+            <div className="bg-agent-surface-container flex shrink-0 rounded-xl p-1">
+              {(["resume", "coverLetter"] as EditorContentType[]).map(
+                (type) => {
+                  const isActive = contentType === type;
+                  const isDirty =
+                    type === "resume" ? isDirtyResume : isDirtyCoverLetter;
+                  return (
+                    <button
+                      key={type}
+                      onClick={() => setContentType(type)}
+                      className={cn(
+                        "relative rounded-lg px-4 py-1.5 text-sm font-medium transition-all duration-150",
+                        isActive
+                          ? "bg-agent-primary text-agent-on-primary shadow-sm"
+                          : "text-agent-on-surface-variant hover:text-agent-on-surface"
+                      )}
+                    >
+                      {type === "resume" ? "Resume" : "Cover Letter"}
+                      {isDirty && !isActive && (
+                        <span className="bg-agent-primary absolute top-1 right-1 h-1.5 w-1.5 rounded-full" />
+                      )}
+                    </button>
+                  );
+                }
+              )}
+            </div>
+
+            <div className="shrink-0">
+              <SaveButton
+                onClick={onSave}
+                status={saveStatus}
+                isDirty={
+                  contentType === "coverLetter"
+                    ? isDirtyCoverLetter
+                    : isDirtyResume
+                }
+              />
+            </div>
+          </div>
+        </header>
+
         <div className="relative h-full p-3 md:p-4">
           <div className="border-agent-outline-variant bg-agent-surface-lowest shadow-agent-modal h-full overflow-hidden rounded-2xl border">
             <div className="bg-agent-surface-lowest flex h-full flex-col overflow-hidden">
-              {/* ── Header ───────────────────────────────────────────────── */}
-              <header className="bg-agent-surface border-agent-outline-variant shrink-0 border-b">
-                <div className="flex items-center gap-2.5 px-3 py-2">
-                  <BackButton />
-                  <CompanyAvatar name={job?.company?.name} size={34} />
-
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-1.5">
-                      <h1 className="text-agent-on-surface truncate text-sm leading-tight font-semibold">
-                        {job?.role || "Untitled Role"}
-                      </h1>
-                      {job?.url && (
-                        <a
-                          href={job.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-agent-primary shrink-0 opacity-60 transition-opacity hover:opacity-100"
-                          aria-label="Open job listing"
-                        >
-                          <Icon name="link" size={12} />
-                        </a>
-                      )}
-                    </div>
-                    <p className="text-agent-on-surface-variant truncate text-xs leading-tight">
-                      {job?.company?.name ?? "Unknown company"}
-                      {(job?.company?.locationCity ||
-                        job?.company?.locationCountry) && (
-                        <span className="opacity-60">
-                          {" · "}
-                          {[
-                            job.company?.locationCity,
-                            job.company?.locationCountry,
-                          ]
-                            .filter(Boolean)
-                            .join(", ")}
-                        </span>
-                      )}
-                    </p>
-                  </div>
-
-                  {/* V2 badge */}
-                  <span className="text-agent-primary bg-agent-primary/10 rounded-full px-2 py-0.5 text-[10px] font-semibold tracking-wide">
-                    WYSIWYG
-                  </span>
-
-                  <StatusSelector
-                    value={job?.status as JobStatus}
-                    onChange={handleStatusChange}
-                    disabled={isPendingStatus}
-                  />
-
-                  <button
-                    onClick={() => setIsDetailsOpen(true)}
-                    className="text-agent-on-surface-variant hover:bg-agent-surface-container flex shrink-0 items-center gap-1 rounded-lg px-2 py-1.5 text-xs transition-all"
-                  >
-                    <Icon name="info" size={13} />
-                    <span className="hidden sm:inline">Details</span>
-                  </button>
-
-                  {/* Document-type switcher */}
-                  <div className="bg-agent-surface-container flex shrink-0 rounded-xl p-1">
-                    {(["resume", "coverLetter"] as EditorContentType[]).map(
-                      (type) => {
-                        const isActive = contentType === type;
-                        const isDirty =
-                          type === "resume"
-                            ? isDirtyResume
-                            : isDirtyCoverLetter;
-                        return (
-                          <button
-                            key={type}
-                            onClick={() => setContentType(type)}
-                            className={cn(
-                              "relative rounded-lg px-4 py-1.5 text-sm font-medium transition-all duration-150",
-                              isActive
-                                ? "bg-agent-primary text-agent-on-primary shadow-sm"
-                                : "text-agent-on-surface-variant hover:text-agent-on-surface"
-                            )}
-                          >
-                            {type === "resume" ? "Resume" : "Cover Letter"}
-                            {isDirty && !isActive && (
-                              <span className="bg-agent-primary absolute top-1 right-1 h-1.5 w-1.5 rounded-full" />
-                            )}
-                          </button>
-                        );
-                      }
-                    )}
-                  </div>
-
-                  <div className="shrink-0">
-                    <SaveButton
-                      onClick={onSave}
-                      status={saveStatus}
-                      isDirty={
-                        contentType === "coverLetter"
-                          ? isDirtyCoverLetter
-                          : isDirtyResume
-                      }
-                    />
-                  </div>
-                </div>
-              </header>
-
               {/* Job details modal */}
               <Modal
                 isOpen={isDetailsOpen}
@@ -260,46 +259,50 @@ export function InlineJobPageLayout() {
                 />
 
                 {/* Canvas column — fills remaining space */}
-                <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden">
+                <div
+                  ref={canvasColumnRef}
+                  className="relative flex min-h-0 flex-1 flex-col overflow-hidden"
+                >
                   <DocumentCanvas />
-                  {/* Floating action bar */}
-                  {contentType === "resume" && (
-                    <FloatingActionBar
-                      historyState={historyState}
-                      isCustomizationOpen={isCustomizationOpen}
-                      onToggleCustomization={() => {
-                        setIsCustomizationOpen((o) => !o);
-                        setIsAtsOpen(false);
-                        setIsChatOpen(false);
-                      }}
-                      isAtsOpen={isAtsOpen}
-                      onToggleAts={() => {
-                        setIsAtsOpen((o) => !o);
-                        setIsCustomizationOpen(false);
-                        setIsChatOpen(false);
-                      }}
-                      isChatOpen={isChatOpen}
-                      onToggleChat={() => {
-                        const next = !isChatOpen;
-                        setIsChatOpen(next);
-                        setChatSnapPosition(next ? "right" : "undocked");
-                        setIsCustomizationOpen(false);
-                        setIsAtsOpen(false);
-                      }}
-                      isOutlineOpen={isOutlineOpen}
-                      onToggleOutline={() => {
-                        setIsOutlineOpen((o) => !o);
-                        setIsCustomizationOpen(false);
-                        setIsAtsOpen(false);
-                      }}
-                      isHistoryOpen={isHistoryOpen}
-                      onToggleHistory={() => {
-                        setIsHistoryOpen((o) => !o);
-                        setIsCustomizationOpen(false);
-                        setIsAtsOpen(false);
-                      }}
-                    />
-                  )}
+                  {/* Floating action bar — resume-only actions hide themselves
+                      internally when contentType is "coverLetter". Hides on
+                      scroll down, reappears on scroll up. */}
+                  <FloatingActionBar
+                    hidden={isActionBarHidden}
+                    historyState={historyState}
+                    isCustomizationOpen={isCustomizationOpen}
+                    onToggleCustomization={() => {
+                      setIsCustomizationOpen((o) => !o);
+                      setIsAtsOpen(false);
+                      setIsChatOpen(false);
+                    }}
+                    isAtsOpen={isAtsOpen}
+                    onToggleAts={() => {
+                      setIsAtsOpen((o) => !o);
+                      setIsCustomizationOpen(false);
+                      setIsChatOpen(false);
+                    }}
+                    isChatOpen={isChatOpen}
+                    onToggleChat={() => {
+                      const next = !isChatOpen;
+                      setIsChatOpen(next);
+                      setChatSnapPosition(next ? "right" : "undocked");
+                      setIsCustomizationOpen(false);
+                      setIsAtsOpen(false);
+                    }}
+                    isOutlineOpen={isOutlineOpen}
+                    onToggleOutline={() => {
+                      setIsOutlineOpen((o) => !o);
+                      setIsCustomizationOpen(false);
+                      setIsAtsOpen(false);
+                    }}
+                    isHistoryOpen={isHistoryOpen}
+                    onToggleHistory={() => {
+                      setIsHistoryOpen((o) => !o);
+                      setIsCustomizationOpen(false);
+                      setIsAtsOpen(false);
+                    }}
+                  />
 
                   {/* ATS analysis drawer — slides over the canvas */}
                   <ATSDrawer
