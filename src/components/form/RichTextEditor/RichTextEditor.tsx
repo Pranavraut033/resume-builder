@@ -1,9 +1,7 @@
 "use client";
 
-import Link from "@tiptap/extension-link";
 import Placeholder from "@tiptap/extension-placeholder";
 import TextAlign from "@tiptap/extension-text-align";
-import Underline from "@tiptap/extension-underline";
 import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import { useCallback, useEffect } from "react";
@@ -39,14 +37,13 @@ export default function RichTextEditor({
     extensions: [
       StarterKit.configure({
         heading: { levels: [1, 2, 3] },
+        link: {
+          openOnClick: false,
+          HTMLAttributes: { rel: "noopener noreferrer", target: "_blank" },
+        },
       }),
       TextAlign.configure({
         types: ["heading", "paragraph"],
-      }),
-      Underline,
-      Link.configure({
-        openOnClick: false,
-        HTMLAttributes: { rel: "noopener noreferrer", target: "_blank" },
       }),
       Placeholder.configure({
         placeholder: placeholder ?? "Start writing…",
@@ -54,6 +51,7 @@ export default function RichTextEditor({
     ],
     content: value,
     autofocus: "end",
+    immediatelyRender: false,
     onUpdate({ editor }) {
       onChange(editor.getHTML());
     },
