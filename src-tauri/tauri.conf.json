@@ -57,7 +57,7 @@
       "exceptionDomain": "localhost",
       "frameworks": [],
       "dmg": {
-        "background": null,
+        "background": "assets/dmg-background.png",
         "windowSize": {
           "width": 660,
           "height": 400
@@ -79,7 +79,7 @@
   },
   "plugins": {
     "updater": {
-      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEU1QjFCRUVEMTk2RTRGOApSV1Q0NUpiUjdodGJEZ2F1ZHpGUEpZUDB3Ri9rQ1J0T0Y5bndJUlQzNzBBRlpUaGd5N0dpOHlyUQo=",
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDczNDM1Mzc3MURFNjU4OTYKUldTV1dPWWRkMU5EYzZCN1JQNktjNjNpb20yUmR5TlpKcW9lR1Jib00rZlgzSEtwZGF4dnBzOE8K",
       "endpoints": [
         "https://github.com/Pranavraut033/resume-builder/releases/latest/download/update.json"
       ],
