@@ -24,27 +24,6 @@ export async function getAllProfiles(): Promise<ProfileSummary[]> {
 }
 
 /**
- * Check if a base profile exists
- */
-export async function hasProfile(): Promise<boolean> {
-  const profile = await prisma.profile.findFirst();
-  return profile !== null && profile.name !== "" && profile.email !== "";
-}
-
-/**
- * Get the first profile (backward-compat helper)
- */
-export async function getProfile(): Promise<
-  (ResumeJSON & { label: string }) | null
-> {
-  const profile = await prisma.profile.findFirst({
-    orderBy: { createdAt: "asc" },
-  });
-  if (!profile) return null;
-  return profileDataToResumeJson(profile);
-}
-
-/**
  * Get a specific profile by id. Falls back to the first profile when id is null.
  */
 export async function getProfileById(
@@ -192,27 +171,4 @@ function resumeJsonToProfileData(
       : null,
     awardsJson: resumeJson.awards ? JSON.stringify(resumeJson.awards) : null,
   };
-}
-
-/**
- * Save or update the base profile (backward-compat: upserts first profile)
- */
-export async function saveProfile(
-  resumeJson: ResumeJSON
-): Promise<{ success: boolean }> {
-  const existing = await prisma.profile.findFirst({
-    orderBy: { createdAt: "asc" },
-  });
-  const now = new Date().toISOString();
-
-  const data = {
-    ...resumeJsonToProfileData(resumeJson),
-    updatedAt: now,
-  };
-
-  if (existing)
-    await prisma.profile.update({ where: { id: existing.id }, data });
-  else await prisma.profile.create({ data: { ...data, createdAt: now } });
-
-  return { success: true };
 }

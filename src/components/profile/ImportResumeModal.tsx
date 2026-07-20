@@ -3,7 +3,6 @@
 import { useState } from "react";
 
 import { ModelSelector } from "@/components/ModelSelector";
-import { Button } from "@/components/ui/Button";
 import { Modal } from "@/components/ui/Modal";
 import { useToast } from "@/components/ui/ToastProvider";
 import LLMService from "@/lib/llm/llmService";
@@ -68,7 +67,7 @@ export function ImportResumeModal({
       pushToast({
         title: "Import failed",
         description:
-          "Error parsing resume. Please make sure you have OpenAI API key configured.",
+          "Error parsing resume. Please make sure you have an API key configured for the selected model.",
         variant: "error",
       });
     } finally {
@@ -77,7 +76,13 @@ export function ImportResumeModal({
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title="Import Resume">
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      title="Import Resume"
+      primaryAction={handleImport}
+      primaryActionLabel={importing ? "Importing..." : "Import"}
+    >
       <div className="space-y-4">
         <p className="text-agent-on-surface-variant text-sm">
           Paste your resume text below. The AI will extract structured
@@ -87,7 +92,7 @@ export function ImportResumeModal({
         <ModelSelector onModelSelected={() => {}} className="mb-4" />
 
         <p className="text-agent-on-surface-variant mt-2 text-xs">
-          Note: Resume parsing is currently only supported with OpenAI models.
+          Note: Resume parsing uses the model and provider selected above.
         </p>
 
         <div>
@@ -104,19 +109,6 @@ export function ImportResumeModal({
             className="h-96 w-full rounded border p-3 font-mono text-sm"
             placeholder="Paste your resume text here..."
           />
-        </div>
-
-        <div className="flex justify-end gap-2">
-          <Button variant="secondary" onClick={onClose} disabled={importing}>
-            Cancel
-          </Button>
-          <Button
-            variant="primary"
-            onClick={handleImport}
-            disabled={importing || !resumeText.trim()}
-          >
-            {importing ? "Importing..." : "Import"}
-          </Button>
         </div>
       </div>
     </Modal>

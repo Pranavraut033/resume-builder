@@ -8,26 +8,22 @@ import {
   deleteProfile,
   getAllProfiles,
 } from "@/actions/profile";
-import { AwardsSection } from "@/components/profile/AwardsSection";
-import { CertificationsSection } from "@/components/profile/CertificationsSection";
 import { ContactInfoSection } from "@/components/profile/ContactInfoSection";
-import { EducationSection } from "@/components/profile/EducationSection";
-import { ExperienceSection } from "@/components/profile/ExperienceSection";
 import { ImportJsonModal } from "@/components/profile/ImportJsonModal";
 import { ImportResumeModal } from "@/components/profile/ImportResumeModal";
-import { LanguagesSection } from "@/components/profile/LanguagesSection";
-import { ProjectsSection } from "@/components/profile/ProjectsSection";
-import { PublicationsSection } from "@/components/profile/PublicationsSection";
+import { ListSection } from "@/components/profile/ListSection";
+import { SECTION_CONFIGS } from "@/components/profile/sectionConfigs";
 import { SkillsSection } from "@/components/profile/SkillsSection";
 import { SummarySection } from "@/components/profile/SummarySection";
-import { VolunteerSection } from "@/components/profile/VolunteerSection";
 import { ProfileActionButtons } from "@/components/ProfileActionButtons";
 import { FallbackState, PageHeader, SurfacePanel } from "@/components/ui";
 import { Button } from "@/components/ui/Button";
 import { useToast } from "@/components/ui/ToastProvider";
 import { useProfileQuery } from "@/hooks/useProfileQuery";
 import { useProfileSelection } from "@/hooks/useProfileSelection";
+import { downloadFile } from "@/lib/download";
 import { createLogger } from "@/lib/logger";
+import { generateResumeTXT } from "@/lib/txtExport";
 import { ResumeJSON } from "@/types/resume";
 
 const logger = createLogger("ProfilePage");
@@ -140,30 +136,40 @@ export default function ProfilePage() {
     }
   };
 
-  const handleImportResume = (imported: ResumeJSON) => {
-    setProfile(imported);
+  const handleReset = () => {
+    setProfile(data ?? emptyProfile);
   };
 
-  const handleImportJSON = (imported: ResumeJSON) => {
+  const handleImport = (imported: ResumeJSON) => {
     setProfile(imported);
   };
 
   const handleExportJSON = () => {
     try {
       const jsonString = JSON.stringify(profile, null, 2);
-      const element = document.createElement("a");
-      element.setAttribute(
-        "href",
-        "data:text/plain;charset=utf-8," + encodeURIComponent(jsonString)
+      downloadFile(
+        `profile-${new Date().toISOString().split("T")[0]}.json`,
+        jsonString,
+        "text/plain"
       );
-      element.setAttribute(
-        "download",
-        `profile-${new Date().toISOString().split("T")[0]}.json`
+    } catch (error) {
+      logger.error("Error exporting profile", { error });
+      pushToast({
+        title: "Export failed",
+        description: "Error exporting profile.",
+        variant: "error",
+      });
+    }
+  };
+
+  const handleExportTXT = () => {
+    try {
+      const txtString = generateResumeTXT(profile);
+      downloadFile(
+        `profile-${new Date().toISOString().split("T")[0]}.txt`,
+        txtString,
+        "text/plain"
       );
-      element.style.display = "none";
-      document.body.appendChild(element);
-      element.click();
-      document.body.removeChild(element);
     } catch (error) {
       logger.error("Error exporting profile", { error });
       pushToast({
@@ -192,6 +198,7 @@ export default function ProfilePage() {
             onImportResume={() => setShowImportModal(true)}
             onImportJSON={() => setShowImportJsonModal(true)}
             onExportJSON={handleExportJSON}
+            onExportTXT={handleExportTXT}
             onSave={handleSave}
             isSaving={saving}
           />
@@ -238,61 +245,27 @@ export default function ProfilePage() {
             onChange={(skills) => setProfile({ ...profile, skills })}
           />
 
-          <ExperienceSection
-            experience={profile.experience}
-            onChange={(experience) => setProfile({ ...profile, experience })}
-          />
-
-          <ProjectsSection
-            projects={profile.projects}
-            onChange={(projects) => setProfile({ ...profile, projects })}
-          />
-
-          <EducationSection
-            education={profile.education}
-            onChange={(education) => setProfile({ ...profile, education })}
-          />
-
-          <CertificationsSection
-            certifications={profile.certifications}
-            onChange={(certifications) =>
-              setProfile({ ...profile, certifications })
-            }
-          />
-
-          <PublicationsSection
-            publications={profile.publications || []}
-            onChange={(publications) =>
-              setProfile({ ...profile, publications })
-            }
-          />
-
-          <LanguagesSection
-            languages={profile.languages || []}
-            onChange={(languages) => setProfile({ ...profile, languages })}
-          />
-
-          <VolunteerSection
-            volunteer={profile.volunteer || []}
-            onChange={(volunteer) => setProfile({ ...profile, volunteer })}
-          />
-
-          <AwardsSection
-            awards={profile.awards || []}
-            onChange={(awards) => setProfile({ ...profile, awards })}
-          />
+          {SECTION_CONFIGS.map((config) => (
+            <ListSection
+              key={config.key}
+              title={config.title}
+              addLabel={config.addLabel}
+              emptyText={config.emptyText}
+              itemNoun={config.itemNoun}
+              blank={config.blank}
+              fields={config.fields}
+              items={(profile[config.key] as unknown[]) ?? []}
+              onChange={(items) =>
+                setProfile({ ...profile, [config.key]: items })
+              }
+            />
+          ))}
 
           {/* Save Actions */}
           <SurfacePanel>
             <div className="flex items-center justify-end gap-3">
-              <Button
-                variant="secondary"
-                onClick={() => window.location.reload()}
-              >
+              <Button variant="secondary" onClick={handleReset}>
                 Reset
-              </Button>
-              <Button variant="primary" onClick={handleSave} disabled={saving}>
-                {saving ? "Saving…" : "Save Profile"}
               </Button>
             </div>
           </SurfacePanel>
@@ -302,13 +275,13 @@ export default function ProfilePage() {
       <ImportResumeModal
         isOpen={showImportModal}
         onClose={() => setShowImportModal(false)}
-        onImport={handleImportResume}
+        onImport={handleImport}
       />
 
       <ImportJsonModal
         isOpen={showImportJsonModal}
         onClose={() => setShowImportJsonModal(false)}
-        onImport={handleImportJSON}
+        onImport={handleImport}
       />
     </div>
   );

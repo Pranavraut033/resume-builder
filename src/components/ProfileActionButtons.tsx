@@ -9,22 +9,22 @@ interface ProfileActionButtonsProps {
   onImportResume: () => void;
   onImportJSON: () => void;
   onExportJSON: () => void;
+  onExportTXT: () => void;
   onSave: () => void;
   isSaving?: boolean;
-  isExporting?: boolean;
 }
 
 export function ProfileActionButtons({
   onImportResume,
   onImportJSON,
   onExportJSON,
+  onExportTXT,
   onSave,
   isSaving = false,
-  isExporting = false,
 }: ProfileActionButtonsProps) {
   return (
     <div className="flex gap-2">
-      <Menu as="div" className="relative inline-block text-left">
+      <Menu as="div" className="relative inline-flex text-left">
         <MenuButton as={Button} variant="secondary">
           Actions
         </MenuButton>
@@ -65,15 +65,29 @@ export function ProfileActionButtons({
               {({ active }) => (
                 <button
                   onClick={onExportJSON}
-                  disabled={isExporting}
                   className={cn(
-                    "block w-full px-4 py-2 text-left text-sm disabled:cursor-not-allowed disabled:opacity-50",
+                    "block w-full px-4 py-2 text-left text-sm",
                     active
                       ? "bg-agent-surface-low text-agent-on-surface"
                       : "text-agent-on-surface-variant"
                   )}
                 >
                   Export as JSON
+                </button>
+              )}
+            </MenuItem>
+            <MenuItem>
+              {({ active }) => (
+                <button
+                  onClick={onExportTXT}
+                  className={cn(
+                    "block w-full px-4 py-2 text-left text-sm",
+                    active
+                      ? "bg-agent-surface-low text-agent-on-surface"
+                      : "text-agent-on-surface-variant"
+                  )}
+                >
+                  Export as TXT
                 </button>
               )}
             </MenuItem>

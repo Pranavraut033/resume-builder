@@ -2,11 +2,10 @@
 
 import { useState } from "react";
 
-import { Button } from "@/components/ui/Button";
 import { Modal } from "@/components/ui/Modal";
 import { useToast } from "@/components/ui/ToastProvider";
 import { createLogger } from "@/lib/logger";
-import { ResumeJSON } from "@/types/resume";
+import { ResumeJSON, ResumeSchema } from "@/types/resume";
 
 const logger = createLogger("ImportJsonModal");
 
@@ -37,8 +36,21 @@ export function ImportJsonModal({
 
     setImportingJson(true);
     try {
-      const parsed = JSON.parse(jsonText) as ResumeJSON;
-      onImport(parsed);
+      const parsed: unknown = JSON.parse(jsonText);
+      const result = ResumeSchema.safeParse(parsed);
+      if (!result.success) {
+        logger.error("Imported JSON failed validation", {
+          error: result.error,
+        });
+        pushToast({
+          title: "Import failed",
+          description:
+            "That JSON doesn't match the expected profile shape. Please check the format and try again.",
+          variant: "error",
+        });
+        return;
+      }
+      onImport(result.data);
       onClose();
       setJsonText("");
       pushToast({
@@ -60,7 +72,13 @@ export function ImportJsonModal({
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title="Import Profile from JSON">
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      title="Import Profile from JSON"
+      primaryAction={handleImport}
+      primaryActionLabel={importingJson ? "Importing..." : "Import"}
+    >
       <div className="space-y-4">
         <p className="text-agent-on-surface-variant text-sm">
           Paste your profile JSON below to import it. This will replace your
@@ -78,23 +96,6 @@ export function ImportJsonModal({
             className="h-96 w-full rounded border p-3 font-mono text-sm"
             placeholder="Paste your profile JSON here..."
           />
-        </div>
-
-        <div className="flex justify-end gap-2">
-          <Button
-            variant="secondary"
-            onClick={onClose}
-            disabled={importingJson}
-          >
-            Cancel
-          </Button>
-          <Button
-            variant="primary"
-            onClick={handleImport}
-            disabled={importingJson || !jsonText.trim()}
-          >
-            {importingJson ? "Importing..." : "Import"}
-          </Button>
         </div>
       </div>
     </Modal>

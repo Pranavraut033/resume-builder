@@ -6,12 +6,12 @@ import {
 import { useCallback } from "react";
 
 import { getCoverLetterByJobId, getJob, getResumeByJobId } from "@/actions/job";
-import { getProfile, getProfileById } from "@/actions/profile";
+import { getProfileById } from "@/actions/profile";
 
 type CoverLetter = Awaited<ReturnType<typeof getCoverLetterByJobId>>;
 type Job = Awaited<ReturnType<typeof getJob>>;
 type Resume = Awaited<ReturnType<typeof getResumeByJobId>>;
-type Profile = NonNullable<Awaited<ReturnType<typeof getProfile>>>;
+type Profile = NonNullable<Awaited<ReturnType<typeof getProfileById>>>;
 
 export type JobPageData = {
   coverLetter: CoverLetter;
@@ -60,7 +60,7 @@ export function useJobPageDataQuery(
       },
       {
         queryKey: ["profile", profileId ?? "default"] as const,
-        queryFn: () => (profileId ? getProfileById(profileId) : getProfile()),
+        queryFn: () => getProfileById(profileId),
         initialData: initialData?.profile,
       },
       {
