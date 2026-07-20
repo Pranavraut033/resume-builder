@@ -1,14 +1,60 @@
 import { execFileSync } from "node:child_process";
-import { existsSync } from "node:fs";
-import { cp, mkdir, mkdtemp, rm } from "node:fs/promises";
+import { createWriteStream, existsSync } from "node:fs";
+import { chmod, cp, mkdir, mkdtemp, rm } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
+import { Readable } from "node:stream";
+import { finished } from "node:stream/promises";
 
 const root = process.cwd();
 const standaloneDir = path.join(root, ".next", "standalone");
 const staticDir = path.join(root, ".next", "static");
 const publicDir = path.join(root, "public");
 const outputDir = path.join(root, "src-tauri", "resources", "next");
+
+// The end user isn't expected to have Node installed — Tauri's Rust side
+// (src-tauri/src/lib.rs) spawns a bundled `node` binary rather than
+// searching the system for one. That binary must be ABI-compatible with
+// the native `better-sqlite3` module traced into the standalone output
+// above, which was itself built against *this* script's own Node — so we
+// just download and ship that exact same version, rather than pinning a
+// separate version and rebuilding native modules against it.
+// ponytail: darwin only (matches this repo's actual build/ship platform).
+// Add win32/linux dist URL + archive mapping here when that's needed.
+async function downloadNodeRuntime() {
+  const version = process.version; // e.g. "v24.9.0"
+  const arch = os.arch(); // "arm64" | "x64"
+  if (os.platform() !== "darwin") {
+    throw new Error(
+      `Bundling a Node runtime is only implemented for macOS right now (platform: ${os.platform()}).`
+    );
+  }
+
+  const cacheDir = path.join(os.tmpdir(), "udaan-node-runtime-cache", `${version}-${arch}`);
+  const cachedBinary = path.join(cacheDir, "node");
+
+  if (!existsSync(cachedBinary)) {
+    await mkdir(cacheDir, { recursive: true });
+    const tarballName = `node-${version}-darwin-${arch}.tar.gz`;
+    const url = `https://nodejs.org/dist/${version}/${tarballName}`;
+    const tarballPath = path.join(cacheDir, tarballName);
+
+    console.log(`Downloading Node runtime for bundling: ${url}`);
+    const response = await fetch(url);
+    if (!response.ok) {
+      throw new Error(`Failed to download ${url}: ${response.status} ${response.statusText}`);
+    }
+    await finished(Readable.fromWeb(response.body).pipe(createWriteStream(tarballPath)));
+
+    execFileSync("tar", ["-xzf", tarballPath, "-C", cacheDir, "--strip-components=2", `node-${version}-darwin-${arch}/bin/node`]);
+  }
+
+  const outputBinDir = path.join(outputDir, "node-bin");
+  await mkdir(outputBinDir, { recursive: true });
+  const bundledBinary = path.join(outputBinDir, "node");
+  await cp(cachedBinary, bundledBinary);
+  await chmod(bundledBinary, 0o755);
+}
 
 async function main() {
   if (!existsSync(standaloneDir)) {
@@ -58,6 +104,8 @@ async function main() {
   );
   await cp(templateDbPath, path.join(outputDir, "app-template.db"));
   await rm(templateDir, { recursive: true, force: true });
+
+  await downloadNodeRuntime();
 
   console.log("Prepared bundled Next standalone server for Tauri:", outputDir);
 }

@@ -1,5 +1,5 @@
 use std::{
-    env, fs, io,
+    fs, io,
     net::TcpStream,
     path::{Path, PathBuf},
     process::{Child, Command, Stdio},
@@ -56,40 +56,41 @@ fn spawn_bundled_next_server(
         ));
     };
 
-    let database_url = format!("file:{}", db_path.display());
-    let mut attempted = Vec::new();
-
-    for node_cmd in node_command_candidates() {
-        // Next.js server logs (including unhandled Server Action errors) go
-        // here instead of Stdio::null() so they're recoverable after install
-        // — see docs/DEBUGGING.md.
-        let stdout_file = fs::File::create(log_file).map_err(|e| e.to_string())?;
-        let stderr_file = stdout_file.try_clone().map_err(|e| e.to_string())?;
-
-        let spawn_result = Command::new(&node_cmd)
-            .arg("server.js")
-            .current_dir(&server_dir)
-            .env("HOSTNAME", "127.0.0.1")
-            .env("PORT", "3008")
-            .env("NODE_ENV", "production")
-            // Absolute path outside the app bundle so the database survives
-            // app updates, which replace the bundle (and any relative-path
-            // db file inside it) wholesale.
-            .env("DATABASE_URL", &database_url)
-            .stdout(Stdio::from(stdout_file))
-            .stderr(Stdio::from(stderr_file))
-            .spawn();
-
-        match spawn_result {
-            Ok(child) => return Ok(child),
-            Err(error) => attempted.push(format!("{node_cmd} ({error})")),
-        }
+    // End users aren't expected to have Node installed, so we don't search
+    // their system for it (that also made native-module ABI compatibility
+    // (better-sqlite3) a footgun — see docs/DEBUGGING.md). Instead
+    // scripts/prepareTauriServer.mjs bundles the exact Node binary its own
+    // build ran under, guaranteeing an ABI match by construction.
+    let node_bin = server_dir.join("node-bin").join("node");
+    if !node_bin.exists() {
+        return Err(format!(
+            "Bundled Node runtime not found at {}. Run `npm run tauri build` (which runs scripts/prepareTauriServer.mjs) rather than invoking cargo/tauri directly.",
+            node_bin.display()
+        ));
     }
 
-    Err(format!(
-        "Failed to start bundled Next server. Tried node commands: {}",
-        attempted.join(", ")
-    ))
+    let database_url = format!("file:{}", db_path.display());
+
+    // Next.js server logs (including unhandled Server Action errors) go
+    // here instead of Stdio::null() so they're recoverable after install
+    // — see docs/DEBUGGING.md.
+    let stdout_file = fs::File::create(log_file).map_err(|e| e.to_string())?;
+    let stderr_file = stdout_file.try_clone().map_err(|e| e.to_string())?;
+
+    Command::new(&node_bin)
+        .arg("server.js")
+        .current_dir(&server_dir)
+        .env("HOSTNAME", "127.0.0.1")
+        .env("PORT", "3008")
+        .env("NODE_ENV", "production")
+        // Absolute path outside the app bundle so the database survives
+        // app updates, which replace the bundle (and any relative-path
+        // db file inside it) wholesale.
+        .env("DATABASE_URL", &database_url)
+        .stdout(Stdio::from(stdout_file))
+        .stderr(Stdio::from(stderr_file))
+        .spawn()
+        .map_err(|e| format!("Failed to spawn bundled node ({}): {e}", node_bin.display()))
 }
 
 /// A fresh app-data dir has no `app.db`. If the Next server creates it
@@ -127,109 +128,6 @@ fn seed_database_if_missing(resource_dir: &Path, db_path: &Path) -> Result<(), S
     fs::copy(template, db_path)
         .map_err(|e| format!("Failed to seed database from template: {e}"))?;
     Ok(())
-}
-
-fn node_command_candidates() -> Vec<String> {
-    let mut candidates = Vec::new();
-
-    if let Ok(value) = env::var("TAURI_NODE_PATH") {
-        let trimmed = value.trim();
-        if !trimmed.is_empty() {
-            candidates.push(trimmed.to_string());
-        }
-    }
-
-    if let Ok(home) = env::var("HOME") {
-        let home_path = PathBuf::from(&home);
-
-        // nvm
-        let nvm_dir = home_path.join(".nvm").join("versions").join("node");
-        if let Ok(entries) = fs::read_dir(nvm_dir) {
-            let mut versions = entries
-                .filter_map(Result::ok)
-                .map(|entry| entry.path())
-                .filter(|path| path.is_dir())
-                .collect::<Vec<_>>();
-
-            versions.sort();
-            versions.reverse();
-
-            for version_dir in versions {
-                let candidate = version_dir.join("bin").join("node");
-                if candidate.exists() {
-                    candidates.push(candidate.to_string_lossy().into_owned());
-                }
-            }
-        }
-
-        // fnm (fast node manager)
-        for fnm_base in [
-            home_path.join(".fnm").join("node-versions"),
-            home_path
-                .join("Library")
-                .join("Application Support")
-                .join("fnm")
-                .join("node-versions"),
-        ] {
-            if let Ok(entries) = fs::read_dir(&fnm_base) {
-                let mut versions = entries
-                    .filter_map(Result::ok)
-                    .map(|entry| entry.path())
-                    .filter(|path| path.is_dir())
-                    .collect::<Vec<_>>();
-
-                versions.sort();
-                versions.reverse();
-
-                for version_dir in versions {
-                    let candidate = version_dir.join("installation").join("bin").join("node");
-                    if candidate.exists() {
-                        candidates.push(candidate.to_string_lossy().into_owned());
-                    }
-                }
-            }
-        }
-
-        // volta
-        let volta_node = home_path.join(".volta").join("bin").join("node");
-        if volta_node.exists() {
-            candidates.push(volta_node.to_string_lossy().into_owned());
-        }
-
-        // asdf
-        let asdf_node = home_path.join(".asdf").join("shims").join("node");
-        if asdf_node.exists() {
-            candidates.push(asdf_node.to_string_lossy().into_owned());
-        }
-
-        // mise (formerly rtx)
-        let mise_node = home_path
-            .join(".local")
-            .join("share")
-            .join("mise")
-            .join("shims")
-            .join("node");
-        if mise_node.exists() {
-            candidates.push(mise_node.to_string_lossy().into_owned());
-        }
-    }
-
-    for absolute in [
-        "/opt/homebrew/bin/node",
-        "/opt/homebrew/opt/node/bin/node",
-        "/usr/local/bin/node",
-        "/usr/local/opt/node/bin/node",
-        "/usr/bin/node",
-    ] {
-        if PathBuf::from(absolute).exists() {
-            candidates.push(absolute.to_string());
-        }
-    }
-
-    // Keep PATH-based lookup as a final fallback.
-    candidates.push("node".to_string());
-
-    candidates
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
