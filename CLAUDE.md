@@ -15,6 +15,10 @@ This project has CodeGraph (`mcp__codegraph__*`) set up — a pre-indexed knowle
 
 ```bash
 npm run dev              # Next.js dev server (http://localhost:3008)
+                          # Note: the built/production Tauri app runs its own bundled
+                          # Next server on port 3009, not 3008 — the two never collide,
+                          # even if both are running at once. See "Debugging the built
+                          # (installed) desktop app" below.
 npm run build            # Production build
 npm run lint             # ESLint
 npm run lint:fix         # ESLint with autofix
@@ -101,7 +105,9 @@ Tailwind CSS v4. Shared design tokens live in `src/styles/global.css` inside an 
 
 ### Debugging the built (installed) desktop app
 
-The built Tauri app has no attached terminal/console, so a bug that only shows up "after build" (e.g. a button that's disabled or does nothing) has to be diagnosed from log files under the app's `$APPDATA` dir instead of `npm run dev` output:
+The built Tauri app has no attached terminal/console, so a bug that only shows up "after build" (e.g. a button that's disabled or does nothing) has to be diagnosed from log files under the app's `$APPDATA` dir instead of `npm run dev` output.
+
+The bundled server (`src-tauri/src/lib.rs::spawn_bundled_next_server`) runs on **port 3009**, reading from a separate SQLite database at `$APPDATA/app.db` — distinct from both `npm run dev`'s port 3008 and this repo's local `dev.db`. If a build/installed app is left running, `curl localhost:3008` and `curl localhost:3009` will return different job/resume data; don't assume a request to one port reflects the other's state.
 
 - `$APPDATA/logs/server.log` — stdout+stderr of the bundled Next.js server (`src-tauri/src/lib.rs::spawn_bundled_next_server`), i.e. Server Action errors, Prisma errors, unhandled exceptions on the server side. Truncated fresh on every app launch.
 - `$APPDATA/logs/client.log` — JSON-lines mirror of every `logger.*()` call from client code (`src/lib/logger.ts`), i.e. the same errors the browser devtools console would show (e.g. `SettingsPage`'s save-key/backup/restore handlers all log their catch blocks here). Appended across launches, no rotation.
