@@ -51,6 +51,7 @@ Local-first desktop resume/cover-letter builder: Next.js 16 (App Router) + Tauri
   - `profile.ts` — base profile CRUD
   - `job.ts` — Job, Resume, CoverLetter, Customization CRUD
   - `tokenUsage.ts` — token usage analytics persistence
+  - `backup.ts` — full-database JSON export/import (Settings page "Backup & Restore"); excludes API keys, which never live in SQLite
   - `urlFetcher.ts`, `getServerUrl.ts` — misc server-side helpers
 - **LLM operations run entirely client-side** (`src/lib/llm/`, `src/lib/clientLLM.ts`) so API keys never leave the client/Tauri secure storage.
   - Provider base classes (`LLMProvider`, `OpenAICompatibleProvider`), the prompt resolver/validation, and provider registry now live in the `@pranavraut033/llm-core` submodule package (`packages/llm-core/`, consumed via `file:packages/llm-core`). App-local providers (`src/lib/llm/providers/`: `factory.ts`, `index.ts`, `managedProvider.ts`) extend those base classes and self-register via `ProviderFactory` — never instantiate a provider class directly.
@@ -60,7 +61,7 @@ Local-first desktop resume/cover-letter builder: Next.js 16 (App Router) + Tauri
   - `src/lib/llm/prompts/` — prompt templates per operation; untrusted/user-supplied data is wrapped in delimiters before interpolation to block prompt injection.
   - `src/lib/llm/chat-bot/` — chat-based editing assistant.
   - `src/lib/llm/tokenTracker.ts` — tracks token usage, persisted via `tokenUsage` server action.
-  - `src/lib/keyStorage.ts` — API key storage (Tauri encrypted store on desktop, localStorage on web). Use `getApiKey()`/`setKey()`, never store plaintext elsewhere.
+  - `src/lib/keyStorage.ts` — API key storage: AES-256-GCM encrypted file on desktop (key derived from a per-install master key in the OS keychain via `src-tauri/src/keychain.rs`/`keyring`), `localStorage` on web. Use `getApiKey()`/`setKey()`, never store plaintext elsewhere.
 
 ### Data model (`prisma/schema.prisma`)
 
@@ -78,11 +79,15 @@ Section content (order, visibility, custom sections) is resolved once via `build
 
 ### Job page
 
-`src/app/job/[jobId]/` + `src/components/job-v2/` — the Inline Editor: WYSIWYG inline editing directly on the rendered document (`InlineJobPageLayout.tsx`, `DocumentCanvas.tsx` with zoom controls, `resume/InlineField.tsx`, `InlineEditContext.tsx`, `ChatOverlay.tsx`, `CustomizationDrawer.tsx`, `TemplatePicker.tsx`, `HistoryDrawer.tsx` for resume version history, `HumanizerModal.tsx` for AI humanizing). This is now the only job detail page implementation — the earlier drag-and-drop editor and its standalone `/inline` route were removed. `src/app/documents/` lists all generated resumes/cover letters with version history across jobs.
+`src/app/job/[jobId]/` + `src/components/job-v2/` — the Inline Editor: WYSIWYG inline editing directly on the rendered document (`InlineJobPageLayout.tsx`, `DocumentCanvas.tsx` with zoom controls, `resume/InlineField.tsx`, `InlineEditContext.tsx`, `ChatOverlay.tsx`, `CustomizationDrawer.tsx`, `TemplatePicker.tsx`, `HistoryDrawer.tsx` for resume version history, `HumanizerModal.tsx` for AI humanizing, `CoverLetterActionBar.tsx` for cover-letter regeneration with selectable tone/style presets from `src/lib/llm/prompts/coverLetterStyles.ts`). This is now the only job detail page implementation — the earlier drag-and-drop editor and its standalone `/inline` route were removed. `src/app/documents/` lists all generated resumes/cover letters with version history across jobs.
 
 ### External links
 
 `src/components/ExternalLinkGuard.tsx` intercepts anchor clicks app-wide and confirms with the user before opening external URLs via `src/lib/externalLink.ts` (`tauri-plugin-opener` on desktop, `window.open` on web) instead of navigating in-app.
+
+### Content Security Policy
+
+`src/proxy.ts` (not `next.config.ts`'s `headers()`) sets a per-request CSP with a fresh nonce, because the App Router needs `script-src` to allow its own inline RSC/hydration scripts — a nonce lets it do that without `'unsafe-inline'`. See `docs/SECURITY_AUDIT.md`.
 
 ### State management
 

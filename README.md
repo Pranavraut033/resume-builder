@@ -1,5 +1,6 @@
 # Udaan
 
+![CI](https://github.com/Pranavraut033/resume-builder/actions/workflows/ci.yml/badge.svg)
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
 ![Next.js](https://img.shields.io/badge/Next.js-16-black.svg)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5-blue.svg)
@@ -23,7 +24,8 @@
 - **Documents view**: browse all generated resumes and cover letters across jobs (`/documents`)
 - **PDF & TXT export**: generate application-ready documents
 - **Multiple LLM providers**: OpenAI, Google Gemini, Anthropic (Claude), xAI Grok, Perplexity, local Ollama, or a managed pay-as-you-go gateway (no key required) — switch per job
-- **Secure key storage**: API keys live in Tauri's encrypted store (desktop) or `localStorage` (web), never on the server
+- **Secure key storage**: API keys are AES-256-GCM encrypted on disk (desktop), keyed off a per-install master key held in the OS keychain, or `localStorage` (web) — never on the server
+- **Backup & restore**: export the entire local database to a JSON file and restore it later, from **Settings**
 - **Local-first**: all data in a local SQLite database; no mandatory cloud dependency
 
 ## Download & Install
