@@ -18,7 +18,7 @@ export function proxy(request: NextRequest) {
   // compiled — so this doesn't expose an eval-user-content vector.
   const csp = [
     "default-src 'self'",
-    "connect-src 'self' http://127.0.0.1:3008 http://localhost:3008 https:",
+    "connect-src 'self' http://127.0.0.1:3008 http://localhost:3008 http://127.0.0.1:3009 https:",
     "img-src 'self' data: blob:",
     "style-src 'self' 'unsafe-inline'",
     `script-src 'self' 'nonce-${nonce}' 'strict-dynamic' 'unsafe-eval'`,

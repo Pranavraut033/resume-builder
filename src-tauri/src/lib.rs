@@ -81,7 +81,7 @@ fn spawn_bundled_next_server(
         .arg("server.js")
         .current_dir(&server_dir)
         .env("HOSTNAME", "127.0.0.1")
-        .env("PORT", "3008")
+        .env("PORT", "3009")
         .env("NODE_ENV", "production")
         // Absolute path outside the app bundle so the database survives
         // app updates, which replace the bundle (and any relative-path
@@ -166,10 +166,10 @@ pub fn run() {
                 let child = spawn_bundled_next_server(resource_dir, &db_path, &server_log_path)
                     .map_err(io::Error::other)?;
 
-                if !wait_for_local_server("127.0.0.1", 3008, Duration::from_secs(30)) {
+                if !wait_for_local_server("127.0.0.1", 3009, Duration::from_secs(30)) {
                     return Err(io::Error::new(
                         io::ErrorKind::TimedOut,
-                        "Timed out waiting for local Next server on 127.0.0.1:3008",
+                        "Timed out waiting for local Next server on 127.0.0.1:3009",
                     )
                     .into());
                 }

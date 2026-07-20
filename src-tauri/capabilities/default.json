@@ -3,7 +3,11 @@
   "identifier": "default",
   "description": "enables the default permissions",
   "remote": {
-    "urls": ["http://localhost:3008/*", "http://127.0.0.1:3008/*"]
+    "urls": [
+      "http://localhost:3008/*",
+      "http://127.0.0.1:3008/*",
+      "http://127.0.0.1:3009/*"
+    ]
   },
   "windows": ["main"],
   "permissions": [
