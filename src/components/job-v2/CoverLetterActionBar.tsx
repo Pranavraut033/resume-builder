@@ -12,6 +12,11 @@ import useGenerateCoverLetter from "@/hooks/useGenerateCoverLetter";
 import useHumanizeContent from "@/hooks/useHumanizeContent";
 import cn from "@/lib/cn";
 import { applyChangesToText } from "@/lib/humanizer/applyChanges";
+import {
+  COVER_LETTER_STYLES,
+  CoverLetterStyleId,
+  DEFAULT_COVER_LETTER_STYLE,
+} from "@/lib/llm/prompts/coverLetterStyles";
 import { htmlToText } from "@/lib/resumeToText";
 
 import { HumanizerModal } from "./HumanizerModal";
@@ -40,6 +45,9 @@ export function CoverLetterActionBar() {
   } = useJobPageContext();
 
   const [customInstructions, setCustomInstructions] = useState("");
+  const [styleId, setStyleId] = useState<CoverLetterStyleId>(
+    DEFAULT_COVER_LETTER_STYLE
+  );
   const [showTip, setShowTip] = useState(false);
   const [isHumanizerOpen, setIsHumanizerOpen] = useState(false);
   const tipRef = useRef<HTMLDivElement>(null);
@@ -115,6 +123,7 @@ export function CoverLetterActionBar() {
               resume,
               jobData: job?.details,
               customInstructions: customInstructions.trim() || undefined,
+              styleId,
             })
           }
           disabled={isGenerating}
@@ -166,6 +175,18 @@ export function CoverLetterActionBar() {
 
       {/* Instructions row */}
       <div className="flex items-center gap-2">
+        <select
+          value={styleId}
+          onChange={(e) => setStyleId(e.target.value as CoverLetterStyleId)}
+          title={COVER_LETTER_STYLES[styleId].description}
+          className="border-agent-outline-variant bg-agent-surface-low text-agent-on-surface focus:border-agent-primary shrink-0 rounded-lg border px-2.5 py-1.5 text-xs outline-none"
+        >
+          {Object.entries(COVER_LETTER_STYLES).map(([id, style]) => (
+            <option key={id} value={id}>
+              {style.label}
+            </option>
+          ))}
+        </select>
         <div className="relative flex-1">
           <input
             type="text"

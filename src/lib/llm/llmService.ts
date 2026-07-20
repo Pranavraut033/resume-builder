@@ -13,6 +13,10 @@
 import { LLMProvider } from "@pranavraut033/llm-core";
 
 import { LLMUsageInfo } from "@/actions/tokenUsage";
+import {
+  CoverLetterStyleId,
+  resolveCoverLetterStyleGuide,
+} from "@/lib/llm/prompts/coverLetterStyles";
 import { ProviderFactory } from "@/lib/llm/providers/factory";
 import { generateRequestId, trackTokenUsage } from "@/lib/llm/tokenTracker";
 import { createLogger } from "@/lib/logger";
@@ -34,6 +38,7 @@ import {
   PromptSystem,
   ResolvedPrompt,
 } from "./prompts";
+import { generateVerifiedResume, VerifiedResumeResult } from "./verifiedResume";
 
 const logger = createLogger("LLMService");
 
@@ -146,6 +151,7 @@ class LLMService {
               resume: context.resume!,
               jobDetails: context.jobDetails!,
               customInstructions: context.additionalInstructions,
+              styleGuide: context.styleGuide,
             },
             options
           ));
@@ -283,11 +289,17 @@ class LLMService {
     resume: ResumeJSON | null,
     jobDetails: JobDetailsJSON,
     options: LLMServiceOptions,
-    customInstructions?: string
+    customInstructions?: string,
+    styleId?: CoverLetterStyleId
   ): Promise<LLMResult<string>> {
     return this.executeCall(
       "generate_cover_letter",
-      { resume, jobDetails, additionalInstructions: customInstructions },
+      {
+        resume,
+        jobDetails,
+        additionalInstructions: customInstructions,
+        styleGuide: resolveCoverLetterStyleGuide(styleId),
+      },
       options
     );
   }
@@ -303,6 +315,41 @@ class LLMService {
       { baseProfile, jobDetails, atsAnalysis },
       options
     );
+  }
+
+  /**
+   * Tailor the resume, then fact-check it against the base profile and
+   * correct any unsupported claims before returning. Slower (up to 3 LLM
+   * calls vs. 1) but catches fabrication that plain tailoring doesn't guard
+   * against — see src/lib/llm/verifiedResume.ts.
+   */
+  static async generateVerifiedTailoredResume(
+    baseProfile: ResumeJSON,
+    jobDetails: JobDetailsJSON,
+    atsAnalysis: ATSAnalysisJSON | null,
+    options: LLMServiceOptions
+  ): Promise<VerifiedResumeResult> {
+    const requestId = generateRequestId("generate_tailored_resume");
+    const startTime = Date.now();
+
+    const provider = await this.getProvider(options.provider);
+    if (!provider) {
+      throw new Error(`Provider ${options.provider} not available`);
+    }
+
+    const verified = await generateVerifiedResume(
+      provider,
+      { baseProfile, jobDetails, atsAnalysis },
+      options
+    );
+
+    trackTokenUsage({
+      requestId,
+      durationMs: Date.now() - startTime,
+      ...verified.usage,
+    });
+
+    return verified;
   }
 
   static async humanizeContent(

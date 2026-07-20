@@ -1,6 +1,7 @@
 import { useMutation } from "@tanstack/react-query";
 
 import LLMService from "@/lib/llm/llmService";
+import { CoverLetterStyleId } from "@/lib/llm/prompts/coverLetterStyles";
 import { useModelStore } from "@/store/modelStore";
 import { LLMResult } from "@/types/llm";
 import { JobDetailsJSON, ResumeJSON } from "@/types/resume";
@@ -9,6 +10,7 @@ type Args = {
   resume?: ResumeJSON | null;
   jobData?: JobDetailsJSON | null;
   customInstructions?: string;
+  styleId?: CoverLetterStyleId;
 };
 
 function useGenerateCoverLetter(
@@ -33,7 +35,8 @@ function useGenerateCoverLetter(
         data.resume,
         data.jobData,
         { provider: activeModelPair[0], model: activeModelPair[1] },
-        data.customInstructions
+        data.customInstructions,
+        data.styleId
       );
     },
     ...options,

@@ -39,7 +39,7 @@ import {
 // still parses as a "valid" empty resume and overwrites the real one. Refuse
 // to apply a tailored resume that has fewer populated sections than the
 // profile it was built from, rather than trusting schema validity alone.
-function assertResumeNotGutted(base: ResumeJSON, tailored: ResumeJSON) {
+export function assertResumeNotGutted(base: ResumeJSON, tailored: ResumeJSON) {
   const gutted = (
     [
       ["summary", base.summary.trim(), tailored.summary.trim()],
@@ -69,7 +69,11 @@ export async function generateResume(
 ): Promise<ResumeGenerationResult> {
   const resolvedPrompt = PromptSystem.generatePrompt(
     "generate_tailored_resume",
-    { baseProfile: input.baseProfile, jobDetails: input.jobDetails }
+    {
+      baseProfile: input.baseProfile,
+      jobDetails: input.jobDetails,
+      atsAnalysis: input.atsAnalysis ?? undefined,
+    }
   );
 
   const { result, usage } = await provider.runStructuredLLM(
@@ -108,6 +112,7 @@ export async function generateCoverLetter(
     jobDetails: input.jobDetails,
     resume: input.resume,
     additionalInstructions: input.customInstructions,
+    styleGuide: input.styleGuide,
   });
   const messages = toPromptMessages(resolvedPrompt);
 

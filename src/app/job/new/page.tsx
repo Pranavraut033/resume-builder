@@ -14,6 +14,11 @@ import { useToast } from "@/components/ui/ToastProvider";
 import { useProfileQuery } from "@/hooks/useProfileQuery";
 import { useProfileSelection } from "@/hooks/useProfileSelection";
 import LLMService from "@/lib/llm/llmService";
+import {
+  COVER_LETTER_STYLES,
+  CoverLetterStyleId,
+  DEFAULT_COVER_LETTER_STYLE,
+} from "@/lib/llm/prompts/coverLetterStyles";
 import { createLogger } from "@/lib/logger";
 import { useModelStore } from "@/store/modelStore";
 
@@ -39,6 +44,11 @@ export default function NewJobPage() {
   const [skipTailoring, setSkipTailoring] = useState(false);
   const [activeStep, setActiveStep] = useState(-1);
   const [fetchingUrl, setFetchingUrl] = useState(false);
+  const [showAdvanced, setShowAdvanced] = useState(false);
+  const [coverLetterStyle, setCoverLetterStyle] = useState<CoverLetterStyleId>(
+    DEFAULT_COVER_LETTER_STYLE
+  );
+  const [verifyResume, setVerifyResume] = useState(false);
   const router = useRouter();
 
   // Use globally selected profile (no override per-job)
@@ -144,18 +154,35 @@ export default function NewJobPage() {
 
       setActiveStep(2);
       const [resume, coverLetter] = await Promise.all([
-        LLMService.generateTailoredResume(
-          profile,
-          jobDetails.result,
-          atsAnalysis.result,
-          modelOptions
-        ),
+        verifyResume
+          ? LLMService.generateVerifiedTailoredResume(
+              profile,
+              jobDetails.result,
+              atsAnalysis.result,
+              modelOptions
+            )
+          : LLMService.generateTailoredResume(
+              profile,
+              jobDetails.result,
+              atsAnalysis.result,
+              modelOptions
+            ),
         LLMService.generateCoverLetter(
           profile,
           jobDetails.result,
-          modelOptions
+          modelOptions,
+          undefined,
+          coverLetterStyle
         ),
       ]);
+
+      if ("flags" in resume && resume.flags.length > 0) {
+        pushToast({
+          title: "Fact-check found issues",
+          description: `Corrected ${resume.flags.length} unsupported claim${resume.flags.length === 1 ? "" : "s"} before saving. ATS score: ${resume.atsBefore} → ${resume.atsAfter}.`,
+          variant: "info",
+        });
+      }
 
       setActiveStep(3);
       await createJob({
@@ -384,10 +411,81 @@ export default function NewJobPage() {
                 className="border-agent-outline-variant text-agent-primary focus:ring-agent-primary mt-0.5 h-4 w-4 rounded"
               />
               <span className="text-agent-on-surface-variant">
-                Skip AI tailoring — just copy my base profile as the resume
-                (no ATS scoring, no cover letter)
+                Skip AI tailoring — just copy my base profile as the resume (no
+                ATS scoring, no cover letter)
               </span>
             </label>
+
+            {/* ── Advanced options ── */}
+            {!skipTailoring && (
+              <div className="border-agent-outline-variant rounded-xl border">
+                <button
+                  type="button"
+                  onClick={() => setShowAdvanced((prev) => !prev)}
+                  className="text-agent-on-surface-variant hover:text-agent-on-surface flex w-full items-center justify-between px-4 py-2.5 text-xs font-medium"
+                >
+                  Advanced options
+                  <svg
+                    className={`h-3.5 w-3.5 transition-transform ${showAdvanced ? "rotate-180" : ""}`}
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    strokeWidth={2}
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M19 9l-7 7-7-7"
+                    />
+                  </svg>
+                </button>
+                {showAdvanced && (
+                  <div className="border-agent-outline-variant space-y-1.5 border-t px-4 py-3">
+                    <label
+                      htmlFor="coverLetterStyle"
+                      className="text-agent-on-surface text-sm font-medium"
+                    >
+                      Cover letter style
+                    </label>
+                    <select
+                      id="coverLetterStyle"
+                      value={coverLetterStyle}
+                      onChange={(e) =>
+                        setCoverLetterStyle(
+                          e.target.value as CoverLetterStyleId
+                        )
+                      }
+                      className="border-agent-outline-variant focus:border-agent-primary focus:ring-agent-primary w-full rounded-xl border bg-(--color-agent-surface-lowest) px-4 py-3 text-sm text-(--color-agent-on-surface) focus:ring-1 focus:outline-none"
+                    >
+                      {Object.entries(COVER_LETTER_STYLES).map(
+                        ([id, style]) => (
+                          <option key={id} value={id}>
+                            {style.label}
+                          </option>
+                        )
+                      )}
+                    </select>
+                    <p className="text-agent-on-surface-variant text-xs">
+                      {COVER_LETTER_STYLES[coverLetterStyle].description}
+                    </p>
+
+                    <label className="flex items-start gap-2.5 pt-2 text-sm">
+                      <input
+                        type="checkbox"
+                        checked={verifyResume}
+                        onChange={(e) => setVerifyResume(e.target.checked)}
+                        className="border-agent-outline-variant text-agent-primary focus:ring-agent-primary mt-0.5 h-4 w-4 rounded"
+                      />
+                      <span className="text-agent-on-surface-variant">
+                        Verify tailored resume — fact-check against your base
+                        profile and correct unsupported claims (slower, extra AI
+                        calls)
+                      </span>
+                    </label>
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* ── Submit button ── */}
             <StepProgressButton
