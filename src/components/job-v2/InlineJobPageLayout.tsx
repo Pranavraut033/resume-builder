@@ -8,13 +8,20 @@ import CompanyAvatar from "@/components/CompanyAvatar";
 import PeekContent from "@/components/home/PeekContent";
 import { StatusSelector } from "@/components/home/StatusControls";
 import { Icon, BackButton, Modal, SaveButton } from "@/components/ui";
+import { useToast } from "@/components/ui/ToastProvider";
 import {
   EditorContentType,
   useJobPageContext,
 } from "@/contexts/JobPageContext";
 import { useHideOnScroll } from "@/hooks/useHideOnScroll";
 import cn from "@/lib/cn";
+import {
+  applyChangesToResume,
+  applyChangesToText,
+} from "@/lib/humanizer/applyChanges";
 import { HistoryChangeListener } from "@/lib/llm/ResumeHistory";
+import { htmlToText, resumeToProseText } from "@/lib/resumeToText";
+import { HumanizerJSON } from "@/types/humanizer";
 import { JobStatus } from "@/types/job";
 
 import { ATSDrawer } from "./ATSDrawer";
@@ -23,6 +30,7 @@ import { CustomizationDrawer } from "./CustomizationDrawer";
 import { DocumentCanvas } from "./DocumentCanvas";
 import { FloatingActionBar } from "./FloatingActionBar";
 import { HistoryDrawer } from "./HistoryDrawer";
+import { HumanizerDrawer } from "./HumanizerDrawer";
 import { SectionOutlinePanel } from "./resume/SectionOutlinePanel";
 
 /**
@@ -49,15 +57,36 @@ export function InlineJobPageLayout() {
     setChatSnapPosition,
     setContentType,
     undoResume,
+    updateResumeState,
+    updateCoverLetterState,
   } = useJobPageContext();
+
+  const { pushToast } = useToast();
 
   const [isCustomizationOpen, setIsCustomizationOpen] = useState(false);
   const [isAtsOpen, setIsAtsOpen] = useState(false);
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [isOutlineOpen, setIsOutlineOpen] = useState(false);
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
+  const [isHumanizerOpen, setIsHumanizerOpen] = useState(false);
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
   const [isPendingStatus, startStatusTransition] = useTransition();
+
+  const handleHumanizeAccept = (selected: HumanizerJSON["changes"]) => {
+    if (contentType === "coverLetter") {
+      const next = applyChangesToText(coverLetter, selected);
+      updateCoverLetterState(next);
+      refetch(undefined, "coverLetter");
+      saveToDb("coverLetter", next, customization);
+      pushToast({ title: "Cover letter updated", variant: "success" });
+    } else {
+      const next = applyChangesToResume(resume, selected);
+      updateResumeState(next, "Humanized");
+      saveToDb("resume", next, customization);
+      pushToast({ title: "Resume updated", variant: "success" });
+    }
+    setIsHumanizerOpen(false);
+  };
 
   const canvasColumnRef = useRef<HTMLDivElement>(null);
   const isActionBarHidden = useHideOnScroll(canvasColumnRef, contentType);
@@ -263,7 +292,14 @@ export function InlineJobPageLayout() {
                   ref={canvasColumnRef}
                   className="relative flex min-h-0 flex-1 flex-col overflow-hidden"
                 >
-                  <DocumentCanvas />
+                  <DocumentCanvas
+                    isHumanizerOpen={isHumanizerOpen}
+                    onToggleHumanizer={() => {
+                      setIsHumanizerOpen((o) => !o);
+                      setIsCustomizationOpen(false);
+                      setIsAtsOpen(false);
+                    }}
+                  />
                   {/* Floating action bar — resume-only actions hide themselves
                       internally when contentType is "coverLetter". Hides on
                       scroll down, reappears on scroll up. */}
@@ -302,6 +338,24 @@ export function InlineJobPageLayout() {
                       setIsCustomizationOpen(false);
                       setIsAtsOpen(false);
                     }}
+                    isHumanizerOpen={isHumanizerOpen}
+                    onToggleHumanizer={() => {
+                      setIsHumanizerOpen((o) => !o);
+                      setIsCustomizationOpen(false);
+                      setIsAtsOpen(false);
+                    }}
+                  />
+
+                  {/* Humanize drawer — slides over the canvas, resume or cover letter */}
+                  <HumanizerDrawer
+                    open={isHumanizerOpen}
+                    onClose={() => setIsHumanizerOpen(false)}
+                    text={
+                      contentType === "coverLetter"
+                        ? htmlToText(coverLetter)
+                        : resumeToProseText(resume)
+                    }
+                    onAccept={handleHumanizeAccept}
                   />
 
                   {/* ATS analysis drawer — slides over the canvas */}

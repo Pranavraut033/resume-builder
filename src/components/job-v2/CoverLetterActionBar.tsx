@@ -9,17 +9,12 @@ import { useToast } from "@/components/ui/ToastProvider";
 import { useJobPageContext } from "@/contexts/JobPageContext";
 import { useFakeProgress } from "@/hooks/useFakeProgress";
 import useGenerateCoverLetter from "@/hooks/useGenerateCoverLetter";
-import useHumanizeContent from "@/hooks/useHumanizeContent";
 import cn from "@/lib/cn";
-import { applyChangesToText } from "@/lib/humanizer/applyChanges";
 import {
   COVER_LETTER_STYLES,
   CoverLetterStyleId,
   DEFAULT_COVER_LETTER_STYLE,
 } from "@/lib/llm/prompts/coverLetterStyles";
-import { htmlToText } from "@/lib/resumeToText";
-
-import { HumanizerModal } from "./HumanizerModal";
 
 const INSTRUCTION_SUGGESTIONS = [
   "Keep it under 250 words",
@@ -29,11 +24,19 @@ const INSTRUCTION_SUGGESTIONS = [
   "Focus on culture fit over technical skills",
 ];
 
+interface CoverLetterActionBarProps {
+  isHumanizerOpen: boolean;
+  onToggleHumanizer: () => void;
+}
+
 /**
  * CoverLetterActionBar — floating action bar that appears above the cover letter
  * document canvas in V2. Provides Generate + Model selector controls.
  */
-export function CoverLetterActionBar() {
+export function CoverLetterActionBar({
+  isHumanizerOpen,
+  onToggleHumanizer,
+}: CoverLetterActionBarProps) {
   const {
     coverLetter,
     resume,
@@ -49,7 +52,6 @@ export function CoverLetterActionBar() {
     DEFAULT_COVER_LETTER_STYLE
   );
   const [showTip, setShowTip] = useState(false);
-  const [isHumanizerOpen, setIsHumanizerOpen] = useState(false);
   const tipRef = useRef<HTMLDivElement>(null);
 
   const { pushToast } = useToast();
@@ -69,38 +71,8 @@ export function CoverLetterActionBar() {
     },
   });
 
-  const {
-    mutate: humanize,
-    data: humanizeResult,
-    status: humanizeStatus,
-    reset: resetHumanize,
-  } = useHumanizeContent({
-    onError: (err) => {
-      pushToast({
-        title: "Humanize failed",
-        description: err instanceof Error ? err.message : "Unknown error",
-        variant: "error",
-      });
-      setIsHumanizerOpen(false);
-    },
-  });
-
   const isGenerating = status === "pending";
-  const isHumanizing = humanizeStatus === "pending";
   const generatePercent = useFakeProgress(isGenerating);
-  const humanizePercent = useFakeProgress(isHumanizing);
-
-  const handleHumanizeAccept = (
-    selected: NonNullable<typeof humanizeResult>["result"]["changes"]
-  ) => {
-    const next = applyChangesToText(coverLetter, selected);
-    updateCoverLetterState(next);
-    refetch(undefined, "coverLetter");
-    saveToDb("coverLetter", next, customization);
-    setIsHumanizerOpen(false);
-    resetHumanize();
-    pushToast({ title: "Cover letter updated", variant: "success" });
-  };
 
   return (
     <div
@@ -148,28 +120,18 @@ export function CoverLetterActionBar() {
         </button>
 
         <button
-          onClick={() => {
-            setIsHumanizerOpen(true);
-            humanize({ text: htmlToText(coverLetter) });
-          }}
-          disabled={isHumanizing || !coverLetter.trim()}
+          onClick={onToggleHumanizer}
+          disabled={!coverLetter.trim()}
           className={cn(
-            "border-agent-outline-variant text-agent-on-surface-variant hover:bg-agent-surface-container hover:text-agent-on-surface relative flex items-center gap-1.5 overflow-hidden rounded-lg border px-3 py-1.5 text-xs font-semibold transition-all",
-            "disabled:cursor-not-allowed disabled:opacity-90"
+            "flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-semibold transition-all disabled:cursor-not-allowed disabled:opacity-50",
+            isHumanizerOpen
+              ? "bg-agent-primary text-agent-on-primary border-agent-primary"
+              : "border-agent-outline-variant text-agent-on-surface-variant hover:bg-agent-surface-container hover:text-agent-on-surface"
           )}
           title="Humanize"
         >
-          <ProgressFill
-            percent={humanizePercent}
-            className="bg-agent-primary/10"
-          />
-          <span className="relative z-10 flex items-center gap-1.5">
-            <Icon
-              name={isHumanizing ? "spinner" : "wand"}
-              className={cn("h-3.5 w-3.5", isHumanizing && "animate-spin")}
-            />
-            {isHumanizing ? "Humanizing…" : "Humanize"}
-          </span>
+          <Icon name="wand" className="h-3.5 w-3.5" />
+          Humanize
         </button>
       </div>
 
@@ -232,18 +194,6 @@ export function CoverLetterActionBar() {
           )}
         </div>
       </div>
-
-      <HumanizerModal
-        key={humanizeResult ? "result" : "pending"}
-        isOpen={isHumanizerOpen}
-        isLoading={isHumanizing}
-        changes={humanizeResult?.result.changes ?? []}
-        onAccept={handleHumanizeAccept}
-        onClose={() => {
-          setIsHumanizerOpen(false);
-          resetHumanize();
-        }}
-      />
     </div>
   );
 }

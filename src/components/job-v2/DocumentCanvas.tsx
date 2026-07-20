@@ -31,7 +31,15 @@ function clampZoom(z: number) {
  * InlineJobPageLayout), not as an overlay here. For cover letter it renders
  * CoverLetterRenderer with a click-to-edit overlay.
  */
-export function DocumentCanvas() {
+interface DocumentCanvasProps {
+  isHumanizerOpen: boolean;
+  onToggleHumanizer: () => void;
+}
+
+export function DocumentCanvas({
+  isHumanizerOpen,
+  onToggleHumanizer,
+}: DocumentCanvasProps) {
   const {
     resume,
     coverLetter,
@@ -84,7 +92,10 @@ export function DocumentCanvas() {
     return (
       <div className="flex flex-1 flex-col overflow-y-auto px-6 py-4">
         {/* Floating action bar */}
-        <CoverLetterActionBar />
+        <CoverLetterActionBar
+          isHumanizerOpen={isHumanizerOpen}
+          onToggleHumanizer={onToggleHumanizer}
+        />
 
         {/* Cover letter document canvas */}
         <div

@@ -163,6 +163,43 @@ export function resumeToText(resume: ResumeJSON): string {
   return lines.join("\n").trim();
 }
 
+/**
+ * Just the natural-language prose a human would actually read as sentences —
+ * summary, experience/project/volunteer/award descriptions, achievements, and
+ * custom-section bullets. No headers, dividers, dates, company names, URLs,
+ * or GPA — those aren't prose and only confuse the humanizer into "fixing"
+ * formatting. Mirrors exactly the fields `applyChangesToResume` rewrites, so
+ * every change the LLM returns still matches a literal substring somewhere.
+ */
+export function resumeToProseText(resume: ResumeJSON): string {
+  const blocks: string[] = [];
+
+  if (resume.summary) blocks.push(resume.summary);
+
+  resume.experience.forEach((exp) => {
+    if (exp.description) blocks.push(exp.description);
+    exp.achievements.forEach((a) => blocks.push(a));
+  });
+
+  resume.projects.forEach((p) => {
+    if (p.description) blocks.push(p.description);
+  });
+
+  resume.volunteer?.forEach((v) => {
+    if (v.description) blocks.push(v.description);
+  });
+
+  resume.awards?.forEach((a) => {
+    if (a.description) blocks.push(a.description);
+  });
+
+  resume.sectionLayout?.custom?.forEach((section) => {
+    section.items.forEach((item) => blocks.push(item));
+  });
+
+  return blocks.join("\n\n");
+}
+
 export function coverLetterToText(
   coverLetter: string,
   resume: ResumeJSON
