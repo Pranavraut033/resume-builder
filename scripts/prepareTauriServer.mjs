@@ -18,8 +18,11 @@ async function main() {
   await rm(outputDir, { recursive: true, force: true });
   await mkdir(outputDir, { recursive: true });
 
-  // Copy the standalone server bundle (includes server.js + traced node_modules).
-  await cp(standaloneDir, outputDir, { recursive: true });
+  // dereference: Prisma's generated client is traced in as a symlink pointing
+  // back into this repo's own .next/standalone — without dereferencing, the
+  // bundled output isn't self-contained and breaks the moment the source
+  // .next/standalone is rebuilt or removed.
+  await cp(standaloneDir, outputDir, { recursive: true, dereference: true });
 
   // Next expects static assets at .next/static relative to server.js.
   const outputStaticDir = path.join(outputDir, ".next", "static");
@@ -28,6 +31,15 @@ async function main() {
 
   if (existsSync(publicDir)) {
     await cp(publicDir, path.join(outputDir, "public"), { recursive: true });
+  }
+
+  // Next copies the build-time .env into the standalone output, which would
+  // ship build secrets (e.g. TAURI_SIGNING_PRIVATE_KEY) inside every install.
+  // Runtime env (DATABASE_URL, PORT, HOSTNAME, NODE_ENV) is injected by Tauri
+  // when it spawns server.js, so this file isn't needed at runtime.
+  const bundledEnv = path.join(outputDir, ".env");
+  if (existsSync(bundledEnv)) {
+    await rm(bundledEnv);
   }
 
   console.log("Prepared bundled Next standalone server for Tauri:", outputDir);

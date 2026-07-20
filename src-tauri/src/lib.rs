@@ -1,7 +1,7 @@
 use std::{
     env, fs, io,
     net::TcpStream,
-    path::PathBuf,
+    path::{Path, PathBuf},
     process::{Child, Command, Stdio},
     sync::Mutex,
     thread,
@@ -29,7 +29,7 @@ fn wait_for_local_server(host: &str, port: u16, timeout: Duration) -> bool {
     false
 }
 
-fn spawn_bundled_next_server(resource_dir: PathBuf) -> Result<Child, String> {
+fn spawn_bundled_next_server(resource_dir: PathBuf, db_path: &Path) -> Result<Child, String> {
     let candidate_dirs = [
         resource_dir.join("next"),
         resource_dir.join("resources").join("next"),
@@ -52,6 +52,7 @@ fn spawn_bundled_next_server(resource_dir: PathBuf) -> Result<Child, String> {
         ));
     };
 
+    let database_url = format!("file:{}", db_path.display());
     let mut attempted = Vec::new();
 
     for node_cmd in node_command_candidates() {
@@ -61,6 +62,10 @@ fn spawn_bundled_next_server(resource_dir: PathBuf) -> Result<Child, String> {
             .env("HOSTNAME", "127.0.0.1")
             .env("PORT", "3008")
             .env("NODE_ENV", "production")
+            // Absolute path outside the app bundle so the database survives
+            // app updates, which replace the bundle (and any relative-path
+            // db file inside it) wholesale.
+            .env("DATABASE_URL", &database_url)
             .stdout(Stdio::null())
             .stderr(Stdio::null())
             .spawn();
@@ -184,6 +189,7 @@ fn node_command_candidates() -> Vec<String> {
 pub fn run() {
     let app = tauri::Builder::default()
         .plugin(tauri_plugin_fs::init())
+        .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_process::init())
         .plugin(tauri_plugin_opener::init())
@@ -198,7 +204,17 @@ pub fn run() {
                     )
                 })?;
 
-                let child = spawn_bundled_next_server(resource_dir).map_err(io::Error::other)?;
+                let app_data_dir = app.path().app_data_dir().map_err(|_| {
+                    io::Error::new(
+                        io::ErrorKind::NotFound,
+                        "could not resolve app data directory",
+                    )
+                })?;
+                fs::create_dir_all(&app_data_dir)?;
+                let db_path = app_data_dir.join("app.db");
+
+                let child = spawn_bundled_next_server(resource_dir, &db_path)
+                    .map_err(io::Error::other)?;
 
                 if !wait_for_local_server("127.0.0.1", 3008, Duration::from_secs(30)) {
                     return Err(io::Error::new(

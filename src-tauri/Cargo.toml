@@ -31,3 +31,4 @@ url = "2"
 base64 = "0.22"
 keyring = { version = "3.6", features = ["apple-native", "windows-native", "linux-native-sync-persistent"] }
 rand = "0.9"
+tauri-plugin-dialog = "2.4.1"
