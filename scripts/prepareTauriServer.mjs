@@ -1,5 +1,7 @@
+import { execFileSync } from "node:child_process";
 import { existsSync } from "node:fs";
-import { cp, mkdir, rm } from "node:fs/promises";
+import { cp, mkdir, mkdtemp, rm } from "node:fs/promises";
+import os from "node:os";
 import path from "node:path";
 
 const root = process.cwd();
@@ -41,6 +43,21 @@ async function main() {
   if (existsSync(bundledEnv)) {
     await rm(bundledEnv);
   }
+
+  // A fresh install's app-data dir has no `app.db` — better-sqlite3 just
+  // creates an empty file with no tables (see src/lib/prisma.ts), so every
+  // Server Action fails with "table does not exist" until someone runs
+  // `db:push` by hand. Ship an already-migrated, empty database instead, so
+  // Rust (src-tauri/src/lib.rs) can seed it on first launch.
+  const templateDir = await mkdtemp(path.join(os.tmpdir(), "app-db-template-"));
+  const templateDbPath = path.join(templateDir, "app-template.db");
+  execFileSync(
+    "npx",
+    ["prisma", "db", "push", "--accept-data-loss", `--url=file:${templateDbPath}`],
+    { cwd: root, stdio: "inherit" }
+  );
+  await cp(templateDbPath, path.join(outputDir, "app-template.db"));
+  await rm(templateDir, { recursive: true, force: true });
 
   console.log("Prepared bundled Next standalone server for Tauri:", outputDir);
 }

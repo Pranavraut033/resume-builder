@@ -29,7 +29,11 @@ fn wait_for_local_server(host: &str, port: u16, timeout: Duration) -> bool {
     false
 }
 
-fn spawn_bundled_next_server(resource_dir: PathBuf, db_path: &Path) -> Result<Child, String> {
+fn spawn_bundled_next_server(
+    resource_dir: PathBuf,
+    db_path: &Path,
+    log_file: &Path,
+) -> Result<Child, String> {
     let candidate_dirs = [
         resource_dir.join("next"),
         resource_dir.join("resources").join("next"),
@@ -56,6 +60,12 @@ fn spawn_bundled_next_server(resource_dir: PathBuf, db_path: &Path) -> Result<Ch
     let mut attempted = Vec::new();
 
     for node_cmd in node_command_candidates() {
+        // Next.js server logs (including unhandled Server Action errors) go
+        // here instead of Stdio::null() so they're recoverable after install
+        // — see docs/DEBUGGING.md.
+        let stdout_file = fs::File::create(log_file).map_err(|e| e.to_string())?;
+        let stderr_file = stdout_file.try_clone().map_err(|e| e.to_string())?;
+
         let spawn_result = Command::new(&node_cmd)
             .arg("server.js")
             .current_dir(&server_dir)
@@ -66,8 +76,8 @@ fn spawn_bundled_next_server(resource_dir: PathBuf, db_path: &Path) -> Result<Ch
             // app updates, which replace the bundle (and any relative-path
             // db file inside it) wholesale.
             .env("DATABASE_URL", &database_url)
-            .stdout(Stdio::null())
-            .stderr(Stdio::null())
+            .stdout(Stdio::from(stdout_file))
+            .stderr(Stdio::from(stderr_file))
             .spawn();
 
         match spawn_result {
@@ -80,6 +90,43 @@ fn spawn_bundled_next_server(resource_dir: PathBuf, db_path: &Path) -> Result<Ch
         "Failed to start bundled Next server. Tried node commands: {}",
         attempted.join(", ")
     ))
+}
+
+/// A fresh app-data dir has no `app.db`. If the Next server creates it
+/// itself (via better-sqlite3's open-or-create), it comes back with zero
+/// tables and every Server Action fails with "table does not exist" — see
+/// docs/DEBUGGING.md. Seed it from the already-migrated template DB bundled
+/// alongside the server (see scripts/prepareTauriServer.mjs) instead.
+fn seed_database_if_missing(resource_dir: &Path, db_path: &Path) -> Result<(), String> {
+    if db_path.exists() {
+        return Ok(());
+    }
+
+    let candidate_templates = [
+        resource_dir.join("next").join("app-template.db"),
+        resource_dir
+            .join("resources")
+            .join("next")
+            .join("app-template.db"),
+    ];
+
+    let template = candidate_templates
+        .iter()
+        .find(|path| path.exists())
+        .ok_or_else(|| {
+            format!(
+                "Database template not found. Checked: {}",
+                candidate_templates
+                    .iter()
+                    .map(|p| p.display().to_string())
+                    .collect::<Vec<_>>()
+                    .join(", ")
+            )
+        })?;
+
+    fs::copy(template, db_path)
+        .map_err(|e| format!("Failed to seed database from template: {e}"))?;
+    Ok(())
 }
 
 fn node_command_candidates() -> Vec<String> {
@@ -212,8 +259,13 @@ pub fn run() {
                 })?;
                 fs::create_dir_all(&app_data_dir)?;
                 let db_path = app_data_dir.join("app.db");
+                seed_database_if_missing(&resource_dir, &db_path).map_err(io::Error::other)?;
 
-                let child = spawn_bundled_next_server(resource_dir, &db_path)
+                let logs_dir = app_data_dir.join("logs");
+                fs::create_dir_all(&logs_dir)?;
+                let server_log_path = logs_dir.join("server.log");
+
+                let child = spawn_bundled_next_server(resource_dir, &db_path, &server_log_path)
                     .map_err(io::Error::other)?;
 
                 if !wait_for_local_server("127.0.0.1", 3008, Duration::from_secs(30)) {
