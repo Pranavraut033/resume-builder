@@ -94,6 +94,15 @@ Section content (order, visibility, custom sections) is resolved once via `build
 
 Tailwind CSS v4. Shared design tokens live in `src/styles/global.css` inside an `@theme {}` block — define new tokens there so Tailwind generates utility classes (e.g. `bg-brand-primary`). Do not use inline `style={{}}`, `var()` inside class strings, or arbitrary `[--token:value]` declarations in JSX.
 
+### Debugging the built (installed) desktop app
+
+The built Tauri app has no attached terminal/console, so a bug that only shows up "after build" (e.g. a button that's disabled or does nothing) has to be diagnosed from log files under the app's `$APPDATA` dir instead of `npm run dev` output:
+
+- `$APPDATA/logs/server.log` — stdout+stderr of the bundled Next.js server (`src-tauri/src/lib.rs::spawn_bundled_next_server`), i.e. Server Action errors, Prisma errors, unhandled exceptions on the server side. Truncated fresh on every app launch.
+- `$APPDATA/logs/client.log` — JSON-lines mirror of every `logger.*()` call from client code (`src/lib/logger.ts`), i.e. the same errors the browser devtools console would show (e.g. `SettingsPage`'s save-key/backup/restore handlers all log their catch blocks here). Appended across launches, no rotation.
+
+`$APPDATA` resolves per-OS to (bundle id `com.resumebuilder.dev`): macOS `~/Library/Application Support/com.resumebuilder.dev`, Windows `%APPDATA%\com.resumebuilder.dev`, Linux `~/.config/com.resumebuilder.dev`. When asked to debug an installed-app-only issue, read both log files before speculating.
+
 ## Skills
 
 - `tailwind-ui-designer` (`.claude/skills/tailwind-ui-designer/SKILL.md`) — invoke whenever the user asks to build, restyle, or improve UI. Enforces the Tailwind v4 styling constraints above and follows the `frontend-design` skill.
