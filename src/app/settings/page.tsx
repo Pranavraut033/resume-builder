@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 
+import { exportAppData, importAppData } from "@/actions/backup";
 import {
   Alert,
   Badge,
@@ -14,8 +15,11 @@ import {
   SurfacePanel,
   Toggle,
 } from "@/components/ui";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
+import { useToast } from "@/components/ui/ToastProvider";
 import { useTheme } from "@/contexts/ThemeContext";
-import { setApiKey, getApiKey } from "@/lib/keyStorage";
+import { downloadFile } from "@/lib/download";
+import { setApiKey, getApiKey, isTauriContext } from "@/lib/keyStorage";
 import { validateProviderConnection } from "@/lib/llm/clientLLM";
 import { getAvailableProviders } from "@/lib/llm/providers";
 import { createLogger } from "@/lib/logger";
@@ -26,8 +30,13 @@ import { ProviderCard } from "../../components/settings/ProviderCard";
 
 const logger = createLogger("SettingsPage");
 
+// Once acknowledged, the OS keychain permission prompt (triggered the first
+// time we read a stored API key) doesn't need re-explaining on later visits.
+const KEYCHAIN_NOTICE_SEEN_KEY = "settings.keychainNoticeSeen";
+
 export default function SettingsPage() {
   const [keys, setKeys] = useState<Record<string, string>>({});
+  const [showKeychainNotice, setShowKeychainNotice] = useState(false);
   const [savingProvider, setSavingProvider] = useState<string | null>(null);
   const [validatingProvider, setValidatingProvider] = useState<string | null>(
     null
@@ -37,7 +46,12 @@ export default function SettingsPage() {
   >({});
   const [ollamaHost, setOllamaHost] = useState("http://localhost:11434");
   const { theme, setTheme } = useTheme();
+  const { pushToast } = useToast();
   const [telemetry, setTelemetry] = useState(false);
+  const [isBackingUp, setIsBackingUp] = useState(false);
+  const [isRestoring, setIsRestoring] = useState(false);
+  const [backupError, setBackupError] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const {
     modelsByProvider,
@@ -50,23 +64,38 @@ export default function SettingsPage() {
     setProviderModels,
   } = useModelStore();
 
-  useEffect(() => {
-    const loadData = async () => {
-      try {
-        await loadModels();
-        const providers = getAvailableProviders();
-        const loadedKeys: Record<string, string> = {};
-        for (const provider of providers) {
-          const key = await getApiKey(provider.type);
-          if (key) loadedKeys[provider.type] = key;
-        }
-        setKeys(loadedKeys);
-      } catch (err) {
-        logger.error("Error loading data", { err });
+  const loadData = async () => {
+    try {
+      await loadModels();
+      const providers = getAvailableProviders();
+      const loadedKeys: Record<string, string> = {};
+      for (const provider of providers) {
+        const key = await getApiKey(provider.type);
+        if (key) loadedKeys[provider.type] = key;
       }
-    };
+      setKeys(loadedKeys);
+    } catch (err) {
+      logger.error("Error loading data", { err });
+    }
+  };
+
+  useEffect(() => {
+    // Reading a stored key triggers an OS keychain permission prompt on
+    // first access in the desktop app. Explain that before it pops up
+    // unannounced, rather than firing it the instant this page mounts.
+    if (isTauriContext() && !localStorage.getItem(KEYCHAIN_NOTICE_SEEN_KEY)) {
+      setShowKeychainNotice(true);
+      return;
+    }
     loadData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loadModels]);
+
+  const handleKeychainNoticeConfirm = () => {
+    localStorage.setItem(KEYCHAIN_NOTICE_SEEN_KEY, "1");
+    setShowKeychainNotice(false);
+    loadData();
+  };
 
   const handleSaveKey = async (providerType: string) => {
     setSavingProvider(providerType);
@@ -111,6 +140,94 @@ export default function SettingsPage() {
     }
   };
 
+  const handleBackup = async () => {
+    setIsBackingUp(true);
+    setBackupError(null);
+    try {
+      const backup = await exportAppData();
+      downloadFile(
+        `resume-builder-backup-${new Date().toISOString().slice(0, 10)}.json`,
+        JSON.stringify(backup, null, 2),
+        "application/json"
+      );
+      pushToast({ title: "Backup downloaded", variant: "success" });
+    } catch (err) {
+      logger.error("Error exporting backup", { err });
+      setBackupError("Failed to download backup. Please try again.");
+    } finally {
+      setIsBackingUp(false);
+    }
+  };
+
+  const restoreFromText = async (text: string) => {
+    setBackupError(null);
+
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(text);
+    } catch (parseErr) {
+      logger.error("Error parsing backup file", { parseErr });
+      setBackupError("That file isn't valid JSON.");
+      return;
+    }
+
+    if (
+      !window.confirm(
+        "This will replace all current data and cannot be undone. Continue?"
+      )
+    ) {
+      return;
+    }
+
+    setIsRestoring(true);
+    try {
+      const result = await importAppData(parsed);
+      if (result.success) {
+        pushToast({ title: "Backup restored", variant: "success" });
+        window.location.reload();
+      } else {
+        setBackupError(result.error || "Failed to restore backup.");
+      }
+    } catch (err) {
+      logger.error("Error restoring backup", { err });
+      setBackupError("Failed to restore backup. Please try again.");
+    } finally {
+      setIsRestoring(false);
+    }
+  };
+
+  const handleRestoreClick = async () => {
+    if (isTauriContext()) {
+      try {
+        const { open } = await import("@tauri-apps/plugin-dialog");
+        const { readTextFile } = await import("@tauri-apps/plugin-fs");
+        const path = await open({
+          multiple: false,
+          directory: false,
+          filters: [{ name: "Backup", extensions: ["json"] }],
+        });
+        if (!path || Array.isArray(path)) return;
+        const text = await readTextFile(path);
+        await restoreFromText(text);
+      } catch (err) {
+        logger.error("Error opening backup file", { err });
+        setBackupError("Failed to open backup file. Please try again.");
+      }
+      return;
+    }
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      await restoreFromText(await file.text());
+    } finally {
+      e.target.value = "";
+    }
+  };
+
   // Only the 6 builtins + the managed provider are ever registered (see
   // providers/factory.ts), so narrowing the package's open ProviderId back
   // to our closed enum is safe.
@@ -122,6 +239,16 @@ export default function SettingsPage() {
 
   return (
     <div className="text-agent-on-surface min-h-full px-6 py-8">
+      <ConfirmDialog
+        isOpen={showKeychainNotice}
+        title="Secure Key Storage"
+        message="Curator AI encrypts your API keys and stores the encryption key in your operating system's keychain. Your OS will now ask you to allow access — click Allow to continue."
+        confirmLabel="Continue"
+        cancelLabel="Not now"
+        onConfirm={handleKeychainNoticeConfirm}
+        onCancel={() => setShowKeychainNotice(false)}
+      />
+
       <PageHeader
         title="Settings"
         description="Configure your intelligent drafting engine. All configurations are stored locally on your device."
@@ -146,6 +273,12 @@ export default function SettingsPage() {
       {error && (
         <Alert variant="error" onDismiss={clearError}>
           Error loading models: {error}
+        </Alert>
+      )}
+
+      {backupError && (
+        <Alert variant="error" onDismiss={() => setBackupError(null)}>
+          {backupError}
         </Alert>
       )}
 
@@ -306,6 +439,50 @@ export default function SettingsPage() {
                 </li>
               ))}
             </ul>
+          </SurfacePanel>
+        </PageSection>
+
+        {/* Backup & Restore */}
+        <PageSection title="Backup & Restore">
+          <SurfacePanel stack>
+            <SettingsRow
+              label="Download Backup"
+              description="Download all your data as a JSON file"
+              control={
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={handleBackup}
+                  disabled={isBackingUp}
+                >
+                  Download Backup
+                </Button>
+              }
+            />
+
+            <SettingsRow
+              label="Restore from File"
+              description="Replaces all current data with the contents of a backup file. This cannot be undone."
+              control={
+                <>
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={handleRestoreClick}
+                    disabled={isRestoring}
+                  >
+                    Restore from File…
+                  </Button>
+                  <input
+                    type="file"
+                    accept="application/json"
+                    ref={fileInputRef}
+                    className="hidden"
+                    onChange={handleFileChange}
+                  />
+                </>
+              }
+            />
           </SurfacePanel>
         </PageSection>
 
