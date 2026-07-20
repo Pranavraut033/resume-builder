@@ -90,7 +90,7 @@ export function DocumentCanvas({
 
   if (contentType === "coverLetter") {
     return (
-      <div className="flex flex-1 flex-col overflow-y-auto px-6 py-4">
+      <div className="flex min-h-0 flex-1 flex-col overflow-y-auto px-6 py-4">
         {/* Floating action bar */}
         <CoverLetterActionBar
           isHumanizerOpen={isHumanizerOpen}
@@ -132,10 +132,10 @@ export function DocumentCanvas({
   // ── Resume WYSIWYG canvas ──────────────────────────────────────────────────
 
   return (
-    <div className="relative flex flex-1 flex-col overflow-hidden">
+    <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden">
       <div
         ref={scrollRef}
-        className="flex flex-1 flex-col overflow-auto px-6 py-20"
+        className="flex min-h-0 flex-1 flex-col overflow-auto px-6 py-20"
       >
         {/* Placeholder sized to the scaled document so scrollbars stay accurate
             and the unscaled content (laid out at its natural width) can be

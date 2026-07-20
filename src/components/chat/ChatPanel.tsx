@@ -157,13 +157,13 @@ export function ChatPanel({ onClose: _close }: ChatPanelProps) {
         )}
       </div>
       {view === "ats" && atsAnalysis && (
-        <div className="flex-1 overflow-y-auto">
+        <div className="min-h-0 flex-1 overflow-y-auto">
           <ATSAnalysisPanel atsAnalysis={atsAnalysis} standalone />
         </div>
       )}
       {/* ── Settings view ───────────────────────────────────────────────── */}
       {view === "settings" && (
-        <div className="flex-1 overflow-y-auto px-4 py-5">
+        <div className="min-h-0 flex-1 overflow-y-auto px-4 py-5">
           <p
             className="mb-4 text-xs font-semibold tracking-widest uppercase"
             style={{ color: "var(--color-agent-on-surface-variant)" }}
@@ -195,7 +195,7 @@ export function ChatPanel({ onClose: _close }: ChatPanelProps) {
       {view === "chat" && (
         <>
           {/* Message list */}
-          <div className="flex-1 overflow-y-auto py-2">
+          <div className="min-h-0 flex-1 overflow-y-auto py-2">
             {messages.length === 0 ? (
               <div
                 className="flex h-full flex-col items-center justify-center gap-2 px-8 text-center"
