@@ -9,16 +9,19 @@ import { NextRequest, NextResponse } from "next/server";
 export function proxy(request: NextRequest) {
   const nonce = Buffer.from(crypto.randomUUID()).toString("base64");
 
-  // Turbopack/webpack's dev-mode HMR runtime executes updated module code via
-  // eval()/Function(), which CSP's script-src gates directly — only relax
-  // this in dev; production output has no eval.
-  const isDev = process.env.NODE_ENV !== "production";
+  // 'unsafe-eval' is needed in every env, not just dev: Turbopack/webpack's
+  // HMR runtime uses eval()/Function() in dev, and in production Handlebars
+  // (packages/llm-core/src/prompts/resolver.ts) JIT-compiles prompt
+  // templates via `new Function(...)` on every LLM call. Only fixed,
+  // developer-authored template strings are compiled this way — user input
+  // (job descriptions, resume text) is passed as template *data*, never
+  // compiled — so this doesn't expose an eval-user-content vector.
   const csp = [
     "default-src 'self'",
     "connect-src 'self' http://127.0.0.1:3008 http://localhost:3008 https:",
     "img-src 'self' data: blob:",
     "style-src 'self' 'unsafe-inline'",
-    `script-src 'self' 'nonce-${nonce}' 'strict-dynamic'${isDev ? " 'unsafe-eval'" : ""}`,
+    `script-src 'self' 'nonce-${nonce}' 'strict-dynamic' 'unsafe-eval'`,
     "font-src 'self' data:",
   ].join("; ");
 
