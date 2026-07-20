@@ -25,7 +25,10 @@ const ALLOWED_PROTOCOLS = ["http:", "https:"];
 async function isPrivateOrDisallowedHost(hostname: string): Promise<boolean> {
   let addresses: dns.LookupAddress[];
   try {
-    addresses = await dns.promises.lookup(hostname, { all: true, verbatim: true });
+    addresses = await dns.promises.lookup(hostname, {
+      all: true,
+      verbatim: true,
+    });
   } catch {
     // If DNS resolution fails, treat as disallowed - we can't verify safety.
     return true;
@@ -139,7 +142,11 @@ export async function fetchJobDescriptionFromUrl(
     let response: Response | undefined;
     let currentUrl = validatedUrl;
 
-    for (let redirectCount = 0; redirectCount <= MAX_REDIRECTS; redirectCount++) {
+    for (
+      let redirectCount = 0;
+      redirectCount <= MAX_REDIRECTS;
+      redirectCount++
+    ) {
       response = await fetch(currentUrl.toString(), {
         method: "GET",
         redirect: "manual",

@@ -30,7 +30,9 @@ describe("fetchJobDescriptionFromUrl", () => {
     const fetchSpy = vi.fn();
     global.fetch = fetchSpy as unknown as typeof fetch;
 
-    const result = await fetchJobDescriptionFromUrl("http://localhost.example.com/job");
+    const result = await fetchJobDescriptionFromUrl(
+      "http://localhost.example.com/job"
+    );
 
     expect(result.success).toBe(false);
     expect(result.error).toMatch(/disallowed|internal/i);
@@ -42,7 +44,9 @@ describe("fetchJobDescriptionFromUrl", () => {
     const fetchSpy = vi.fn();
     global.fetch = fetchSpy as unknown as typeof fetch;
 
-    const result = await fetchJobDescriptionFromUrl("http://internal.example.com/job");
+    const result = await fetchJobDescriptionFromUrl(
+      "http://internal.example.com/job"
+    );
 
     expect(result.success).toBe(false);
     expect(result.error).toMatch(/disallowed|internal/i);
@@ -54,7 +58,9 @@ describe("fetchJobDescriptionFromUrl", () => {
     const fetchSpy = vi.fn();
     global.fetch = fetchSpy as unknown as typeof fetch;
 
-    const result = await fetchJobDescriptionFromUrl("http://metadata.example.com/latest/meta-data");
+    const result = await fetchJobDescriptionFromUrl(
+      "http://metadata.example.com/latest/meta-data"
+    );
 
     expect(result.success).toBe(false);
     expect(fetchSpy).not.toHaveBeenCalled();
@@ -74,7 +80,9 @@ describe("fetchJobDescriptionFromUrl", () => {
     });
     global.fetch = fetchSpy as unknown as typeof fetch;
 
-    const result = await fetchJobDescriptionFromUrl("http://public.example.com/job");
+    const result = await fetchJobDescriptionFromUrl(
+      "http://public.example.com/job"
+    );
 
     expect(result.success).toBe(false);
     expect(result.error).toMatch(/disallowed|internal/i);
@@ -99,7 +107,9 @@ describe("fetchJobDescriptionFromUrl", () => {
     });
     global.fetch = fetchSpy as unknown as typeof fetch;
 
-    const result = await fetchJobDescriptionFromUrl("http://public.example.com/job");
+    const result = await fetchJobDescriptionFromUrl(
+      "http://public.example.com/job"
+    );
 
     expect(result.success).toBe(true);
     expect(result.content).toContain("Senior Software Engineer");

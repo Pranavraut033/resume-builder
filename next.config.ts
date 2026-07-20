@@ -65,32 +65,11 @@ class SourceIgnoreListPlugin {
 // (`http://127.0.0.1:3008`) rather than through Tauri's `tauri://` asset
 // protocol, so `security.csp` in tauri.conf.json is never actually injected
 // into the window — Tauri only sets that header for its own protocol.
-// Enforcement has to happen here instead, at the source.
-//
-// Turbopack/webpack's dev-mode HMR runtime executes updated module code via
-// eval()/Function(), which CSP's script-src gates directly (it covers those
-// APIs, not just <script src> origins) — without 'unsafe-eval' the very
-// first HMR-eligible chunk throws and hydration breaks app-wide. Production
-// output has no eval, so only relax this in dev.
-const CSP = [
-  "default-src 'self'",
-  "connect-src 'self' http://127.0.0.1:3008 http://localhost:3008 https:",
-  "img-src 'self' data: blob:",
-  "style-src 'self' 'unsafe-inline'",
-  `script-src 'self'${process.env.NODE_ENV !== "production" ? " 'unsafe-eval'" : ""}`,
-  "font-src 'self' data:",
-].join("; ");
+// Enforcement happens in `src/proxy.ts` instead, at the source (a nonce
+// has to be generated per-request, which `headers()` here can't do).
 
 const nextConfig: NextConfig = {
   output: "standalone",
-  async headers() {
-    return [
-      {
-        source: "/:path*",
-        headers: [{ key: "Content-Security-Policy", value: CSP }],
-      },
-    ];
-  },
   // Turbopack is the default bundler in Next.js 16+.
   // An empty config here silences the "webpack config present but no turbopack config" warning.
   turbopack: {},

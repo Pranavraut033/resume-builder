@@ -7,7 +7,7 @@
   },
   "scripts": {
     "dev": "next dev -p 3008",
-    "tauri": "tauri",
+    "tauri": "npx -y dotenv-cli -e .env -- tauri",
     "desktop": "tauri dev",
     "build": "next build",
     "prepare:tauri-server": "node scripts/prepareTauriServer.mjs",
