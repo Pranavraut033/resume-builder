@@ -421,9 +421,7 @@ function parseSkillsFromEdit(text: string): Skill[] {
     .flatMap((segment) => {
       const colonIndex = segment.indexOf(":");
       const hasCategory = colonIndex !== -1;
-      const category = hasCategory
-        ? segment.slice(0, colonIndex).trim()
-        : undefined;
+      const category = hasCategory ? segment.slice(0, colonIndex).trim() : null;
       const skillsPart = hasCategory ? segment.slice(colonIndex + 1) : segment;
       return skillsPart
         .split(",")
@@ -432,11 +430,7 @@ function parseSkillsFromEdit(text: string): Skill[] {
         .map((raw): Skill => {
           const primary = raw.startsWith("*");
           const name = primary ? raw.slice(1).trim() : raw;
-          return {
-            name,
-            ...(category ? { category } : {}),
-            ...(primary ? { tier: "primary" as const } : {}),
-          };
+          return { name, category, tier: primary ? "primary" : null };
         });
     })
     .filter((s) => s.name.length > 0);

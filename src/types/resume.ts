@@ -266,8 +266,12 @@ export function getSectionLayout(resume: ResumeJSON): SectionLayout {
 
 export const SkillSchema = z.object({
   name: z.string(),
-  category: z.string().optional(),
-  tier: z.enum(["primary", "secondary"]).optional(),
+  // `.nullable()` (not `.optional()`) so every field stays in the JSON
+  // schema's `required` list — OpenAI's structured-outputs API rejects
+  // optional-without-nullable fields (see other `.nullable()` fields in
+  // this file for the same convention).
+  category: z.string().nullable(),
+  tier: z.enum(["primary", "secondary"]).nullable(),
 });
 export type Skill = z.infer<typeof SkillSchema>;
 
@@ -276,16 +280,17 @@ export type Skill = z.infer<typeof SkillSchema>;
  *
  * Existing rows stored `skillsJson` as a flat `string[]` (e.g.
  * `["React", "TypeScript"]`) before grouping/tiering was introduced. Map
- * legacy string entries to `{ name }` and validate/pass through object
- * entries, so every DB-read boundary produces the current `Skill[]` shape
- * regardless of when the row was written. Entries that don't validate as
- * either shape are dropped rather than throwing — a malformed skill
- * shouldn't fail the whole read.
+ * legacy string entries to `{ name, category: null, tier: null }` and
+ * validate/pass through object entries, so every DB-read boundary produces
+ * the current `Skill[]` shape regardless of when the row was written.
+ * Entries that don't validate as either shape are dropped rather than
+ * throwing — a malformed skill shouldn't fail the whole read.
  */
 export function normalizeSkills(raw: unknown): Skill[] {
   if (!Array.isArray(raw)) return [];
   return raw.flatMap((entry): Skill[] => {
-    if (typeof entry === "string") return [{ name: entry }];
+    if (typeof entry === "string")
+      return [{ name: entry, category: null, tier: null }];
     const parsed = SkillSchema.safeParse(entry);
     return parsed.success ? [parsed.data] : [];
   });

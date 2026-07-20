@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import { EditFieldOutputSchema } from "@/lib/llm/chat-bot/prompts/extractFieldsToEdit";
 import "@/lib/llm/chat-bot/prompts/keywordMappingPrompt";
 import { getPromptByPurpose, templateRegistry } from "@/lib/llm/prompts";
+import { COVER_LETTER_STYLES } from "@/lib/llm/prompts/coverLetterStyles";
 import { PromptContext, PromptPurpose } from "@/lib/llm/prompts/types";
 import { ATSAnalysisJSON, JobDetailsJSON, ResumeJSON } from "@/types/resume";
 
@@ -44,8 +45,8 @@ const sampleResume: ResumeJSON = {
   skills: [
     { name: "TypeScript", category: "Languages", tier: "primary" },
     { name: "PostgreSQL", category: "Databases", tier: "primary" },
-    { name: "Kafka", category: "Tools" },
-    { name: "Docker", category: "Tools" },
+    { name: "Kafka", category: "Tools", tier: null },
+    { name: "Docker", category: "Tools", tier: null },
   ],
   education: [
     {
@@ -257,6 +258,31 @@ describe("prompt templates resolve cleanly", () => {
     const resolved = getPromptByPurpose("generate_cover_letter", baseContext);
     expect(resolved.userPrompt).not.toContain("OLD COVER LETTER");
   });
+
+  it("generate_cover_letter falls back to the standard structure without a styleGuide", () => {
+    const resolved = getPromptByPurpose("generate_cover_letter", baseContext);
+    expect(resolved.systemPrompt).toContain("Para 3 — Company signal");
+  });
+
+  it.each(
+    Object.entries(COVER_LETTER_STYLES).filter(
+      ([, style]) => style.promptFragment
+    )
+  )(
+    "generate_cover_letter style %s resolves and injects its structure",
+    (_id, style) => {
+      const resolved = getPromptByPurpose("generate_cover_letter", {
+        ...baseContext,
+        styleGuide: style.promptFragment ?? undefined,
+      });
+
+      expect(resolved.systemPrompt).not.toMatch(/\{\{|\}\}/);
+      expect(resolved.systemPrompt).toContain(
+        style.promptFragment!.split("\n")[0]
+      );
+      expect(resolved.systemPrompt).not.toContain("Para 3 — Company signal");
+    }
+  );
 
   it("extract_fields_to_edit output schema still matches RESUME_FIELD_NAMES-based routing", () => {
     const parsed = EditFieldOutputSchema.safeParse({

@@ -69,7 +69,7 @@ export function SkillsSection({ skills, onChange }: SkillsSectionProps) {
       (currentGroup?.skills ?? []).map((s) => [s.name, s])
     );
     const nextSkills: Skill[] = names.map(
-      (name) => byName.get(name) ?? { name, category: category ?? undefined }
+      (name) => byName.get(name) ?? { name, category, tier: null }
     );
     replaceCategoryGroup(category, nextSkills);
   };
@@ -81,7 +81,7 @@ export function SkillsSection({ skills, onChange }: SkillsSectionProps) {
       s.name === skillName
         ? {
             ...s,
-            tier: s.tier === "primary" ? undefined : ("primary" as const),
+            tier: s.tier === "primary" ? null : ("primary" as const),
           }
         : s
     );

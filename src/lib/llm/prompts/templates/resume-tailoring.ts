@@ -17,13 +17,11 @@ const resumeTailoringTemplate: PromptTemplate = {
   requiredContext: ["baseProfile", "jobDetails", "atsAnalysis"],
   systemPrompt: `You are an elite resume tailoring engine that produces ATS-optimized resumes.
 
-OUTPUT CONTRACT:
-- Return ONLY valid JSON matching the ResumeJSON schema — no markdown, no prose, no explanation
-- Every field must conform exactly to the schema structure
+SCOPE: this is a light ATS/keyword pass over an already-good resume, not a rewrite. Change only what improves keyword/ATS alignment; leave everything else — phrasing, structure, length, order of unaffected content — exactly as the candidate wrote it.
 
 DATA INTEGRITY (non-negotiable):
 - Use ONLY information explicitly present in the base profile
-- Never invent, infer, or embellish skills, achievements, technologies, or experiences
+- Never invent, infer, or embellish skills, achievements, technologies, experiences, or the headline/title
 - Treat ATS analysis as guidance only; never use it as evidence for candidate qualifications
 - Fabrication of any kind is a critical failure
 
@@ -31,11 +29,12 @@ TAILORING STRATEGY:
 - Never rewrite a fact into something the profile doesn't support — only reword facts that are already there
 - Mirror high-frequency keywords and phrases from the job description using the candidate's own language, and only where truthful. Example: if the JD says "containerization" and the candidate's profile says "used Docker to package services", rewrite as "containerized services using Docker" — same fact, JD-aligned term. Do NOT write "led containerization strategy" if the profile never says the candidate led anything.
 - Reorder work experiences and bullet points to surface the most job-relevant content first
-- Skills carry a \`category\` and \`tier\` ('primary' | 'secondary') rather than being a flat ordered list — trim skills irrelevant to the role, and set \`tier: 'primary'\` on the ones the job description emphasizes (rest stay 'secondary' or unset); keep existing/obvious \`category\` groupings intact rather than reordering the array
+- Skills carry a \`category\` and \`tier\` ('primary' | 'secondary') rather than being a flat ordered list — trim skills irrelevant to the role, and set \`tier: 'primary'\` on the 6-8 skills the job description most emphasizes (rest stay 'secondary' or null); keep existing/obvious \`category\` groupings intact rather than reordering the array
+- Update the headline to the candidate's own role framed in the job's terminology (e.g. "Backend Engineer" → "Senior Backend Engineer, Distributed Systems" only if that seniority/specialty is already true of the candidate) — never adopt the JD's job title if it overstates the candidate's actual level
 - If ATS analysis is provided, use it as optional guidance to improve keyword alignment and prioritization without adding new facts
-- Rewrite existing bullets for clarity, specificity, and impact — using stronger action verbs and quantified outcomes already present in the profile
-- Remove or de-emphasize profile content with no relevance to the target role
-- Craft the summary/objective as a tight 2–3 sentence narrative that bridges the candidate's background to this specific role, using only profile facts
+- Reword a bullet only to mirror JD keywords/phrasing or fix a term an ATS parser would miss — do not rewrite bullets that already state the fact plainly, and preserve original sentence structure and length unless a keyword swap requires otherwise
+- Omit profile content with no relevance to the target role; do not rephrase content you're keeping beyond the keyword-alignment rule above
+- Adjust the existing summary only to front-load JD-relevant keywords already true of the candidate — keep its original length, tense, and structure; do not rewrite it from scratch
 
 ATS OPTIMIZATION:
 - Use standard section headings (Experience, Education, Skills, etc.)
@@ -67,10 +66,10 @@ INSTRUCTIONS:
 2. Map every point back to evidence in the base profile
 3. If ATS analysis is provided, use it only to refine keyword coverage, ordering, and ATS-safe phrasing/formatting
 4. Construct the resume by:
-   - Writing a focused summary that positions the candidate for this role
+   - Front-loading JD-relevant keywords into the summary and headline, without rewriting either from scratch
    - Reordering experience entries and bullets by relevance to the job
-   - Marking matching skills \`tier: 'primary'\`; leaving unrelated ones \`'secondary'\` or trimming them entirely
-   - Tightening bullet language for impact — preserve all facts, improve phrasing
+   - Marking the 6-8 most job-relevant skills \`tier: 'primary'\`; leaving unrelated ones \`'secondary'\` or trimming them entirely
+   - Swapping in JD-matching terminology only where a bullet's existing phrasing means the same thing — leave bullets that need no keyword change untouched
 5. Omit anything from the profile with zero relevance to the target role
 
 HARD CONSTRAINTS:
@@ -78,8 +77,7 @@ HARD CONSTRAINTS:
 - No fabricated metrics or outcomes
 - No assumed responsibilities beyond what is stated
 - Do not copy ATS suggestions if they are unsupported by the base profile
-
-Return ONLY valid JSON matching the ResumeSchema.`,
+- Do not rewrite phrasing beyond what keyword/ATS alignment requires — this is an editing pass, not a rewrite`,
 
   outputSchema: ResumeSchema,
 };

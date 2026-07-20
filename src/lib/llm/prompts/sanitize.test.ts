@@ -10,7 +10,8 @@ describe("sanitizeUntrustedText", () => {
   });
 
   it("leaves ordinary text untouched", () => {
-    const text = "Senior Backend Engineer at Acme Corp - built payments platform.";
+    const text =
+      "Senior Backend Engineer at Acme Corp - built payments platform.";
     expect(sanitizeUntrustedText(text)).toBe(text);
   });
 
@@ -45,17 +46,20 @@ describe("sanitizeUntrustedText", () => {
   });
 
   it("neutralizes standalone ``` and ```json fence lines", () => {
-    const injected = 'before\n```\nmalicious\n```json\nmore\nafter';
+    const injected = "before\n```\nmalicious\n```json\nmore\nafter";
     const sanitized = sanitizeUntrustedText(injected);
 
     expect(
-      sanitized.split("\n").some((line) => /^`{3,}[a-zA-Z0-9_-]*$/.test(line.trim()))
+      sanitized
+        .split("\n")
+        .some((line) => /^`{3,}[a-zA-Z0-9_-]*$/.test(line.trim()))
     ).toBe(false);
     expect(sanitized).toContain("\\`\\`\\`");
   });
 
   it("does not touch dashes/backticks that are not alone on a line", () => {
-    const text = "We use a `code` snippet - and a well-known --- inline dash-ish phrase.";
+    const text =
+      "We use a `code` snippet - and a well-known --- inline dash-ish phrase.";
     expect(sanitizeUntrustedText(text)).toBe(text);
   });
 });

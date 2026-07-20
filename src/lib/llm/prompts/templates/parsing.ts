@@ -72,7 +72,7 @@ NORMALIZATION RULES:
 - If the source states a specific month, use it. If only a year is given, use null for the date rather than guessing a month.
 - Remove formatting artifacts (bullets, symbols, extra whitespace)
 - Keep factual content unchanged
-- For skills: infer each skill's \`category\` from context (e.g. a "Languages" or "Frameworks" heading in the source) only when it's obvious; omit \`category\` otherwise. Do NOT invent a \`tier\` — leave it absent unless the resume itself signals emphasis (e.g. bolding, a "Core Skills" heading).`,
+- For skills: infer each skill's \`category\` from context (e.g. a "Languages" or "Frameworks" heading in the source) only when it's obvious; use \`null\` otherwise. Do NOT invent a \`tier\` — set it to \`null\` unless the resume itself signals emphasis (e.g. bolding, a "Core Skills" heading).`,
 
   userPrompt: `Extract structured information from the following resume text.
 

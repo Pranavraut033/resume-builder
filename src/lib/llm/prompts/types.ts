@@ -17,6 +17,7 @@ export interface PromptContext {
   field?: string;
   additionalInstructions?: string;
   userInput?: string;
+  styleGuide?: string;
 }
 
 export type FieldType =

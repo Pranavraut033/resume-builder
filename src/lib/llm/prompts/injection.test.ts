@@ -47,7 +47,7 @@ const sampleResume: ResumeJSON = {
   summary: "Backend engineer with 6 years building payment infrastructure.",
   experience: [],
   projects: [],
-  skills: [{ name: "TypeScript" }],
+  skills: [{ name: "TypeScript", category: null, tier: null }],
   education: [],
   certifications: [],
   publications: null,

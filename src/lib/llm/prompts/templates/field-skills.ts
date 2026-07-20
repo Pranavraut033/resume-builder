@@ -22,8 +22,8 @@ const skillsTemplate: PromptTemplate = {
     "Only include skills already present in the candidate's resume — never add new ones",
     "Order: exact required matches → semantic required matches → tech stack overlaps → nice-to-haves → remaining relevant skills",
     "Use the exact terminology from the job description where the candidate's skill is equivalent (e.g. prefer 'PostgreSQL' over 'SQL' if that's what the JD uses and the candidate knows it)",
-    "Group into categories where 4+ skills share a domain (e.g. Languages, Frameworks, Cloud, Tools) — set each skill's `category` field accordingly, omit it for skills that don't fit a group",
-    "Mark the 6-8 most job-relevant skills (the strongest matches to the job requirements) with `tier: 'primary'`; leave the rest `tier: 'secondary'` or omit tier entirely",
+    "Group into categories where 4+ skills share a domain (e.g. Languages, Frameworks, Cloud, Tools) — set each skill's `category` field accordingly, use `null` for skills that don't fit a group",
+    "Mark the 6-8 most job-relevant skills (the strongest matches to the job requirements) with `tier: 'primary'`; set `tier` to `'secondary'` or `null` for the rest",
     "Omit soft skills unless explicitly listed as required in the job description",
     "Remove duplicates and near-duplicates — keep the more specific term",
   ],
@@ -33,10 +33,11 @@ const skillsTemplate: PromptTemplate = {
   systemPrompt: `You are a technical skills curator specializing in ATS-optimized resume optimization.
 
 OUTPUT CONTRACT:
-- Return ONLY valid JSON matching the schema: { skills: { name: string; category?: string; tier?: 'primary' | 'secondary' }[] }
+- Return ONLY valid JSON matching the schema: { skills: { name: string; category: string | null; tier: 'primary' | 'secondary' | null }[] }
 - \`name\` is the plain skill string — no markdown, no bullet prefixes
-- \`category\` groups related skills (e.g. "Languages", "Frameworks") — omit when a skill doesn't share a domain with 3+ others
-- \`tier: 'primary'\` marks the 6-8 skills most relevant to this job; everything else should be \`'secondary'\` or omitted
+- \`category\` groups related skills (e.g. "Languages", "Frameworks") — set to \`null\` when a skill doesn't share a domain with 3+ others
+- \`tier: 'primary'\` marks the 6-8 skills most relevant to this job; everything else should be \`'secondary'\` or \`null\`
+- Both fields are required keys — never omit them, use \`null\` instead of leaving them out
 
 DATA INTEGRITY (non-negotiable):
 - Output ONLY skills explicitly present in the candidate's resume
@@ -71,8 +72,8 @@ Return ONLY valid JSON: { "skills": [...] }. Example:
   { "name": "PostgreSQL", "category": "Databases", "tier": "primary" },
   { "name": "TypeScript", "category": "Languages", "tier": "primary" },
   { "name": "React", "category": "Frameworks", "tier": "secondary" },
-  { "name": "Docker", "category": "Tools" },
-  { "name": "AWS", "category": "Cloud" }
+  { "name": "Docker", "category": "Tools", "tier": null },
+  { "name": "AWS", "category": "Cloud", "tier": null }
 ] }`,
 
   outputSchema: z.object({
