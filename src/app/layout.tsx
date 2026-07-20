@@ -1,4 +1,5 @@
 import { Geist, Geist_Mono } from "next/font/google";
+import { headers } from "next/headers";
 
 import AppShell from "@/components/AppShell";
 
@@ -21,11 +22,19 @@ export const metadata: Metadata = {
   description: "AI-powered resume builder",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  // Reading headers() opts this layout (and everything under it) out of
+  // static rendering/full-route-caching, which is required for the
+  // per-request CSP nonce (src/proxy.ts) to actually reach the framework's
+  // hydration script tags — a statically cached page bakes those tags once,
+  // with no nonce, and every later request's fresh nonce then fails to
+  // match, silently blocking all JS under the 'strict-dynamic' CSP.
+  await headers();
+
   return (
     <html lang="en">
       <body

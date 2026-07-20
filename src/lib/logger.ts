@@ -60,6 +60,54 @@ const DEFAULT_CONFIG: LoggerConfig = {
   customHandler: undefined,
 };
 
+// The built desktop app has no attached console, so client-side logs are
+// mirrored to $APPDATA/logs/client.log for post-install debugging (see
+// docs/DEBUGGING.md). Duplicated from keyStorage.ts's isTauriContext to
+// avoid a circular import (keyStorage.ts imports this module for its own
+// logger).
+function isTauriRuntime(): boolean {
+  if (typeof window === "undefined") return false;
+  const internals = (window as unknown as { __TAURI_INTERNALS__?: unknown })
+    .__TAURI_INTERNALS__;
+  return typeof internals === "object" && internals !== null;
+}
+
+const LOG_FILE = "logs/client.log";
+// ponytail: no rotation/size cap — delete the file by hand if it grows large
+let fileWriteQueue: Promise<void> = Promise.resolve();
+
+function appendToLogFile(entry: LogEntry): void {
+  if (!isTauriRuntime()) return;
+
+  const line =
+    JSON.stringify({
+      timestamp: entry.timestamp,
+      level: entry.level,
+      tag: entry.tag,
+      message: entry.message,
+      ...(entry.data !== undefined && { data: entry.data }),
+    }) + "\n";
+
+  fileWriteQueue = fileWriteQueue
+    .then(async () => {
+      const { mkdir, writeTextFile, BaseDirectory } = await import(
+        "@tauri-apps/plugin-fs"
+      );
+      await mkdir("logs", {
+        baseDir: BaseDirectory.AppData,
+        recursive: true,
+      }).catch(() => {});
+      await writeTextFile(LOG_FILE, line, {
+        baseDir: BaseDirectory.AppData,
+        append: true,
+      });
+    })
+    .catch((error) => {
+      // Use the raw console to avoid recursing back into the logger.
+      _console.warn("Failed to write log file", error);
+    });
+}
+
 /**
  * Logger class for structured, environment-aware logging
  */
@@ -230,6 +278,8 @@ export class Logger {
       this.writeToConsole(entry);
     }
 
+    appendToLogFile(entry);
+
     if (this.config.customHandler) {
       this.config.customHandler(entry);
     }
@@ -310,6 +360,30 @@ export class ScopedLogger {
 
 // Singleton instance
 const defaultLogger = new Logger();
+
+// Uncaught errors and rejected promises never go through logger.*() calls,
+// so a silent crash (e.g. a click handler throwing before its try/catch)
+// would otherwise leave no trace in client.log. Install global catch-alls
+// once per page load.
+if (typeof window !== "undefined") {
+  const flag = window as unknown as { __loggerGlobalHandlersInstalled?: boolean };
+  if (!flag.__loggerGlobalHandlersInstalled) {
+    flag.__loggerGlobalHandlersInstalled = true;
+    window.addEventListener("error", (event) => {
+      defaultLogger.error("window", event.message || "Uncaught error", {
+        filename: event.filename,
+        lineno: event.lineno,
+        colno: event.colno,
+        error: event.error,
+      });
+    });
+    window.addEventListener("unhandledrejection", (event) => {
+      defaultLogger.error("window", "Unhandled promise rejection", {
+        reason: event.reason,
+      });
+    });
+  }
+}
 
 /**
  * Get the default logger instance
