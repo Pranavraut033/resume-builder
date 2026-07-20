@@ -33,6 +33,8 @@ interface ChatContextType {
   input: string;
   isLoading: boolean;
   isProviderReady: boolean;
+  providerError: string | null;
+  retryProviderInit: () => void;
   atsAnalysis: ATSAnalysisJSON | null;
   defaultView: ViewMode;
   setInput: (value: string) => void;
@@ -50,7 +52,9 @@ export function ChatContextProvider({ children }: { children: ReactNode }) {
     profile,
     atsAnalysis: initialAtsAnalysis,
     job,
+    customization,
     updateResumeState,
+    saveToDb,
   } = useJobPageContext();
 
   const { activeModelPair } = useModelStore();
@@ -59,6 +63,8 @@ export function ChatContextProvider({ children }: { children: ReactNode }) {
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [isProviderReady, setIsProviderReady] = useState(false);
+  const [providerError, setProviderError] = useState<string | null>(null);
+  const [retryNonce, setRetryNonce] = useState(0);
   const [atsAnalysis, setAtsAnalysis] = useState<ATSAnalysisJSON | null>(
     initialAtsAnalysis
   );
@@ -68,10 +74,21 @@ export function ChatContextProvider({ children }: { children: ReactNode }) {
     !activeModelPair ? "settings" : "chat"
   );
 
+  const retryProviderInit = useCallback(() => {
+    setProviderError(null);
+    setRetryNonce((n) => n + 1);
+  }, []);
+
+  // Constructs the bot once per model selection (or retry) — NOT on every
+  // resume/job.details/profile change. Rebuilding on every resume edit would
+  // wipe chatHistory each time the chatbot itself makes an edit; the effects
+  // below keep the bot's resume/JD in sync without losing conversation memory.
   useEffect(() => {
     if (!activeModelPair) return;
 
     hasOpenedOnce.current = true;
+    setIsProviderReady(false);
+    setProviderError(null);
 
     const [providerType, model] = activeModelPair;
     const bot = new ResumeChatBot(
@@ -91,11 +108,15 @@ export function ChatContextProvider({ children }: { children: ReactNode }) {
         clearInterval(interval);
       } else if (attempts > 50) {
         clearInterval(interval);
+        setProviderError(
+          `Couldn't connect to ${providerType}. Check your API key/settings and retry.`
+        );
       }
     }, 100);
 
     return () => clearInterval(interval);
-  }, [, activeModelPair, resume, job.details, profile]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeModelPair, retryNonce]);
 
   useEffect(() => {
     if (!botRef.current) return;
@@ -121,8 +142,11 @@ export function ChatContextProvider({ children }: { children: ReactNode }) {
       const updatedResume = ResumeSchema.parse(data);
       updateResumeState(updatedResume, note);
       botRef.current?.setResume(updatedResume);
+      // Persist AI edits immediately (updateResumeAction snapshots the prior
+      // version), instead of leaving them stranded in memory until a manual save.
+      saveToDb("resume", updatedResume, customization);
     },
-    [updateResumeState]
+    [updateResumeState, saveToDb, customization]
   );
 
   const fixMissingKeywords = useCallback(
@@ -140,11 +164,35 @@ export function ChatContextProvider({ children }: { children: ReactNode }) {
             const usage = event.args.usage;
             trackTokenUsage(usage);
             updateResumeStates(event.args.updatedResume, event.args.note);
+            setMessages((prev) => [
+              ...prev,
+              {
+                id: makeId(),
+                role: "tool",
+                content: event.args.summary ?? "",
+                toolResult: { intent: event.intent, args: event.args },
+                timestamp: now(),
+              },
+            ]);
           }
           if (event.type === "error") {
             throw new Error(event.message);
           }
         }
+      } catch (err) {
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: makeId(),
+            role: "assistant",
+            content: "",
+            timestamp: now(),
+            error:
+              err instanceof Error
+                ? err.message
+                : "Failed to fix missing keywords",
+          },
+        ]);
       } finally {
         setIsLoading(false);
       }
@@ -275,6 +323,8 @@ export function ChatContextProvider({ children }: { children: ReactNode }) {
         input,
         isLoading,
         isProviderReady,
+        providerError,
+        retryProviderInit,
         atsAnalysis,
         defaultView,
         setInput,

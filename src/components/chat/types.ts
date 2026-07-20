@@ -86,7 +86,7 @@ export function getToolResultMeta(
   switch (intent) {
     case IntentLabel.Edit:
       return {
-        heading: `Updated · ${String(args.field ?? "field")}`,
+        heading: String(args.note ?? "Updated resume"),
         icon: "pencil",
       };
     case IntentLabel.Regenerate:

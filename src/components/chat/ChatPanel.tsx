@@ -26,6 +26,8 @@ export function ChatPanel({ onClose: _close }: ChatPanelProps) {
     messages,
     isLoading,
     isProviderReady,
+    providerError,
+    retryProviderInit,
     input,
     atsAnalysis,
     setInput: onInputChange,
@@ -42,14 +44,6 @@ export function ChatPanel({ onClose: _close }: ChatPanelProps) {
     if (_close) _close();
     resetSession();
   }, [_close, resetSession]);
-
-  // const onSnapPositionChange = useCallback(
-  //   (pos: "left" | "right" | "undocked") => {
-  //     setChatSnapPosition(pos);
-  //     if (pos === "undocked" && onClose) onClose();
-  //   },
-  //   [onClose, setChatSnapPosition]
-  // );
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -113,51 +107,6 @@ export function ChatPanel({ onClose: _close }: ChatPanelProps) {
         >
           Resume AI
         </span>
-        {/* Snap position controls — only shown when the snap prop is wired up */}
-        {/* <>
-          <button
-            type="button"
-            title="Snap left"
-            onClick={() => onSnapPositionChange("left")}
-            className={cn(
-              "flex h-7 w-7 items-center justify-center rounded-md transition-colors",
-              {
-                "bg-agent-primary text-agent-on-primary":
-                  snapPosition === "left",
-                "text-agent-on-surface-variant bg-transparent":
-                  snapPosition !== "left",
-              }
-            )}
-          >
-            <Icon name="panelLeft" className="h-3.5 w-3.5" />
-          </button>
-          <button
-            type="button"
-            title="Snap right"
-            onClick={() => onSnapPositionChange("right")}
-            className={cn(
-              "flex h-7 w-7 items-center justify-center rounded-md transition-colors",
-              {
-                "bg-agent-primary text-agent-on-primary":
-                  snapPosition === "right",
-                "text-agent-on-surface-variant bg-transparent":
-                  snapPosition !== "right",
-              }
-            )}
-          >
-            <Icon name="panelRight" className="h-3.5 w-3.5" />
-          </button>
-          {isDocked && (
-            <button
-              type="button"
-              title="Undock panel"
-              onClick={() => onSnapPositionChange("undocked")}
-              className="text-agent-on-surface-variant hover:bg-agent-surface-high flex h-7 w-7 items-center justify-center rounded-md transition-colors"
-            >
-              <Icon name="panelLeftClose" className="h-3.5 w-3.5" />
-            </button>
-          )}
-        </> */}
         {/*Ats analysis result is present, show an "ATS Analysis" badge in the header*/}
         {atsAnalysis && (
           <button
@@ -279,6 +228,17 @@ export function ChatPanel({ onClose: _close }: ChatPanelProps) {
             {isProviderReady ? (
               <p className="text-agent-on-surface-variant mb-2 text-[10px]">
                 Using <ModelSelector variant="minimal" />.
+              </p>
+            ) : providerError ? (
+              <p className="text-agent-error mb-2 flex items-center gap-2 text-[10px]">
+                {providerError}
+                <button
+                  type="button"
+                  onClick={retryProviderInit}
+                  className="text-agent-primary font-semibold underline"
+                >
+                  Retry
+                </button>
               </p>
             ) : (
               <p className="text-agent-on-surface-variant mb-2 text-[10px]">

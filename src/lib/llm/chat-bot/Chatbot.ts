@@ -311,13 +311,6 @@ class ResumeChatBot {
       }
 
       if (intent === "other") {
-        // For "other" intent, we want to accumulate the full response and user message as training data to help the model learn to classify better over time
-        this.pushToHistory(
-          "intent",
-          { role: "user", content: userInput },
-          { role: "assistant", content: fullResponse }
-        );
-
         logger.warn(
           "ResumeChatBot",
           "LLM failed to classify intent, defaulting to 'other'"
@@ -362,20 +355,16 @@ class ResumeChatBot {
     this.isSessionInitialized();
 
     switch (intent) {
-      case "regenerate":
-      case "tailor": {
+      case "regenerate": {
         logger.info(
           "ResumeChatBot",
-          `Generating resume — intent: ${intent}, baseProfile: ${intent === IntentLabel.Regenerate ? "original" : "current"}`
+          `Generating resume — intent: ${intent}, baseProfile: original`
         );
 
         const { result, usage } = await domainOps.generateResume(
           this.provider,
           {
-            baseProfile:
-              intent === IntentLabel.Regenerate
-                ? this.baseProfile
-                : this.resume,
+            baseProfile: this.baseProfile,
             jobDetails: this.jobDetails,
             atsAnalysis: null,
           },
@@ -398,10 +387,14 @@ class ResumeChatBot {
           args: {
             updatedResume: result,
             usage,
-            note: `Resume ${intent === IntentLabel.Regenerate ? "Regenerated based on original profile" : "Tailored based on current profile"}`,
+            note: "Resume regenerated based on original profile",
           },
         };
         yield { type: "done" };
+        return;
+      }
+      case "tailor": {
+        yield* this.runTailorIntent(userMessage, options);
         return;
       }
       case "ats": {
@@ -528,6 +521,73 @@ class ResumeChatBot {
 
     yield { type: "done" };
     return;
+  }
+
+  /**
+   * Tailor intent — routes through the multi-agent pipeline (requirements →
+   * rewrite → verify-against-original → score) instead of the single-shot
+   * generateResume call, so tailored bullets get the anti-hallucination check.
+   * Pipeline stage events are surfaced as status-line chunks in the same chat
+   * bubble, ending in the usual tool_result the UI already knows how to apply.
+   */
+  private async *runTailorIntent(
+    userMessage: PromptMessage,
+    options: ChatBotOptions
+  ): AsyncGenerator<ChatStreamEvent> {
+    this.isSessionInitialized();
+
+    for await (const event of this.runTailoringPipeline(options)) {
+      switch (event.stage) {
+        case "requirements":
+          yield {
+            type: "chunk",
+            text: `Extracted ${event.requirements.length} job requirement(s)…\n`,
+          };
+          break;
+        case "rewrite":
+          yield {
+            type: "chunk",
+            text: `Rewriting bullets (pass ${event.iteration})…\n`,
+          };
+          break;
+        case "verify":
+          yield {
+            type: "chunk",
+            text:
+              event.flags.length === 0
+                ? "Verified against your original resume — no unsupported claims.\n"
+                : `Found ${event.flags.length} unsupported claim(s), rewriting again…\n`,
+          };
+          break;
+        case "score":
+          yield {
+            type: "chunk",
+            text: `ATS score: ${event.before} → ${event.after}\n`,
+          };
+          break;
+        case "done": {
+          this.pushToHistory("chat", userMessage, {
+            role: "assistant",
+            content: "[tailor applied]",
+          });
+
+          yield {
+            type: "tool_result",
+            intent: IntentLabel.Tailor,
+            args: {
+              updatedResume: event.updatedResume,
+              usage: event.usage,
+              note: `Resume tailored to job (ATS ${event.atsBefore} → ${event.atsAfter})`,
+            },
+          };
+          yield { type: "done" };
+          return;
+        }
+        case "error":
+          yield { type: "error", message: event.message };
+          return;
+      }
+    }
   }
 
   /**
