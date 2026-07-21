@@ -90,9 +90,8 @@ function appendToLogFile(entry: LogEntry): void {
 
   fileWriteQueue = fileWriteQueue
     .then(async () => {
-      const { mkdir, writeTextFile, BaseDirectory } = await import(
-        "@tauri-apps/plugin-fs"
-      );
+      const { mkdir, writeTextFile, BaseDirectory } =
+        await import("@tauri-apps/plugin-fs");
       await mkdir("logs", {
         baseDir: BaseDirectory.AppData,
         recursive: true,
@@ -366,7 +365,9 @@ const defaultLogger = new Logger();
 // would otherwise leave no trace in client.log. Install global catch-alls
 // once per page load.
 if (typeof window !== "undefined") {
-  const flag = window as unknown as { __loggerGlobalHandlersInstalled?: boolean };
+  const flag = window as unknown as {
+    __loggerGlobalHandlersInstalled?: boolean;
+  };
   if (!flag.__loggerGlobalHandlersInstalled) {
     flag.__loggerGlobalHandlersInstalled = true;
     window.addEventListener("error", (event) => {

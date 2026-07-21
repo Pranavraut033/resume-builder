@@ -481,9 +481,9 @@ export default function NewJobPage() {
                           className="border-agent-outline-variant text-agent-primary focus:ring-agent-primary mt-0.5 h-4 w-4 shrink-0 rounded"
                         />
                         <span className="text-agent-on-surface-variant">
-                          Verify tailored resume — fact-check against your
-                          base profile and correct unsupported claims (slower,
-                          extra AI calls)
+                          Verify tailored resume — fact-check against your base
+                          profile and correct unsupported claims (slower, extra
+                          AI calls)
                         </span>
                       </label>
                     </>

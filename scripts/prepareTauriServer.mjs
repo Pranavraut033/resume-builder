@@ -30,7 +30,11 @@ async function downloadNodeRuntime() {
     );
   }
 
-  const cacheDir = path.join(os.tmpdir(), "udaan-node-runtime-cache", `${version}-${arch}`);
+  const cacheDir = path.join(
+    os.tmpdir(),
+    "udaan-node-runtime-cache",
+    `${version}-${arch}`
+  );
   const cachedBinary = path.join(cacheDir, "node");
 
   if (!existsSync(cachedBinary)) {
@@ -42,11 +46,22 @@ async function downloadNodeRuntime() {
     console.log(`Downloading Node runtime for bundling: ${url}`);
     const response = await fetch(url);
     if (!response.ok) {
-      throw new Error(`Failed to download ${url}: ${response.status} ${response.statusText}`);
+      throw new Error(
+        `Failed to download ${url}: ${response.status} ${response.statusText}`
+      );
     }
-    await finished(Readable.fromWeb(response.body).pipe(createWriteStream(tarballPath)));
+    await finished(
+      Readable.fromWeb(response.body).pipe(createWriteStream(tarballPath))
+    );
 
-    execFileSync("tar", ["-xzf", tarballPath, "-C", cacheDir, "--strip-components=2", `node-${version}-darwin-${arch}/bin/node`]);
+    execFileSync("tar", [
+      "-xzf",
+      tarballPath,
+      "-C",
+      cacheDir,
+      "--strip-components=2",
+      `node-${version}-darwin-${arch}/bin/node`,
+    ]);
   }
 
   const outputBinDir = path.join(outputDir, "node-bin");
@@ -99,7 +114,13 @@ async function main() {
   const templateDbPath = path.join(templateDir, "app-template.db");
   execFileSync(
     "npx",
-    ["prisma", "db", "push", "--accept-data-loss", `--url=file:${templateDbPath}`],
+    [
+      "prisma",
+      "db",
+      "push",
+      "--accept-data-loss",
+      `--url=file:${templateDbPath}`,
+    ],
     { cwd: root, stdio: "inherit" }
   );
   await cp(templateDbPath, path.join(outputDir, "app-template.db"));
