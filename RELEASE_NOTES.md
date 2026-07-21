@@ -1,3 +1,15 @@
+# v1.2.0 — 2026-07-21
+
+A security-hardening and workflow release: locked-down content security policy, safer API-key storage, and a more flexible tailoring flow.
+
+- **Skip AI tailoring when you just want your base profile.** A new option copies your base profile straight into a resume, with ATS scoring still available on that path.
+- **Cover letters can now match a tone and style.** Pick from cover-letter style presets, and the resume tailoring pipeline now verifies its own output.
+- **Skills can be grouped and prioritized.** Organize skills into categories (e.g. Languages, Frameworks) and mark the ones you want emphasized.
+- **Back up and restore your data.** A new Settings section exports and re-imports your full app data as a portable file.
+- **Humanizer moved into a sidebar drawer** for a cleaner editing flow, and AI chat edits now save immediately with clearer error messages when a provider call fails.
+- **Security:** content security policy is now enforced at the server and per-request, rendered HTML is sanitized, link schemes are restricted, and API-key encryption now derives from your OS keychain rather than a weaker in-app scheme.
+- **Fixed:** the bundled desktop app now runs its own server on a separate port from `npm run dev`, so the two no longer collide.
+
 # v1.1.0 — 2026-07-16
 
 A polish release: more template flexibility, a smoother generation experience, and a couple of settings/chat fixes.

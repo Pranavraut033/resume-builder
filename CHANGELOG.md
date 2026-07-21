@@ -2,6 +2,42 @@
 
 All notable changes to this project are documented in this file.
 
+## [1.2.0] - 2026-07-21
+
+### Added
+
+- Backup and restore for app data from Settings ([6c52932])
+- Cover-letter styles and verified resume tailoring in the inline editor ([61f370e])
+- Option to skip AI tailoring and copy the base profile directly ([7d9216b])
+- Skill category grouping and primary/secondary tiering on profile and resume skills ([1c56da4])
+- Humanizer moved into a sidebar drawer with cleaner resume text ([0c9b146])
+- ATS scoring now runs on the skip-AI-tailoring path, and client errors are logged to file ([f61d6c8])
+- Cover letter hook now prioritizes high-impact, trendy-tech achievements ([19d0921])
+- Profile list sections consolidated, with TXT export and delete ([9243b35])
+- Chat-based AI edits now persist immediately and surface provider errors ([a69573d])
+
+### Fixed
+
+- Bundled production Tauri app now runs its own server on port 3009 instead of colliding with dev on 3008 ([603846f])
+- WebKit flex-collapse bug in the canvas/chat layout ([bdaa9ce])
+- API-key encryption now derives from an OS-keychain-backed master key instead of a weaker scheme ([a60b114])
+- `libsodium-sys-stable` link failure on newer macOS SDKs ([30a010a])
+- CSP is now enforced at the Next.js server and via a per-request proxy nonce, closing gaps in the earlier window-level policy ([8b0efd6], [80b0ce2], [d5d6169])
+- Rendered HTML is sanitized and openable link schemes are restricted ([14d72ee])
+- Untrusted data fences hardened against prompt-delimiter injection ([fcbe03f])
+- SSRF blocked via private/loopback network access in the URL fetcher ([a38bf51])
+- Bundled SQLite db is now seeded and server logs captured on first launch ([a808331])
+- Duplicate Tiptap extensions removed, silencing an SSR warning ([92c920c])
+- Date input on Safari/Tauri no longer relies on the native month input ([dc4808b])
+- Token usage no longer persists a redundant raw `costUSD` field ([88c533b])
+
+### Internal
+
+- Bumped `llm-core` submodule to v0.3.0 and adapted to its async client API ([baeb8c3])
+- Removed unused `tauri-plugin-stronghold` and `react-quill-new` dependencies ([3352cae], [a70cc70])
+- Bundle the exact Node runtime instead of searching the host system ([0310a78])
+- Added type-check and lint CI gate on push and pull request ([58ae4ed])
+
 ## [1.1.0] - 2026-07-16
 
 ### Added
