@@ -1,7 +1,7 @@
 {
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
   "productName": "Udaan",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "identifier": "com.resumebuilder.dev",
   "build": {
     "frontendDist": "http://127.0.0.1:3008",
@@ -46,7 +46,9 @@
       "icons/icon.icns",
       "icons/icon.ico"
     ],
-    "resources": ["resources/next/**/*"],
+    "resources": [
+      "resources/next/**/*"
+    ],
     "category": "Productivity",
     "shortDescription": "Local-first, AI-powered resume builder",
     "longDescription": "A privacy-focused desktop application for creating tailored resumes and cover letters using AI. All data stays local.",
