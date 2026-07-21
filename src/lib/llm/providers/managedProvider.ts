@@ -29,7 +29,8 @@ export class ManagedProvider extends OpenAICompatibleProvider {
 
   async fetchModels(): Promise<string[]> {
     try {
-      const response = await this.client.models.list();
+      const client = await this.getClient();
+      const response = await client.models.list();
       return response.data.map((model) => model.id);
     } catch (error) {
       logger.error("Error fetching managed models", { error });
