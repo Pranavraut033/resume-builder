@@ -360,9 +360,46 @@ export const ATSAnalysisSchema = z.object({
       issue: z.string(),
       recommended_fix: z.string(),
       estimated_score_delta: z.number().min(0).max(100),
+      // Verbatim bullet/sentence being critiqued, and its XYZ-pattern
+      // rewrite. Nullable + defaulted (not just optional) so old rows in
+      // SQLite (Resume.atsAnalysis stored before this field existed) still
+      // parse — see knockout_risks/title_alignment below for the same
+      // back-compat convention.
+      original_text: z.string().nullable().default(null),
+      rewrite: z.string().nullable().default(null),
     })
   ),
   summary: z.string(),
+  // Hard JD requirements (work authorization/visa, degree, license/cert,
+  // location/onsite, minimum years) cross-checked against the resume.
+  // `.default([])` (not `.optional()`) so old stored `Resume.atsAnalysis`
+  // JSON without this field still parses.
+  knockout_risks: z
+    .array(
+      z.object({
+        requirement: z.string(),
+        severity: z.enum(["blocking", "likely", "possible"]),
+        evidence: z.string(),
+        advice: z.string(),
+      })
+    )
+    .default([]),
+  // Resume's most recent title vs. the target title's seniority — some ATS
+  // platforms (e.g. Workday) weight title match heavily. `.default(...)` for
+  // the same back-compat reason as knockout_risks.
+  title_alignment: z
+    .object({
+      resume_title: z.string(),
+      target_title: z.string(),
+      verdict: z.enum(["aligned", "below", "above", "unclear"]),
+      note: z.string(),
+    })
+    .default({
+      resume_title: "",
+      target_title: "",
+      verdict: "unclear",
+      note: "",
+    }),
 });
 
 export type ATSAnalysisJSON = z.infer<typeof ATSAnalysisSchema>;
@@ -391,9 +428,15 @@ ATSImprovements:
 ${atsAnalysis.improvements
   .map(
     (imp) =>
-      `${imp.section}|${imp.issue}|${imp.recommended_fix}|${imp.estimated_score_delta}`
+      `${imp.section}|${imp.issue}|${imp.recommended_fix}|${imp.estimated_score_delta}|${imp.original_text || ""}|${imp.rewrite || ""}`
   )
   .join("\n")}
+ATSKnockout_risks:
+${atsAnalysis.knockout_risks
+  .map((kr) => `${kr.requirement}|${kr.severity}|${kr.evidence}|${kr.advice}`)
+  .join("\n")}
+ATSTitle_alignment:
+${atsAnalysis.title_alignment.resume_title}|${atsAnalysis.title_alignment.target_title}|${atsAnalysis.title_alignment.verdict}|${atsAnalysis.title_alignment.note}
 ATSAnalysisSummary:
 ${atsAnalysis.summary}`);
 }

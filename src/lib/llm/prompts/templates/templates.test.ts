@@ -159,8 +159,17 @@ const sampleAtsAnalysis: ATSAnalysisJSON = {
       issue: "no quantified impact in bullet 2",
       recommended_fix: "add team size",
       estimated_score_delta: 5,
+      original_text: null,
+      rewrite: null,
     },
   ],
+  knockout_risks: [],
+  title_alignment: {
+    resume_title: "Backend Engineer",
+    target_title: "Staff Backend Engineer",
+    verdict: "below",
+    note: "Resume title is one level below the target seniority.",
+  },
   summary: "Strong keyword coverage; content quality needs work.",
 };
 

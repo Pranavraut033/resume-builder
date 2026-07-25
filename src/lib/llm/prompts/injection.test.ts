@@ -145,6 +145,13 @@ const sampleAtsAnalysis: ATSAnalysisJSON = {
     composite_score: 0,
   },
   improvements: [],
+  knockout_risks: [],
+  title_alignment: {
+    resume_title: "",
+    target_title: "",
+    verdict: "unclear",
+    note: "",
+  },
   summary: "n/a",
 };
 

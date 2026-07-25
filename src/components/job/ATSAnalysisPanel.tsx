@@ -12,7 +12,7 @@ import { cn } from "@/lib/cn";
 import LLMService from "@/lib/llm/llmService";
 import { resumeToText } from "@/lib/resumeToText";
 import { useModelStore } from "@/store/modelStore";
-import { ATSAnalysisJSON } from "@/types/resume";
+import { ATSAnalysisJSON, ResumeJSON } from "@/types/resume";
 
 import { ATSScorePanel } from "./ATSScorePanel";
 import { useChatContext } from "../chat/ChatContext";
@@ -78,20 +78,86 @@ function scoreTierClasses(score: number): string {
   return "text-rose-700 bg-rose-50 border-rose-200";
 }
 
-// function severityClasses(
-//   severity: ATSAnalysisJSON["formatting_issues"][number]["severity"]
-// ): string {
-//   switch (severity) {
-//     case "high":
-//       return "bg-rose-100 text-rose-800 border-rose-200";
-//     case "medium":
-//       return "bg-amber-100 text-amber-800 border-amber-200";
-//     case "low":
-//       return "bg-emerald-100 text-emerald-800 border-emerald-200";
-//     default:
-//       return "bg-agent-surface-low text-agent-on-surface border-agent-outline-variant";
-//   }
-// }
+function knockoutSeverityClasses(
+  severity: ATSAnalysisJSON["knockout_risks"][number]["severity"]
+): string {
+  switch (severity) {
+    case "blocking":
+      return "bg-rose-100 text-rose-800 border-rose-200";
+    case "likely":
+      return "bg-amber-100 text-amber-800 border-amber-200";
+    case "possible":
+      return "bg-sky-100 text-sky-800 border-sky-200";
+    default:
+      return "bg-agent-surface-high text-agent-on-surface border-agent-outline-variant";
+  }
+}
+
+/**
+ * Locate the resume field holding `originalText` verbatim (summary,
+ * experience description/achievements, project description, or volunteer
+ * description) and return the minimal partial update to replace it with
+ * `rewrite`. Placeholders like `[X%]` in `rewrite` are passed through
+ * untouched — this never strips or auto-fills bracketed content.
+ */
+function applyRewriteToResume(
+  resume: ResumeJSON,
+  originalText: string,
+  rewrite: string
+): Partial<ResumeJSON> | null {
+  if (resume.summary === originalText) {
+    return { summary: rewrite };
+  }
+
+  if (resume.experience.some((exp) => exp.description === originalText)) {
+    return {
+      experience: resume.experience.map((exp) =>
+        exp.description === originalText
+          ? { ...exp, description: rewrite }
+          : exp
+      ),
+    };
+  }
+
+  if (
+    resume.experience.some((exp) => exp.achievements.includes(originalText))
+  ) {
+    return {
+      experience: resume.experience.map((exp) =>
+        exp.achievements.includes(originalText)
+          ? {
+              ...exp,
+              achievements: exp.achievements.map((a) =>
+                a === originalText ? rewrite : a
+              ),
+            }
+          : exp
+      ),
+    };
+  }
+
+  if (resume.projects.some((proj) => proj.description === originalText)) {
+    return {
+      projects: resume.projects.map((proj) =>
+        proj.description === originalText
+          ? { ...proj, description: rewrite }
+          : proj
+      ),
+    };
+  }
+
+  if (resume.volunteer?.some((vol) => vol.description === originalText)) {
+    return {
+      volunteer: resume.volunteer.map((vol) =>
+        vol.description === originalText
+          ? { ...vol, description: rewrite }
+          : vol
+      ),
+    };
+  }
+
+  return null;
+}
 
 function ScoreMeter({ score }: { score: number }) {
   const value = normalizeScore(score);
@@ -247,6 +313,8 @@ export function ATSAnalysisPanel(props: ATSAnalysisPanelProps) {
     setAtsAnalysis,
     atsAnalysis: stateAtsAnalysis,
     saveStatus,
+    updateResumeState,
+    customization,
   } = useJobPageContext();
 
   const chatCtx = useChatContext(true);
@@ -327,6 +395,27 @@ export function ATSAnalysisPanel(props: ATSAnalysisPanelProps) {
 
   const onGenerate = () => {
     generateATSAnalysis();
+  };
+
+  const onApplyRewrite = (originalText: string, rewrite: string) => {
+    const updates = applyRewriteToResume(resume, originalText, rewrite);
+    if (!updates) {
+      pushToast({
+        title: "Couldn't apply rewrite",
+        description:
+          "The original text no longer matches your resume exactly — it may have already been edited.",
+        variant: "error",
+      });
+      return;
+    }
+
+    updateResumeState(updates, "Applied ATS rewrite suggestion");
+    saveToDb("resume", { ...resume, ...updates }, customization);
+    pushToast({
+      title: "Rewrite applied",
+      description: "The suggested rewrite has been applied to your resume.",
+      variant: "success",
+    });
   };
 
   const analysis = useMemo<ATSAnalysisJSON | null>(
@@ -540,6 +629,15 @@ export function ATSAnalysisPanel(props: ATSAnalysisPanelProps) {
               <p className="text-agent-on-surface-variant mt-2 text-[11px] leading-relaxed">
                 {item.description}
               </p>
+              {item.key === "composite_score" &&
+              analysis.title_alignment?.note ? (
+                <p className="border-agent-outline-variant/70 text-agent-on-surface-variant mt-3 border-t pt-3 text-[11px] leading-relaxed">
+                  <span className="text-agent-on-surface font-medium">
+                    Title alignment ({analysis.title_alignment.verdict}):
+                  </span>{" "}
+                  {analysis.title_alignment.note}
+                </p>
+              ) : null}
             </article>
           );
         })}
@@ -651,43 +749,52 @@ export function ATSAnalysisPanel(props: ATSAnalysisPanelProps) {
           )}
         </article>
     */}
-      {/* <article className="border-agent-outline-variant bg-agent-surface-low rounded-lg border p-4">
+
+      <article className="border-agent-outline-variant bg-agent-surface-low rounded-lg border p-4">
         <h3 className="text-agent-on-surface text-sm font-semibold">
-          Formatting Issues
+          Knockout Risks
         </h3>
+        <p className="text-agent-on-surface-variant mt-1 text-[11px] leading-relaxed">
+          Hard requirements from the job description (work authorization,
+          degree, license, location, minimum years) checked against the resume —
+          the closest thing to a real ATS auto-reject.
+        </p>
 
         <div className="mt-3 space-y-2">
-          {analysis.formatting_issues.length === 0 ? (
+          {analysis.knockout_risks.length === 0 ? (
             <p className="rounded-(--radius-agent) border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-700">
-              No formatting blockers found.
+              None apparent.
             </p>
           ) : (
-            analysis.formatting_issues.map((issue, idx) => (
+            analysis.knockout_risks.map((risk, idx) => (
               <div
-                key={`${issue.section}-${idx}`}
+                key={`${risk.requirement}-${idx}`}
                 className="border-agent-outline-variant bg-agent-surface rounded-(--radius-agent) border p-3"
               >
                 <div className="flex items-center justify-between gap-2">
                   <p className="text-agent-on-surface text-xs font-semibold">
-                    {issue.section}
+                    {risk.requirement}
                   </p>
                   <span
                     className={cn(
-                      "inline-flex rounded-full border px-2 py-0.5 text-[11px] font-medium",
-                      severityClasses(issue.severity)
+                      "inline-flex shrink-0 rounded-full border px-2 py-0.5 text-[11px] font-medium",
+                      knockoutSeverityClasses(risk.severity)
                     )}
                   >
-                    {issue.severity}
+                    {risk.severity}
                   </span>
                 </div>
                 <p className="text-agent-on-surface-variant mt-1 text-xs leading-relaxed">
-                  {issue.description}
+                  {risk.evidence}
+                </p>
+                <p className="bg-agent-surface-high text-agent-on-surface-variant mt-2 rounded-(--radius-agent-sm) px-2 py-1 text-[11px] leading-relaxed">
+                  {risk.advice}
                 </p>
               </div>
             ))
           )}
         </div>
-      </article> */}
+      </article>
 
       <article className="border-agent-outline-variant bg-agent-surface-low rounded-lg border p-4">
         <h3 className="text-agent-on-surface text-sm font-semibold">
@@ -711,9 +818,36 @@ export function ATSAnalysisPanel(props: ATSAnalysisPanelProps) {
               <p className="text-agent-on-surface mt-1 text-xs">
                 {improvement.issue}
               </p>
-              <p className="bg-agent-surface-high text-agent-on-surface-variant mt-2 rounded-(--radius-agent-sm) px-2 py-1 text-[11px] leading-relaxed">
-                {improvement.recommended_fix}
-              </p>
+              {improvement.original_text && improvement.rewrite ? (
+                <div className="mt-2 space-y-1.5">
+                  <p className="text-agent-on-surface-variant rounded-(--radius-agent-sm) bg-rose-50 px-2 py-1 text-[11px] leading-relaxed line-through decoration-rose-400/70">
+                    {improvement.original_text}
+                  </p>
+                  <p className="text-agent-on-surface rounded-(--radius-agent-sm) border border-emerald-200 bg-emerald-50 px-2 py-1 text-[11px] leading-relaxed">
+                    {improvement.rewrite}
+                  </p>
+                  {!props.standalone ? (
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      onClick={() =>
+                        onApplyRewrite(
+                          improvement.original_text!,
+                          improvement.rewrite!
+                        )
+                      }
+                      className="mt-1 inline-flex items-center gap-1.5 rounded-lg"
+                    >
+                      <SparklesIcon width="11" height="11" aria-hidden />
+                      Apply rewrite
+                    </Button>
+                  ) : null}
+                </div>
+              ) : (
+                <p className="bg-agent-surface-high text-agent-on-surface-variant mt-2 rounded-(--radius-agent-sm) px-2 py-1 text-[11px] leading-relaxed">
+                  {improvement.recommended_fix}
+                </p>
+              )}
             </div>
           ))}
         </div>
