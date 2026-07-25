@@ -111,12 +111,16 @@ function renderShape(shape: Shape, key: number) {
 /**
  * Full-bleed, theme-coloured background layer for the PDF export. Render it as
  * the FIRST child of a `<Page>` so react-pdf paints it behind the content. The
- * negative offsets cancel the page padding so the pattern reaches the edges.
+ * negative `offset` cancels the page's own padding (if any) so the pattern
+ * reaches the edges — pass `offset={marginPt}` for a `<Page>` with
+ * `padding: marginPt`, or omit it (default 0) for a `<Page>` with no
+ * page-level padding.
  */
-export const BackgroundPdf: React.FC<{ styles: ResolvedPDFStyles }> = ({
-  styles,
-}) => {
-  const { background, colorsTuple, marginPt, pageFormat } = styles;
+export const BackgroundPdf: React.FC<{
+  styles: ResolvedPDFStyles;
+  offset?: number;
+}> = ({ styles, offset = 0 }) => {
+  const { background, colorsTuple, pageFormat } = styles;
   if (!background || background === "none") return null;
 
   const { w, h } = getPagePt(pageFormat);
@@ -129,7 +133,7 @@ export const BackgroundPdf: React.FC<{ styles: ResolvedPDFStyles }> = ({
       width={w}
       height={h}
       viewBox={`0 0 ${w} ${h}`}
-      style={{ position: "absolute", top: -marginPt, left: -marginPt }}
+      style={{ position: "absolute", top: -offset, left: -offset }}
     >
       {drawing.defs.length > 0 && (
         <Defs>{drawing.defs.map(renderGradient)}</Defs>

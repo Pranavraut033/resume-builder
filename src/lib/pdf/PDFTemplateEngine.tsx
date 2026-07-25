@@ -381,7 +381,7 @@ export const PDFTemplateEngine: React.FC<PDFTemplateEngineProps> = ({
             padding: marginPt,
           }}
         >
-          <BackgroundPdf styles={s} />
+          <BackgroundPdf styles={s} offset={marginPt} />
           {headerNode}
           {sections}
         </Page>
