@@ -50,6 +50,7 @@ import {
 } from "@/types/resume";
 import { resolveTemplate } from "@pranavraut033/llm-core/prompts";
 
+import { resolveRegionGuidance } from "./regionGuidance";
 import { templateRegistry } from "./registry";
 import { sanitizeUntrustedText } from "./sanitize";
 import { PromptContext, PromptPurpose, ResolvedPrompt } from "./types";
@@ -106,6 +107,10 @@ function normalizedFieldsToString(
     jobTitle: sanitizeUntrustedText(context.jobDetails?.job.job_title) ?? "",
     companyName:
       sanitizeUntrustedText(context.jobDetails?.company.company_name) ?? "",
+    // App-authored guidance text (not user data), so no sanitization needed —
+    // undefined when the job doesn't look EU/DE-based, which templates gate
+    // on with `{{#if regionGuidance}}`. See ./regionGuidance.ts.
+    regionGuidance: resolveRegionGuidance(context.jobDetails),
   };
 }
 

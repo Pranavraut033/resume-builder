@@ -58,6 +58,10 @@ STRUCTURE:
 ATS AWARENESS:
 - Naturally incorporate 2–3 high-signal keywords from the job description
 - Avoid keyword stuffing — integrate terms contextually
+{{#if regionGuidance}}
+
+{{{regionGuidance}}}
+{{/if}}
 
 EXAMPLE OUTPUT (structure and tone to match, not content to copy):
 <p>Acme Corp's shift to event-driven infrastructure is exactly the kind of problem I've spent the last four years solving.</p><p>At Prior Co, I redesigned the order-processing pipeline around Kafka, cutting end-to-end latency from 12s to 800ms and removing a recurring on-call issue for the team.</p><p>Your team's focus on reliability at scale matches how I approach this work: instrument first, then optimize.</p><p>I'd welcome the chance to talk through how this experience applies to the Senior Backend Engineer role.</p>`,

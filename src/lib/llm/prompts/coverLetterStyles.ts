@@ -54,6 +54,19 @@ export const COVER_LETTER_STYLES = {
 - Para 4 — Close: one warm, forward-looking sentence, no flattery
 - 4 paragraphs, each 2–3 sentences`,
   },
+  anschreiben: {
+    label: "Anschreiben (German formal)",
+    description:
+      "Formal German business register, Betreff line, ~1 page — for DE/AT/CH applications.",
+    promptFragment: `- Write the letter in the job description's language — if the JD is in German, write in German; do not machine-translate a generic English draft into German
+- Formal German business register throughout: "Sehr geehrte Damen und Herren" if no contact is named, or "Sehr geehrte/r Herr/Frau [Name]" if the job details name a recruiter/contact
+- Open with a Betreff (subject) line stating the role, e.g. "Betreff: Bewerbung als [Job Title]"
+- Para 1 — Motivation: why this role and company specifically, grounded in the job details, not generic enthusiasm
+- Para 2 — Evidence: 1–2 concrete achievements from the resume mapped to the role's core requirements, quantified using only existing data
+- Para 3 — Availability and fit: state availability (Eintrittstermin) if the job details mention a start date; only mention salary expectation (Gehaltsvorstellung) if the job description explicitly asks for it
+- Close with "Mit freundlichen Grüßen" followed by the candidate's name
+- ~1 page (roughly 3–4 paragraphs plus Betreff and closing), formal register throughout — no casual idioms`,
+  },
 } as const satisfies Record<string, CoverLetterStyle>;
 
 export type CoverLetterStyleId = keyof typeof COVER_LETTER_STYLES;

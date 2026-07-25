@@ -18,6 +18,10 @@ export interface PromptContext {
   additionalInstructions?: string;
   userInput?: string;
   styleGuide?: string;
+  // App-authored DE/EU region guidance fragment, derived from `jobDetails`
+  // by `normalizedFieldsToString` (see ./regionGuidance.ts) — not something
+  // callers set directly.
+  regionGuidance?: string;
 }
 
 export type FieldType =
