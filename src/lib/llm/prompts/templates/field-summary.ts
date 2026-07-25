@@ -26,6 +26,8 @@ const summaryTemplate: PromptTemplate = {
     "Close with a forward-looking value proposition for this specific company or role",
     "Use strong action-oriented language — no passive voice, no filler phrases",
     "Never start with 'I' or generic openers like 'Results-driven' or 'Passionate about'",
+    "Cut clichés entirely: results-driven, team player, detail-oriented, self-starter, proven track record, passionate about excellence, references available upon request",
+    "If a metric would strengthen a claim but isn't in the source, use a bracketed placeholder like [X%] — never invent a number",
   ],
 
   requiredContext: ["resume", "jobDetails", "jobDescription"],
@@ -39,11 +41,13 @@ OUTPUT CONTRACT:
 DATA INTEGRITY:
 - Use ONLY facts, roles, skills, and achievements present in the provided resume
 - Never invent metrics, titles, or experiences not in the source material
+- If a stronger claim needs a number the source doesn't provide, use a bracketed placeholder like [X%] instead of fabricating one
 
 QUALITY BAR:
 - Every sentence must be specific to this candidate and this role
 - A recruiter should be able to identify the target job from the summary alone
-- Prefer concrete over abstract: "reduced API latency by 40%" beats "improved system performance"`,
+- Prefer concrete over abstract: "reduced API latency by 40%" beats "improved system performance"
+- No clichés: results-driven, team player, detail-oriented, self-starter, proven track record, passionate about excellence, references available upon request`,
 
   userPrompt: `Write a professional summary for the {{jobTitle}}{{#if companyName}} role at {{companyName}}{{/if}}.
 

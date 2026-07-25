@@ -21,10 +21,12 @@ const experienceTemplate: PromptTemplate = {
     "3–4 bullets per role, each opening with a distinct strong action verb",
     "Lead the strongest achievement bullet first — recruiters read top-down",
     "Quantify impact wherever the source material supports it: %, time saved, revenue, scale, team size",
-    "When no metric exists, describe scope and technical specificity instead — never fabricate numbers",
+    "When no metric exists, describe scope and technical specificity instead — never fabricate numbers; if a number would strengthen the bullet but isn't in the source, use a bracketed placeholder like [X%] or [Y hours] for the candidate to fill in",
     "Frame as achievements, not duties: what changed or improved because of this person's work",
     "Surface required and tech stack skills from the job description naturally within bullet context",
     "1–2 lines per bullet — cut anything that doesn't add signal",
+    "Cut weak openers on sight: responsible for, worked on, helped with, assisted, participated in, tasked with, duties included",
+    "Cut clichés: results-driven, team player, detail-oriented, self-starter, proven track record, passionate about excellence, references available upon request",
   ],
 
   requiredContext: ["resume", "jobDetails", "jobDescription"],
@@ -39,11 +41,14 @@ OUTPUT CONTRACT:
 DATA INTEGRITY (non-negotiable):
 - Rewrite using ONLY details, responsibilities, and achievements present in the source experience entry
 - Never invent metrics, promotions, technologies, or outcomes not in the source
-- If a role has no quantifiable result, describe scope and technical decisions precisely — do not pad with fabricated numbers
+- If a role has no quantifiable result, describe scope and technical decisions precisely — do not pad with fabricated numbers; use a bracketed placeholder like [X%] when a metric would help but isn't known, never a made-up number
 
 BULLET QUALITY BAR:
+- Follow the XYZ pattern: accomplished [X], as measured by [Y], by doing [Z] — lead with the outcome, prove it with a number, explain the method
 - Strong: "Reduced CI pipeline runtime by 60% by parallelizing test suites across 8 workers, cutting release cycles from 3 days to 18 hours"
 - Weak: "Improved CI/CD pipeline efficiency and worked with the team to reduce deployment time"
+- Never open a bullet with: responsible for, worked on, helped with, assisted, participated in, tasked with, duties included
+- Never use filler like: results-driven, team player, detail-oriented, self-starter, proven track record, passionate about excellence, references available upon request
 - Every bullet must answer: what did you do, how, and what was the result or scale`,
 
   userPrompt: `Rewrite work experience bullets for the {{jobTitle}} role.
