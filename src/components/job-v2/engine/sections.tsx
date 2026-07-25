@@ -20,6 +20,9 @@ export const LIST_SECTIONS: readonly ListSectionId[] = [
   "education",
   "projects",
   "certifications",
+  "publications",
+  "volunteer",
+  "awards",
 ];
 export const isListSection = (key: string): key is ListSectionId =>
   (LIST_SECTIONS as readonly string[]).includes(key);
@@ -670,32 +673,69 @@ const certifications: DomSectionBuilder = ({ resume, theme, edit }) =>
     })
   );
 
-const publications: DomSectionBuilder = ({ resume, theme }) =>
+const publications: DomSectionBuilder = ({ resume, theme, edit }) =>
   (resume.publications ?? []).map(
-    (pub): Block => ({
+    (pub, pubIndex): Block => ({
       sectionKey: "publications",
+      itemIndex: pubIndex,
       node: (
         <div>
           <h3 className="font-semibold" style={{ color: theme.accentColor }}>
-            {pub.title}
+            <EditableText
+              value={pub.title}
+              onCommit={(v) => edit.updatePublication(pubIndex, { title: v })}
+              placeholder="Publication title"
+            />
           </h3>
           <p className={`${theme.textSize} ${theme.lineHeight}`}>
-            {pub.authors.join(", ")}
+            <EditableText
+              value={pub.authors.join(", ")}
+              onCommit={(v) =>
+                edit.updatePublication(pubIndex, {
+                  authors: v
+                    .split(",")
+                    .map((a) => a.trim())
+                    .filter(Boolean),
+                })
+              }
+              placeholder="Authors"
+            />
           </p>
           <p
             className={`${theme.textSize}`}
             style={{ color: theme.secondaryColor }}
           >
-            {pub.venue} • {pub.date}
-            {pub.doi && ` • DOI: ${pub.doi}`}
-            {pub.url && (
-              <a
-                href={pub.url}
+            <EditableText
+              value={pub.venue}
+              onCommit={(v) => edit.updatePublication(pubIndex, { venue: v })}
+              placeholder="Venue"
+            />
+            {" • "}
+            <EditableText
+              value={pub.date}
+              onCommit={(v) => edit.updatePublication(pubIndex, { date: v })}
+              placeholder="Date"
+            />
+            {(pub.doi || edit.editable) && (
+              <>
+                {" • DOI: "}
+                <EditableText
+                  value={pub.doi ?? ""}
+                  onCommit={(v) => edit.updatePublication(pubIndex, { doi: v })}
+                  placeholder="DOI"
+                />
+              </>
+            )}
+            {(pub.url || edit.editable) && (
+              <EditableLink
+                href={pub.url ?? ""}
+                onCommit={(v) => edit.updatePublication(pubIndex, { url: v })}
+                placeholder="https://…"
                 className="ml-2 hover:underline"
                 style={{ color: theme.secondaryColor }}
               >
                 [View]
-              </a>
+              </EditableLink>
             )}
           </p>
         </div>
@@ -734,24 +774,49 @@ const languages: DomSectionBuilder = ({ resume, theme, edit }) => {
   ];
 };
 
-const volunteer: DomSectionBuilder = ({ resume, theme, entryStyle }) =>
-  (resume.volunteer ?? []).map((v): Block => {
+const volunteer: DomSectionBuilder = ({ resume, theme, edit, entryStyle }) =>
+  (resume.volunteer ?? []).map((v, volIndex): Block => {
+    const dates = (
+      <EditableDateRange
+        startDate={v.startDate}
+        endDate={v.endDate}
+        dateFormat={theme.dateFormat}
+        onCommitStart={(val) =>
+          edit.updateVolunteer(volIndex, { startDate: val })
+        }
+        onCommitEnd={(val) => edit.updateVolunteer(volIndex, { endDate: val })}
+      />
+    );
+
     if (entryStyle === "compact") {
       return {
         sectionKey: "volunteer",
+        itemIndex: volIndex,
         node: (
           <p className={`${theme.textSize}`}>
             <span
               className="font-semibold"
               style={{ color: theme.accentColor }}
             >
-              {v.role}
+              <EditableText
+                value={v.role}
+                onCommit={(val) =>
+                  edit.updateVolunteer(volIndex, { role: val })
+                }
+                placeholder="Role"
+              />
             </span>
             {" — "}
-            {v.organization}
+            <EditableText
+              value={v.organization}
+              onCommit={(val) =>
+                edit.updateVolunteer(volIndex, { organization: val })
+              }
+              placeholder="Organization"
+            />
             <span style={{ color: theme.secondaryColor }}>
               {"  ·  "}
-              {formatDateRange(v.startDate, v.endDate, theme.dateFormat)}
+              {dates}
             </span>
           </p>
         ),
@@ -761,6 +826,7 @@ const volunteer: DomSectionBuilder = ({ resume, theme, entryStyle }) =>
     if (entryStyle === "timeline") {
       return {
         sectionKey: "volunteer",
+        itemIndex: volIndex,
         node: (
           <div
             className="border-l-2 pl-3"
@@ -768,19 +834,39 @@ const volunteer: DomSectionBuilder = ({ resume, theme, entryStyle }) =>
           >
             <h3 className="font-semibold" style={{ color: theme.accentColor }}>
               <span className="mr-1">●</span>
-              {v.role}
+              <EditableText
+                value={v.role}
+                onCommit={(val) =>
+                  edit.updateVolunteer(volIndex, { role: val })
+                }
+                placeholder="Role"
+              />
             </h3>
             <p
               className={`${theme.textSize}`}
               style={{ color: theme.secondaryColor }}
             >
-              {v.organization} ·{" "}
-              {formatDateRange(v.startDate, v.endDate, theme.dateFormat)}
+              <EditableText
+                value={v.organization}
+                onCommit={(val) =>
+                  edit.updateVolunteer(volIndex, { organization: val })
+                }
+                placeholder="Organization"
+              />
+              {" · "}
+              {dates}
             </p>
-            {v.description && (
-              <p className={`${theme.textSize} ${theme.lineHeight} mt-1`}>
-                {v.description}
-              </p>
+            {(v.description || edit.editable) && (
+              <div className={`${theme.textSize} ${theme.lineHeight} mt-1`}>
+                <EditableText
+                  value={v.description}
+                  onCommit={(val) =>
+                    edit.updateVolunteer(volIndex, { description: val })
+                  }
+                  fieldType="richtext"
+                  placeholder="Describe your volunteer work…"
+                />
+              </div>
             )}
           </div>
         ),
@@ -789,6 +875,7 @@ const volunteer: DomSectionBuilder = ({ resume, theme, entryStyle }) =>
 
     return {
       sectionKey: "volunteer",
+      itemIndex: volIndex,
       node: (
         <div>
           <div className="mb-1 flex items-start justify-between gap-4">
@@ -797,51 +884,92 @@ const volunteer: DomSectionBuilder = ({ resume, theme, entryStyle }) =>
                 className="font-semibold"
                 style={{ color: theme.accentColor }}
               >
-                {v.role}
+                <EditableText
+                  value={v.role}
+                  onCommit={(val) =>
+                    edit.updateVolunteer(volIndex, { role: val })
+                  }
+                  placeholder="Role"
+                />
               </h3>
               <p
                 className={`${theme.textSize} ${theme.lineHeight}`}
                 style={{ color: theme.secondaryColor }}
               >
-                {v.organization}
+                <EditableText
+                  value={v.organization}
+                  onCommit={(val) =>
+                    edit.updateVolunteer(volIndex, { organization: val })
+                  }
+                  placeholder="Organization"
+                />
               </p>
             </div>
             <span
               className={`${theme.textSize} shrink-0`}
               style={{ color: theme.secondaryColor }}
             >
-              {formatDateRange(v.startDate, v.endDate, theme.dateFormat)}
+              {dates}
             </span>
           </div>
-          {v.description && (
-            <p className={`${theme.textSize} ${theme.lineHeight}`}>
-              {v.description}
-            </p>
+          {(v.description || edit.editable) && (
+            <div className={`${theme.textSize} ${theme.lineHeight}`}>
+              <EditableText
+                value={v.description}
+                onCommit={(val) =>
+                  edit.updateVolunteer(volIndex, { description: val })
+                }
+                fieldType="richtext"
+                placeholder="Describe your volunteer work…"
+              />
+            </div>
           )}
         </div>
       ),
     };
   });
 
-const awards: DomSectionBuilder = ({ resume, theme }) =>
+const awards: DomSectionBuilder = ({ resume, theme, edit }) =>
   (resume.awards ?? []).map(
-    (award): Block => ({
+    (award, awardIndex): Block => ({
       sectionKey: "awards",
+      itemIndex: awardIndex,
       node: (
         <div>
           <h3 className="font-semibold" style={{ color: theme.accentColor }}>
-            {award.title}
+            <EditableText
+              value={award.title}
+              onCommit={(v) => edit.updateAward(awardIndex, { title: v })}
+              placeholder="Award title"
+            />
           </h3>
           <p
             className={`${theme.textSize}`}
             style={{ color: theme.secondaryColor }}
           >
-            {award.issuer} • {award.date}
+            <EditableText
+              value={award.issuer}
+              onCommit={(v) => edit.updateAward(awardIndex, { issuer: v })}
+              placeholder="Issuer"
+            />
+            {" • "}
+            <EditableText
+              value={award.date}
+              onCommit={(v) => edit.updateAward(awardIndex, { date: v })}
+              placeholder="Date"
+            />
           </p>
-          {award.description && (
-            <p className={`${theme.textSize} ${theme.lineHeight}`}>
-              {award.description}
-            </p>
+          {(award.description || edit.editable) && (
+            <div className={`${theme.textSize} ${theme.lineHeight}`}>
+              <EditableText
+                value={award.description ?? ""}
+                onCommit={(v) =>
+                  edit.updateAward(awardIndex, { description: v })
+                }
+                fieldType="richtext"
+                placeholder="Describe the award…"
+              />
+            </div>
           )}
         </div>
       ),

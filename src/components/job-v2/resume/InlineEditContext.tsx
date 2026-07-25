@@ -3,14 +3,17 @@
 import { createContext, useContext, useMemo, type ReactNode } from "react";
 
 import type {
+  Award,
   Certification,
   ContactInfo,
   Education,
   Experience,
   Language,
   Project,
+  Publication,
   ResumeJSON,
   Skill,
+  Volunteer,
 } from "@/types/resume";
 
 /**
@@ -21,7 +24,10 @@ export type ListSectionId =
   | "experience"
   | "education"
   | "projects"
-  | "certifications";
+  | "certifications"
+  | "publications"
+  | "volunteer"
+  | "awards";
 
 /**
  * InlineEditContext — bridges the shared resume templates to the V2 WYSIWYG
@@ -41,6 +47,9 @@ export interface InlineEditContextValue {
   updateProject: (index: number, patch: Partial<Project>) => void;
   updateProjectTechnologies: (index: number, technologies: string[]) => void;
   updateCertification: (index: number, patch: Partial<Certification>) => void;
+  updatePublication: (index: number, patch: Partial<Publication>) => void;
+  updateVolunteer: (index: number, patch: Partial<Volunteer>) => void;
+  updateAward: (index: number, patch: Partial<Award>) => void;
   updateSkills: (skills: Skill[]) => void;
   updateExperienceAchievements: (
     expIndex: number,
@@ -68,6 +77,9 @@ const NON_EDITABLE: InlineEditContextValue = {
   updateProject: noop,
   updateProjectTechnologies: noop,
   updateCertification: noop,
+  updatePublication: noop,
+  updateVolunteer: noop,
+  updateAward: noop,
   updateSkills: noop,
   updateExperienceAchievements: noop,
   updateLanguage: noop,
@@ -84,6 +96,9 @@ const EMPTY_ITEM: {
   education: () => Education;
   projects: () => Project;
   certifications: () => Certification;
+  publications: () => Publication;
+  volunteer: () => Volunteer;
+  awards: () => Award;
 } = {
   experience: () => ({
     company: "",
@@ -110,6 +125,22 @@ const EMPTY_ITEM: {
     endDate: null,
   }),
   certifications: () => ({ name: "", issuer: "", date: "", url: null }),
+  publications: () => ({
+    title: "",
+    authors: [],
+    venue: "",
+    date: "",
+    url: null,
+    doi: null,
+  }),
+  volunteer: () => ({
+    organization: "",
+    role: "",
+    startDate: "",
+    endDate: null,
+    description: "",
+  }),
+  awards: () => ({ title: "", issuer: "", date: "", description: null }),
 };
 
 const SECTION_NOUN: Record<ListSectionId, string> = {
@@ -117,6 +148,9 @@ const SECTION_NOUN: Record<ListSectionId, string> = {
   education: "education entry",
   projects: "project",
   certifications: "certification",
+  publications: "publication",
+  volunteer: "volunteer entry",
+  awards: "award",
 };
 
 const InlineEditContext = createContext<InlineEditContextValue | null>(null);
@@ -197,6 +231,36 @@ export function InlineEditProvider({
           },
           "Edited certification"
         ),
+      updatePublication: (index, patch) =>
+        updateResume(
+          {
+            publications: replaceAt(resume.publications ?? [], index, {
+              ...(resume.publications ?? [])[index],
+              ...patch,
+            }),
+          },
+          "Edited publication"
+        ),
+      updateVolunteer: (index, patch) =>
+        updateResume(
+          {
+            volunteer: replaceAt(resume.volunteer ?? [], index, {
+              ...(resume.volunteer ?? [])[index],
+              ...patch,
+            }),
+          },
+          "Edited volunteer entry"
+        ),
+      updateAward: (index, patch) =>
+        updateResume(
+          {
+            awards: replaceAt(resume.awards ?? [], index, {
+              ...(resume.awards ?? [])[index],
+              ...patch,
+            }),
+          },
+          "Edited award"
+        ),
       updateSkills: (skills) => updateResume({ skills }, "Edited skills"),
       updateExperienceAchievements: (expIndex, achievements) => {
         const exp = resume.experience[expIndex];
@@ -238,16 +302,18 @@ export function InlineEditProvider({
         ),
       addItem: (section) =>
         updateResume(
-          { [section]: [...resume[section], EMPTY_ITEM[section]()] },
+          { [section]: [...(resume[section] ?? []), EMPTY_ITEM[section]()] },
           `Added ${SECTION_NOUN[section]}`
         ),
       removeItem: (section, index) =>
         updateResume(
-          { [section]: resume[section].filter((_, i) => i !== index) },
+          {
+            [section]: (resume[section] ?? []).filter((_, i) => i !== index),
+          },
           `Removed ${SECTION_NOUN[section]}`
         ),
       moveItem: (section, from, to) => {
-        const list = resume[section];
+        const list = resume[section] ?? [];
         if (
           from === to ||
           from < 0 ||
