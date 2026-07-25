@@ -2,6 +2,7 @@ import { useJobPageContext } from "@/contexts/JobPageContext";
 import BackgroundSvg from "@/lib/backgrounds/BackgroundSvg";
 import { AVAILABLE_BACKGROUNDS, BackgroundId } from "@/lib/backgrounds/types";
 import { DateFormat, formatMonthYear, VALID_DATE_FORMATS } from "@/lib/date";
+import { getPageDimensions } from "@/lib/pageDimensions";
 import {
   TemplateType,
   COLOR_PRESETS,
@@ -32,6 +33,12 @@ const ThemeCustomizationPanel: React.FC<Props> = ({}) => {
     useJobPageContext();
 
   const colorsTuple = customization.colors.split(",") as ThemeColors;
+  const pageBackgroundColor = colorsTuple[4] || "#ffffff";
+  const { widthPx: pageWidthPx, heightPx: pageHeightPx } = getPageDimensions(
+    customization.pageFormat,
+    customization.marginSize
+  );
+  const pageAspectRatio = pageWidthPx / pageHeightPx;
 
   return (
     <div className="relative flex flex-col gap-4 p-4">
@@ -237,9 +244,10 @@ const ThemeCustomizationPanel: React.FC<Props> = ({}) => {
                 key={bg.id}
                 title={bg.name}
                 onClick={() => updateCustomization({ background: bg.id })}
-                className="relative h-10 w-14 overflow-hidden rounded-md border-2 transition-transform hover:scale-105"
+                className="relative h-20 overflow-hidden rounded-md border-2 transition-transform hover:scale-105"
                 style={{
-                  background: "var(--color-agent-surface-container)",
+                  aspectRatio: pageAspectRatio,
+                  background: pageBackgroundColor,
                   borderColor:
                     (customization.background as BackgroundId | undefined) ===
                     bg.id
