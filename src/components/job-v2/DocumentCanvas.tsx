@@ -18,6 +18,7 @@ const MIN_ZOOM = 0.25;
 const MAX_ZOOM = 2;
 const ZOOM_STEP = 0.1;
 const CANVAS_PADDING_X = 48; // matches px-6 on each side
+const CANVAS_PADDING_Y = 160; // matches py-20 (80px top + 80px bottom)
 
 function clampZoom(z: number) {
   return Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, z));
@@ -58,7 +59,7 @@ export function DocumentCanvas({
   useEscapeKey(isCoverLetterEditing, () => setIsCoverLetterEditing(false));
 
   // ── Zoom (resume canvas only) ────────────────────────────────────────────
-  const { widthPx } = getPageDimensions(
+  const { widthPx, heightPx } = getPageDimensions(
     customization.pageFormat,
     customization.marginSize
   );
@@ -72,11 +73,18 @@ export function DocumentCanvas({
     if (contentType !== "resume" || !scrollRef.current) return;
     const el = scrollRef.current;
     const observer = new ResizeObserver(() => {
-      setFitScale(clampZoom((el.clientWidth - CANVAS_PADDING_X) / widthPx));
+      setFitScale(
+        clampZoom(
+          Math.min(
+            (el.clientWidth - CANVAS_PADDING_X) / widthPx,
+            (el.clientHeight - CANVAS_PADDING_Y) / heightPx
+          )
+        )
+      );
     });
     observer.observe(el);
     return () => observer.disconnect();
-  }, [contentType, widthPx]);
+  }, [contentType, widthPx, heightPx]);
 
   useEffect(() => {
     if (contentType !== "resume" || !docRef.current) return;
