@@ -2,6 +2,26 @@
 
 All notable changes to this project are documented in this file.
 
+## [1.3.0] - 2026-07-26
+
+### Added
+
+- Profile photo and a hobbies/interests section for EU/German-style resumes, with per-template photo shape and frame ([cf502ff])
+- DE/EU region guidance and an Anschreiben cover-letter style ([4dd2243])
+- Writing-guide rules now applied to AI field-generation prompts ([041db64])
+- ATS analysis now flags knockout risks and title misalignment, with rewrite coaching ([3bd6ad4])
+
+### Fixed
+
+- Background swatches in the customization drawer now match the resume's true page aspect ratio and color instead of a stretched preview ([7bea55e])
+- PDF export no longer clips the background pattern on two-column templates ([3922e19])
+- "Fit" zoom now accounts for page height as well as width, so a full page no longer overflows the viewport ([d7966a0])
+- Publications, volunteer, and awards sections are now editable, and publication links render as proper editable links ([5d0a0dc])
+
+### Internal
+
+- Bumped `llm-core` submodule pointer ([213ab81])
+
 ## [1.2.0] - 2026-07-21
 
 ### Added

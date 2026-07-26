@@ -1,3 +1,12 @@
+# v1.3.0 — 2026-07-26
+
+A release focused on EU/German-style resumes and sharper ATS feedback.
+
+- **Build EU/German-style resumes.** Add a profile photo and a hobbies/interests section, styled to match your template, plus new Anschreiben cover-letter style and DE/EU-specific writing guidance.
+- **See knockout risks before you apply.** ATS analysis now flags knockout-risk issues and title misalignment against the job posting, with coaching on how to rewrite around them.
+- **Fixed:** background patterns in the customization drawer and PDF export now render correctly (true page proportions in the picker, no more clipping on two-column templates).
+- **Fixed:** "Fit" zoom now accounts for page height, and publications, volunteer, and awards sections are fully editable, including publication links.
+
 # v1.2.0 — 2026-07-21
 
 A security-hardening and workflow release: locked-down content security policy, safer API-key storage, and a more flexible tailoring flow.
