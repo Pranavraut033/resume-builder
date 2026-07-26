@@ -1,3 +1,4 @@
+import { LLMUsageInfo } from "@/actions/tokenUsage";
 import {
   IntentLabel,
   ToolIntent,
@@ -21,6 +22,10 @@ export interface ChatMessage {
     args: Record<string, unknown>;
   };
   isStreaming?: boolean;
+  /** Ephemeral status narration shown while working — cleared once real content/tool result arrives. */
+  statusText?: string;
+  /** Token usage for this turn, surfaced once the "done" event arrives. */
+  usage?: LLMUsageInfo;
   timestamp: Date;
   error?: string;
 }
@@ -29,7 +34,7 @@ export interface ChatMessage {
 
 export interface IntentMeta {
   label: string;
-  /** Tailwind inline-style color key for the pill — maps to agent CSS vars */
+  /** Tailwind className pair for the pill background/foreground — agent tokens. */
   color: string;
   onColor: string;
 }
@@ -37,38 +42,53 @@ export interface IntentMeta {
 export const INTENT_META: Record<IntentLabel, IntentMeta> = {
   edit: {
     label: "editing resume",
-    color: "var(--color-agent-primary)",
-    onColor: "var(--color-agent-on-primary)",
+    color: "bg-agent-primary",
+    onColor: "text-agent-on-primary",
   },
   interview: {
     label: "interview prep",
-    color: "var(--color-agent-tertiary-container)",
-    onColor: "var(--color-agent-on-tertiary-container)",
+    color: "bg-agent-tertiary-container",
+    onColor: "text-agent-on-tertiary-container",
   },
   regenerate: {
     label: "regenerating resume",
-    color: "var(--color-agent-secondary-container)",
-    onColor: "var(--color-agent-on-secondary-container)",
+    color: "bg-agent-secondary-container",
+    onColor: "text-agent-on-secondary-container",
   },
   tailor: {
     label: "tailoring to job",
-    color: "var(--color-agent-secondary-container)",
-    onColor: "var(--color-agent-on-secondary-container)",
+    color: "bg-agent-secondary-container",
+    onColor: "text-agent-on-secondary-container",
   },
   question: {
     label: "answering",
-    color: "var(--color-agent-surface-high)",
-    onColor: "var(--color-agent-on-surface-variant)",
+    color: "bg-agent-surface-high",
+    onColor: "text-agent-on-surface-variant",
   },
   other: {
-    label: "thinking",
-    color: "var(--color-agent-surface-high)",
-    onColor: "var(--color-agent-on-surface-variant)",
+    label: "answering",
+    color: "bg-agent-surface-high",
+    onColor: "text-agent-on-surface-variant",
   },
   ats: {
     label: "ats advice",
-    color: "var(--color-agent-secondary-container)",
-    onColor: "var(--color-agent-on-secondary-container)",
+    color: "bg-agent-secondary-container",
+    onColor: "text-agent-on-secondary-container",
+  },
+  cover_letter: {
+    label: "rewriting cover letter",
+    color: "bg-agent-tertiary-container",
+    onColor: "text-agent-on-tertiary-container",
+  },
+  humanize: {
+    label: "humanizing",
+    color: "bg-agent-tertiary-container",
+    onColor: "text-agent-on-tertiary-container",
+  },
+  undo: {
+    label: "undoing",
+    color: "bg-agent-secondary-container",
+    onColor: "text-agent-on-secondary-container",
   },
 };
 
@@ -92,7 +112,7 @@ export function getToolResultMeta(
     case IntentLabel.Regenerate:
       return {
         heading: "Resume regenerated from base profile",
-        icon: "refresh-cw",
+        icon: "refreshCw",
       };
     case IntentLabel.Tailor:
       return {
@@ -101,5 +121,11 @@ export function getToolResultMeta(
       };
     case IntentLabel.Ats:
       return { heading: "ATS advice", icon: "cpu" };
+    case IntentLabel.CoverLetter:
+      return { heading: "Cover letter rewritten", icon: "fileText" };
+    case IntentLabel.Humanize:
+      return { heading: "Cover letter humanized", icon: "sparkles" };
+    case IntentLabel.Undo:
+      return { heading: "Reverted last change", icon: "rotateCcw" };
   }
 }

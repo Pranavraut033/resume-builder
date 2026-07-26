@@ -13,37 +13,19 @@ export function ChatToolResult({ intent, args, content }: ChatToolResultProps) {
 
   return (
     <div className="space-y-3">
-      <div
-        className="my-1 overflow-hidden rounded-lg"
-        style={{
-          border: "1px solid var(--color-agent-outline-variant)",
-          background: "var(--color-agent-surface-container)",
-        }}
-      >
+      <div className="border-agent-outline-variant bg-agent-surface-container my-1 overflow-hidden rounded-lg border">
         {/* Accent bar */}
-        <div
-          className="h-0.5 w-full"
-          style={{ background: "var(--color-agent-primary)" }}
-        />
+        <div className="bg-agent-primary h-0.5 w-full" />
 
         <div className="flex items-start gap-3 px-3.5 py-3">
           {/* Icon */}
-          <div
-            className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-md"
-            style={{
-              background: "var(--color-agent-primary-fixed)",
-              color: "var(--color-agent-on-primary-fixed)",
-            }}
-          >
+          <div className="bg-agent-primary-fixed text-agent-on-primary-fixed mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-md">
             <Icon name={icon} className="h-3.5 w-3.5" />
           </div>
 
           {/* Content */}
           <div className="min-w-0 flex-1">
-            <p
-              className="text-xs font-semibold tracking-wide"
-              style={{ color: "var(--color-agent-on-surface)" }}
-            >
+            <p className="text-agent-on-surface text-xs font-semibold tracking-wide">
               ✦ {heading}
             </p>
             {content && (

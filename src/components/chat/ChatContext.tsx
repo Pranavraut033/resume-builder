@@ -39,6 +39,7 @@ interface ChatContextType {
   defaultView: ViewMode;
   setInput: (value: string) => void;
   handleSend: () => void;
+  retryMessage: (id: string) => void;
   resetSession: () => void;
   setDefaultView: (view: ViewMode) => void;
   fixMissingKeywords: (keywords: string[]) => Promise<void>;
@@ -52,8 +53,11 @@ export function ChatContextProvider({ children }: { children: ReactNode }) {
     profile,
     atsAnalysis: initialAtsAnalysis,
     job,
+    coverLetter,
     customization,
     updateResumeState,
+    updateCoverLetterState,
+    undoResume,
     saveToDb,
   } = useJobPageContext();
 
@@ -96,8 +100,10 @@ export function ChatContextProvider({ children }: { children: ReactNode }) {
       model,
       resume,
       job.details,
-      profile
+      profile,
+      coverLetter
     );
+    bot.setAtsAnalysis(initialAtsAnalysis);
     botRef.current = bot;
 
     let attempts = 0;
@@ -124,6 +130,11 @@ export function ChatContextProvider({ children }: { children: ReactNode }) {
     if (areJsonValuesEqual(currentResume, resume)) return;
     botRef.current.setResume(resume);
   }, [resume]);
+
+  useEffect(() => {
+    if (!botRef.current) return;
+    botRef.current.setCoverLetter(coverLetter);
+  }, [coverLetter]);
 
   useEffect(() => {
     if (!activeModelPair || !hasOpenedOnce.current) return;
@@ -160,7 +171,7 @@ export function ChatContextProvider({ children }: { children: ReactNode }) {
           model,
         });
         for await (const event of stream) {
-          if (event.type === "tool_result" && event.intent !== "ats") {
+          if (event.type === "tool_result" && event.intent === "edit") {
             const usage = event.args.usage;
             trackTokenUsage(usage);
             updateResumeStates(event.args.updatedResume, event.args.note);
@@ -200,121 +211,190 @@ export function ChatContextProvider({ children }: { children: ReactNode }) {
     [activeModelPair, isLoading, updateResumeStates]
   );
 
-  const handleSend = useCallback(async () => {
-    if (!botRef.current || !activeModelPair || isLoading || !input.trim())
-      return;
+  const updateCoverLetterStates = useCallback(
+    (updatedCoverLetter: string) => {
+      updateCoverLetterState(updatedCoverLetter);
+      botRef.current?.setCoverLetter(updatedCoverLetter);
+      saveToDb("coverLetter", updatedCoverLetter, customization);
+    },
+    [updateCoverLetterState, saveToDb, customization]
+  );
 
-    const [providerType, model] = activeModelPair;
-    const userText = input.trim();
-    setInput("");
-    setIsLoading(true);
+  const sendMessage = useCallback(
+    async (userText: string) => {
+      if (!botRef.current || !activeModelPair || isLoading || !userText.trim())
+        return;
 
-    const userId = makeId();
-    const assistantId = makeId();
+      const [providerType, model] = activeModelPair;
+      setIsLoading(true);
 
-    setMessages((prev) => [
-      ...prev,
-      { id: userId, role: "user", content: userText, timestamp: now() },
-      {
-        id: assistantId,
-        role: "assistant",
-        content: "",
-        isStreaming: true,
-        timestamp: now(),
-      },
-    ]);
+      const userId = makeId();
+      const assistantId = makeId();
+      // Tracks whichever message id currently represents this turn — starts as
+      // the assistant placeholder, and becomes the tool-result message id once
+      // a tool_result event replaces it (so "done" can attach usage to it).
+      let currentId = assistantId;
 
-    try {
-      const stream = botRef.current.chat(userText, {
-        provider: providerType,
-        model,
-      });
+      setMessages((prev) => [
+        ...prev,
+        { id: userId, role: "user", content: userText, timestamp: now() },
+        {
+          id: assistantId,
+          role: "assistant",
+          content: "",
+          isStreaming: true,
+          timestamp: now(),
+        },
+      ]);
 
-      for await (const event of stream) {
-        switch (event.type) {
-          case "intent":
-            setMessages((prev) =>
-              prev.map((m) =>
-                m.id === assistantId ? { ...m, intent: event.intent } : m
-              )
-            );
-            break;
+      try {
+        const stream = botRef.current.chat(userText, {
+          provider: providerType,
+          model,
+        });
 
-          case "chunk":
-            setMessages((prev) =>
-              prev.map((m) =>
-                m.id === assistantId
-                  ? { ...m, content: m.content + event.text }
-                  : m
-              )
-            );
-            break;
+        for await (const event of stream) {
+          switch (event.type) {
+            case "intent":
+              setMessages((prev) =>
+                prev.map((m) =>
+                  m.id === currentId ? { ...m, intent: event.intent } : m
+                )
+              );
+              break;
 
-          case "tool_result": {
-            const toolId = makeId();
-            setMessages((prev) =>
-              prev
-                .filter((m) => m.id !== assistantId)
-                .concat({
-                  id: toolId,
-                  role: "tool",
-                  content:
-                    event.intent !== "ats" ? (event.args.summary ?? "") : "",
-                  toolResult: { intent: event.intent, args: event.args },
-                  timestamp: now(),
-                })
-            );
+            case "status":
+              setMessages((prev) =>
+                prev.map((m) =>
+                  m.id === currentId ? { ...m, statusText: event.text } : m
+                )
+              );
+              break;
 
-            switch (event.intent) {
-              case "ats":
-                setAtsAnalysis(event.args.atsAnalysis);
-                setDefaultView("ats");
-                break;
-              case "edit":
-              case "tailor":
-              case "regenerate":
-                updateResumeStates(event.args.updatedResume, event.args.note);
-                break;
-            }
-            break;
-          }
+            case "chunk":
+              setMessages((prev) =>
+                prev.map((m) =>
+                  m.id === currentId
+                    ? {
+                        ...m,
+                        content: m.content + event.text,
+                        statusText: undefined,
+                      }
+                    : m
+                )
+              );
+              break;
 
-          case "done":
-            setMessages((prev) =>
-              prev.map((m) =>
-                m.id === assistantId ? { ...m, isStreaming: false } : m
-              )
-            );
-            break;
+            case "tool_result": {
+              const toolId = makeId();
+              currentId = toolId;
+              setMessages((prev) =>
+                prev
+                  .filter((m) => m.id !== assistantId)
+                  .concat({
+                    id: toolId,
+                    role: "tool",
+                    content:
+                      event.intent === "edit" ||
+                      event.intent === "tailor" ||
+                      event.intent === "regenerate"
+                        ? (event.args.summary ?? "")
+                        : "",
+                    toolResult: { intent: event.intent, args: event.args },
+                    timestamp: now(),
+                  })
+              );
 
-          case "error":
-            setMessages((prev) =>
-              prev.map((m) =>
-                m.id === assistantId
-                  ? { ...m, isStreaming: false, error: event.message }
-                  : m
-              )
-            );
-            break;
-        }
-      }
-    } catch (err) {
-      setMessages((prev) =>
-        prev.map((m) =>
-          m.id === assistantId
-            ? {
-                ...m,
-                isStreaming: false,
-                error:
-                  err instanceof Error ? err.message : "Something went wrong",
+              switch (event.intent) {
+                case "ats":
+                  setAtsAnalysis(event.args.atsAnalysis);
+                  setDefaultView("ats");
+                  break;
+                case "edit":
+                case "tailor":
+                case "regenerate":
+                  updateResumeStates(event.args.updatedResume, event.args.note);
+                  break;
+                case "cover_letter":
+                case "humanize":
+                  updateCoverLetterStates(event.args.updatedCoverLetter);
+                  break;
+                case "undo":
+                  undoResume();
+                  break;
               }
-            : m
-        )
-      );
-    } finally {
-      setIsLoading(false);
-    }
-  }, [activeModelPair, input, isLoading, updateResumeStates]);
+              break;
+            }
+
+            case "done":
+              setMessages((prev) =>
+                prev.map((m) =>
+                  m.id === currentId
+                    ? { ...m, isStreaming: false, usage: event.usage }
+                    : m
+                )
+              );
+              break;
+
+            case "error":
+              setMessages((prev) =>
+                prev.map((m) =>
+                  m.id === currentId
+                    ? { ...m, isStreaming: false, error: event.message }
+                    : m
+                )
+              );
+              break;
+          }
+        }
+      } catch (err) {
+        setMessages((prev) =>
+          prev.map((m) =>
+            m.id === currentId
+              ? {
+                  ...m,
+                  isStreaming: false,
+                  error:
+                    err instanceof Error ? err.message : "Something went wrong",
+                }
+              : m
+          )
+        );
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [
+      activeModelPair,
+      isLoading,
+      updateResumeStates,
+      updateCoverLetterStates,
+      undoResume,
+    ]
+  );
+
+  const handleSend = useCallback(() => {
+    const userText = input.trim();
+    if (!userText) return;
+    setInput("");
+    void sendMessage(userText);
+  }, [input, sendMessage]);
+
+  const retryMessage = useCallback(
+    (id: string) => {
+      const failedIndex = messages.findIndex((m) => m.id === id);
+      if (failedIndex === -1 || !messages[failedIndex].error) return;
+
+      const priorUser = [...messages.slice(0, failedIndex)]
+        .reverse()
+        .find((m) => m.role === "user");
+      if (!priorUser) return;
+
+      setMessages((prev) => prev.filter((m) => m.id !== id));
+      void sendMessage(priorUser.content);
+    },
+    [messages, sendMessage]
+  );
 
   return (
     <ChatContext.Provider
@@ -329,6 +409,7 @@ export function ChatContextProvider({ children }: { children: ReactNode }) {
         defaultView,
         setInput,
         handleSend,
+        retryMessage,
         resetSession,
         setDefaultView,
         fixMissingKeywords,

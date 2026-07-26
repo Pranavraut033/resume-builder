@@ -76,35 +76,16 @@ export function ChatPanel({ onClose: _close }: ChatPanelProps) {
 
   return (
     <div
-      className="flex flex-col overflow-hidden"
-      style={{
-        ...(isDocked
-          ? { width: "100%", height: "100%" }
-          : {
-              width: 360,
-              height: 520,
-              borderRadius: "0.75rem",
-              border: "1px solid var(--color-agent-outline-variant)",
-              boxShadow: "var(--shadow-agent-modal)",
-            }),
-        background: "var(--color-agent-surface-lowest)",
-      }}
+      className={cn(
+        "bg-agent-surface-lowest flex flex-col overflow-hidden",
+        isDocked
+          ? "h-full w-full"
+          : "border-agent-outline-variant shadow-agent-modal h-[520px] w-[360px] rounded-xl border"
+      )}
     >
       {/* ── Header ──────────────────────────────────────────────────────── */}
-      <div
-        className="flex shrink-0 items-center gap-2 px-4 py-3"
-        style={{
-          borderBottom: "1px solid var(--color-agent-outline-variant)",
-          background: "var(--color-agent-surface-low)",
-        }}
-      >
-        <span
-          className="mr-auto text-sm font-semibold tracking-tight"
-          style={{
-            color: "var(--color-agent-on-surface)",
-            fontFamily: "var(--font-mono)",
-          }}
-        >
+      <div className="border-agent-outline-variant bg-agent-surface-low flex shrink-0 items-center gap-2 border-b px-4 py-3">
+        <span className="text-agent-on-surface mr-auto font-mono text-sm font-semibold tracking-tight">
           Resume AI
         </span>
         {/*Ats analysis result is present, show an "ATS Analysis" badge in the header*/}
@@ -149,8 +130,7 @@ export function ChatPanel({ onClose: _close }: ChatPanelProps) {
             type="button"
             title="Close"
             onClick={onClose}
-            className="hover:bg-agent-surface-high flex h-7 w-7 items-center justify-center rounded-md transition-colors"
-            style={{ color: "var(--color-agent-on-surface-variant)" }}
+            className="hover:bg-agent-surface-high text-agent-on-surface-variant flex h-7 w-7 items-center justify-center rounded-md transition-colors"
           >
             <Icon name="x" className="h-3.5 w-3.5" />
           </button>
@@ -164,18 +144,12 @@ export function ChatPanel({ onClose: _close }: ChatPanelProps) {
       {/* ── Settings view ───────────────────────────────────────────────── */}
       {view === "settings" && (
         <div className="min-h-0 flex-1 overflow-y-auto px-4 py-5">
-          <p
-            className="mb-4 text-xs font-semibold tracking-widest uppercase"
-            style={{ color: "var(--color-agent-on-surface-variant)" }}
-          >
+          <p className="text-agent-on-surface-variant mb-4 text-xs font-semibold tracking-widest uppercase">
             Model
           </p>
           <ModelSelector className="w-full" />
 
-          <p
-            className="mt-6 mb-4 text-xs leading-relaxed"
-            style={{ color: "var(--color-agent-on-surface-variant)" }}
-          >
+          <p className="text-agent-on-surface-variant mt-6 mb-4 text-xs leading-relaxed">
             The selected model will be used for all chat operations in this
             session. Switch back to chat to start talking.
           </p>
@@ -197,10 +171,7 @@ export function ChatPanel({ onClose: _close }: ChatPanelProps) {
           {/* Message list */}
           <div className="min-h-0 flex-1 overflow-y-auto py-2">
             {messages.length === 0 ? (
-              <div
-                className="flex h-full flex-col items-center justify-center gap-2 px-8 text-center"
-                style={{ color: "var(--color-agent-on-surface-variant)" }}
-              >
+              <div className="text-agent-on-surface-variant flex h-full flex-col items-center justify-center gap-2 px-8 text-center">
                 <Icon
                   name="messageCircle"
                   className="mb-1 h-8 w-8 opacity-20"
@@ -219,12 +190,7 @@ export function ChatPanel({ onClose: _close }: ChatPanelProps) {
           </div>
 
           {/* ── Input bar ─────────────────────────────────────────────── */}
-          <div
-            className="shrink-0 px-3 pt-2 pb-3"
-            style={{
-              borderTop: "1px solid var(--color-agent-outline-variant)",
-            }}
-          >
+          <div className="border-agent-outline-variant shrink-0 border-t px-3 pt-2 pb-3">
             {isProviderReady ? (
               <p className="text-agent-on-surface-variant mb-2 text-[10px]">
                 Using <ModelSelector variant="minimal" />.
@@ -272,13 +238,7 @@ export function ChatPanel({ onClose: _close }: ChatPanelProps) {
                 )}
               </button>
             </div>
-            <p
-              className="mt-1.5 px-0.5 text-[10px]"
-              style={{
-                color: "var(--color-agent-on-surface-variant)",
-                opacity: 0.4,
-              }}
-            >
+            <p className="text-agent-on-surface-variant mt-1.5 px-0.5 text-[10px] opacity-40">
               Enter to send · Shift+Enter for newline
             </p>
           </div>
