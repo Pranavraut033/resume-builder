@@ -63,6 +63,7 @@ export default function ProfilePage() {
       linkedin: null,
       github: null,
       website: null,
+      photoDataUrl: null,
     },
     summary: "",
     experience: [],
@@ -74,6 +75,7 @@ export default function ProfilePage() {
     languages: [],
     volunteer: [],
     awards: [],
+    hobbies: [],
     sectionLayout: null,
   };
 

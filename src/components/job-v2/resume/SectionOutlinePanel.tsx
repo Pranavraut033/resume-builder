@@ -27,6 +27,7 @@ import {
   BUILTIN_SECTION_LABELS,
   BuiltinSectionId,
   getSectionLayout,
+  missingBuiltinSections,
 } from "@/types/resume";
 
 interface SectionOutlinePanelProps {
@@ -86,6 +87,18 @@ export function SectionOutlinePanel({
     );
   };
 
+  const addBuiltinSection = (id: BuiltinSectionId) => {
+    updateResumeState(
+      {
+        sectionLayout: {
+          ...sectionLayout,
+          order: [...sectionLayout.order, id],
+        },
+      },
+      `Added ${BUILTIN_SECTION_LABELS[id]}`
+    );
+  };
+
   const addCustomSection = () => {
     const id = `custom-${crypto.randomUUID()}`;
     updateResumeState(
@@ -140,6 +153,8 @@ export function SectionOutlinePanel({
   const isCustom = (id: string) =>
     sectionLayout.custom.some((c) => c.id === id);
 
+  const missing = missingBuiltinSections(sectionLayout);
+
   return (
     <SideDrawer
       open={open}
@@ -148,13 +163,23 @@ export function SectionOutlinePanel({
       title="Sections"
       widthClass="w-80"
       footer={
-        <div className="border-agent-outline-variant border-t p-2">
+        <div className="border-agent-outline-variant flex flex-col gap-1 border-t p-2">
+          {missing.map((id) => (
+            <button
+              key={id}
+              onClick={() => addBuiltinSection(id)}
+              className="text-agent-on-surface-variant hover:bg-agent-surface-container flex w-full items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-xs font-medium transition-colors"
+            >
+              <Icon name="plus" className="h-3.5 w-3.5" />
+              Add {BUILTIN_SECTION_LABELS[id]}
+            </button>
+          ))}
           <button
             onClick={addCustomSection}
             className="text-agent-on-surface-variant hover:bg-agent-surface-container flex w-full items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-xs font-medium transition-colors"
           >
             <Icon name="plus" className="h-3.5 w-3.5" />
-            Add section
+            Add custom section
           </button>
         </div>
       }

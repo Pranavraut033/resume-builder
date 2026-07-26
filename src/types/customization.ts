@@ -325,6 +325,12 @@ export type HeaderStyle =
 /** How dated entries (experience/education/projects/volunteer) render. */
 export type EntryStyle = "standard" | "timeline" | "compact";
 
+/** Profile photo corner treatment. */
+export type PhotoShape = "circle" | "squircle" | "square";
+
+/** Profile photo border/elevation treatment. */
+export type PhotoFrame = "none" | "ring" | "shadow";
+
 export type PerSectionOverride = Partial<{
   color: string;
   headingStyle: HeadingStyle;

@@ -28,6 +28,9 @@ model Profile {
   github   String?
   website  String?
 
+  // Base64 data URL of the profile photo (optional, EU/German CV convention)
+  photo String?
+
   // Professional Summary
   summary String?
 
@@ -51,6 +54,9 @@ model Profile {
 
   // Awards/Honors (optional)
   awardsJson String? @map("awards_json")
+
+  // Hobbies/Interests (optional, EU/German CV convention)
+  hobbiesJson String? @map("hobbies_json")
 
   jobs Job[]
 

@@ -58,6 +58,7 @@ export interface InlineEditContextValue {
   updateLanguage: (index: number, patch: Partial<Language>) => void;
   addLanguage: () => void;
   removeLanguage: (index: number) => void;
+  updateHobbies: (hobbies: string[]) => void;
   /** Append a new empty entry to a list section. */
   addItem: (section: ListSectionId) => void;
   /** Remove the entry at `index` from a list section. */
@@ -85,6 +86,7 @@ const NON_EDITABLE: InlineEditContextValue = {
   updateLanguage: noop,
   addLanguage: noop,
   removeLanguage: noop,
+  updateHobbies: noop,
   addItem: noop,
   removeItem: noop,
   moveItem: noop,
@@ -300,6 +302,7 @@ export function InlineEditProvider({
           { languages: (resume.languages ?? []).filter((_, i) => i !== index) },
           "Removed language"
         ),
+      updateHobbies: (hobbies) => updateResume({ hobbies }, "Edited hobbies"),
       addItem: (section) =>
         updateResume(
           { [section]: [...(resume[section] ?? []), EMPTY_ITEM[section]()] },

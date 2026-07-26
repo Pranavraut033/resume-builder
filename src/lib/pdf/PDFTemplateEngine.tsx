@@ -1,7 +1,8 @@
-import { Document, Page, Text, View } from "@react-pdf/renderer";
+import { Document, Image, Page, Text, View } from "@react-pdf/renderer";
 import React, { memo } from "react";
 
 import { buildSections } from "@/components/job-v2/engine/buildSections";
+import { photoRadius } from "@/components/job-v2/engine/photoFrame";
 import { TemplateConfig } from "@/components/job-v2/engine/types";
 import BackgroundPdf from "@/lib/backgrounds/BackgroundPdf";
 import { ResumeJSON, getSectionLayout } from "@/types/resume";
@@ -194,15 +195,32 @@ export const PDFTemplateEngine: React.FC<PDFTemplateEngineProps> = ({
   // ── Header ──────────────────────────────────────────────────────────────
   const headerStyle = config.header ?? "underline";
   const contactLine = buildContactLine(resume.header);
-
-  const headerNode = headerHidden ? null : headerStyle === "band" ? (
-    <View
+  const photoSizePt = 60;
+  const photoShape = config.photoShape ?? "circle";
+  const photoFrameStyle = config.photoFrame ?? "ring";
+  // ponytail: react-pdf has no box-shadow support, so "shadow" frames
+  // approximate elevation with a soft neutral border instead of a real shadow.
+  const photoFrameBorder =
+    photoFrameStyle === "none"
+      ? {}
+      : photoFrameStyle === "shadow"
+        ? { borderWidth: 3, borderColor: "#d1d5db" }
+        : { borderWidth: 2, borderColor: s.primaryColor };
+  const photoImage = resume.header.photoDataUrl ? (
+    // eslint-disable-next-line jsx-a11y/alt-text -- react-pdf's Image (not next/image's), no alt prop
+    <Image
+      src={resume.header.photoDataUrl}
       style={{
-        marginBottom: 14,
-        backgroundColor: s.primaryColor,
-        padding: marginPt * 0.6,
+        width: photoSizePt,
+        height: photoSizePt,
+        borderRadius: photoRadius(photoShape, photoSizePt),
+        ...photoFrameBorder,
       }}
-    >
+    />
+  ) : null;
+
+  const bandContent = (
+    <View style={{ flex: 1 }}>
       <Text
         style={{
           fontSize: nameFontSize,
@@ -222,15 +240,10 @@ export const PDFTemplateEngine: React.FC<PDFTemplateEngineProps> = ({
         {contactLine}
       </Text>
     </View>
-  ) : headerStyle === "left-accent" ? (
-    <View
-      style={{
-        marginBottom: 14,
-        paddingLeft: 10,
-        borderLeftWidth: 4,
-        borderLeftColor: s.accentColor,
-      }}
-    >
+  );
+
+  const leftAccentContent = (
+    <View style={{ flex: 1 }}>
       <Text
         style={{
           fontSize: nameFontSize,
@@ -250,8 +263,89 @@ export const PDFTemplateEngine: React.FC<PDFTemplateEngineProps> = ({
         {contactLine}
       </Text>
     </View>
+  );
+
+  const minimalContent = (
+    <View style={{ flex: 1 }}>
+      <Text
+        style={{
+          fontSize: nameFontSize,
+          fontWeight: 700,
+          color: textColor,
+          marginBottom: 2,
+        }}
+      >
+        {resume.header.name}
+        {resume.header.headline ? (
+          <Text style={{ fontSize, fontWeight: 400, color: accentColor }}>
+            {"  •  "}
+            {resume.header.headline}
+          </Text>
+        ) : null}
+      </Text>
+      <Text style={{ fontSize: smallFontSize, color: "#6b7280" }}>
+        {contactLine}
+      </Text>
+    </View>
+  );
+
+  const underlineContent = (
+    <View style={{ flex: 1 }}>
+      <Text
+        style={{
+          fontSize: nameFontSize,
+          fontWeight: 700,
+          color: textColor,
+          marginBottom: 3,
+        }}
+      >
+        {resume.header.name}
+      </Text>
+      {resume.header.headline ? (
+        <Text style={{ fontSize, color: accentColor, marginBottom: 3 }}>
+          {resume.header.headline}
+        </Text>
+      ) : null}
+      <Text style={{ fontSize: smallFontSize, color: "#6b7280" }}>
+        {contactLine}
+      </Text>
+    </View>
+  );
+
+  const headerNode = headerHidden ? null : headerStyle === "band" ? (
+    <View
+      style={{
+        marginBottom: 14,
+        backgroundColor: s.primaryColor,
+        padding: marginPt * 0.6,
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 10,
+      }}
+    >
+      {bandContent}
+      {photoImage}
+    </View>
+  ) : headerStyle === "left-accent" ? (
+    <View
+      style={{
+        marginBottom: 14,
+        paddingLeft: 10,
+        borderLeftWidth: 4,
+        borderLeftColor: s.accentColor,
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 10,
+      }}
+    >
+      {leftAccentContent}
+      {photoImage}
+    </View>
   ) : headerStyle === "centered" ? (
     <View style={{ marginBottom: 14, alignItems: "center" }}>
+      {photoImage ? (
+        <View style={{ marginBottom: 6 }}>{photoImage}</View>
+      ) : null}
       <Text
         style={{
           fontSize: nameFontSize,
@@ -286,47 +380,28 @@ export const PDFTemplateEngine: React.FC<PDFTemplateEngineProps> = ({
       </Text>
     </View>
   ) : headerStyle === "minimal" ? (
-    <View style={{ marginBottom: 10 }}>
-      <Text
-        style={{
-          fontSize: nameFontSize,
-          fontWeight: 700,
-          color: textColor,
-          marginBottom: 2,
-        }}
-      >
-        {resume.header.name}
-        {resume.header.headline ? (
-          <Text style={{ fontSize, fontWeight: 400, color: accentColor }}>
-            {"  •  "}
-            {resume.header.headline}
-          </Text>
-        ) : null}
-      </Text>
-      <Text style={{ fontSize: smallFontSize, color: "#6b7280" }}>
-        {contactLine}
-      </Text>
+    <View
+      style={{
+        marginBottom: 10,
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 10,
+      }}
+    >
+      {minimalContent}
+      {photoImage}
     </View>
   ) : (
-    <View style={{ marginBottom: 14 }}>
-      <Text
-        style={{
-          fontSize: nameFontSize,
-          fontWeight: 700,
-          color: textColor,
-          marginBottom: 3,
-        }}
-      >
-        {resume.header.name}
-      </Text>
-      {resume.header.headline ? (
-        <Text style={{ fontSize, color: accentColor, marginBottom: 3 }}>
-          {resume.header.headline}
-        </Text>
-      ) : null}
-      <Text style={{ fontSize: smallFontSize, color: "#6b7280" }}>
-        {contactLine}
-      </Text>
+    <View
+      style={{
+        marginBottom: 14,
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 10,
+      }}
+    >
+      {underlineContent}
+      {photoImage}
     </View>
   );
 

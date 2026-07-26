@@ -29,6 +29,7 @@ import { HeadingStyle } from "@/types/customization";
 import { getSectionLayout } from "@/types/resume";
 
 import { buildSections } from "./buildSections";
+import { photoDomStyle, photoRadius } from "./photoFrame";
 import { isListSection, SECTION_REGISTRY } from "./sections";
 import { Block, SectionInstance, TemplateConfig } from "./types";
 
@@ -232,6 +233,62 @@ export const TemplateEngine: React.FC<TemplateEngineProps> = ({
     .filter(Boolean)
     .join(" ");
 
+  const photoDataUrl = resume.header.photoDataUrl;
+  const photoShape = config.photoShape ?? "circle";
+  const photoFrameStyle = config.photoFrame ?? "ring";
+  const photoSizePx = 80;
+  const photoFrameColor = isBand ? theme.backgroundColor : primaryColor;
+  const photoStyle = photoDomStyle(
+    photoShape,
+    photoFrameStyle,
+    photoSizePx,
+    photoFrameColor
+  );
+  const photoNode = (photoDataUrl || edit.editable) && (
+    <div className={`relative shrink-0 ${isCentered ? "mb-3" : ""}`}>
+      {photoDataUrl ? (
+        <>
+          {/* eslint-disable-next-line @next/next/no-img-element -- ponytail: photoDataUrl is a base64 data: URL, not a next/image-optimizable remote asset */}
+          <img
+            src={photoDataUrl}
+            alt=""
+            className="h-20 w-20 object-cover"
+            style={photoStyle}
+          />
+          {edit.editable && (
+            <button
+              onClick={() => edit.updateHeader({ photoDataUrl: null })}
+              aria-label="Remove photo"
+              className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-black/60 text-xs leading-none text-white"
+            >
+              ×
+            </button>
+          )}
+        </>
+      ) : (
+        <label
+          className="text-agent-on-surface-variant hover:bg-agent-primary-container flex h-20 w-20 cursor-pointer items-center justify-center border border-dashed text-center text-xs"
+          style={{ borderRadius: photoRadius(photoShape, photoSizePx) }}
+        >
+          + Photo
+          <input
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (!file) return;
+              const reader = new FileReader();
+              reader.onload = () =>
+                edit.updateHeader({ photoDataUrl: reader.result as string });
+              reader.readAsDataURL(file);
+            }}
+          />
+        </label>
+      )}
+    </div>
+  );
+
   const headerNode = headerHidden ? null : (
     <header
       className={headerWrapperClassName}
@@ -240,97 +297,105 @@ export const TemplateEngine: React.FC<TemplateEngineProps> = ({
         backgroundColor: isBand ? primaryColor : undefined,
       }}
     >
-      <h1
-        className={`mb-2 ${nameSize} font-bold`}
-        style={{ color: headerNameColor }}
-      >
-        <EditableText
-          value={resume.header.name}
-          onCommit={(v) => edit.updateHeader({ name: v })}
-          placeholder="Your Name"
-        />
-      </h1>
-      {(resume.header.headline || edit.editable) && (
-        <div
-          className={`${textSize} ${lineHeight} mb-2 font-medium`}
-          style={{ color: headerHeadlineColor }}
-        >
-          <EditableText
-            value={resume.header.headline || ""}
-            onCommit={(v) => edit.updateHeader({ headline: v })}
-            placeholder="Professional headline"
-          />
-        </div>
-      )}
       <div
-        className={`${textSize} ${lineHeight} space-y-1`}
-        style={{ color: headerContactColor }}
+        className={`flex gap-4 ${isCentered ? "flex-col items-center" : "items-start justify-between"}`}
       >
-        <div
-          className={`flex flex-wrap gap-4 ${isCentered ? "justify-center" : ""}`}
-        >
-          {(resume.header.email || edit.editable) && (
-            <span>
-              ✉{" "}
+        {isCentered && photoNode}
+        <div className="min-w-0 flex-1">
+          <h1
+            className={`mb-2 ${nameSize} font-bold`}
+            style={{ color: headerNameColor }}
+          >
+            <EditableText
+              value={resume.header.name}
+              onCommit={(v) => edit.updateHeader({ name: v })}
+              placeholder="Your Name"
+            />
+          </h1>
+          {(resume.header.headline || edit.editable) && (
+            <div
+              className={`${textSize} ${lineHeight} mb-2 font-medium`}
+              style={{ color: headerHeadlineColor }}
+            >
               <EditableText
-                value={resume.header.email}
-                onCommit={(v) => edit.updateHeader({ email: v })}
-                placeholder="email@example.com"
+                value={resume.header.headline || ""}
+                onCommit={(v) => edit.updateHeader({ headline: v })}
+                placeholder="Professional headline"
               />
-            </span>
+            </div>
           )}
-          {(resume.header.phone || edit.editable) && (
-            <span>
-              📞{" "}
-              <EditableText
-                value={resume.header.phone || ""}
-                onCommit={(v) => edit.updateHeader({ phone: v })}
-                placeholder="Phone"
-              />
-            </span>
-          )}
-          {(resume.header.location || edit.editable) && (
-            <span>
-              📍{" "}
-              <EditableText
-                value={resume.header.location || ""}
-                onCommit={(v) => edit.updateHeader({ location: v })}
-                placeholder="Location"
-              />
-            </span>
-          )}
+          <div
+            className={`${textSize} ${lineHeight} space-y-1`}
+            style={{ color: headerContactColor }}
+          >
+            <div
+              className={`flex flex-wrap gap-4 ${isCentered ? "justify-center" : ""}`}
+            >
+              {(resume.header.email || edit.editable) && (
+                <span>
+                  ✉{" "}
+                  <EditableText
+                    value={resume.header.email}
+                    onCommit={(v) => edit.updateHeader({ email: v })}
+                    placeholder="email@example.com"
+                  />
+                </span>
+              )}
+              {(resume.header.phone || edit.editable) && (
+                <span>
+                  📞{" "}
+                  <EditableText
+                    value={resume.header.phone || ""}
+                    onCommit={(v) => edit.updateHeader({ phone: v })}
+                    placeholder="Phone"
+                  />
+                </span>
+              )}
+              {(resume.header.location || edit.editable) && (
+                <span>
+                  📍{" "}
+                  <EditableText
+                    value={resume.header.location || ""}
+                    onCommit={(v) => edit.updateHeader({ location: v })}
+                    placeholder="Location"
+                  />
+                </span>
+              )}
+            </div>
+            <div
+              className={`flex flex-wrap gap-4 ${isCentered ? "justify-center" : ""}`}
+            >
+              {(resume.header.linkedin || edit.editable) && (
+                <EditableLink
+                  href={resume.header.linkedin ?? ""}
+                  onCommit={(v) => edit.updateHeader({ linkedin: v })}
+                  placeholder="LinkedIn URL"
+                  className="hover:underline"
+                  style={{ color: headerLinkColor }}
+                />
+              )}
+              {(resume.header.github || edit.editable) && (
+                <EditableLink
+                  href={resume.header.github ?? ""}
+                  onCommit={(v) => edit.updateHeader({ github: v })}
+                  placeholder="GitHub URL"
+                  className="hover:underline"
+                  style={{ color: headerLinkColor }}
+                />
+              )}
+              {(resume.header.website || edit.editable) && (
+                <EditableLink
+                  href={resume.header.website ?? ""}
+                  onCommit={(v) => edit.updateHeader({ website: v })}
+                  placeholder="Website URL"
+                  className="hover:underline"
+                  style={{ color: headerLinkColor }}
+                />
+              )}
+            </div>
+          </div>
         </div>
-        <div
-          className={`flex flex-wrap gap-4 ${isCentered ? "justify-center" : ""}`}
-        >
-          {(resume.header.linkedin || edit.editable) && (
-            <EditableLink
-              href={resume.header.linkedin ?? ""}
-              onCommit={(v) => edit.updateHeader({ linkedin: v })}
-              placeholder="LinkedIn URL"
-              className="hover:underline"
-              style={{ color: headerLinkColor }}
-            />
-          )}
-          {(resume.header.github || edit.editable) && (
-            <EditableLink
-              href={resume.header.github ?? ""}
-              onCommit={(v) => edit.updateHeader({ github: v })}
-              placeholder="GitHub URL"
-              className="hover:underline"
-              style={{ color: headerLinkColor }}
-            />
-          )}
-          {(resume.header.website || edit.editable) && (
-            <EditableLink
-              href={resume.header.website ?? ""}
-              onCommit={(v) => edit.updateHeader({ website: v })}
-              placeholder="Website URL"
-              className="hover:underline"
-              style={{ color: headerLinkColor }}
-            />
-          )}
-        </div>
+        {!isCentered && photoNode}
       </div>
     </header>
   );

@@ -16,6 +16,7 @@ const baseResume: ResumeJSON = {
     linkedin: null,
     github: null,
     website: null,
+    photoDataUrl: null,
   },
   summary: "Leveraged synergies to spearhead innovative solutions.",
   experience: [
@@ -36,6 +37,7 @@ const baseResume: ResumeJSON = {
   languages: null,
   volunteer: null,
   awards: null,
+  hobbies: null,
   sectionLayout: null,
 };
 

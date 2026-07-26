@@ -19,6 +19,7 @@ const baseResume: ResumeJSON = {
     linkedin: null,
     github: null,
     website: null,
+    photoDataUrl: null,
   },
   summary: "A summary",
   experience: [],
@@ -30,6 +31,7 @@ const baseResume: ResumeJSON = {
   languages: null,
   volunteer: null,
   awards: null,
+  hobbies: null,
   sectionLayout: null,
 };
 

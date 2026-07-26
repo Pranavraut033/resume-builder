@@ -774,6 +774,32 @@ const languages: DomSectionBuilder = ({ resume, theme, edit }) => {
   ];
 };
 
+const hobbies: DomSectionBuilder = ({ resume, theme, edit }) => {
+  const list = resume.hobbies ?? [];
+  if (list.length === 0 && !edit.editable) return [];
+  return [
+    {
+      sectionKey: "hobbies",
+      node: (
+        <div className={`${theme.textSize} ${theme.lineHeight}`}>
+          <EditableText
+            value={list.join(", ")}
+            onCommit={(v) =>
+              edit.updateHobbies(
+                v
+                  .split(",")
+                  .map((h) => h.trim())
+                  .filter(Boolean)
+              )
+            }
+            placeholder="Reading, hiking, chess…"
+          />
+        </div>
+      ),
+    },
+  ];
+};
+
 const volunteer: DomSectionBuilder = ({ resume, theme, edit, entryStyle }) =>
   (resume.volunteer ?? []).map((v, volIndex): Block => {
     const dates = (
@@ -1104,6 +1130,12 @@ const txtAwards: TxtSectionBuilder = ({ resume }) => {
   return `Awards:\n${body}\n`;
 };
 
+const txtHobbies: TxtSectionBuilder = ({ resume }) => {
+  const list = resume.hobbies ?? [];
+  if (list.length === 0) return "";
+  return `Hobbies & Interests:\n${list.join(", ")}\n`;
+};
+
 const txtCustom: TxtSectionBuilder = ({ resume, instance }) => {
   const section = (resume.sectionLayout?.custom ?? []).find(
     (c) => c.id === instance.id
@@ -1123,5 +1155,6 @@ export const SECTION_REGISTRY: Record<string, SectionRegistryEntry> = {
   languages: { dom: languages, txt: txtLanguages },
   volunteer: { dom: volunteer, txt: txtVolunteer },
   awards: { dom: awards, txt: txtAwards },
+  hobbies: { dom: hobbies, txt: txtHobbies },
   custom: { dom: custom, txt: txtCustom },
 };

@@ -4,6 +4,8 @@ import type {
   EntryStyle,
   HeaderStyle,
   HeadingStyle,
+  PhotoFrame,
+  PhotoShape,
   ThemeConfig,
 } from "@/types/customization";
 import type { ResumeJSON, SectionLayout } from "@/types/resume";
@@ -63,6 +65,10 @@ export type TemplateConfig = {
   header?: HeaderStyle;
   /** How dated entries (experience/education/projects/volunteer) render. Defaults to "standard". */
   entryStyle?: EntryStyle;
+  /** Profile photo corner treatment. Defaults to "circle". */
+  photoShape?: PhotoShape;
+  /** Profile photo border/elevation treatment. Defaults to "ring". */
+  photoFrame?: PhotoFrame;
 };
 
 export type { ThemeConfig, SectionLayout };

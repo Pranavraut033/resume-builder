@@ -56,6 +56,7 @@ export async function createProfile(
       linkedin: resumeJson?.header?.linkedin ?? null,
       github: resumeJson?.header?.github ?? null,
       website: resumeJson?.header?.website ?? null,
+      photo: resumeJson?.header?.photoDataUrl ?? null,
       summary: resumeJson?.summary ?? null,
       skillsJson: JSON.stringify(resumeJson?.skills ?? []),
       experienceJson: JSON.stringify(resumeJson?.experience ?? []),
@@ -72,6 +73,9 @@ export async function createProfile(
         ? JSON.stringify(resumeJson.volunteer)
         : null,
       awardsJson: resumeJson?.awards ? JSON.stringify(resumeJson.awards) : null,
+      hobbiesJson: resumeJson?.hobbies
+        ? JSON.stringify(resumeJson.hobbies)
+        : null,
       createdAt: now,
       updatedAt: now,
     },
@@ -125,6 +129,7 @@ function profileDataToResumeJson(
       linkedin: profile.linkedin || null,
       github: profile.github || null,
       website: profile.website || null,
+      photoDataUrl: profile.photo || null,
     },
     summary: profile.summary || "",
     experience: JSON.parse(profile.experienceJson),
@@ -138,6 +143,7 @@ function profileDataToResumeJson(
     languages: profile.languagesJson ? JSON.parse(profile.languagesJson) : [],
     volunteer: profile.volunteerJson ? JSON.parse(profile.volunteerJson) : [],
     awards: profile.awardsJson ? JSON.parse(profile.awardsJson) : [],
+    hobbies: profile.hobbiesJson ? JSON.parse(profile.hobbiesJson) : [],
     sectionLayout: null,
   } satisfies ResumeJSON & { label: string };
 }
@@ -154,6 +160,7 @@ function resumeJsonToProfileData(
     linkedin: resumeJson.header.linkedin || null,
     github: resumeJson.header.github || null,
     website: resumeJson.header.website || null,
+    photo: resumeJson.header.photoDataUrl || null,
     summary: resumeJson.summary || null,
     skillsJson: JSON.stringify(resumeJson.skills),
     experienceJson: JSON.stringify(resumeJson.experience),
@@ -170,5 +177,6 @@ function resumeJsonToProfileData(
       ? JSON.stringify(resumeJson.volunteer)
       : null,
     awardsJson: resumeJson.awards ? JSON.stringify(resumeJson.awards) : null,
+    hobbiesJson: resumeJson.hobbies ? JSON.stringify(resumeJson.hobbies) : null,
   };
 }

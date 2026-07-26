@@ -659,6 +659,22 @@ const pdfAwards: PDFSectionBuilder = ({ resume, styles: s }) => {
   );
 };
 
+const pdfHobbies: PDFSectionBuilder = ({ resume, styles: s }) => {
+  const list = resume.hobbies ?? [];
+  if (list.length === 0) return null;
+  return (
+    <Text
+      style={{
+        fontSize: s.fontSize,
+        lineHeight: s.lineHeight,
+        color: "#374151",
+      }}
+    >
+      {list.join(", ")}
+    </Text>
+  );
+};
+
 const pdfCustom: PDFSectionBuilder = ({ resume, instance }) => {
   const section = (resume.sectionLayout?.custom ?? []).find(
     (c) => c.id === instance.id
@@ -691,5 +707,6 @@ export const PDF_SECTION_REGISTRY: Record<string, PDFSectionBuilder> = {
   languages: pdfLanguages,
   volunteer: pdfVolunteer,
   awards: pdfAwards,
+  hobbies: pdfHobbies,
   custom: pdfCustom,
 };

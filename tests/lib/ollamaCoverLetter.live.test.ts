@@ -128,6 +128,7 @@ function loadRealBaseProfile(): ResumeJSON {
       linkedin: row.linkedin,
       github: row.github,
       website: row.website,
+      photoDataUrl: null,
     },
     summary: row.summary || "",
     experience: JSON.parse(row.experience_json),
@@ -141,6 +142,7 @@ function loadRealBaseProfile(): ResumeJSON {
     languages: row.languages_json ? JSON.parse(row.languages_json) : [],
     volunteer: row.volunteer_json ? JSON.parse(row.volunteer_json) : [],
     awards: row.awards_json ? JSON.parse(row.awards_json) : [],
+    hobbies: [],
     sectionLayout: null,
   };
 }

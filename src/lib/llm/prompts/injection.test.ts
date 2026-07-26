@@ -43,6 +43,7 @@ const sampleResume: ResumeJSON = {
     linkedin: null,
     github: null,
     website: null,
+    photoDataUrl: null,
   },
   summary: "Backend engineer with 6 years building payment infrastructure.",
   experience: [],
@@ -54,6 +55,7 @@ const sampleResume: ResumeJSON = {
   languages: null,
   volunteer: null,
   awards: null,
+  hobbies: null,
   sectionLayout: null,
 };
 

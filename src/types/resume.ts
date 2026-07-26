@@ -127,6 +127,10 @@ export const ContactInfoSchema = z.object({
   linkedin: z.string().nullable(),
   github: z.string().nullable(),
   website: z.string().nullable(),
+  // Base64 data URL (e.g. "data:image/png;base64,..."). Stored inline like
+  // every other resume field — never interpolated into an LLM prompt (see
+  // resumeJsonToCompactPositional below).
+  photoDataUrl: z.string().nullable(),
 });
 
 export const ExperienceSchema = z.object({
@@ -207,6 +211,7 @@ export const BUILTIN_SECTION_IDS = [
   "languages",
   "volunteer",
   "awards",
+  "hobbies",
 ] as const;
 
 export type BuiltinSectionId = (typeof BUILTIN_SECTION_IDS)[number];
@@ -223,6 +228,7 @@ export const BUILTIN_SECTION_LABELS: Record<BuiltinSectionId, string> = {
   languages: "Languages",
   volunteer: "Volunteer",
   awards: "Awards",
+  hobbies: "Hobbies & Interests",
 };
 
 // ponytail: custom-section content starts at bullets/text only. Add a
@@ -253,6 +259,11 @@ export type SectionLayout = z.infer<typeof SectionLayoutSchema>;
  * `sectionLayout` — fall back to the canonical built-in order with nothing
  * hidden/custom, so old rows render identically until the user reorders and
  * it gets persisted. Lazy migration: no backfill script needed.
+ *
+ * Rows that already have a persisted `sectionLayout` predate any built-in
+ * section id added later (e.g. `hobbies`) and won't include it in `order` —
+ * see `missingBuiltinSections()` for how the Sections drawer offers adding
+ * it back.
  */
 export function getSectionLayout(resume: ResumeJSON): SectionLayout {
   return (
@@ -262,6 +273,13 @@ export function getSectionLayout(resume: ResumeJSON): SectionLayout {
       custom: [],
     }
   );
+}
+
+/** Built-in sections not present in `layout.order` — addable from the Sections drawer. */
+export function missingBuiltinSections(
+  layout: SectionLayout
+): BuiltinSectionId[] {
+  return BUILTIN_SECTION_IDS.filter((id) => !layout.order.includes(id));
 }
 
 export const SkillSchema = z.object({
@@ -308,6 +326,7 @@ export const ResumeSchema = z.object({
   languages: z.array(LanguageSchema).nullable(),
   volunteer: z.array(VolunteerSchema).nullable(),
   awards: z.array(AwardSchema).nullable(),
+  hobbies: z.array(z.string()).nullable(),
   sectionLayout: SectionLayoutSchema.nullable(),
 });
 
@@ -501,6 +520,7 @@ export function resumeJsonToCompactPositional(resume: ResumeJSON): string {
       )
       .join("\n") || ""
   }
+  ${resume.hobbies?.join(", ") || ""}
   `);
 }
 
