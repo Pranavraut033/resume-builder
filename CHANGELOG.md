@@ -2,6 +2,13 @@
 
 All notable changes to this project are documented in this file.
 
+## [1.3.1] - 2026-07-26
+
+### Fixed
+
+- Auto-update download always 404'd because the update manifest pointed at the unsuffixed build filename instead of the `_universal`-suffixed one Tauri actually uploads ([df03444])
+- The "Check for Updates" button in Settings is now wired up, driving the same update modal as the background auto-check ([df03444])
+
 ## [1.3.0] - 2026-07-26
 
 ### Added

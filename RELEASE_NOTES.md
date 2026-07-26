@@ -1,3 +1,10 @@
+# v1.3.1 — 2026-07-26
+
+A small fix release for auto-updates.
+
+- **Fixed:** in-app auto-update downloads were failing outright due to a URL mismatch in the update manifest — updates now install correctly.
+- **Fixed:** the "Check for Updates" button in Settings now actually works.
+
 # v1.3.0 — 2026-07-26
 
 A release focused on EU/German-style resumes and sharper ATS feedback.
