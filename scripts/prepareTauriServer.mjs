@@ -112,8 +112,11 @@ async function main() {
   // Rust (src-tauri/src/lib.rs) can seed it on first launch.
   const templateDir = await mkdtemp(path.join(os.tmpdir(), "app-db-template-"));
   const templateDbPath = path.join(templateDir, "app-template.db");
+  // execFileSync skips the shell, so on Windows it needs the literal .cmd
+  // shim name — a bare "npx" only resolves via PATHEXT under a real shell.
+  const npx = process.platform === "win32" ? "npx.cmd" : "npx";
   execFileSync(
-    "npx",
+    npx,
     [
       "prisma",
       "db",

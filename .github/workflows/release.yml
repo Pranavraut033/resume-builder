@@ -57,22 +57,13 @@ jobs:
       fail-fast: false
       matrix:
         include:
+          # ponytail: macOS only — scripts/prepareTauriServer.mjs's Node-runtime
+          # bundling is darwin-only, so Windows/Linux legs fail before they can
+          # produce an artifact. Add them back once that script supports win32/linux.
           - platform: macos-latest
             args: "--target universal-apple-darwin"
             rust-targets: "aarch64-apple-darwin,x86_64-apple-darwin"
-          - platform: ubuntu-22.04
-            # linuxdeploy's real failure reason gets swallowed into a generic
-            # "failed to run linuxdeploy" otherwise (tauri-apps/tauri#14796)
-            args: "--verbose"
-            rust-targets: ""
-          - platform: windows-latest
-            args: ""
-            rust-targets: ""
     runs-on: ${{ matrix.platform }}
-    # Linux AppImage bundling is unreliable in GH Actions (linuxdeploy on
-    # ubuntu-22.04, tauri-apps/tauri#14796) and shouldn't hold up shipping
-    # macOS/Windows. Remove once that's root-caused and fixed for real.
-    continue-on-error: ${{ matrix.platform == 'ubuntu-22.04' }}
 
     steps:
       - name: Checkout repository
