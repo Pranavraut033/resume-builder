@@ -130,6 +130,54 @@ fn seed_database_if_missing(resource_dir: &Path, db_path: &Path) -> Result<(), S
     Ok(())
 }
 
+/// App updates replace the bundle (and its fresh app-template.db) but never
+/// touch the user's existing app.db, so a schema change (e.g. a new column)
+/// ships in the code while already-installed users' databases stay on the
+/// old shape — see migrate-app-db.mjs, which does the actual diff-and-ALTER
+/// against app-template.db as the source of truth. Runs on every launch
+/// (harmless no-op once db_path is already current, including right after
+/// seed_database_if_missing on a fresh install).
+fn sync_database_schema(resource_dir: &Path, db_path: &Path) -> Result<(), String> {
+    let candidate_dirs = [
+        resource_dir.join("next"),
+        resource_dir.join("resources").join("next"),
+    ];
+
+    let server_dir = candidate_dirs
+        .iter()
+        .find(|dir| dir.join("migrate-app-db.mjs").exists())
+        .ok_or_else(|| {
+            format!(
+                "migrate-app-db.mjs not found. Checked: {}",
+                candidate_dirs
+                    .iter()
+                    .map(|d| d.join("migrate-app-db.mjs").display().to_string())
+                    .collect::<Vec<_>>()
+                    .join(", ")
+            )
+        })?;
+
+    let node_bin = server_dir.join("node-bin").join("node");
+    let template_path = server_dir.join("app-template.db");
+
+    let output = Command::new(&node_bin)
+        .arg("migrate-app-db.mjs")
+        .arg(&template_path)
+        .arg(db_path)
+        .current_dir(server_dir)
+        .output()
+        .map_err(|e| format!("Failed to run migrate-app-db.mjs: {e}"))?;
+
+    if !output.status.success() {
+        return Err(format!(
+            "migrate-app-db.mjs failed: {}",
+            String::from_utf8_lossy(&output.stderr)
+        ));
+    }
+
+    Ok(())
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     let app = tauri::Builder::default()
@@ -158,6 +206,7 @@ pub fn run() {
                 fs::create_dir_all(&app_data_dir)?;
                 let db_path = app_data_dir.join("app.db");
                 seed_database_if_missing(&resource_dir, &db_path).map_err(io::Error::other)?;
+                sync_database_schema(&resource_dir, &db_path).map_err(io::Error::other)?;
 
                 let logs_dir = app_data_dir.join("logs");
                 fs::create_dir_all(&logs_dir)?;

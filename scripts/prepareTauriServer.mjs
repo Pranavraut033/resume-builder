@@ -129,6 +129,14 @@ async function main() {
   await cp(templateDbPath, path.join(outputDir, "app-template.db"));
   await rm(templateDir, { recursive: true, force: true });
 
+  // Ships alongside app-template.db so Rust can diff an existing app.db
+  // against it on every launch and apply any schema drift — see
+  // src-tauri/src/lib.rs::sync_database_schema and migrate-app-db.mjs.
+  await cp(
+    path.join(root, "scripts", "migrate-app-db.mjs"),
+    path.join(outputDir, "migrate-app-db.mjs")
+  );
+
   await downloadNodeRuntime();
 
   console.log("Prepared bundled Next standalone server for Tauri:", outputDir);
