@@ -3,6 +3,7 @@ import { LLMProvider, textOnly } from "@pranavraut033/llm-core";
 import { LLMUsageInfo } from "@/actions/tokenUsage";
 import { ProviderFactory } from "@/lib/llm/providers";
 import logger from "@/lib/logger";
+import { HumanizerJSON } from "@/types/humanizer";
 import { ProviderType, LLMResult, PromptMessage } from "@/types/llm";
 import {
   ATSAnalysisJSON,
@@ -52,6 +53,9 @@ const INTENT_STATUS_TEXT: Record<IntentLabel, string> = {
   [IntentLabel.Ats]: "Analyzing ATS compatibility…",
   [IntentLabel.Interview]: "Preparing interview prep…",
   [IntentLabel.Question]: "Answering…",
+  [IntentLabel.CoverLetter]: "Rewriting your cover letter…",
+  [IntentLabel.Humanize]: "Removing AI-sounding phrasing…",
+  [IntentLabel.Undo]: "Reverting last change…",
   [IntentLabel.Other]: "Answering…",
 };
 
@@ -75,6 +79,26 @@ export type ChatStreamEvent =
         summary?: string;
       };
     }
+  | {
+      type: "tool_result";
+      intent: IntentLabel.CoverLetter;
+      args: { updatedCoverLetter: string; usage: LLMUsageInfo; note: string };
+    }
+  | {
+      type: "tool_result";
+      intent: IntentLabel.Humanize;
+      args: {
+        updatedCoverLetter: string;
+        changes: HumanizerJSON["changes"];
+        usage: LLMUsageInfo;
+        note: string;
+      };
+    }
+  | {
+      type: "tool_result";
+      intent: IntentLabel.Undo;
+      args: { usage?: LLMUsageInfo; note: string };
+    }
   | { type: "error"; message: string }
   | { type: "done"; usage?: LLMUsageInfo };
 
@@ -88,6 +112,7 @@ class ResumeChatBot {
   protected resume: ResumeJSON;
   protected jobDetails: JobDetailsJSON;
   private baseProfile: ResumeJSON;
+  private coverLetter: string;
   protected chatHistory: Record<ChatHistoryLabel, PromptMessage[]> = {
     chat: [],
   };
@@ -98,7 +123,8 @@ class ResumeChatBot {
     model: string,
     resume: ResumeJSON,
     jobDetails: JobDetailsJSON,
-    baseProfile: ResumeJSON
+    baseProfile: ResumeJSON,
+    coverLetter: string = ""
   ) {
     this.getProvider(providerType)
       .then((provider) => {
@@ -116,10 +142,15 @@ class ResumeChatBot {
     this.model = model;
     this.resume = resume;
     this.jobDetails = jobDetails;
+    this.coverLetter = coverLetter;
   }
 
   setResume(resume: ResumeJSON) {
     this.resume = resume;
+  }
+
+  setCoverLetter(coverLetter: string) {
+    this.coverLetter = coverLetter;
   }
 
   setJobDescription(jd: JobDetailsJSON) {
@@ -465,6 +496,99 @@ class ResumeChatBot {
       }
       case "edit": {
         yield* this.runEditIntent(messages, userMessage, options);
+        return;
+      }
+      case "cover_letter": {
+        logger.info(
+          "ResumeChatBot",
+          `Rewriting cover letter — intent: ${intent}`
+        );
+
+        yield { type: "status", text: "Rewriting your cover letter…" };
+
+        const { result, usage } = await domainOps.generateCoverLetter(
+          this.provider,
+          {
+            jobDetails: this.jobDetails,
+            resume: this.resume,
+            customInstructions: userMessage.content,
+            styleGuide: undefined,
+          },
+          { model: options.model }
+        );
+
+        this.pushToHistory("chat", userMessage, {
+          role: "assistant",
+          content: `[${intent} applied]`,
+        });
+
+        logger.info(
+          "ResumeChatBot",
+          `Cover letter rewritten — usage: ${JSON.stringify(usage)}`
+        );
+
+        yield {
+          type: "tool_result",
+          intent: intent,
+          args: {
+            updatedCoverLetter: result,
+            usage,
+            note: "Cover letter rewritten based on your instructions",
+          },
+        };
+        yield { type: "done", usage };
+        return;
+      }
+      case "humanize": {
+        logger.info(
+          "ResumeChatBot",
+          `Humanizing cover letter — intent: ${intent}`
+        );
+
+        yield { type: "status", text: "Removing AI-sounding phrasing…" };
+
+        const { result, usage } = await domainOps.humanizeContent(
+          this.provider,
+          this.coverLetter,
+          { model: options.model }
+        );
+
+        this.pushToHistory("chat", userMessage, {
+          role: "assistant",
+          content: `[${intent} applied]`,
+        });
+
+        logger.info(
+          "ResumeChatBot",
+          `Cover letter humanized — usage: ${JSON.stringify(usage)}`
+        );
+
+        yield {
+          type: "tool_result",
+          intent: intent,
+          args: {
+            updatedCoverLetter: result.rewritten,
+            changes: result.changes,
+            usage,
+            note: "Cover letter rewritten to sound more natural",
+          },
+        };
+        yield { type: "done", usage };
+        return;
+      }
+      case "undo": {
+        logger.info("ResumeChatBot", `Undo requested — intent: ${intent}`);
+
+        // No LLM call — the UI layer owns the resume history stack (see
+        // ResumeHistory/undoResume). We deliberately do NOT push this turn
+        // to chat history: nothing was said to the model, so there's no
+        // assistant turn to remember.
+        yield {
+          type: "tool_result",
+          intent: intent,
+          args: { note: "Reverting last change" },
+        };
+        yield { type: "done" };
         return;
       }
     }
