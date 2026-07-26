@@ -2,6 +2,20 @@
 
 All notable changes to this project are documented in this file.
 
+## [1.4.0] - 2026-07-27
+
+### Added
+
+- Chat assistant now handles cover-letter regeneration, humanizing, and undo directly as intents, alongside existing resume tailoring/editing ([46bc586])
+- Chat now narrates its current stage (classifying, editing, regenerating, ATS-checking, tailoring) as an ephemeral status line, and reports token usage per turn ([e422904])
+- Chat messages gained copy and retry buttons, and ATS-aware regeneration now passes through the session's existing analysis instead of discarding it ([e422904], [29b1cd7])
+- Chat UI restyled onto the existing agent color tokens instead of inline styles ([29b1cd7])
+
+### Fixed
+
+- Installed apps now auto-migrate their local database schema on launch, so updates that add columns (like v1.3.0's profile photo/hobbies) no longer break existing installs with "no such column" errors ([ca94f10])
+- Fixed a kebab-case icon lookup bug where the refresh icon silently fell back to a generic one ([29b1cd7])
+
 ## [1.3.1] - 2026-07-26
 
 ### Fixed

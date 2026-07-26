@@ -1,3 +1,12 @@
+# v1.4.0 — 2026-07-27
+
+A smarter chat assistant, and a fix that keeps existing installs from breaking on update.
+
+- **Ask chat to regenerate your cover letter, humanize text, or undo a change** — no more hopping to a separate button for those.
+- **See what chat is doing in real time.** A status line now shows whether it's classifying your request, editing, regenerating, or checking ATS — plus token usage for every turn.
+- **Copy or retry any chat message**, and a failed message can now be retried without retyping it.
+- **Fixed:** installed apps now automatically bring their local database up to date on launch, so people who update no longer risk hitting broken screens from a previous release's data-model changes.
+
 # v1.3.1 — 2026-07-26
 
 A small fix release for auto-updates.
