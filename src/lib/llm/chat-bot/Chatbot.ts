@@ -44,9 +44,21 @@ export type ChatBotOptions = {
   model: string;
 };
 
+// per-intent status narration shown immediately after intent classification
+const INTENT_STATUS_TEXT: Record<IntentLabel, string> = {
+  [IntentLabel.Edit]: "Editing your resume…",
+  [IntentLabel.Regenerate]: "Rebuilding your resume…",
+  [IntentLabel.Tailor]: "Tailoring to the job…",
+  [IntentLabel.Ats]: "Analyzing ATS compatibility…",
+  [IntentLabel.Interview]: "Preparing interview prep…",
+  [IntentLabel.Question]: "Answering…",
+  [IntentLabel.Other]: "Answering…",
+};
+
 // what chat() yields to the caller
 export type ChatStreamEvent =
   | { type: "intent"; intent: IntentLabel }
+  | { type: "status"; text: string }
   | { type: "chunk"; text: string } // interview / question text chunks
   | {
       type: "tool_result";
@@ -64,9 +76,9 @@ export type ChatStreamEvent =
       };
     }
   | { type: "error"; message: string }
-  | { type: "done" };
+  | { type: "done"; usage?: LLMUsageInfo };
 
-type ChatHistoryLabel = "intent" | "chat";
+type ChatHistoryLabel = "chat";
 
 class ResumeChatBot {
   protected model: string;
@@ -78,8 +90,8 @@ class ResumeChatBot {
   private baseProfile: ResumeJSON;
   protected chatHistory: Record<ChatHistoryLabel, PromptMessage[]> = {
     chat: [],
-    intent: [],
   };
+  private atsAnalysis: ATSAnalysisJSON | null = null;
 
   constructor(
     providerType: ProviderType,
@@ -114,8 +126,12 @@ class ResumeChatBot {
     this.jobDetails = jd;
   }
 
+  setAtsAnalysis(analysis: ATSAnalysisJSON | null) {
+    this.atsAnalysis = analysis;
+  }
+
   resetSession(resume: ResumeJSON, jobDetails: JobDetailsJSON) {
-    this.chatHistory = { chat: [], intent: [] };
+    this.chatHistory = { chat: [] };
     this.resume = resume;
     this.jobDetails = jobDetails;
   }
@@ -184,7 +200,6 @@ class ResumeChatBot {
     return this.provider.runLLM(
       [
         { role: "system", content: INTENT_CLASSIFIER_PROMPT },
-        ...this.getHistory("intent"),
         { role: "user", content: userInput },
       ],
       { model: options.model, maxTokens: 5, temperature: 0 }
@@ -259,10 +274,13 @@ class ResumeChatBot {
 
     try {
       // 1. classify
-      const { result: intent } = await this.classifyIntent(userInput, options);
+      yield { type: "status", text: "Thinking…" };
+      const { result: intent, usage: classifyUsage } =
+        await this.classifyIntent(userInput, options);
 
       logger.info("ResumeChatBot", `Intent classified: ${intent}`);
       yield { type: "intent", intent };
+      yield { type: "status", text: INTENT_STATUS_TEXT[intent] };
 
       const map = this.buildSystemPromptMap();
       const history = this.getHistory("chat");
@@ -289,6 +307,7 @@ class ResumeChatBot {
 
       let fullResponse = "";
       let chunkCount = 0;
+      let streamUsage: LLMUsageInfo | undefined;
 
       const stream = textOnly(
         this.provider.runLLM(messages, {
@@ -300,6 +319,7 @@ class ResumeChatBot {
               "ResumeChatBot",
               `Usage for intent ${intent}: ${JSON.stringify(usage)}`
             );
+            streamUsage = usage;
           },
         })
       );
@@ -316,7 +336,6 @@ class ResumeChatBot {
           "LLM failed to classify intent, defaulting to 'other'"
         );
       } else {
-        this.resetHistory("intent");
         logger.info(
           "ResumeChatBot",
           `LLM response complete for intent "${intent}" — ${chunkCount} chunk(s), ${fullResponse.length} chars`
@@ -333,7 +352,12 @@ class ResumeChatBot {
         content: fullResponse,
       });
 
-      yield { type: "done" };
+      const mergedUsage =
+        classifyUsage && streamUsage
+          ? mergeLLMUsageInfo(classifyUsage, streamUsage)
+          : (classifyUsage ?? streamUsage);
+
+      yield { type: "done", usage: mergedUsage };
     } catch (err) {
       logger.error(
         "ResumeChatBot",
@@ -361,12 +385,17 @@ class ResumeChatBot {
           `Generating resume — intent: ${intent}, baseProfile: original`
         );
 
+        yield {
+          type: "status",
+          text: "Rebuilding from your base profile…",
+        };
+
         const { result, usage } = await domainOps.generateResume(
           this.provider,
           {
             baseProfile: this.baseProfile,
             jobDetails: this.jobDetails,
-            atsAnalysis: null,
+            atsAnalysis: this.atsAnalysis,
           },
           { model: options.model }
         );
@@ -390,7 +419,7 @@ class ResumeChatBot {
             note: "Resume regenerated based on original profile",
           },
         };
-        yield { type: "done" };
+        yield { type: "done", usage };
         return;
       }
       case "tailor": {
@@ -403,6 +432,8 @@ class ResumeChatBot {
           `Providing ATS advice — intent: ${intent}`
         );
 
+        yield { type: "status", text: "Analyzing ATS compatibility…" };
+
         const { result, usage } = await domainOps.analyzeATS(
           this.provider,
           {
@@ -411,6 +442,8 @@ class ResumeChatBot {
           },
           { model: options.model }
         );
+
+        this.atsAnalysis = result;
 
         this.pushToHistory("chat", userMessage, {
           role: "assistant",
@@ -427,7 +460,7 @@ class ResumeChatBot {
           intent: intent,
           args: { atsAnalysis: result, usage },
         };
-        yield { type: "done" };
+        yield { type: "done", usage };
         return;
       }
       case "edit": {
@@ -452,6 +485,11 @@ class ResumeChatBot {
       userInput: userMessage.content,
     });
 
+    yield {
+      type: "status",
+      text: "Working out which sections to change…",
+    };
+
     // First we run the LLM to extract which fields to edit based on the user instruction
     const { result, usage: extractUsage } =
       await this.provider.runStructuredLLM(
@@ -468,6 +506,8 @@ class ResumeChatBot {
     );
 
     messages.unshift({ role: "system", content: systemPrompt });
+
+    yield { type: "status", text: "Writing the edit…" };
 
     // For edit_field we need to run the LLM to get the tool args, then apply the tool result to update resume state
     const { toolCalls, usage: editUsage } = await this.provider.runLLM(
@@ -503,12 +543,13 @@ class ResumeChatBot {
     const note = `Edit applied to resume field: ${String(args.edits.map((a) => a.field).join(", "))}`;
 
     logger.info("ResumeChatBot", note);
+    const editIntentUsage = mergeLLMUsageInfo(extractUsage, editUsage);
     yield {
       type: "tool_result",
       intent: IntentLabel.Edit,
       args: {
         updatedResume,
-        usage: mergeLLMUsageInfo(extractUsage, editUsage),
+        usage: editIntentUsage,
         note,
         summary: args.change_summary,
       },
@@ -519,7 +560,7 @@ class ResumeChatBot {
       content: `[${IntentLabel.Edit} applied]`,
     });
 
-    yield { type: "done" };
+    yield { type: "done", usage: editIntentUsage };
     return;
   }
 
@@ -540,29 +581,29 @@ class ResumeChatBot {
       switch (event.stage) {
         case "requirements":
           yield {
-            type: "chunk",
-            text: `Extracted ${event.requirements.length} job requirement(s)…\n`,
+            type: "status",
+            text: `Extracted ${event.requirements.length} job requirement(s)…`,
           };
           break;
         case "rewrite":
           yield {
-            type: "chunk",
-            text: `Rewriting bullets (pass ${event.iteration})…\n`,
+            type: "status",
+            text: `Rewriting bullets (pass ${event.iteration})…`,
           };
           break;
         case "verify":
           yield {
-            type: "chunk",
+            type: "status",
             text:
               event.flags.length === 0
-                ? "Verified against your original resume — no unsupported claims.\n"
-                : `Found ${event.flags.length} unsupported claim(s), rewriting again…\n`,
+                ? "Verified against your original resume — no unsupported claims."
+                : `Found ${event.flags.length} unsupported claim(s), rewriting again…`,
           };
           break;
         case "score":
           yield {
-            type: "chunk",
-            text: `ATS score: ${event.before} → ${event.after}\n`,
+            type: "status",
+            text: `ATS score: ${event.before} → ${event.after}`,
           };
           break;
         case "done": {
@@ -580,7 +621,7 @@ class ResumeChatBot {
               note: `Resume tailored to job (ATS ${event.atsBefore} → ${event.atsAfter})`,
             },
           };
-          yield { type: "done" };
+          yield { type: "done", usage: event.usage };
           return;
         }
         case "error":
