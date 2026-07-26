@@ -236,6 +236,25 @@ jobs:
           path: update-info.json
           retention-days: 1
 
+  cleanup-failed-release:
+    needs: [create-release, build]
+    if: always() && needs.create-release.result == 'success' && needs.build.result != 'success'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Delete orphaned draft release
+        uses: actions/github-script@v8
+        env:
+          RELEASE_ID: ${{ needs.create-release.outputs.release_id }}
+        with:
+          script: |
+            await github.rest.repos.deleteRelease({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              release_id: process.env.RELEASE_ID
+            });
+
   publish-release:
     needs: [create-release, build]
     runs-on: ubuntu-latest
