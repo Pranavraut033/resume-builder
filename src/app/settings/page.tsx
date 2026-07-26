@@ -17,6 +17,7 @@ import {
 } from "@/components/ui";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { useToast } from "@/components/ui/ToastProvider";
+import { useAppUpdaterContext } from "@/contexts/AppUpdaterContext";
 import { useTheme } from "@/contexts/ThemeContext";
 import { downloadFile } from "@/lib/download";
 import { setApiKey, getApiKey, isTauriContext } from "@/lib/keyStorage";
@@ -52,6 +53,21 @@ export default function SettingsPage() {
   const [isRestoring, setIsRestoring] = useState(false);
   const [backupError, setBackupError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const { state: updaterState, checkForUpdates } = useAppUpdaterContext();
+  const [checkingForUpdates, setCheckingForUpdates] = useState(false);
+
+  const handleCheckForUpdates = async () => {
+    setCheckingForUpdates(true);
+    await checkForUpdates();
+  };
+
+  useEffect(() => {
+    if (!checkingForUpdates || updaterState.status === "checking") return;
+    setCheckingForUpdates(false);
+    if (updaterState.status === "idle") {
+      pushToast({ title: "You're up to date", variant: "success" });
+    }
+  }, [checkingForUpdates, updaterState, pushToast]);
 
   const {
     modelsByProvider,
@@ -581,8 +597,17 @@ export default function SettingsPage() {
               <span className="text-agent-on-surface-variant text-sm">
                 Version 2.4.0 (Stable)
               </span>
-              <Button variant="secondary" size="sm">
-                Check for Updates
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={handleCheckForUpdates}
+                disabled={
+                  checkingForUpdates || updaterState.status === "checking"
+                }
+              >
+                {checkingForUpdates || updaterState.status === "checking"
+                  ? "Checking..."
+                  : "Check for Updates"}
               </Button>
             </div>
           </SurfacePanel>

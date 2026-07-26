@@ -192,7 +192,10 @@ jobs:
         run: |
           ARCHIVE=$(find src-tauri/target/universal-apple-darwin/release/bundle/macos -name "*.app.tar.gz" | head -1)
           SIGNATURE=$(cat "${ARCHIVE}.sig")
-          FILENAME=$(basename "$ARCHIVE" | sed 's/ /./g')
+          # ponytail: tauri-action uploads universal-target bundles renamed with
+          # a "_universal" suffix (see the .dmg asset naming), but the file on
+          # disk keeps the unsuffixed product name — match the uploaded name here.
+          FILENAME="$(basename "$ARCHIVE" .app.tar.gz | sed 's/ /./g')_universal.app.tar.gz"
           URL="https://github.com/${{ github.repository }}/releases/download/${TAG}/${FILENAME}"
           jq -n --arg url "$URL" --arg sig "$SIGNATURE" \
             '{"darwin-x86_64": {"url": $url, "signature": $sig}, "darwin-aarch64": {"url": $url, "signature": $sig}}' \

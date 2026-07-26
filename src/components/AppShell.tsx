@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 import Sidebar from "@/components/Nav";
+import { AppUpdaterProvider } from "@/contexts/AppUpdaterContext";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 
 import { CacheInitializer } from "./CacheInitializer";
@@ -24,10 +25,12 @@ export default function AppShell({ children }: AppShellProps) {
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>
         <ToastProvider>
-          <AppShellContent>{children}</AppShellContent>
-          <CacheInitializer />
-          <DevKeySeeder />
-          <ExternalLinkGuard />
+          <AppUpdaterProvider>
+            <AppShellContent>{children}</AppShellContent>
+            <CacheInitializer />
+            <DevKeySeeder />
+            <ExternalLinkGuard />
+          </AppUpdaterProvider>
         </ToastProvider>
       </ThemeProvider>
     </QueryClientProvider>

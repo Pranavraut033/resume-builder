@@ -5,10 +5,10 @@ import { useEffect } from "react";
 
 import { Modal } from "@/components/ui/Modal";
 import { useToast } from "@/components/ui/ToastProvider";
-import { useAppUpdater } from "@/hooks/useAppUpdater";
+import { useAppUpdaterContext } from "@/contexts/AppUpdaterContext";
 
 export function UpdatePrompt() {
-  const { state, downloadAndInstall, dismiss } = useAppUpdater();
+  const { state, downloadAndInstall, dismiss } = useAppUpdaterContext();
   const { pushToast } = useToast();
 
   useEffect(() => {
