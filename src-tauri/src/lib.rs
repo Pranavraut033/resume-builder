@@ -8,7 +8,7 @@ use std::{
     time::{Duration, Instant},
 };
 
-use tauri::Manager;
+use tauri::{Manager, WebviewUrl};
 
 mod browser;
 mod keychain;
@@ -228,11 +228,27 @@ pub fn run() {
 
             app.manage(NextServerState(Mutex::new(next_server_child)));
 
-            let window_config = app.config().app.windows.first().ok_or_else(|| {
-                io::Error::new(io::ErrorKind::NotFound, "No window configuration found")
-            })?;
+            let mut window_config = app
+                .config()
+                .app
+                .windows
+                .first()
+                .ok_or_else(|| {
+                    io::Error::new(io::ErrorKind::NotFound, "No window configuration found")
+                })?
+                .clone();
 
-            tauri::WebviewWindowBuilder::from_config(app, window_config)?.build()?;
+            if cfg!(debug_assertions) {
+                // ponytail: config's window.url is the release-mode bundled-server
+                // port (3009); dev mode never spawns that server (see above), so
+                // point at devUrl (3008) instead of hitting whatever else is on 3009.
+                let dev_url = app.config().build.dev_url.clone().ok_or_else(|| {
+                    io::Error::new(io::ErrorKind::NotFound, "No devUrl configured")
+                })?;
+                window_config.url = WebviewUrl::External(dev_url);
+            }
+
+            tauri::WebviewWindowBuilder::from_config(app, &window_config)?.build()?;
 
             Ok(())
         })
