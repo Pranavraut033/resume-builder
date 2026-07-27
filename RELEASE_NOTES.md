@@ -1,3 +1,12 @@
+# v1.6.0 — 2026-07-28
+
+More accurate, more trustworthy AI output: proofreading, stricter fidelity to your real experience, and a rendering bug fix.
+
+- **Proofread your resume before you export it.** A new proofread pass checks for errors, inconsistencies, and unquantified claims, auto-fixing the mechanical issues and surfacing the rest in a review drawer so you decide what to apply.
+- **AI tailoring sticks closer to your real experience.** Dates, names, and metrics are never altered, your original job order is preserved, and stale or irrelevant experience, projects, certifications, and education get pruned automatically.
+- **Broader fact-checking.** The hallucination check now also verifies projects, certifications, and education against your base profile, not just your summary and experience — and it runs by default.
+- **Fixed:** a tailored or parsed resume could silently hide entire sections; section layout is now preserved correctly.
+
 # v1.5.0 — 2026-07-27
 
 A chat upgrade and an update-notice fix.

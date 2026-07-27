@@ -2,6 +2,22 @@
 
 All notable changes to this project are documented in this file.
 
+## [1.6.0] - 2026-07-28
+
+### Added
+
+- Chat gained a "proofread" intent and floating-action-bar button: a deterministic lint pass runs alongside an LLM proofread pass, auto-applying lint fixes while LLM-judged issues (errors, consistency, unquantified claims) surface in a new review drawer for manual apply ([9e4897c])
+- Resume tailoring prompt now enforces stricter field-mapping rules, forbids altering dates/names/metrics, preserves original experience ordering, and prunes stale/irrelevant experience, projects, certifications, and education ([453c434])
+- Hallucination checking now also fact-checks projects, certifications, and education against the base profile (previously only summary/headline/skills/experience); resume verification is now opt-out instead of opt-in ([4c04676])
+
+### Fixed
+
+- Tailored/parsed resumes no longer silently hide sections: the base profile's `sectionLayout` is now preserved instead of trusting incomplete model output ([6773d5a])
+
+### Internal
+
+- Synced CLAUDE.md and README with the ats-checker submodule split, proofread pipeline, and EU/German CV work ([5333e3a])
+
 ## [1.5.0] - 2026-07-27
 
 ### Added
