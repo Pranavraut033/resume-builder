@@ -83,6 +83,16 @@ export async function generateResume(
     "ResumeSchema"
   );
 
+  // ponytail: sectionLayout is a required key in the structured-output schema
+  // (nullable, not optional) but the prompt never explains it — nothing tells
+  // the model what "order"/"hidden" mean. A model left to guess can emit e.g.
+  // `{ order: ["header"] }`, which buildSections() then renders as a resume
+  // with only the header section visible, even though every other field came
+  // back fully populated. This is a display concern the model has no
+  // business touching, so always carry over the base profile's layout
+  // instead of trusting whatever the model invented for it.
+  result.sectionLayout = input.baseProfile.sectionLayout;
+
   assertResumeNotGutted(input.baseProfile, result);
 
   return { result, usage };
@@ -153,6 +163,10 @@ export async function parseResume(
     ResumeSchema,
     "ResumeSchema"
   );
+  // ponytail: same reasoning as generateResume above — a freshly parsed
+  // resume has no prior layout to inherit, so force the default rather than
+  // whatever the model guessed for this UI-only field.
+  result.sectionLayout = null;
   return { result, usage };
 }
 

@@ -115,4 +115,26 @@ describe("generateResume", () => {
       )
     ).resolves.toBeTruthy();
   });
+
+  it("ignores a model-invented sectionLayout that would hide every section but the header", async () => {
+    // Regression: sectionLayout is a required (nullable) key in the
+    // structured-output schema, but nothing in the tailoring prompt explains
+    // it. A model can emit e.g. `{ order: ["header"] }`, which buildSections()
+    // would then render as a resume with only the header visible — even
+    // though summary/experience/skills/education all came back populated and
+    // therefore never trip assertResumeNotGutted.
+    const baseProfile = makeResume();
+    const tailored = makeResume({
+      sectionLayout: { order: ["header"], hidden: [], custom: [] },
+    });
+    const provider = providerReturning(tailored);
+
+    const { result } = await generateResume(
+      provider,
+      { baseProfile, jobDetails: JOB_DETAILS, atsAnalysis: null },
+      { model: "test-model" }
+    );
+
+    expect(result.sectionLayout).toBe(baseProfile.sectionLayout);
+  });
 });
