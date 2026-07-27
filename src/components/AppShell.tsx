@@ -11,6 +11,7 @@ import { ThemeProvider } from "@/contexts/ThemeContext";
 import { CacheInitializer } from "./CacheInitializer";
 import { DevKeySeeder } from "./DevKeySeeder";
 import { ExternalLinkGuard } from "./ExternalLinkGuard";
+import { KeychainNoticeGate } from "./KeychainNoticeGate";
 import { Header } from "./ui";
 import { ToastProvider } from "./ui/ToastProvider";
 import { UpdatePrompt } from "./UpdatePrompt";
@@ -30,6 +31,7 @@ export default function AppShell({ children }: AppShellProps) {
             <CacheInitializer />
             <DevKeySeeder />
             <ExternalLinkGuard />
+            <KeychainNoticeGate />
           </AppUpdaterProvider>
         </ToastProvider>
       </ThemeProvider>

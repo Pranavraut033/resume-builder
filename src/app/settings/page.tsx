@@ -15,7 +15,6 @@ import {
   SurfacePanel,
   Toggle,
 } from "@/components/ui";
-import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { useToast } from "@/components/ui/ToastProvider";
 import { useAppUpdaterContext } from "@/contexts/AppUpdaterContext";
 import { useTheme } from "@/contexts/ThemeContext";
@@ -27,17 +26,15 @@ import { createLogger } from "@/lib/logger";
 import { useModelStore } from "@/store/modelStore";
 import { ProviderType } from "@/types/llm";
 
+import packageJson from "../../../package.json";
 import { ProviderCard } from "../../components/settings/ProviderCard";
 
 const logger = createLogger("SettingsPage");
 
-// Once acknowledged, the OS keychain permission prompt (triggered the first
-// time we read a stored API key) doesn't need re-explaining on later visits.
-const KEYCHAIN_NOTICE_SEEN_KEY = "settings.keychainNoticeSeen";
+const REPO_URL = "https://github.com/Pranavraut033/resume-builder";
 
 export default function SettingsPage() {
   const [keys, setKeys] = useState<Record<string, string>>({});
-  const [showKeychainNotice, setShowKeychainNotice] = useState(false);
   const [savingProvider, setSavingProvider] = useState<string | null>(null);
   const [validatingProvider, setValidatingProvider] = useState<string | null>(
     null
@@ -96,22 +93,9 @@ export default function SettingsPage() {
   };
 
   useEffect(() => {
-    // Reading a stored key triggers an OS keychain permission prompt on
-    // first access in the desktop app. Explain that before it pops up
-    // unannounced, rather than firing it the instant this page mounts.
-    if (isTauriContext() && !localStorage.getItem(KEYCHAIN_NOTICE_SEEN_KEY)) {
-      setShowKeychainNotice(true);
-      return;
-    }
     loadData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loadModels]);
-
-  const handleKeychainNoticeConfirm = () => {
-    localStorage.setItem(KEYCHAIN_NOTICE_SEEN_KEY, "1");
-    setShowKeychainNotice(false);
-    loadData();
-  };
 
   const handleSaveKey = async (providerType: string) => {
     setSavingProvider(providerType);
@@ -120,6 +104,12 @@ export default function SettingsPage() {
       await refreshModels();
     } catch (err) {
       logger.error("Error saving API key", { err });
+      pushToast({
+        title: "Couldn't save API key",
+        description:
+          "Udaan needs access to your OS keychain to store this securely. If a permission prompt appeared, choose Allow and try again.",
+        variant: "error",
+      });
     } finally {
       setSavingProvider(null);
     }
@@ -255,16 +245,6 @@ export default function SettingsPage() {
 
   return (
     <div className="text-agent-on-surface min-h-full px-6 py-8">
-      <ConfirmDialog
-        isOpen={showKeychainNotice}
-        title="Secure Key Storage"
-        message="Curator AI encrypts your API keys and stores the encryption key in your operating system's keychain. Your OS will now ask you to allow access — click Allow to continue."
-        confirmLabel="Continue"
-        cancelLabel="Not now"
-        onConfirm={handleKeychainNoticeConfirm}
-        onCancel={() => setShowKeychainNotice(false)}
-      />
-
       <PageHeader
         title="Settings"
         description="Configure your intelligent drafting engine. All configurations are stored locally on your device."
@@ -595,7 +575,13 @@ export default function SettingsPage() {
             {/* Version */}
             <div className="bg-agent-surface-container flex items-center justify-between rounded-xl px-4 py-3">
               <span className="text-agent-on-surface-variant text-sm">
-                Version 2.4.0 (Stable)
+                Version {packageJson.version}{" "}
+                <a
+                  href={`${REPO_URL}/blob/main/CHANGELOG.md`}
+                  className="text-agent-primary hover:underline"
+                >
+                  What&apos;s new
+                </a>
               </span>
               <Button
                 variant="secondary"
@@ -609,6 +595,27 @@ export default function SettingsPage() {
                   ? "Checking..."
                   : "Check for Updates"}
               </Button>
+            </div>
+
+            {/* About / Legal */}
+            <div className="bg-agent-surface-container flex flex-wrap items-center justify-between gap-2 rounded-xl px-4 py-3">
+              <span className="text-agent-on-surface-variant text-sm">
+                Udaan by Pranav Raut
+              </span>
+              <div className="flex gap-4 text-sm">
+                <a
+                  href={`${REPO_URL}/blob/main/LICENSE`}
+                  className="text-agent-primary hover:underline"
+                >
+                  License
+                </a>
+                <a
+                  href={`${REPO_URL}/blob/main/LICENSE-THIRD-PARTY.md`}
+                  className="text-agent-primary hover:underline"
+                >
+                  Third-Party Licenses
+                </a>
+              </div>
             </div>
           </SurfacePanel>
         </PageSection>

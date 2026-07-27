@@ -17,7 +17,39 @@ import {
 
 import { createLogger } from "@/lib/logger";
 
+import packageJson from "../../package.json";
+
 const logger = createLogger("KeyStorage");
+
+// The OS keychain prompt for `get_or_create_master_key` resurfaces after
+// every app update (each build has a distinct ad-hoc code signature, so
+// macOS treats it as a new app and forgets any prior "Always Allow"). Track
+// the last app version the user was warned about it for, so the in-app
+// explainer re-appears once per version rather than only once ever.
+const KEYCHAIN_NOTICE_SEEN_VERSION_KEY = "keychain.noticeSeenVersion";
+
+// Registered by a single mounted <KeychainNoticeGate/> in the app shell.
+// Resolves once the user has acknowledged the explainer; rejects if they
+// dismiss it, which aborts the in-flight key read/write (caller already
+// handles that as a normal failure).
+let consentHandler: (() => Promise<void>) | null = null;
+
+export function setKeychainConsentHandler(
+  handler: (() => Promise<void>) | null
+): void {
+  consentHandler = handler;
+}
+
+async function ensureKeychainConsent(): Promise<void> {
+  const version = packageJson.version;
+  if (localStorage.getItem(KEYCHAIN_NOTICE_SEEN_VERSION_KEY) === version) {
+    return;
+  }
+  if (consentHandler) {
+    await consentHandler();
+  }
+  localStorage.setItem(KEYCHAIN_NOTICE_SEEN_VERSION_KEY, version);
+}
 
 // Encryption configuration
 const _KEY_LENGTH = 32;
@@ -49,6 +81,8 @@ let cachedMasterKey: string | null = null;
  */
 async function getMasterKey(): Promise<string> {
   if (cachedMasterKey !== null) return cachedMasterKey;
+
+  await ensureKeychainConsent();
 
   const masterKey = await invoke<string>("get_or_create_master_key");
   cachedMasterKey = masterKey;
