@@ -21,6 +21,7 @@ import {
   ResumeJSON,
   JobDetailsJSON,
   ATSAnalysisJSON,
+  ATSAnalysisSchema,
   normalizeSkills,
 } from "@/types/resume";
 
@@ -168,9 +169,9 @@ export async function getJob(jobId: number) {
   let baseProfileAnalysis: ATSAnalysisJSON | null = null;
   if (job.baseProfileAnalysis?.contentJson) {
     try {
-      baseProfileAnalysis = JSON.parse(
-        job.baseProfileAnalysis.contentJson
-      ) as ATSAnalysisJSON;
+      baseProfileAnalysis = ATSAnalysisSchema.parse(
+        JSON.parse(job.baseProfileAnalysis.contentJson)
+      );
     } catch {
       console.error(
         "Failed to parse baseProfileAnalysis contentJson for job",
@@ -244,7 +245,9 @@ export async function getResumeByJobId(jobId: number): Promise<
           skills: normalizeSkills(contentJson.skills),
         },
         atsAnalysis: job.resume.atsAnalysis?.contentJson
-          ? (JSON.parse(job.resume.atsAnalysis.contentJson) as ATSAnalysisJSON)
+          ? ATSAnalysisSchema.parse(
+              JSON.parse(job.resume.atsAnalysis.contentJson)
+            )
           : null,
       };
     });
