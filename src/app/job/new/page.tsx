@@ -49,7 +49,7 @@ export default function NewJobPage() {
   const [coverLetterStyle, setCoverLetterStyle] = useState<CoverLetterStyleId>(
     DEFAULT_COVER_LETTER_STYLE
   );
-  const [verifyResume, setVerifyResume] = useState(false);
+  const [skipVerification, setSkipVerification] = useState(false);
   const router = useRouter();
 
   // Use globally selected profile (no override per-job)
@@ -156,14 +156,14 @@ export default function NewJobPage() {
 
       setActiveStep(2);
       const [resume, coverLetter] = await Promise.all([
-        verifyResume
-          ? LLMService.generateVerifiedTailoredResume(
+        skipVerification
+          ? LLMService.generateTailoredResume(
               profile,
               jobDetails.result,
               atsAnalysis.result,
               modelOptions
             )
-          : LLMService.generateTailoredResume(
+          : LLMService.generateVerifiedTailoredResume(
               profile,
               jobDetails.result,
               atsAnalysis.result,
@@ -476,14 +476,18 @@ export default function NewJobPage() {
                       <label className="flex items-start gap-2.5 text-sm">
                         <input
                           type="checkbox"
-                          checked={verifyResume}
-                          onChange={(e) => setVerifyResume(e.target.checked)}
+                          checked={skipVerification}
+                          onChange={(e) =>
+                            setSkipVerification(e.target.checked)
+                          }
                           className="border-agent-outline-variant text-agent-primary focus:ring-agent-primary mt-0.5 h-4 w-4 shrink-0 rounded"
                         />
                         <span className="text-agent-on-surface-variant">
-                          Verify tailored resume — fact-check against your base
-                          profile and correct unsupported claims (slower, extra
-                          AI calls)
+                          Skip verification — use faster, unverified
+                          generation (fewer AI calls, no fact-check pass).
+                          Leave unchecked to fact-check the tailored resume
+                          against your base profile and correct unsupported
+                          claims.
                         </span>
                       </label>
                     </>
