@@ -2,6 +2,16 @@
 
 All notable changes to this project are documented in this file.
 
+## [1.4.1] - 2026-07-27
+
+### Fixed
+
+- Chat auto-scroll now anchors to the bottom of the message list instead of drifting ([b204ff6])
+- Date fields now format consistently in en-US regardless of the system locale ([5a8f97f])
+- Reserved the scrollbar gutter in the inline editor canvas, fixing a reflow loop ([3fd93c6])
+- Stored ATS analysis is now validated against its schema before use, guarding against corrupt/stale data ([b76cced])
+- Tauri dev mode now loads the dev server URL instead of a hardcoded release port ([344ef4d])
+
 ## [1.4.0] - 2026-07-27
 
 ### Added

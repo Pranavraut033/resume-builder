@@ -1,3 +1,12 @@
+# v1.4.1 — 2026-07-27
+
+A small polish release, mostly editor and chat fixes.
+
+- **Fixed:** chat now stays anchored to the latest message instead of drifting while it scrolls.
+- **Fixed:** dates display consistently no matter your system's language/locale settings.
+- **Fixed:** a scrollbar-related layout jitter in the inline editor canvas.
+- **Fixed:** a data-integrity check on saved ATS scores, and a dev-mode connection bug on desktop.
+
 # v1.4.0 — 2026-07-27
 
 A smarter chat assistant, and a fix that keeps existing installs from breaking on update.
