@@ -59,9 +59,11 @@ Local-first desktop resume/cover-letter builder: Next.js 16 (App Router) + Tauri
   - `urlFetcher.ts`, `getServerUrl.ts` — misc server-side helpers
 - **LLM operations run entirely client-side** (`src/lib/llm/`, `src/lib/clientLLM.ts`) so API keys never leave the client/Tauri secure storage.
   - Provider base classes (`LLMProvider`, `OpenAICompatibleProvider`), the prompt resolver/validation, and provider registry now live in the `@pranavraut033/llm-core` submodule package (`packages/llm-core/`, consumed via `file:packages/llm-core`). App-local providers (`src/lib/llm/providers/`: `factory.ts`, `index.ts`, `managedProvider.ts`) extend those base classes and self-register via `ProviderFactory` — never instantiate a provider class directly.
+  - ATS scoring/parsing logic similarly lives in the `@pranavraut033/ats-checker` submodule package (`packages/ats-checker/`, consumed via `file:packages/ats-checker`). Both submodules are built by `predev`/`prebuild` npm scripts before `next dev`/`next build` run.
   - `managedProvider.ts` — `ManagedProvider`, an OpenAI-compatible provider pointed at the self-hosted LiteLLM gateway (`server/llm-gateway/`) for users without their own API key (paid, prepaid-credit access). Same client-only call path as BYOK providers; the gateway just proxies upstream.
-  - `src/lib/llm/domainOps.ts` — free functions for resume-domain operations (parsing, tailoring, ATS analysis, humanizer) shared across providers.
-  - `src/lib/llm/llmService.ts` — high-level operations: `parseJobDescription()`, `generateResume()`, `generateCoverLetter()`, ATS analysis, `humanizeContent()`.
+  - `src/lib/llm/domainOps.ts` — free functions for resume-domain operations (parsing, tailoring, ATS analysis incl. knockout-risk/title-alignment, humanizer, proofreading) shared across providers.
+  - `src/lib/llm/llmService.ts` — high-level operations: `parseJobDescription()`, `generateResume()`, `generateCoverLetter()`, ATS analysis, `humanizeContent()`, resume proofreading.
+  - `src/lib/proofread/` — `lint.ts` (deterministic rule-based checks) + `applyFixes.ts`; results feed `ProofreadDrawer.tsx` for LLM-judged issues alongside auto-applied lint fixes (see Job page below).
   - `src/lib/llm/prompts/` — prompt templates per operation; untrusted/user-supplied data is wrapped in delimiters before interpolation to block prompt injection.
   - `src/lib/llm/chat-bot/` — chat-based editing assistant.
   - `src/lib/llm/tokenTracker.ts` — tracks token usage, persisted via `tokenUsage` server action.
@@ -69,7 +71,7 @@ Local-first desktop resume/cover-letter builder: Next.js 16 (App Router) + Tauri
 
 ### Data model (`prisma/schema.prisma`)
 
-SQLite via Prisma. Core models: `Profile` (base profile, with skills/experience/projects/education/etc. stored as JSON string columns), `Company`, `Contact`, `Job`, `Resume`, `CoverLetter`, `Customization`. JSON columns map to typed shapes in `src/types/resume.ts` (`ResumeJSON`, `JobDetailsJSON`, `ATSAnalysisJSON`) — parse/stringify at the action boundary.
+SQLite via Prisma. Core models: `Profile` (base profile, with skills/experience/projects/education/etc. stored as JSON string columns, plus `photo` and `hobbiesJson` for EU/German CV convention), `Company`, `Contact`, `Job`, `Resume`, `CoverLetter`, `Customization`. JSON columns map to typed shapes in `src/types/resume.ts` (`ResumeJSON`, `JobDetailsJSON`, `ATSAnalysisJSON`) — parse/stringify at the action boundary.
 
 ### Resume rendering / templates
 
@@ -83,7 +85,7 @@ Section content (order, visibility, custom sections) is resolved once via `build
 
 ### Job page
 
-`src/app/job/[jobId]/` + `src/components/job-v2/` — the Inline Editor: WYSIWYG inline editing directly on the rendered document (`InlineJobPageLayout.tsx`, `DocumentCanvas.tsx` with zoom controls, `resume/InlineField.tsx`, `InlineEditContext.tsx`, `ChatOverlay.tsx`, `CustomizationDrawer.tsx`, `TemplatePicker.tsx`, `HistoryDrawer.tsx` for resume version history, `HumanizerModal.tsx` for AI humanizing, `CoverLetterActionBar.tsx` for cover-letter regeneration with selectable tone/style presets from `src/lib/llm/prompts/coverLetterStyles.ts`). This is now the only job detail page implementation — the earlier drag-and-drop editor and its standalone `/inline` route were removed. `src/app/documents/` lists all generated resumes/cover letters with version history across jobs.
+`src/app/job/[jobId]/` + `src/components/job-v2/` — the Inline Editor: WYSIWYG inline editing directly on the rendered document (`InlineJobPageLayout.tsx`, `DocumentCanvas.tsx` with zoom controls, `resume/InlineField.tsx`, `InlineEditContext.tsx`, `ChatOverlay.tsx`, `CustomizationDrawer.tsx`, `TemplatePicker.tsx`, `HistoryDrawer.tsx` for resume version history, `HumanizerModal.tsx` for AI humanizing, `ProofreadDrawer.tsx` for reviewing/applying LLM-judged proofread issues (deterministic lint fixes are auto-applied), `CoverLetterActionBar.tsx` for cover-letter regeneration with selectable tone/style presets from `src/lib/llm/prompts/coverLetterStyles.ts`). The chat assistant (`src/lib/llm/chat-bot/`) supports intents including resume tailoring, cover letter generation, humanize, proofread, fix-all-ATS-issues, and undo. This is now the only job detail page implementation — the earlier drag-and-drop editor and its standalone `/inline` route were removed. `src/app/documents/` lists all generated resumes/cover letters with version history across jobs.
 
 ### External links
 
@@ -109,6 +111,8 @@ The built Tauri app has no attached terminal/console, so a bug that only shows u
 
 The bundled server (`src-tauri/src/lib.rs::spawn_bundled_next_server`) runs on **port 3009**, reading from a separate SQLite database at `$APPDATA/app.db` — distinct from both `npm run dev`'s port 3008 and this repo's local `dev.db`. If a build/installed app is left running, `curl localhost:3008` and `curl localhost:3009` will return different job/resume data; don't assume a request to one port reflects the other's state.
 
+On every launch, `sync_database_schema` (`src-tauri/src/lib.rs`) runs `migrate-app-db.mjs` against the bundled `app-template.db` to ALTER an existing `$APPDATA/app.db` onto the current schema — app updates replace the bundle but never touch a user's existing `app.db`, so this is what carries a `prisma/schema.prisma` change (e.g. a new column) forward for already-installed users. Harmless no-op once the db is current.
+
 - `$APPDATA/logs/server.log` — stdout+stderr of the bundled Next.js server (`src-tauri/src/lib.rs::spawn_bundled_next_server`), i.e. Server Action errors, Prisma errors, unhandled exceptions on the server side. Truncated fresh on every app launch.
 - `$APPDATA/logs/client.log` — JSON-lines mirror of every `logger.*()` call from client code (`src/lib/logger.ts`), i.e. the same errors the browser devtools console would show (e.g. `SettingsPage`'s save-key/backup/restore handlers all log their catch blocks here). Appended across launches, no rotation.
 
@@ -117,3 +121,5 @@ The bundled server (`src-tauri/src/lib.rs::spawn_bundled_next_server`) runs on *
 ## Skills
 
 - `tailwind-ui-designer` (`.claude/skills/tailwind-ui-designer/SKILL.md`) — invoke whenever the user asks to build, restyle, or improve UI. Enforces the Tailwind v4 styling constraints above and follows the `frontend-design` skill.
+
+<!-- last-sync-docs: 9e4897c43186ab180af5242edd09d31fd2cfae0b -->

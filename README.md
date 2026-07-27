@@ -21,6 +21,9 @@
 - **Inline WYSIWYG editor**: edit the generated resume directly on the rendered document, with zoom controls and version history (`/job/[jobId]`)
 - **Multiple templates**: several resume templates with per-job color/font/layout customization, rendered by a shared template engine so DOM/PDF/TXT output stay in sync
 - **AI humanizer**: rewrite resume/cover letter content to read less like AI output, with reviewable before/after changes
+- **AI proofreading**: deterministic lint checks plus an LLM pass surface grammar, consistency, and unquantified-claim issues in a review drawer; lint-sourced fixes auto-apply
+- **ATS analysis**: keyword/skill match scoring plus knockout-risk and title-alignment checks with rewrite coaching, including a chat action to fix all flagged issues at once
+- **EU/German CVs**: optional profile photo and hobbies section, DE/EU region prompt guidance, and an Anschreiben cover letter style
 - **Documents view**: browse all generated resumes and cover letters across jobs (`/documents`)
 - **PDF & TXT export**: generate application-ready documents
 - **Multiple LLM providers**: OpenAI, Google Gemini, Anthropic (Claude), xAI Grok, Perplexity, local Ollama, or a managed pay-as-you-go gateway (no key required) — switch per job
@@ -74,7 +77,7 @@ The app is **self-signed** (not signed by a CA-trusted/registered publisher), so
 - **Database**: SQLite via Prisma ORM 7
 - **Styling**: Tailwind CSS v4
 - **State**: Zustand (LLM provider/model selection)
-- **LLM providers**: OpenAI, Google Gemini, Anthropic, Grok, Perplexity, Ollama, or the managed gateway (all client-side); provider base classes/prompt infra live in the `@pranavraut033/llm-core` package (`packages/llm-core/`)
+- **LLM providers**: OpenAI, Google Gemini, Anthropic, Grok, Perplexity, Ollama, or the managed gateway (all client-side); provider base classes/prompt infra live in the `@pranavraut033/llm-core` package (`packages/llm-core/`), ATS scoring logic in `@pranavraut033/ats-checker` (`packages/ats-checker/`)
 - **PDF export**: `@react-pdf/renderer` / `pdf-lib`
 - **Drag & drop**: `@dnd-kit`
 - **Testing**: Vitest + Testing Library, Playwright for e2e
@@ -185,6 +188,7 @@ udaan/
 │   │   └── keyStorage.ts         # Tauri/localStorage API key storage
 │   └── types/                    # Shared TypeScript types
 ├── packages/llm-core/             # LLM provider base classes, prompt resolver, registry (local package)
+├── packages/ats-checker/          # ATS scoring/parsing logic (local package)
 ├── server/llm-gateway/            # Optional self-hosted LiteLLM proxy for the managed provider
 ├── landing/                       # Astro marketing landing page (separate app)
 ├── prisma/schema.prisma          # Database schema
