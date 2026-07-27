@@ -9,6 +9,7 @@ import {
   ATSAnalysisJSON,
   JobDetailsJSON,
   jobDetailsToCompactPositional,
+  ResumeField,
   ResumeJSON,
   resumeJsonToCompactPositional,
   ResumeSchema,
@@ -34,9 +35,10 @@ import {
   ToolIntent,
 } from "./prompts/intentClassifier";
 import {
+  AtsFixMappingSchema,
+  buildAtsFixPrompt,
   buildKeywordMappingPrompt,
   groupMappingsByField,
-  KeywordMappingSchema,
 } from "./prompts/keywordMappingPrompt";
 import { FieldEdit, RESUME_TOOLS, validateEditFieldArgs } from "./tools";
 
@@ -51,6 +53,7 @@ const INTENT_STATUS_TEXT: Record<IntentLabel, string> = {
   [IntentLabel.Regenerate]: "Rebuilding your resume…",
   [IntentLabel.Tailor]: "Tailoring to the job…",
   [IntentLabel.Ats]: "Analyzing ATS compatibility…",
+  [IntentLabel.FixAts]: "Applying ATS fixes…",
   [IntentLabel.Interview]: "Preparing interview prep…",
   [IntentLabel.Question]: "Answering…",
   [IntentLabel.CoverLetter]: "Rewriting your cover letter…",
@@ -71,7 +74,7 @@ export type ChatStreamEvent =
     }
   | {
       type: "tool_result";
-      intent: Extract<ToolIntent, "regenerate" | "tailor" | "edit">;
+      intent: Extract<ToolIntent, "regenerate" | "tailor" | "edit" | "fix_ats">;
       args: {
         updatedResume: ResumeJSON;
         usage: LLMUsageInfo;
@@ -494,6 +497,33 @@ class ResumeChatBot {
         yield { type: "done", usage };
         return;
       }
+      case "fix_ats": {
+        logger.info("ResumeChatBot", `Fixing ATS issues — intent: ${intent}`);
+
+        let analysisUsage: LLMUsageInfo | undefined;
+        let analysis = this.atsAnalysis;
+        if (!analysis) {
+          yield { type: "status", text: "Analyzing ATS compatibility…" };
+          const { result, usage } = await domainOps.analyzeATS(
+            this.provider,
+            { resume: this.resume, jobDetails: this.jobDetails },
+            { model: options.model }
+          );
+          this.atsAnalysis = result;
+          analysis = result;
+          analysisUsage = usage;
+        }
+
+        yield { type: "status", text: "Applying ATS fixes…" };
+
+        this.pushToHistory("chat", userMessage, {
+          role: "assistant",
+          content: `[${intent} applied]`,
+        });
+
+        yield* this.fixAllAtsIssues(analysis, options, analysisUsage);
+        return;
+      }
       case "edit": {
         yield* this.runEditIntent(messages, userMessage, options);
         return;
@@ -756,6 +786,70 @@ class ResumeChatBot {
   }
 
   /**
+   * Shared second half of the "map findings → field edits" flow used by both
+   * fixMissingKeywords and fixAllAtsIssues: build the edit_fields prompt from
+   * already-grouped per-field change instructions, call the tool, apply the
+   * result. `notePrefix` labels the resulting note (e.g. "Keyword fix" vs
+   * "ATS fix"); `priorUsage` is merged in from the mapping call that preceded
+   * this step.
+   */
+  private async *applyFieldChanges(
+    fieldEdits: { field: ResumeField; change: string }[],
+    options: ChatBotOptions,
+    notePrefix: string,
+    priorUsage: LLMUsageInfo | undefined,
+    resultIntent: Extract<ToolIntent, "edit" | "fix_ats"> = IntentLabel.Edit
+  ): AsyncGenerator<ChatStreamEvent> {
+    this.isSessionInitialized();
+
+    const jd = jobDetailsToCompactPositional(this.jobDetails);
+    const editFieldOutput = { edits: fieldEdits };
+    const systemPrompt = buildEditFieldPrompt(this.resume, editFieldOutput, jd);
+    const tool = RESUME_TOOLS.edit;
+
+    const messages: PromptMessage[] = [
+      { role: "system", content: systemPrompt },
+      {
+        role: "user",
+        content:
+          "Apply the edits as instructed. Return all edited fields in full.",
+      },
+    ];
+
+    const { toolCalls, usage: editUsage } = await this.provider.runLLM(
+      messages,
+      {
+        model: options.model,
+        tools: [tool],
+        toolChoice: { type: "tool", name: tool.name },
+      }
+    );
+
+    if (!toolCalls || toolCalls.length === 0) {
+      throw new Error(`LLM did not return any tool calls for ${notePrefix}`);
+    }
+
+    const args = toolCalls[0].arguments;
+    validateEditFieldArgs(args);
+
+    const { resume: updatedResume } = this.applyEdits(this.resume, args.edits);
+    const note = `${notePrefix} applied to: ${args.edits.map((e) => e.field).join(", ")}`;
+
+    logger.info("ResumeChatBot", note);
+
+    const usage = priorUsage
+      ? mergeLLMUsageInfo(priorUsage, editUsage)
+      : editUsage;
+
+    yield {
+      type: "tool_result",
+      intent: resultIntent,
+      args: { updatedResume, usage, note, summary: args.change_summary },
+    };
+    yield { type: "done", usage };
+  }
+
+  /**
    * One-click ATS keyword fix: intelligently maps each missing keyword to the
    * most appropriate resume field(s) based on existing content, then applies
    * targeted edits via the edit_fields tool — without fabricating experience.
@@ -763,7 +857,7 @@ class ResumeChatBot {
    * Flow:
    *  1. Keyword mapping LLM call  — decides which field each keyword belongs to
    *  2. Build EditFieldOutput     — groups by field with per-keyword instructions
-   *  3. edit_fields tool call     — applies the edits via buildEditFieldPrompt
+   *  3. edit_fields tool call     — applies the edits via buildEditFieldPrompt (applyFieldChanges)
    */
   async *fixMissingKeywords(
     keywords: string[],
@@ -777,8 +871,6 @@ class ResumeChatBot {
     }
 
     try {
-      const jd = jobDetailsToCompactPositional(this.jobDetails);
-
       // Step 1: Map each keyword to the best field(s) in the resume
       const mappingPrompt = buildKeywordMappingPrompt(
         this.resume,
@@ -795,8 +887,8 @@ class ResumeChatBot {
         await this.provider.runStructuredLLM(
           mappingPrompt,
           { model: options.model, maxTokens: 800 },
-          KeywordMappingSchema,
-          "KeywordMappingSchema"
+          AtsFixMappingSchema,
+          "AtsFixMappingSchema"
         );
 
       if (mapping.mappings.length === 0) {
@@ -813,66 +905,98 @@ class ResumeChatBot {
         `fixMissingKeywords — mapped to fields: ${[...new Set(mapping.mappings.map((m) => m.field))].join(", ")}`
       );
 
-      // Step 2: Build EditFieldOutput grouped by field (skips extractFieldsToEdit)
-      const fieldEdits = groupMappingsByField(mapping.mappings);
-      const editFieldOutput = { edits: fieldEdits };
-
-      // Step 3: Build system prompt and call the edit_fields tool
-      const systemPrompt = buildEditFieldPrompt(
-        this.resume,
-        editFieldOutput,
-        jd
+      // Steps 2-3: group by field and apply via the shared edit_fields flow
+      yield* this.applyFieldChanges(
+        groupMappingsByField(mapping.mappings),
+        options,
+        "Keyword fix",
+        mappingUsage
       );
-      const tool = RESUME_TOOLS.edit;
-
-      const messages: PromptMessage[] = [
-        { role: "system", content: systemPrompt },
-        {
-          role: "user",
-          content:
-            "Apply the keyword edits as instructed. Return all edited fields in full.",
-        },
-      ];
-
-      const { toolCalls, usage: editUsage } = await this.provider.runLLM(
-        messages,
-        {
-          model: options.model,
-          tools: [tool],
-          toolChoice: { type: "tool", name: tool.name },
-        }
-      );
-
-      if (!toolCalls || toolCalls.length === 0) {
-        throw new Error("LLM did not return any tool calls for keyword fix");
-      }
-
-      const args = toolCalls[0].arguments;
-      validateEditFieldArgs(args);
-
-      const { resume: updatedResume } = this.applyEdits(
-        this.resume,
-        args.edits
-      );
-      const note = `Keyword fix applied to: ${args.edits.map((e) => e.field).join(", ")}`;
-
-      logger.info("ResumeChatBot", note);
-
-      yield {
-        type: "tool_result",
-        intent: IntentLabel.Edit,
-        args: {
-          updatedResume,
-          usage: mergeLLMUsageInfo(mappingUsage, editUsage),
-          note,
-          summary: args.change_summary,
-        },
-      };
-      yield { type: "done" };
     } catch (err) {
       logger.error(
         "ResumeChatBot",
         `fixMissingKeywords error: ${err instanceof Error ? err.message : String(err)}`
+      );
+      yield {
+        type: "error",
+        message: err instanceof Error ? err.message : "Unknown error",
+      };
+    }
+  }
+
+  /**
+   * One-click "fix everything the ATS analysis found": maps every missing
+   * keyword, improvement suggestion, knockout risk, and title-alignment note
+   * to the resume field(s) that can honestly address it, then applies the
+   * edits in one pass via the same edit_fields flow as fixMissingKeywords.
+   */
+  async *fixAllAtsIssues(
+    analysis: ATSAnalysisJSON,
+    options: ChatBotOptions,
+    priorUsage?: LLMUsageInfo
+  ): AsyncGenerator<ChatStreamEvent> {
+    this.isSessionInitialized();
+
+    const hasFindings =
+      analysis.keyword_analysis.some((k) => k.match_type === "missing") ||
+      analysis.improvements.length > 0 ||
+      analysis.knockout_risks.length > 0 ||
+      analysis.title_alignment.verdict !== "aligned";
+
+    if (!hasFindings) {
+      yield { type: "done", usage: priorUsage };
+      return;
+    }
+
+    try {
+      const mappingPrompt = buildAtsFixPrompt(
+        this.resume,
+        analysis,
+        this.jobDetails
+      );
+
+      logger.info(
+        "ResumeChatBot",
+        "fixAllAtsIssues — mapping ATS findings to fields"
+      );
+
+      const { result: mapping, usage: mappingUsage } =
+        await this.provider.runStructuredLLM(
+          mappingPrompt,
+          { model: options.model, maxTokens: 1500 },
+          AtsFixMappingSchema,
+          "AtsFixMappingSchema"
+        );
+
+      const usage = priorUsage
+        ? mergeLLMUsageInfo(priorUsage, mappingUsage)
+        : mappingUsage;
+
+      if (mapping.mappings.length === 0) {
+        logger.warn(
+          "ResumeChatBot",
+          "fixAllAtsIssues — no honest anchors found for any finding; nothing to edit"
+        );
+        yield { type: "done", usage };
+        return;
+      }
+
+      logger.info(
+        "ResumeChatBot",
+        `fixAllAtsIssues — mapped to fields: ${[...new Set(mapping.mappings.map((m) => m.field))].join(", ")}`
+      );
+
+      yield* this.applyFieldChanges(
+        groupMappingsByField(mapping.mappings),
+        options,
+        "ATS fix",
+        usage,
+        IntentLabel.FixAts
+      );
+    } catch (err) {
+      logger.error(
+        "ResumeChatBot",
+        `fixAllAtsIssues error: ${err instanceof Error ? err.message : String(err)}`
       );
       yield {
         type: "error",

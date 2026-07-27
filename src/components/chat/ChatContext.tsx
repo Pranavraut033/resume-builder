@@ -43,6 +43,7 @@ interface ChatContextType {
   resetSession: () => void;
   setDefaultView: (view: ViewMode) => void;
   fixMissingKeywords: (keywords: string[]) => Promise<void>;
+  fixAllAtsIssues: () => Promise<void>;
 }
 
 const ChatContext = createContext<ChatContextType | null>(null);
@@ -211,6 +212,62 @@ export function ChatContextProvider({ children }: { children: ReactNode }) {
     [activeModelPair, isLoading, updateResumeStates]
   );
 
+  const fixAllAtsIssues = useCallback(async () => {
+    if (!botRef.current || !activeModelPair) return;
+    if (isLoading) {
+      // Unlike fixMissingKeywords, we don't silently no-op here — a caller
+      // showing a success toast for a fix that never ran would be worse than
+      // a clear rejection (see plan's "known trap" note).
+      throw new Error("Already busy — wait for the current action to finish.");
+    }
+    if (!atsAnalysis) {
+      throw new Error("Generate an ATS analysis before fixing all issues.");
+    }
+    const [providerType, model] = activeModelPair;
+    setIsLoading(true);
+    try {
+      const stream = botRef.current.fixAllAtsIssues(atsAnalysis, {
+        provider: providerType,
+        model,
+      });
+      for await (const event of stream) {
+        if (event.type === "tool_result" && event.intent === "fix_ats") {
+          const usage = event.args.usage;
+          trackTokenUsage(usage);
+          updateResumeStates(event.args.updatedResume, event.args.note);
+          setMessages((prev) => [
+            ...prev,
+            {
+              id: makeId(),
+              role: "tool",
+              content: event.args.summary ?? "",
+              toolResult: { intent: event.intent, args: event.args },
+              timestamp: now(),
+            },
+          ]);
+        }
+        if (event.type === "error") {
+          throw new Error(event.message);
+        }
+      }
+    } catch (err) {
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: makeId(),
+          role: "assistant",
+          content: "",
+          timestamp: now(),
+          error:
+            err instanceof Error ? err.message : "Failed to fix ATS issues",
+        },
+      ]);
+      throw err;
+    } finally {
+      setIsLoading(false);
+    }
+  }, [activeModelPair, isLoading, atsAnalysis, updateResumeStates]);
+
   const updateCoverLetterStates = useCallback(
     (updatedCoverLetter: string) => {
       updateCoverLetterState(updatedCoverLetter);
@@ -297,7 +354,8 @@ export function ChatContextProvider({ children }: { children: ReactNode }) {
                     content:
                       event.intent === "edit" ||
                       event.intent === "tailor" ||
-                      event.intent === "regenerate"
+                      event.intent === "regenerate" ||
+                      event.intent === "fix_ats"
                         ? (event.args.summary ?? "")
                         : "",
                     toolResult: { intent: event.intent, args: event.args },
@@ -313,6 +371,7 @@ export function ChatContextProvider({ children }: { children: ReactNode }) {
                 case "edit":
                 case "tailor":
                 case "regenerate":
+                case "fix_ats":
                   updateResumeStates(event.args.updatedResume, event.args.note);
                   break;
                 case "cover_letter":
@@ -413,6 +472,7 @@ export function ChatContextProvider({ children }: { children: ReactNode }) {
         resetSession,
         setDefaultView,
         fixMissingKeywords,
+        fixAllAtsIssues,
       }}
     >
       {children}

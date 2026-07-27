@@ -63,7 +63,7 @@ type RequiredKeysByPurpose = {
   analyze_ats: "resume" | "jobDetails";
   humanize_content: "userInput";
   extract_fields_to_edit: never;
-  fix_missing_keywords: "resume" | "jobDetails" | "userInput";
+  fix_ats_issues: "resume" | "jobDetails" | "userInput";
 };
 
 // Helper type to enforce required context fields based on purpose, error here means RequiredKeysByPurpose is not properly defined to match PromptContext keys - this is a compile-time check to ensure our RequiredKeysByPurpose mapping is correct

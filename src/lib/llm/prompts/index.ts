@@ -129,7 +129,7 @@ export class PromptSystem {
     humanize_content: "Content Humanization",
     generate_text: "General Text Generation",
     extract_fields_to_edit: "Extract Fields to Edit",
-    fix_missing_keywords: "Keyword Mapping",
+    fix_ats_issues: "ATS Fix Mapping",
   };
 
   /**

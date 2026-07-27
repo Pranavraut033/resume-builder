@@ -201,7 +201,7 @@ const TEMPLATE_BACKED_PURPOSES: PromptPurpose[] = [
   "analyze_ats",
   "humanize_content",
   "extract_fields_to_edit",
-  "fix_missing_keywords",
+  "fix_ats_issues",
 ];
 
 describe("prompt templates resolve cleanly", () => {

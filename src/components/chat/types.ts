@@ -75,6 +75,11 @@ export const INTENT_META: Record<IntentLabel, IntentMeta> = {
     color: "bg-agent-secondary-container",
     onColor: "text-agent-on-secondary-container",
   },
+  fix_ats: {
+    label: "fixing ats issues",
+    color: "bg-agent-primary",
+    onColor: "text-agent-on-primary",
+  },
   cover_letter: {
     label: "rewriting cover letter",
     color: "bg-agent-tertiary-container",
@@ -121,6 +126,8 @@ export function getToolResultMeta(
       };
     case IntentLabel.Ats:
       return { heading: "ATS advice", icon: "cpu" };
+    case IntentLabel.FixAts:
+      return { heading: String(args.note ?? "ATS issues fixed"), icon: "cpu" };
     case IntentLabel.CoverLetter:
       return { heading: "Cover letter rewritten", icon: "fileText" };
     case IntentLabel.Humanize:

@@ -305,6 +305,37 @@ function FixKeywordsButton({
   );
 }
 
+function FixAllButton({
+  isLoading,
+  onClick,
+}: {
+  isLoading: boolean;
+  onClick: () => void;
+}) {
+  const percent = useFakeProgress(isLoading);
+
+  return (
+    <Button
+      size="sm"
+      variant="secondary"
+      disabled={isLoading}
+      onClick={onClick}
+      className="rounded-agent relative inline-flex items-center gap-2 overflow-hidden"
+    >
+      <ProgressFill percent={percent} />
+      <span className="relative z-10 inline-flex items-center gap-2">
+        <SparklesIcon
+          width="14"
+          height="14"
+          className={cn(isLoading && "animate-pulse")}
+          aria-hidden
+        />
+        {isLoading ? "Fixing all..." : "Fix all"}
+      </span>
+    </Button>
+  );
+}
+
 export function ATSAnalysisPanel(props: ATSAnalysisPanelProps) {
   const {
     resume,
@@ -560,24 +591,51 @@ export function ATSAnalysisPanel(props: ATSAnalysisPanelProps) {
           <span className="text-xs">
             Generate use <ModelSelector variant="minimal" />
           </span>
-          <Button
-            size="sm"
-            variant="primary"
-            onClick={onGenerate}
-            disabled={isPending}
-            className="rounded-agent relative inline-flex items-center gap-2 overflow-hidden"
-          >
-            <ProgressFill percent={regeneratePercent} />
-            <span className="relative z-10 inline-flex items-center gap-2">
-              <SparklesIcon
-                width="14"
-                height="14"
-                className={cn(isPending && "animate-pulse")}
-                aria-hidden
+          <div className="flex flex-wrap gap-2">
+            <Button
+              size="sm"
+              variant="primary"
+              onClick={onGenerate}
+              disabled={isPending}
+              className="rounded-agent relative inline-flex items-center gap-2 overflow-hidden"
+            >
+              <ProgressFill percent={regeneratePercent} />
+              <span className="relative z-10 inline-flex items-center gap-2">
+                <SparklesIcon
+                  width="14"
+                  height="14"
+                  className={cn(isPending && "animate-pulse")}
+                  aria-hidden
+                />
+                {isPending ? "Regenerating..." : "Regenerate"}
+              </span>
+            </Button>
+            {chatCtx ? (
+              <FixAllButton
+                isLoading={chatCtx.isLoading}
+                onClick={() =>
+                  chatCtx
+                    .fixAllAtsIssues()
+                    .then(() =>
+                      pushToast({
+                        title: "ATS issues fixed",
+                        description:
+                          "All applicable ATS findings have been woven into your resume.",
+                        variant: "success",
+                      })
+                    )
+                    .catch((e: unknown) =>
+                      pushToast({
+                        title: "Failed to fix ATS issues",
+                        description:
+                          e instanceof Error ? e.message : "Unknown error",
+                        variant: "error",
+                      })
+                    )
+                }
               />
-              {isPending ? "Regenerating..." : "Regenerate"}
-            </span>
-          </Button>
+            ) : null}
+          </div>
         </div>
       )}
       {error instanceof Error ? (
