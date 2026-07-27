@@ -26,6 +26,8 @@ interface FloatingActionBarProps {
   onToggleHistory: () => void;
   isHumanizerOpen: boolean;
   onToggleHumanizer: () => void;
+  isProofreadOpen: boolean;
+  onToggleProofread: () => void;
 }
 
 /**
@@ -33,12 +35,12 @@ interface FloatingActionBarProps {
  * the V2 WYSIWYG canvas. Hides on scroll down and reappears on scroll up
  * (see `hidden` prop, driven by useHideOnScroll in the parent).
  *
- * Layout: Export PDF | Download JSON | Undo | Redo | Customize ▾ | Template ▾ | ATS | Chat 💬
+ * Layout: Export PDF | Download JSON | Undo | Redo | Customize ▾ | Template ▾ | ATS | Humanize | Proofread | Chat 💬
  *
  * Customize / ATS / Chat are controlled toggles (overlays managed by the parent).
  * Template is a self-contained popover (TemplatePicker).
- * Undo/Redo/History/Sections/ATS/Humanize only apply to the resume, so they're
- * hidden while editing the cover letter.
+ * Undo/Redo/History/Sections/ATS/Humanize/Proofread only apply to the resume,
+ * so they're hidden while editing the cover letter.
  */
 export function FloatingActionBar({
   hidden,
@@ -55,6 +57,8 @@ export function FloatingActionBar({
   onToggleHistory,
   isHumanizerOpen,
   onToggleHumanizer,
+  isProofreadOpen,
+  onToggleProofread,
 }: FloatingActionBarProps) {
   const {
     contentType,
@@ -201,6 +205,21 @@ export function FloatingActionBar({
             >
               <Icon name="wand" className="h-3.5 w-3.5" />
               <span className="hidden md:inline">Humanize</span>
+            </button>
+
+            {/* Proofread */}
+            <button
+              onClick={onToggleProofread}
+              className={cn(
+                "flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition-all",
+                isProofreadOpen
+                  ? "bg-agent-primary text-agent-on-primary"
+                  : "text-agent-on-surface-variant hover:bg-agent-surface-container hover:text-agent-on-surface"
+              )}
+              title="Proofread"
+            >
+              <Icon name="spellCheck" className="h-3.5 w-3.5" />
+              <span className="hidden md:inline">Proofread</span>
             </button>
           </>
         )}

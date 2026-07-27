@@ -10,6 +10,10 @@ import type {
 export interface PromptContext {
   baseProfile?: ResumeJSON | null;
   resume?: ResumeJSON | null;
+  // Full (non-compacted) resume — only the proofread template uses this; it
+  // needs exact whitespace/punctuation, which resumeToCompactPositional
+  // strips. See normalizedFieldsToString in ./index.ts.
+  resumeFull?: ResumeJSON | null;
   jobDetails?: JobDetailsJSON | null;
   atsAnalysis?: ATSAnalysisJSON | null;
   jobDescription?: string;
@@ -50,6 +54,7 @@ export const PROMPT_PURPOSES = [
   "humanize_content",
   "extract_fields_to_edit",
   "fix_ats_issues",
+  "proofread_resume",
 ] as const;
 
 export type PromptPurpose = (typeof PROMPT_PURPOSES)[number];

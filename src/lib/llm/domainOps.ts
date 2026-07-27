@@ -11,6 +11,7 @@
 import { LLMProvider } from "@pranavraut033/llm-core";
 
 import { PromptSystem, ResolvedPrompt } from "@/lib/llm/prompts";
+import { lintResume } from "@/lib/proofread/lint";
 import { HumanizerSchema } from "@/types/humanizer";
 import {
   ResumePromptInput,
@@ -25,6 +26,12 @@ import {
   HumanizeContentResult,
   ATSAnalysisPromptInput,
 } from "@/types/llm";
+import {
+  ProofreadIssue,
+  ProofreadJSON,
+  ProofreadPromptInput,
+  ProofreadSchema,
+} from "@/types/proofread";
 import {
   JobDetailsSchema,
   ATSAnalysisSchema,
@@ -111,6 +118,53 @@ export function analyzeATS(
     ATSAnalysisSchema,
     "ATSAnalysisSchema"
   );
+}
+
+// A finding's identity for cross-pass dedup: which field it lives in plus
+// its normalized (case/whitespace-insensitive) `original` text. Lint issues
+// are deterministic and their `suggestion` is safe to auto-apply, so when
+// both passes report the same defect, the lint issue wins.
+function proofreadDedupeKey(issue: ProofreadIssue): string {
+  return `${issue.field}::${issue.original.toLowerCase().replace(/\s+/g, " ").trim()}`;
+}
+
+export async function proofreadResume(
+  provider: LLMProvider,
+  input: ProofreadPromptInput,
+  options: LLMGenerationOptions
+): Promise<LLMResult<ProofreadJSON>> {
+  const prompt = PromptSystem.generatePrompt("proofread_resume", {
+    resumeFull: input.resumeFull,
+    jobDetails: input.jobDetails ?? undefined,
+    baseProfile: input.baseProfile ?? undefined,
+  });
+
+  const { result, usage } = await provider.runStructuredLLM(
+    prompt,
+    options,
+    ProofreadSchema,
+    "ProofreadSchema"
+  );
+
+  const lintIssues = lintResume(input.resumeFull);
+  const lintKeys = new Set(lintIssues.map(proofreadDedupeKey));
+  // The model cannot reliably self-report which pass an issue "belongs to" —
+  // it has no visibility into what lintResume() actually checks, and in
+  // practice mislabels judgment categories (e.g. terminology_consistency,
+  // unquantified_claim) as source: "lint". That label gates auto-apply
+  // downstream (Chatbot.ts only auto-applies source === "lint" findings), so
+  // trusting an LLM-supplied source would let a subjective call — including
+  // one whose suggestion is a deletion — get silently applied. Only issues
+  // that actually came out of lintResume() are source: "lint"; every model
+  // issue is forced to "llm" regardless of what it claimed.
+  const llmIssues = result.issues
+    .filter((issue) => !lintKeys.has(proofreadDedupeKey(issue)))
+    .map((issue) => ({ ...issue, source: "llm" as const }));
+
+  return {
+    result: { ...result, issues: [...lintIssues, ...llmIssues] },
+    usage,
+  };
 }
 
 export async function generateCoverLetter(

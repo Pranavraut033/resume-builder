@@ -3,8 +3,10 @@ import { LLMProvider, textOnly } from "@pranavraut033/llm-core";
 import { LLMUsageInfo } from "@/actions/tokenUsage";
 import { ProviderFactory } from "@/lib/llm/providers";
 import logger from "@/lib/logger";
+import { applyProofreadFixes } from "@/lib/proofread/applyFixes";
 import { HumanizerJSON } from "@/types/humanizer";
 import { ProviderType, LLMResult, PromptMessage } from "@/types/llm";
+import { ProofreadIssue } from "@/types/proofread";
 import {
   ATSAnalysisJSON,
   JobDetailsJSON,
@@ -54,6 +56,7 @@ const INTENT_STATUS_TEXT: Record<IntentLabel, string> = {
   [IntentLabel.Tailor]: "Tailoring to the job…",
   [IntentLabel.Ats]: "Analyzing ATS compatibility…",
   [IntentLabel.FixAts]: "Applying ATS fixes…",
+  [IntentLabel.Proofread]: "Proofreading your resume…",
   [IntentLabel.Interview]: "Preparing interview prep…",
   [IntentLabel.Question]: "Answering…",
   [IntentLabel.CoverLetter]: "Rewriting your cover letter…",
@@ -80,6 +83,17 @@ export type ChatStreamEvent =
         usage: LLMUsageInfo;
         note: string;
         summary?: string;
+      };
+    }
+  | {
+      type: "tool_result";
+      intent: IntentLabel.Proofread;
+      args: {
+        issues: ProofreadIssue[];
+        summary: string;
+        updatedResume?: ResumeJSON;
+        usage: LLMUsageInfo;
+        note: string;
       };
     }
   | {
@@ -522,6 +536,67 @@ class ResumeChatBot {
         });
 
         yield* this.fixAllAtsIssues(analysis, options, analysisUsage);
+        return;
+      }
+      case "proofread": {
+        logger.info("ResumeChatBot", `Proofreading resume — intent: ${intent}`);
+
+        yield { type: "status", text: "Proofreading your resume…" };
+
+        const { result, usage } = await domainOps.proofreadResume(
+          this.provider,
+          {
+            resumeFull: this.resume,
+            jobDetails: this.jobDetails,
+            baseProfile: this.baseProfile,
+          },
+          { model: options.model }
+        );
+
+        // Only auto-apply the deterministic lint-sourced findings — those are
+        // safe, mechanical fixes (stray artifacts, spacing, etc). Everything
+        // the LLM judged (including errors and the provenance group) is
+        // reported but left for the user to review in the Proofread drawer.
+        const lintIssues = result.issues.filter(
+          (issue) => issue.source === "lint"
+        );
+        const { resume: updatedResume, applied, unapplied } =
+          applyProofreadFixes(this.resume, lintIssues);
+
+        const reviewCount = result.issues.length - applied.length;
+        const note =
+          applied.length > 0
+            ? `Auto-fixed ${applied.length} formatting issue(s); ${reviewCount} more need your review in the Proofread panel.`
+            : reviewCount > 0
+              ? `Found ${reviewCount} issue(s) that need your review in the Proofread panel — nothing was auto-applied.`
+              : "No issues found.";
+
+        if (applied.length > 0) {
+          this.resume = updatedResume;
+        }
+
+        this.pushToHistory("chat", userMessage, {
+          role: "assistant",
+          content: `[${intent} applied]`,
+        });
+
+        logger.info(
+          "ResumeChatBot",
+          `Proofread complete — ${result.issues.length} issue(s), ${applied.length} auto-applied, ${unapplied.length} unapplied lint fix(es), usage: ${JSON.stringify(usage)}`
+        );
+
+        yield {
+          type: "tool_result",
+          intent,
+          args: {
+            issues: result.issues,
+            summary: result.summary,
+            updatedResume: applied.length > 0 ? updatedResume : undefined,
+            usage,
+            note,
+          },
+        };
+        yield { type: "done", usage };
         return;
       }
       case "edit": {

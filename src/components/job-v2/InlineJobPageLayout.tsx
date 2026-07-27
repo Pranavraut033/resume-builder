@@ -20,6 +20,7 @@ import {
   applyChangesToText,
 } from "@/lib/humanizer/applyChanges";
 import { HistoryChangeListener } from "@/lib/llm/ResumeHistory";
+import { applyProofreadFixes } from "@/lib/proofread/applyFixes";
 import { htmlToText, resumeToProseText } from "@/lib/resumeToText";
 import { HumanizerJSON } from "@/types/humanizer";
 import { JobStatus } from "@/types/job";
@@ -31,6 +32,7 @@ import { DocumentCanvas } from "./DocumentCanvas";
 import { FloatingActionBar } from "./FloatingActionBar";
 import { HistoryDrawer } from "./HistoryDrawer";
 import { HumanizerDrawer } from "./HumanizerDrawer";
+import { ProofreadDrawer } from "./ProofreadDrawer";
 import { SectionOutlinePanel } from "./resume/SectionOutlinePanel";
 
 /**
@@ -69,6 +71,7 @@ export function InlineJobPageLayout() {
   const [isOutlineOpen, setIsOutlineOpen] = useState(false);
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
   const [isHumanizerOpen, setIsHumanizerOpen] = useState(false);
+  const [isProofreadOpen, setIsProofreadOpen] = useState(false);
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
   const [isPendingStatus, startStatusTransition] = useTransition();
 
@@ -86,6 +89,14 @@ export function InlineJobPageLayout() {
       pushToast({ title: "Resume updated", variant: "success" });
     }
     setIsHumanizerOpen(false);
+  };
+
+  const handleProofreadApply = (
+    result: ReturnType<typeof applyProofreadFixes>
+  ) => {
+    updateResumeState(result.resume, "Proofread");
+    saveToDb("resume", result.resume, customization);
+    pushToast({ title: "Resume updated", variant: "success" });
   };
 
   const canvasColumnRef = useRef<HTMLDivElement>(null);
@@ -311,12 +322,14 @@ export function InlineJobPageLayout() {
                       setIsCustomizationOpen((o) => !o);
                       setIsAtsOpen(false);
                       setIsChatOpen(false);
+                      setIsProofreadOpen(false);
                     }}
                     isAtsOpen={isAtsOpen}
                     onToggleAts={() => {
                       setIsAtsOpen((o) => !o);
                       setIsCustomizationOpen(false);
                       setIsChatOpen(false);
+                      setIsProofreadOpen(false);
                     }}
                     isChatOpen={isChatOpen}
                     onToggleChat={() => {
@@ -325,24 +338,35 @@ export function InlineJobPageLayout() {
                       setChatSnapPosition(next ? "right" : "undocked");
                       setIsCustomizationOpen(false);
                       setIsAtsOpen(false);
+                      setIsProofreadOpen(false);
                     }}
                     isOutlineOpen={isOutlineOpen}
                     onToggleOutline={() => {
                       setIsOutlineOpen((o) => !o);
                       setIsCustomizationOpen(false);
                       setIsAtsOpen(false);
+                      setIsProofreadOpen(false);
                     }}
                     isHistoryOpen={isHistoryOpen}
                     onToggleHistory={() => {
                       setIsHistoryOpen((o) => !o);
                       setIsCustomizationOpen(false);
                       setIsAtsOpen(false);
+                      setIsProofreadOpen(false);
                     }}
                     isHumanizerOpen={isHumanizerOpen}
                     onToggleHumanizer={() => {
                       setIsHumanizerOpen((o) => !o);
                       setIsCustomizationOpen(false);
                       setIsAtsOpen(false);
+                      setIsProofreadOpen(false);
+                    }}
+                    isProofreadOpen={isProofreadOpen}
+                    onToggleProofread={() => {
+                      setIsProofreadOpen((o) => !o);
+                      setIsCustomizationOpen(false);
+                      setIsAtsOpen(false);
+                      setIsHumanizerOpen(false);
                     }}
                   />
 
@@ -357,6 +381,17 @@ export function InlineJobPageLayout() {
                     }
                     onAccept={handleHumanizeAccept}
                   />
+
+                  {/* Proofread drawer — slides over the canvas, resume only */}
+                  {contentType === "resume" && (
+                    <ProofreadDrawer
+                      open={isProofreadOpen}
+                      onClose={() => setIsProofreadOpen(false)}
+                      resume={resume}
+                      jobDetails={job?.details}
+                      onApply={handleProofreadApply}
+                    />
+                  )}
 
                   {/* ATS analysis drawer — slides over the canvas */}
                   <ATSDrawer

@@ -37,6 +37,7 @@ import "./templates/ats";
 import "./templates/resume-tailoring";
 import "./templates/cover-letter";
 import "./templates/humanizer";
+import "./templates/proofread";
 
 // Re-export registry instance
 export { templateRegistry } from "./registry";
@@ -92,6 +93,15 @@ function normalizedFieldsToString(
       ? resumeJsonToCompactPositional(context.baseProfile)
       : "",
     resume: context.resume ? resumeJsonToCompactPositional(context.resume) : "",
+    // Unlike `resume` above, this is NOT routed through
+    // resumeJsonToCompactPositional — that serializer strips exactly the
+    // whitespace/punctuation/casing detail a proofreader needs to catch.
+    // Full JSON.stringify, then the same sanitizer chokepoint as every other
+    // untrusted field so a `---`/``` line inside the resume can't escape the
+    // fence it's interpolated into.
+    resumeFull: context.resumeFull
+      ? sanitizeUntrustedText(JSON.stringify(context.resumeFull, null, 2))
+      : "",
     jobDetails: context.jobDetails
       ? jobDetailsToCompactPositional(context.jobDetails)
       : "",
@@ -130,6 +140,7 @@ export class PromptSystem {
     generate_text: "General Text Generation",
     extract_fields_to_edit: "Extract Fields to Edit",
     fix_ats_issues: "ATS Fix Mapping",
+    proofread_resume: "Proofread Resume",
   };
 
   /**

@@ -178,6 +178,7 @@ const sampleAtsAnalysis: ATSAnalysisJSON = {
 const baseContext: PromptContext = {
   baseProfile: sampleResume,
   resume: sampleResume,
+  resumeFull: sampleResume,
   jobDetails: sampleJobDetails,
   atsAnalysis: sampleAtsAnalysis,
   jobDescription: sampleJobDetails.raw_description,
@@ -202,6 +203,7 @@ const TEMPLATE_BACKED_PURPOSES: PromptPurpose[] = [
   "humanize_content",
   "extract_fields_to_edit",
   "fix_ats_issues",
+  "proofread_resume",
 ];
 
 describe("prompt templates resolve cleanly", () => {

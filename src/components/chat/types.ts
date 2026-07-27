@@ -80,6 +80,11 @@ export const INTENT_META: Record<IntentLabel, IntentMeta> = {
     color: "bg-agent-primary",
     onColor: "text-agent-on-primary",
   },
+  proofread: {
+    label: "proofreading resume",
+    color: "bg-agent-secondary-container",
+    onColor: "text-agent-on-secondary-container",
+  },
   cover_letter: {
     label: "rewriting cover letter",
     color: "bg-agent-tertiary-container",
@@ -128,6 +133,29 @@ export function getToolResultMeta(
       return { heading: "ATS advice", icon: "cpu" };
     case IntentLabel.FixAts:
       return { heading: String(args.note ?? "ATS issues fixed"), icon: "cpu" };
+    case IntentLabel.Proofread: {
+      const issues = Array.isArray(args.issues)
+        ? (args.issues as { severity?: string }[])
+        : [];
+      const errors = issues.filter((i) => i.severity === "error").length;
+      const warnings = issues.filter((i) => i.severity === "warning").length;
+      const suggestions = issues.filter(
+        (i) => i.severity === "suggestion"
+      ).length;
+
+      const heading =
+        issues.length === 0
+          ? "No issues found"
+          : [
+              errors > 0 ? `${errors} error(s)` : null,
+              warnings > 0 ? `${warnings} warning(s)` : null,
+              suggestions > 0 ? `${suggestions} suggestion(s)` : null,
+            ]
+              .filter(Boolean)
+              .join(", ");
+
+      return { heading, icon: "spellCheck" };
+    }
     case IntentLabel.CoverLetter:
       return { heading: "Cover letter rewritten", icon: "fileText" };
     case IntentLabel.Humanize:

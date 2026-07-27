@@ -29,6 +29,7 @@ import {
   CoverLetterGenerationResult,
   ATSAnalysisResult,
 } from "@/types/llm";
+import { ProofreadJSON } from "@/types/proofread";
 import { ResumeJSON, JobDetailsJSON, ATSAnalysisJSON } from "@/types/resume";
 
 import * as domainOps from "./domainOps";
@@ -64,6 +65,7 @@ type RequiredKeysByPurpose = {
   humanize_content: "userInput";
   extract_fields_to_edit: never;
   fix_ats_issues: "resume" | "jobDetails" | "userInput";
+  proofread_resume: "resumeFull";
 };
 
 // Helper type to enforce required context fields based on purpose, error here means RequiredKeysByPurpose is not properly defined to match PromptContext keys - this is a compile-time check to ensure our RequiredKeysByPurpose mapping is correct
@@ -203,6 +205,18 @@ class LLMService {
             {
               resume: context.resume!,
               jobDetails: context.jobDetails!,
+            },
+            options
+          ));
+          break;
+        }
+        case "proofread_resume": {
+          ({ result, usage } = await domainOps.proofreadResume(
+            provider,
+            {
+              resumeFull: context.resumeFull!,
+              jobDetails: context.jobDetails ?? null,
+              baseProfile: context.baseProfile ?? null,
             },
             options
           ));
@@ -365,6 +379,22 @@ class LLMService {
     options: LLMServiceOptions
   ): Promise<LLMResult<ATSAnalysisJSON>> {
     return this.executeCall("analyze_ats", { resume, jobDetails }, options);
+  }
+
+  static async proofreadResume(
+    resume: ResumeJSON,
+    context: { jobDetails?: JobDetailsJSON | null; baseProfile?: ResumeJSON | null },
+    options: LLMServiceOptions
+  ): Promise<LLMResult<ProofreadJSON>> {
+    return this.executeCall(
+      "proofread_resume",
+      {
+        resumeFull: resume,
+        jobDetails: context.jobDetails ?? null,
+        baseProfile: context.baseProfile ?? null,
+      },
+      options
+    );
   }
 
   /**

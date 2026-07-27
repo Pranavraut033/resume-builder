@@ -357,7 +357,9 @@ export function ChatContextProvider({ children }: { children: ReactNode }) {
                       event.intent === "regenerate" ||
                       event.intent === "fix_ats"
                         ? (event.args.summary ?? "")
-                        : "",
+                        : event.intent === "proofread"
+                          ? event.args.note
+                          : "",
                     toolResult: { intent: event.intent, args: event.args },
                     timestamp: now(),
                   })
@@ -373,6 +375,11 @@ export function ChatContextProvider({ children }: { children: ReactNode }) {
                 case "regenerate":
                 case "fix_ats":
                   updateResumeStates(event.args.updatedResume, event.args.note);
+                  break;
+                case "proofread":
+                  if (event.args.updatedResume) {
+                    updateResumeStates(event.args.updatedResume, event.args.note);
+                  }
                   break;
                 case "cover_letter":
                 case "humanize":
