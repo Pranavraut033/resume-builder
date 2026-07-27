@@ -143,7 +143,7 @@ export function DocumentCanvas({
     <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden">
       <div
         ref={scrollRef}
-        className="flex min-h-0 flex-1 flex-col overflow-auto px-6 py-20"
+        className="[scrollbar-gutter:stable] flex min-h-0 flex-1 flex-col overflow-auto px-6 py-20"
       >
         {/* Placeholder sized to the scaled document so scrollbars stay accurate
             and the unscaled content (laid out at its natural width) can be
