@@ -46,7 +46,11 @@ export function ChatPanel({ onClose: _close }: ChatPanelProps) {
   }, [_close, resetSession]);
 
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+    // `block: "end"` anchors the bottom of this (empty, last) marker to the
+    // bottom of the scrollable list — omitting it defaults to `block: "start"`,
+    // which scrolls the marker to the TOP of the viewport instead, yanking the
+    // just-sent message far past where it should rest.
+    bottomRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
   }, [messages]);
 
   // Switch to chat view when defaultView changes to 'chat'
