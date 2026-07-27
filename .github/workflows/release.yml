@@ -33,17 +33,37 @@ jobs:
             echo "tag=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
           fi
 
+      - name: Extract release notes
+        run: |
+          TAG="${{ steps.resolve_tag.outputs.tag }}"
+          awk -v tag="$TAG" '
+            $0 ~ "^# " tag { found=1; print; next }
+            found && /^# v[0-9]/ { found=0 }
+            found { print }
+          ' RELEASE_NOTES.md > release-notes-section.md
+          if [ ! -s release-notes-section.md ]; then
+            echo "::warning::No RELEASE_NOTES.md entry found for $TAG — falling back to generic release body"
+          fi
+
       - name: Create GitHub release (draft)
         id: create_release
         uses: actions/github-script@v8
         with:
           script: |
+            const fs = require('fs');
+            const tag = '${{ steps.resolve_tag.outputs.tag }}';
+            const notes = fs.readFileSync('release-notes-section.md', 'utf8').trim();
+            const installSection = `### Installation\n\n**macOS**\n1. Download the \`*_universal.dmg\` below\n2. Open the downloaded file\n3. Drag **Resume Builder** into **Applications**\n4. On first launch: right-click → Open → Open (to bypass macOS Gatekeeper)`;
+            const body = notes
+              ? `${notes}\n\n${installSection}`
+              : `## Resume Builder ${tag}\n\n${installSection}\n\n### Changelog\n\nSee [commits since last release](https://github.com/${{ github.repository }}/commits/${tag}) for full changes.`;
+
             const { data } = await github.rest.repos.createRelease({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              tag_name: '${{ steps.resolve_tag.outputs.tag }}',
-              name: 'Resume Builder ${{ steps.resolve_tag.outputs.tag }}',
-              body: `## Resume Builder ${{ steps.resolve_tag.outputs.tag }}\n\nInitial release. Resume Builder is a local-first desktop app for tailoring resumes and cover letters to a specific job with AI — all data and API keys stay on your machine.\n\n### Features\n\n- **Base profile** — one reusable profile (skills, experience, projects, education) that every resume is tailored from\n- **AI tailoring** — paste a job description and generate a matched resume and cover letter\n- **Inline WYSIWYG editor** — edit the rendered document directly, no separate form view\n- **Chat-based editing assistant** — refine sections by describing the change instead of hand-editing\n- **AI humanizer** — rewrite AI-flavored text to read more naturally\n- **Multiple templates** — several resume layouts with per-job color/font/layout customization\n- **Version history** — every generated resume/cover letter is versioned per job\n- **PDF and TXT export**\n- **Bring your own API key** (OpenAI-compatible providers) or use the built-in managed LLM gateway — no server ever sees your key\n- **Local SQLite storage** — no account, no cloud sync, your data never leaves the device\n\n### Installation\n\n**macOS**\n1. Download \`Resume.Builder_*_universal.dmg\` below\n2. Open the downloaded file\n3. Drag **Resume Builder** into **Applications**\n4. On first launch: right-click → Open → Open (to bypass macOS Gatekeeper)\n\n**Windows**\n1. Download the \`*-setup.exe\` installer below\n2. Run it and follow the prompts (Windows SmartScreen may warn about an unsigned app — click **More info → Run anyway**)\n\n**Linux**\n1. Download the \`.AppImage\` (portable) or \`.deb\` (Debian/Ubuntu) below\n2. For AppImage: \`chmod +x *.AppImage && ./*.AppImage\`\n3. For deb: \`sudo dpkg -i *.deb\`\n\n### Changelog\n\nSee [commits since last release](https://github.com/${{ github.repository }}/commits/${{ steps.resolve_tag.outputs.tag }}) for full changes.`,
+              tag_name: tag,
+              name: `Resume Builder ${tag}`,
+              body,
               draft: true,
               prerelease: false
             });
