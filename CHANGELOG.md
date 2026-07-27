@@ -2,6 +2,16 @@
 
 All notable changes to this project are documented in this file.
 
+## [1.5.0] - 2026-07-27
+
+### Added
+
+- Chat gained a "Fix all ATS issues" action that applies every open ATS recommendation in one turn instead of one at a time ([997e19f])
+
+### Fixed
+
+- The keychain access notice now reappears after each app update instead of only on first install ([cbd1ac9])
+
 ## [1.4.1] - 2026-07-27
 
 ### Fixed

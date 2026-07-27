@@ -1,3 +1,10 @@
+# v1.5.0 — 2026-07-27
+
+A chat upgrade and an update-notice fix.
+
+- **Fix every ATS issue in one click.** Chat now offers a "Fix all ATS issues" action that resolves every open recommendation in a single turn.
+- **Fixed:** the keychain access notice now reappears after each app update, instead of only showing once on first install.
+
 # v1.4.1 — 2026-07-27
 
 A small polish release, mostly editor and chat fixes.
