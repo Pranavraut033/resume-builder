@@ -40,7 +40,12 @@ export function formatMonthYear(
     case "locale":
     default: {
       const date = new Date(Number(year), Number(month) - 1, 1);
-      const intlLocale = format === "locale" ? locale : "en-US";
+      // Never fall through to the runtime's ambient default locale (`undefined`)
+      // here — Node's SSR pass and the browser's client render can resolve
+      // different default locales (e.g. "Sep" vs "Sept"), which is a hydration
+      // mismatch on every date range. No caller currently passes an explicit
+      // `locale`, so pin to a fixed one instead.
+      const intlLocale = locale ?? "en-US";
       return new Intl.DateTimeFormat(intlLocale, {
         year: "numeric",
         month: "short",
