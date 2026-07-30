@@ -9,11 +9,12 @@
  * Promote to the registry only if these prompts need to be reused elsewhere.
  */
 import { analyzeResume } from "@pranavraut033/ats-checker";
-import { LLMProvider } from "@pranavraut033/llm-core";
+import { LLMProvider, ReasoningEffort } from "@pranavraut033/llm-core";
 import { z } from "zod";
 
 import { LLMUsageInfo } from "@/actions/tokenUsage";
 import { ResolvedPrompt } from "@/lib/llm/prompts";
+import logger from "@/lib/logger";
 import { resumeToText } from "@/lib/resumeToText";
 import { Experience, JobDetailsJSON, ResumeJSON } from "@/types/resume";
 
@@ -23,7 +24,7 @@ export type HallucinationFlag = {
   issue: string;
 };
 
-type AgentOptions = { model: string };
+type AgentOptions = { model: string; reasoningEffort?: ReasoningEffort };
 
 // runStructuredLLM only reads systemPrompt/userPrompt + purpose (a usage label).
 // We reuse existing PromptPurpose values for the label rather than threading new
@@ -74,8 +75,24 @@ export function extractRequirements(jobDetails: JobDetailsJSON): string[] {
 }
 
 // ── Agent 2: bullet rewriter (LLM, structured) ─────────────────────────────
+// The model must echo back which experience it's rewriting (index + company)
+// rather than us trusting positional array order — the model can reorder or
+// drop an experience in its response, and a pure `result.experiences[i]`
+// merge would silently graft bullets onto the wrong job. We only merge an
+// entry whose echoed `index` AND `company` both match the real experience at
+// that index; anything else is dropped (logged) instead of applied.
 const RewriteSchema = z.object({
-  experiences: z.array(z.object({ achievements: z.array(z.string()) })),
+  experiences: z.array(
+    z.object({
+      index: z
+        .number()
+        .describe("The [N] index of the experience this entry rewrites"),
+      company: z
+        .string()
+        .describe("The company name from that experience, echoed verbatim"),
+      achievements: z.array(z.string()),
+    })
+  ),
 });
 
 const REWRITE_SYSTEM = `You are an elite resume bullet-point rewriter.
@@ -92,7 +109,7 @@ REWRITE STRATEGY:
 - Leave a bullet exactly as-is if it has no requirement to mirror in — this is a targeted keyword-alignment pass, not a full rewrite.
 
 OUTPUT CONTRACT:
-- Return one rewritten "achievements" array per input experience, in the same order.`;
+- Return one entry per input experience, in any order, each echoing back its "index" (the [N] shown) and "company" (verbatim) alongside the rewritten "achievements" array — this lets the edit be matched to the correct job even if you reorder or omit entries.`;
 
 export async function rewriteBullets(
   provider: LLMProvider,
@@ -132,22 +149,46 @@ ${experiences
   .join("\n\n")}
 ---${flagBlock}
 
-Return ONLY JSON matching the schema: one achievements array per experience, same order.`;
+Return ONLY JSON matching the schema: one entry per experience, each echoing its index and company alongside the rewritten achievements array.`;
 
   const { result, usage } = await provider.runStructuredLLM(
     resolvedPrompt(REWRITE_SYSTEM, userPrompt, "generate_experience"),
-    { model: options.model },
+    { model: options.model, reasoningEffort: options.reasoningEffort },
     RewriteSchema,
     "RewriteBulletsSchema"
   );
 
-  // ponytail: clamp instead of throwing — if the model under-returns, keep the
-  // original bullets for any experience it skipped.
+  // Index the model's response by its echoed index so we can verify it
+  // against the real experience before merging — a mismatch (reordered or
+  // hallucinated index/company) is dropped and logged rather than silently
+  // grafted onto the wrong job.
+  const byIndex = new Map(result.experiences.map((e) => [e.index, e]));
+
+  for (const rewritten of result.experiences) {
+    if (rewritten.index < 0 || rewritten.index >= experiences.length) {
+      logger.warn(
+        "rewriteBullets",
+        `Dropping rewritten entry with out-of-range index ${rewritten.index} (${experiences.length} experience(s) in original)`
+      );
+    }
+  }
+
   const merged = experiences.map((exp, i) => {
-    const rewritten = result.experiences[i]?.achievements;
-    return rewritten && rewritten.length > 0
-      ? { ...exp, achievements: rewritten }
-      : exp;
+    const rewritten = byIndex.get(i);
+    if (!rewritten || rewritten.achievements.length === 0) return exp;
+
+    if (
+      rewritten.company.trim().toLowerCase() !==
+      exp.company.trim().toLowerCase()
+    ) {
+      logger.warn(
+        "rewriteBullets",
+        `Dropping rewritten experience[${i}] — echoed company "${rewritten.company}" does not match "${exp.company}"`
+      );
+      return exp;
+    }
+
+    return { ...exp, achievements: rewritten.achievements };
   });
 
   return { experiences: merged, usage };
@@ -210,7 +251,7 @@ Return ONLY JSON matching the schema. For each unsupported claim, set experience
 
   const { result, usage } = await provider.runStructuredLLM(
     resolvedPrompt(VERIFY_SYSTEM, userPrompt, "generate_text"),
-    { model: options.model },
+    { model: options.model, reasoningEffort: options.reasoningEffort },
     VerifySchema,
     "VerifyBulletsSchema"
   );
