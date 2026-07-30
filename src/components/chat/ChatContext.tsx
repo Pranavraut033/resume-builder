@@ -378,7 +378,10 @@ export function ChatContextProvider({ children }: { children: ReactNode }) {
                   break;
                 case "proofread":
                   if (event.args.updatedResume) {
-                    updateResumeStates(event.args.updatedResume, event.args.note);
+                    updateResumeStates(
+                      event.args.updatedResume,
+                      event.args.note
+                    );
                   }
                   break;
                 case "cover_letter":

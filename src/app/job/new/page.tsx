@@ -483,11 +483,10 @@ export default function NewJobPage() {
                           className="border-agent-outline-variant text-agent-primary focus:ring-agent-primary mt-0.5 h-4 w-4 shrink-0 rounded"
                         />
                         <span className="text-agent-on-surface-variant">
-                          Skip verification — use faster, unverified
-                          generation (fewer AI calls, no fact-check pass).
-                          Leave unchecked to fact-check the tailored resume
-                          against your base profile and correct unsupported
-                          claims.
+                          Skip verification — use faster, unverified generation
+                          (fewer AI calls, no fact-check pass). Leave unchecked
+                          to fact-check the tailored resume against your base
+                          profile and correct unsupported claims.
                         </span>
                       </label>
                     </>
