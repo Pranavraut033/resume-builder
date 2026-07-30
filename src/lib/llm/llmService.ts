@@ -10,7 +10,7 @@
  * - Request ID tracking for analytics
  */
 
-import { LLMProvider } from "@pranavraut033/llm-core";
+import { LLMProvider, ReasoningEffort } from "@pranavraut033/llm-core";
 
 import { LLMUsageInfo } from "@/actions/tokenUsage";
 import {
@@ -20,6 +20,7 @@ import {
 import { ProviderFactory } from "@/lib/llm/providers/factory";
 import { generateRequestId, trackTokenUsage } from "@/lib/llm/tokenTracker";
 import { createLogger } from "@/lib/logger";
+import { useModelStore } from "@/store/modelStore";
 import { HumanizerJSON } from "@/types/humanizer";
 import {
   ProviderType,
@@ -47,6 +48,21 @@ export interface LLMServiceOptions {
   provider: ProviderType;
   model: string;
   temperature?: number;
+  reasoningEffort?: ReasoningEffort;
+}
+
+/**
+ * Fills in `reasoningEffort` from the user's model-selector preference
+ * (src/store/modelStore.ts) when a call site didn't set one explicitly.
+ * Providers already no-op reasoningEffort on non-reasoning models, so no
+ * capability check is needed here.
+ */
+function withReasoningEffort(options: LLMServiceOptions): LLMServiceOptions {
+  if (options.reasoningEffort !== undefined) return options;
+  const reasoningEffort = useModelStore
+    .getState()
+    .getReasoningEffort(options.provider, options.model);
+  return reasoningEffort ? { ...options, reasoningEffort } : options;
 }
 
 // map each purpose to the keys from PromptContext that must be present
@@ -93,8 +109,9 @@ class LLMService {
   static async executeCall<P extends PromptPurpose, T = string>(
     purpose: P,
     context: RequiredFor<P>,
-    options: LLMServiceOptions
+    rawOptions: LLMServiceOptions
   ): Promise<LLMResult<T>> {
+    const options = withReasoningEffort(rawOptions);
     const requestId = generateRequestId(purpose);
     const startTime = Date.now();
 
@@ -341,8 +358,9 @@ class LLMService {
     baseProfile: ResumeJSON,
     jobDetails: JobDetailsJSON,
     atsAnalysis: ATSAnalysisJSON | null,
-    options: LLMServiceOptions
+    rawOptions: LLMServiceOptions
   ): Promise<VerifiedResumeResult> {
+    const options = withReasoningEffort(rawOptions);
     const requestId = generateRequestId("generate_tailored_resume");
     const startTime = Date.now();
 
@@ -383,7 +401,10 @@ class LLMService {
 
   static async proofreadResume(
     resume: ResumeJSON,
-    context: { jobDetails?: JobDetailsJSON | null; baseProfile?: ResumeJSON | null },
+    context: {
+      jobDetails?: JobDetailsJSON | null;
+      baseProfile?: ResumeJSON | null;
+    },
     options: LLMServiceOptions
   ): Promise<LLMResult<ProofreadJSON>> {
     return this.executeCall(

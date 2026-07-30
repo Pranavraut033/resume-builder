@@ -34,7 +34,7 @@
     "@dnd-kit/core": "^6.3.1",
     "@dnd-kit/sortable": "^10.0.0",
     "@dnd-kit/utilities": "^3.2.2",
-    "@google/genai": "^0.3.1",
+    "@google/genai": "^2",
     "@headlessui/react": "^2.2.9",
     "@pranavraut033/ats-checker": "file:packages/ats-checker",
     "@pranavraut033/llm-core": "file:packages/llm-core",

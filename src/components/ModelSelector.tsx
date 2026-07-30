@@ -11,6 +11,7 @@
 
 "use client";
 
+import { supportsReasoning } from "@pranavraut033/llm-core";
 import Link from "next/link";
 import { useMemo, useState } from "react";
 
@@ -19,6 +20,18 @@ import { Modal } from "@/components/ui/Modal";
 import { PROVIDER_INFO, PROVIDER_ICONS } from "@/lib/llm/providerMetaInfo";
 import { useModelStore } from "@/store/modelStore";
 import { ProviderType } from "@/types/llm";
+
+import type { ReasoningEffort } from "@pranavraut033/llm-core";
+
+const REASONING_EFFORTS: ReasoningEffort[] = [
+  "none",
+  "minimal",
+  "low",
+  "medium",
+  "high",
+  "xhigh",
+  "max",
+];
 
 interface ModelSelectorProps {
   /** Callback when user selects a model. Emits {model, provider} */
@@ -34,10 +47,22 @@ export function ModelSelector({
   className = "",
   variant = "normal",
 }: ModelSelectorProps) {
-  const { selectedModelsByProvider, activeModelPair, setSelectedModel } =
-    useModelStore();
+  const {
+    selectedModelsByProvider,
+    activeModelPair,
+    setSelectedModel,
+    getReasoningEffort,
+    setReasoningEffort,
+  } = useModelStore();
 
   const [isOpen, setIsOpen] = useState(false);
+
+  const activeReasoningEffort = activeModelPair
+    ? getReasoningEffort(activeModelPair[0], activeModelPair[1])
+    : null;
+  const activeModelSupportsReasoning = activeModelPair
+    ? supportsReasoning(activeModelPair[1])
+    : false;
 
   // Get preselected models by provider (from settings)
   const preselectedByProvider = useMemo(
@@ -237,6 +262,56 @@ export function ModelSelector({
               </div>
             );
           })}
+
+          {/* Reasoning effort — only for the active model, and only when it supports it */}
+          {activeModelPair && activeModelSupportsReasoning && (
+            <div>
+              <p
+                className="mb-3 text-sm font-semibold"
+                style={{ color: "var(--color-agent-on-surface)" }}
+              >
+                Reasoning effort for {activeModelPair[1]}
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {REASONING_EFFORTS.map((effort) => {
+                  const isSelected = activeReasoningEffort === effort;
+                  return (
+                    <button
+                      key={effort}
+                      onClick={() =>
+                        setReasoningEffort(
+                          activeModelPair[0],
+                          activeModelPair[1],
+                          isSelected ? null : effort
+                        )
+                      }
+                      className="rounded-full px-3 py-1.5 text-xs font-medium capitalize transition-all hover:shadow-sm active:scale-95"
+                      style={{
+                        background: isSelected
+                          ? "var(--color-agent-primary)"
+                          : "var(--color-agent-surface-container)",
+                        color: isSelected
+                          ? "var(--color-agent-on-primary)"
+                          : "var(--color-agent-on-surface)",
+                        border: isSelected
+                          ? "2px solid var(--color-agent-primary)"
+                          : "1px solid var(--color-agent-outline-variant)",
+                      }}
+                    >
+                      {effort}
+                    </button>
+                  );
+                })}
+              </div>
+              <p
+                className="mt-2 text-xs"
+                style={{ color: "var(--color-agent-on-surface-variant)" }}
+              >
+                Provider default is used unless you pick one. Click again to
+                clear.
+              </p>
+            </div>
+          )}
         </div>
       </Modal>
     </>

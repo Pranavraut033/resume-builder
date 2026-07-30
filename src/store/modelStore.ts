@@ -18,11 +18,19 @@ import { EMPTY_MODELS_MAPS, fetchModels } from "@/lib/llm/clientLLM";
 import { createLogger } from "@/lib/logger";
 import { ProviderType } from "@/types/llm";
 
+import type { ReasoningEffort } from "@pranavraut033/llm-core";
+
 const logger = createLogger("ModelStore");
 
 type ProviderModels = Record<ProviderType, string[]>;
 type SelectedModelsArray = Partial<Record<ProviderType, string[]>>;
 export type ModelProviderPair = [ProviderType, string]; // [provider, model]
+// Keyed by "provider:model" — reasoning effort is a model-specific preference,
+// not a global one (a non-reasoning model has nothing to set it to).
+type ReasoningEffortByModel = Record<string, ReasoningEffort>;
+
+const modelKey = (provider: ProviderType, model: string) =>
+  `${provider}:${model}`;
 
 // Cache duration: 6 hours in milliseconds
 const CACHE_DURATION_MS = 6 * 60 * 60 * 1000;
@@ -35,6 +43,9 @@ interface ModelState {
 
   // Selected models list by provider (for multi-select UIs)
   selectedModelsByProvider: SelectedModelsArray;
+
+  // Reasoning effort preference, per "provider:model"
+  reasoningEffortByModel: ReasoningEffortByModel;
 
   // Cache timestamp for 6-hour refresh validation
   cacheTimestamp: number | null;
@@ -53,6 +64,11 @@ interface ModelState {
   forceFetchModels: (...providers: ProviderType[]) => Promise<void>;
   setSelectedModel: (provider: ProviderType, model: string) => void;
   setProviderModels: (provider: ProviderType, models: string[]) => void;
+  setReasoningEffort: (
+    provider: ProviderType,
+    model: string,
+    effort: ReasoningEffort | null
+  ) => void;
   clearError: () => void;
   setCacheTimer: (timerId: NodeJS.Timeout) => void;
   clearCacheTimer: () => void;
@@ -62,6 +78,11 @@ interface ModelState {
   getSelectedProvider: () => ProviderType | null;
   getSelectedModelsForProvider: (provider: ProviderType) => string[] | null;
   getAllSelectedModels: () => SelectedModelsArray;
+  getReasoningEffort: (
+    provider: ProviderType,
+    model: string
+  ) => ReasoningEffort | null;
+  getActiveReasoningEffort: () => ReasoningEffort | null;
 
   // Legacy aliases for UI pages
   loadModels: () => Promise<void>;
@@ -73,6 +94,7 @@ export const useModelStore = create<ModelState>()(
     (set, get) => ({
       modelsByProvider: { ...EMPTY_MODELS_MAPS },
       selectedModelsByProvider: {},
+      reasoningEffortByModel: {},
       cacheTimestamp: null,
       activeModelPair: null,
       isLoading: false,
@@ -160,6 +182,23 @@ export const useModelStore = create<ModelState>()(
         }));
       },
 
+      setReasoningEffort: (
+        provider: ProviderType,
+        model: string,
+        effort: ReasoningEffort | null
+      ) => {
+        set((state) => {
+          const next = { ...state.reasoningEffortByModel };
+          const key = modelKey(provider, model);
+          if (effort === null) {
+            delete next[key];
+          } else {
+            next[key] = effort;
+          }
+          return { reasoningEffortByModel: next };
+        });
+      },
+
       clearError: () => {
         set({ error: null });
       },
@@ -198,6 +237,20 @@ export const useModelStore = create<ModelState>()(
         return selectedModelsByProvider;
       },
 
+      getReasoningEffort: (
+        provider: ProviderType,
+        model: string
+      ): ReasoningEffort | null => {
+        const { reasoningEffortByModel } = get();
+        return reasoningEffortByModel[modelKey(provider, model)] ?? null;
+      },
+
+      getActiveReasoningEffort: (): ReasoningEffort | null => {
+        const { activeModelPair, getReasoningEffort } = get();
+        if (!activeModelPair) return null;
+        return getReasoningEffort(activeModelPair[0], activeModelPair[1]);
+      },
+
       loadModels: async () => {
         await get().initializeCache();
       },
@@ -213,6 +266,7 @@ export const useModelStore = create<ModelState>()(
       partialize: (state) => ({
         activeModelPair: state.activeModelPair,
         selectedModelsByProvider: state.selectedModelsByProvider,
+        reasoningEffortByModel: state.reasoningEffortByModel,
       }),
     }
   )
