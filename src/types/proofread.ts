@@ -59,6 +59,11 @@ export const ProofreadIssueSchema = z.object({
   explanation: z.string(),
   // Which pass produced this finding.
   source: z.enum(["lint", "llm"]).default("llm"),
+  // JSON Pointer (see src/lib/resume/editor.ts::resumePathLines) naming the
+  // exact leaf this issue lives at, when derivable. Enables a scoped
+  // path-based apply instead of a serialized-JSON string replace; optional
+  // for backward compat with findings that predate this field.
+  path: z.string().optional(),
 });
 
 export type ProofreadIssue = z.infer<typeof ProofreadIssueSchema>;

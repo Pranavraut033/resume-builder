@@ -68,10 +68,11 @@ describe("applyProofreadFixes", () => {
       suggestion: "developer",
     });
 
-    const { resume: updated, applied, unapplied } = applyProofreadFixes(
-      resume,
-      [issue]
-    );
+    const {
+      resume: updated,
+      applied,
+      unapplied,
+    } = applyProofreadFixes(resume, [issue]);
 
     expect(applied).toEqual([issue]);
     expect(unapplied).toEqual([]);
@@ -88,10 +89,11 @@ describe("applyProofreadFixes", () => {
       suggestion: "replacement",
     });
 
-    const { resume: updated, applied, unapplied } = applyProofreadFixes(
-      resume,
-      [issue]
-    );
+    const {
+      resume: updated,
+      applied,
+      unapplied,
+    } = applyProofreadFixes(resume, [issue]);
 
     expect(applied).toEqual([]);
     expect(unapplied).toEqual([issue]);
@@ -120,10 +122,11 @@ describe("applyProofreadFixes", () => {
       suggestion: "systems",
     });
 
-    const { resume: updated, applied, unapplied } = applyProofreadFixes(
-      resume,
-      [issue]
-    );
+    const {
+      resume: updated,
+      applied,
+      unapplied,
+    } = applyProofreadFixes(resume, [issue]);
 
     expect(applied).toEqual([]);
     expect(unapplied).toEqual([issue]);
@@ -138,10 +141,11 @@ describe("applyProofreadFixes", () => {
       suggestion: "not_a_real_tier",
     });
 
-    const { resume: updated, applied, unapplied } = applyProofreadFixes(
-      resume,
-      [issue]
-    );
+    const {
+      resume: updated,
+      applied,
+      unapplied,
+    } = applyProofreadFixes(resume, [issue]);
 
     expect(applied).toEqual([]);
     expect(unapplied).toEqual([issue]);
@@ -152,8 +156,7 @@ describe("applyProofreadFixes", () => {
     const resume = makeResume();
     const issue1 = makeIssue({
       field: "experience",
-      original:
-        "Cut checkout latency 40% by migrating to Kafka-based retries.",
+      original: "Cut checkout latency 40% by migrating to Kafka-based retries.",
       suggestion: "Cut checkout latency 40% via Kafka-based retries.",
     });
     const issue2 = makeIssue({
@@ -162,10 +165,11 @@ describe("applyProofreadFixes", () => {
       suggestion: "Led a 3-person team on the fraud-detection pipeline.",
     });
 
-    const { resume: updated, applied, unapplied } = applyProofreadFixes(
-      resume,
-      [issue1, issue2]
-    );
+    const {
+      resume: updated,
+      applied,
+      unapplied,
+    } = applyProofreadFixes(resume, [issue1, issue2]);
 
     expect(unapplied).toEqual([]);
     expect(applied).toEqual([issue1, issue2]);
@@ -189,5 +193,102 @@ describe("applyProofreadFixes", () => {
     const { applied, unapplied } = applyProofreadFixes(resume, [issue]);
     expect(applied).toEqual([]);
     expect(unapplied).toEqual([issue]);
+  });
+
+  describe("path-based apply", () => {
+    it("applies a fix whose `original` contains a double quote (fails today via serialized JSON)", () => {
+      const resume = makeResume({
+        summary:
+          'Senior backend engineer known for "shipping fast" and reliable systems.',
+      });
+      const issue = makeIssue({
+        field: "summary",
+        location: "Summary",
+        path: "/summary",
+        original: '"shipping fast"',
+        suggestion: "shipping fast",
+      });
+
+      const {
+        resume: updated,
+        applied,
+        unapplied,
+      } = applyProofreadFixes(resume, [issue]);
+
+      expect(unapplied).toEqual([]);
+      expect(applied).toEqual([issue]);
+      expect(updated.summary).toBe(
+        "Senior backend engineer known for shipping fast and reliable systems."
+      );
+    });
+
+    it("scopes the replace to the leaf named by `path` even when `original` also appears elsewhere in the resume", () => {
+      const resume = makeResume({
+        summary: "Senior backend engineer with a track record in payments.",
+        experience: [
+          {
+            company: "Acme Corp",
+            role: "Senior Engineer",
+            startDate: "2020",
+            endDate: "2021",
+            description: "Owned platform in payments.",
+            achievements: [
+              "Cut checkout latency 40% by migrating to Kafka-based retries.",
+              "Improved reliability in payments across the board.",
+            ],
+          },
+        ],
+      });
+      // "in payments" appears in summary, description, and the second
+      // achievement — `path` scopes this fix to only the second achievement.
+      const issue = makeIssue({
+        field: "experience",
+        location: "Experience → Acme Corp → bullet 2",
+        path: "/experience/0/achievements/1",
+        original: "in payments",
+        suggestion: "in fintech",
+      });
+
+      const {
+        resume: updated,
+        applied,
+        unapplied,
+      } = applyProofreadFixes(resume, [issue]);
+
+      expect(unapplied).toEqual([]);
+      expect(applied).toEqual([issue]);
+      expect(updated.experience[0].achievements[1]).toBe(
+        "Improved reliability in fintech across the board."
+      );
+      // Untouched: same substring elsewhere in the resume.
+      expect(updated.summary).toBe(
+        "Senior backend engineer with a track record in payments."
+      );
+      expect(updated.experience[0].description).toBe(
+        "Owned platform in payments."
+      );
+    });
+
+    it("falls back to the serialized-field strategy when `path` is absent (regression)", () => {
+      const resume = makeResume();
+      const issue = makeIssue({
+        field: "summary",
+        original: "engineer",
+        suggestion: "developer",
+        // no `path` set
+      });
+
+      const {
+        resume: updated,
+        applied,
+        unapplied,
+      } = applyProofreadFixes(resume, [issue]);
+
+      expect(applied).toEqual([issue]);
+      expect(unapplied).toEqual([]);
+      expect(updated.summary).toBe(
+        "Senior backend developer with 6 years building payment systems."
+      );
+    });
   });
 });

@@ -20,6 +20,9 @@ import { ResumeField, ResumeJSON } from "@/types/resume";
 interface LeafRef {
   field: ResumeField;
   location: string;
+  // JSON Pointer to this leaf, matching the exact pointer scheme emitted by
+  // src/lib/resume/editor.ts::resumePathLines — keep the two in sync.
+  path: string;
   text: string;
 }
 
@@ -28,91 +31,165 @@ function collectLeafStrings(resume: ResumeJSON): LeafRef[] {
   const push = (
     field: ResumeField,
     location: string,
+    path: string,
     text: string | null | undefined
   ) => {
-    if (text) leaves.push({ field, location, text });
+    if (text) leaves.push({ field, location, path, text });
   };
 
-  push("header", "Header → Name", resume.header.name);
-  push("header", "Header → Headline", resume.header.headline);
-  push("header", "Header → Email", resume.header.email);
-  push("header", "Header → Phone", resume.header.phone);
-  push("header", "Header → Location", resume.header.location);
-  push("header", "Header → LinkedIn", resume.header.linkedin);
-  push("header", "Header → GitHub", resume.header.github);
-  push("header", "Header → Website", resume.header.website);
+  push("header", "Header → Name", "/header/name", resume.header.name);
+  push(
+    "header",
+    "Header → Headline",
+    "/header/headline",
+    resume.header.headline
+  );
+  push("header", "Header → Email", "/header/email", resume.header.email);
+  push("header", "Header → Phone", "/header/phone", resume.header.phone);
+  push(
+    "header",
+    "Header → Location",
+    "/header/location",
+    resume.header.location
+  );
+  push(
+    "header",
+    "Header → LinkedIn",
+    "/header/linkedin",
+    resume.header.linkedin
+  );
+  push("header", "Header → GitHub", "/header/github", resume.header.github);
+  push("header", "Header → Website", "/header/website", resume.header.website);
 
-  push("summary", "Summary", resume.summary);
+  push("summary", "Summary", "/summary", resume.summary);
 
-  resume.experience.forEach((exp) => {
+  resume.experience.forEach((exp, i) => {
     push(
       "experience",
       `Experience → ${exp.company} → Description`,
+      `/experience/${i}/description`,
       exp.description
     );
-    exp.achievements.forEach((bullet, i) =>
+    exp.achievements.forEach((bullet, j) =>
       push(
         "experience",
-        `Experience → ${exp.company} → bullet ${i + 1}`,
+        `Experience → ${exp.company} → bullet ${j + 1}`,
+        `/experience/${i}/achievements/${j}`,
         bullet
       )
     );
   });
 
-  resume.projects.forEach((proj) => {
-    push("projects", `Projects → ${proj.name} → Description`, proj.description);
-    push("projects", `Projects → ${proj.name} → URL`, proj.url);
+  resume.projects.forEach((proj, i) => {
+    push(
+      "projects",
+      `Projects → ${proj.name} → Description`,
+      `/projects/${i}/description`,
+      proj.description
+    );
+    push(
+      "projects",
+      `Projects → ${proj.name} → URL`,
+      `/projects/${i}/url`,
+      proj.url
+    );
   });
 
-  resume.education.forEach((edu) => {
+  resume.education.forEach((edu, i) => {
     push(
       "education",
       `Education → ${edu.institution} → Institution`,
+      `/education/${i}/institution`,
       edu.institution
     );
-    push("education", `Education → ${edu.institution} → Degree`, edu.degree);
-    push("education", `Education → ${edu.institution} → Field`, edu.field);
-    push("education", `Education → ${edu.institution} → GPA`, edu.gpa);
+    push(
+      "education",
+      `Education → ${edu.institution} → Degree`,
+      `/education/${i}/degree`,
+      edu.degree
+    );
+    push(
+      "education",
+      `Education → ${edu.institution} → Field`,
+      `/education/${i}/field`,
+      edu.field
+    );
+    push(
+      "education",
+      `Education → ${edu.institution} → GPA`,
+      `/education/${i}/gpa`,
+      edu.gpa
+    );
   });
 
-  resume.certifications.forEach((cert) => {
-    push("certifications", `Certifications → ${cert.name} → Name`, cert.name);
+  resume.certifications.forEach((cert, i) => {
+    push(
+      "certifications",
+      `Certifications → ${cert.name} → Name`,
+      `/certifications/${i}/name`,
+      cert.name
+    );
     push(
       "certifications",
       `Certifications → ${cert.name} → Issuer`,
+      `/certifications/${i}/issuer`,
       cert.issuer
     );
-    push("certifications", `Certifications → ${cert.name} → URL`, cert.url);
+    push(
+      "certifications",
+      `Certifications → ${cert.name} → URL`,
+      `/certifications/${i}/url`,
+      cert.url
+    );
   });
 
-  (resume.publications ?? []).forEach((pub) => {
-    push("publications", `Publications → ${pub.title} → Title`, pub.title);
-    push("publications", `Publications → ${pub.title} → Venue`, pub.venue);
-    push("publications", `Publications → ${pub.title} → URL`, pub.url);
+  (resume.publications ?? []).forEach((pub, i) => {
+    push(
+      "publications",
+      `Publications → ${pub.title} → Title`,
+      `/publications/${i}/title`,
+      pub.title
+    );
+    push(
+      "publications",
+      `Publications → ${pub.title} → Venue`,
+      `/publications/${i}/venue`,
+      pub.venue
+    );
+    push(
+      "publications",
+      `Publications → ${pub.title} → URL`,
+      `/publications/${i}/url`,
+      pub.url
+    );
   });
 
-  (resume.volunteer ?? []).forEach((vol) => {
+  (resume.volunteer ?? []).forEach((vol, i) => {
     push(
       "volunteer",
       `Volunteer → ${vol.organization} → Description`,
+      `/volunteer/${i}/description`,
       vol.description
     );
   });
 
-  (resume.awards ?? []).forEach((award) => {
-    push("awards", `Awards → ${award.title} → Description`, award.description);
+  (resume.awards ?? []).forEach((award, i) => {
+    push(
+      "awards",
+      `Awards → ${award.title} → Description`,
+      `/awards/${i}/description`,
+      award.description
+    );
   });
 
   (resume.hobbies ?? []).forEach((hobby, i) =>
-    push("hobbies", `Hobbies → item ${i + 1}`, hobby)
+    push("hobbies", `Hobbies → item ${i + 1}`, `/hobbies/${i}`, hobby)
   );
 
   return leaves;
 }
 
-function makeIssue(
-  partial: Omit<ProofreadIssue, "source">
-): ProofreadIssue {
+function makeIssue(partial: Omit<ProofreadIssue, "source">): ProofreadIssue {
   return { ...partial, source: "lint" };
 }
 
@@ -132,8 +209,7 @@ const TRAILING_URL_PUNCT_RE = new RegExp(
 );
 const DOUBLE_SPACE_RE = /  +/g;
 const SPACE_BEFORE_PUNCT_RE = / +([,.;:!?])/g;
-const PLACEHOLDER_RE =
-  /\bTODO\b|\bXXX\b|lorem ipsum/gi;
+const PLACEHOLDER_RE = /\bTODO\b|\bXXX\b|lorem ipsum/gi;
 const PLACEHOLDER_BRACKET_RE = /\[Company\]|\[Role\]|\{\{/g;
 
 function lintLeafPatterns(leaf: LeafRef): ProofreadIssue[] {
@@ -146,6 +222,7 @@ function lintLeafPatterns(leaf: LeafRef): ProofreadIssue[] {
         category: "stray_artifact",
         severity: "error",
         location: leaf.location,
+        path: leaf.path,
         original: match[0],
         suggestion: "",
         explanation:
@@ -161,6 +238,7 @@ function lintLeafPatterns(leaf: LeafRef): ProofreadIssue[] {
         category: "stray_artifact",
         severity: "error",
         location: leaf.location,
+        path: leaf.path,
         original: match[0],
         suggestion: match[0].slice(0, -1),
         explanation: `Trailing "${match[0].slice(-1)}" glued to a URL — likely a rendering/generation artifact.`,
@@ -175,6 +253,7 @@ function lintLeafPatterns(leaf: LeafRef): ProofreadIssue[] {
         category: "spacing",
         severity: "warning",
         location: leaf.location,
+        path: leaf.path,
         original: match[0],
         suggestion: " ",
         explanation: "Multiple consecutive spaces.",
@@ -189,6 +268,7 @@ function lintLeafPatterns(leaf: LeafRef): ProofreadIssue[] {
         category: "spacing",
         severity: "warning",
         location: leaf.location,
+        path: leaf.path,
         original: match[0],
         suggestion: match[1],
         explanation: "Space before punctuation.",
@@ -203,6 +283,7 @@ function lintLeafPatterns(leaf: LeafRef): ProofreadIssue[] {
         category: "placeholder_text",
         severity: "warning",
         location: leaf.location,
+        path: leaf.path,
         original: match[0],
         suggestion: "",
         explanation: "Placeholder text left in the resume.",
@@ -217,6 +298,7 @@ function lintLeafPatterns(leaf: LeafRef): ProofreadIssue[] {
         category: "placeholder_text",
         severity: "warning",
         location: leaf.location,
+        path: leaf.path,
         original: match[0],
         suggestion: "",
         explanation: "Placeholder/template bracket left in the resume.",
@@ -237,14 +319,19 @@ const PHONE_RE = /\+?\d{1,4}(?: \d{2,8}){2,}/g;
 function lintPhoneConsistency(leaves: LeafRef[]): ProofreadIssue[] {
   const groups = new Map<
     string,
-    { field: ResumeField; location: string; text: string }[]
+    { field: ResumeField; location: string; path: string; text: string }[]
   >();
 
   for (const leaf of leaves) {
     for (const match of leaf.text.matchAll(PHONE_RE)) {
       const digits = match[0].replace(/\D/g, "");
       const list = groups.get(digits) ?? [];
-      list.push({ field: leaf.field, location: leaf.location, text: match[0] });
+      list.push({
+        field: leaf.field,
+        location: leaf.location,
+        path: leaf.path,
+        text: match[0],
+      });
       groups.set(digits, list);
     }
   }
@@ -272,6 +359,7 @@ function lintPhoneConsistency(leaves: LeafRef[]): ProofreadIssue[] {
           category: "contact_format",
           severity: "warning",
           location: occurrence.location,
+          path: occurrence.path,
           original: occurrence.text,
           suggestion: canonical,
           explanation: `Phone number formatted inconsistently elsewhere in the resume ("${canonical}").`,
@@ -287,14 +375,19 @@ const URL_TOKEN_RE = /\b[a-zA-Z0-9-]+(?:\.[a-zA-Z0-9-]+)+\/[^\s,;]*/g;
 function lintUrlCasing(leaves: LeafRef[]): ProofreadIssue[] {
   const groups = new Map<
     string,
-    { field: ResumeField; location: string; text: string }[]
+    { field: ResumeField; location: string; path: string; text: string }[]
   >();
 
   for (const leaf of leaves) {
     for (const match of leaf.text.matchAll(URL_TOKEN_RE)) {
       const key = match[0].toLowerCase();
       const list = groups.get(key) ?? [];
-      list.push({ field: leaf.field, location: leaf.location, text: match[0] });
+      list.push({
+        field: leaf.field,
+        location: leaf.location,
+        path: leaf.path,
+        text: match[0],
+      });
       groups.set(key, list);
     }
   }
@@ -304,7 +397,9 @@ function lintUrlCasing(leaves: LeafRef[]): ProofreadIssue[] {
     const distinctForms = [...new Set(occurrences.map((o) => o.text))];
     if (distinctForms.length < 2) continue;
 
-    const allLowercase = occurrences.find((o) => o.text === o.text.toLowerCase());
+    const allLowercase = occurrences.find(
+      (o) => o.text === o.text.toLowerCase()
+    );
     const frequency = new Map<string, number>();
     for (const o of occurrences)
       frequency.set(o.text, (frequency.get(o.text) ?? 0) + 1);
@@ -321,6 +416,7 @@ function lintUrlCasing(leaves: LeafRef[]): ProofreadIssue[] {
           category: "url_casing",
           severity: "warning",
           location: occurrence.location,
+          path: occurrence.path,
           original: occurrence.text,
           suggestion: canonical,
           explanation: `Same link appears with different casing elsewhere ("${canonical}").`,
@@ -338,6 +434,7 @@ function lintDateSeparators(leaves: LeafRef[]): ProofreadIssue[] {
   type Occurrence = {
     field: ResumeField;
     location: string;
+    path: string;
     text: string;
     separator: string;
   };
@@ -348,6 +445,7 @@ function lintDateSeparators(leaves: LeafRef[]): ProofreadIssue[] {
       occurrences.push({
         field: leaf.field,
         location: leaf.location,
+        path: leaf.path,
         text: match[0],
         separator: match[2],
       });
@@ -367,6 +465,7 @@ function lintDateSeparators(leaves: LeafRef[]): ProofreadIssue[] {
         category: "date_format",
         severity: "warning",
         location: o.location,
+        path: o.path,
         original: o.text,
         suggestion: o.text.replace("–", "-"),
         explanation:
@@ -376,14 +475,20 @@ function lintDateSeparators(leaves: LeafRef[]): ProofreadIssue[] {
 }
 
 function lintBulletPunctuation(resume: ResumeJSON): ProofreadIssue[] {
-  type Bullet = { field: ResumeField; location: string; text: string };
+  type Bullet = {
+    field: ResumeField;
+    location: string;
+    path: string;
+    text: string;
+  };
   const bullets: Bullet[] = [];
-  resume.experience.forEach((exp) => {
+  resume.experience.forEach((exp, expIndex) => {
     exp.achievements.forEach((bullet, i) => {
       if (bullet.trim()) {
         bullets.push({
           field: "experience",
           location: `Experience → ${exp.company} → bullet ${i + 1}`,
+          path: `/experience/${expIndex}/achievements/${i}`,
           text: bullet,
         });
       }
@@ -406,6 +511,7 @@ function lintBulletPunctuation(resume: ResumeJSON): ProofreadIssue[] {
           category: "bullet_punctuation",
           severity: "warning",
           location: b.location,
+          path: b.path,
           original: b.text,
           suggestion: `${b.text}.`,
           explanation:
@@ -420,6 +526,7 @@ function lintBulletPunctuation(resume: ResumeJSON): ProofreadIssue[] {
         category: "bullet_punctuation",
         severity: "warning",
         location: b.location,
+        path: b.path,
         original: b.text,
         suggestion: b.text.replace(/\.\s*$/, ""),
         explanation:
@@ -439,15 +546,20 @@ function normalizeBullet(bullet: string): string {
 }
 
 function lintExactDuplicateBullets(resume: ResumeJSON): ProofreadIssue[] {
-  type Occurrence = { company: string; index: number; text: string };
+  type Occurrence = {
+    company: string;
+    expIndex: number;
+    index: number;
+    text: string;
+  };
   const byNormalized = new Map<string, Occurrence[]>();
 
-  resume.experience.forEach((exp) => {
+  resume.experience.forEach((exp, expIndex) => {
     exp.achievements.forEach((bullet, i) => {
       const normalized = normalizeBullet(bullet);
       if (!normalized) return;
       const list = byNormalized.get(normalized) ?? [];
-      list.push({ company: exp.company, index: i, text: bullet });
+      list.push({ company: exp.company, expIndex, index: i, text: bullet });
       byNormalized.set(normalized, list);
     });
   });
@@ -465,6 +577,7 @@ function lintExactDuplicateBullets(resume: ResumeJSON): ProofreadIssue[] {
           category: "exact_duplicate_bullet",
           severity: "error",
           location: `Experience → ${dup.company} → bullet ${dup.index + 1}`,
+          path: `/experience/${dup.expIndex}/achievements/${dup.index}`,
           original: dup.text,
           suggestion: "",
           explanation: `Identical bullet also appears under ${occurrences[0].company}.`,

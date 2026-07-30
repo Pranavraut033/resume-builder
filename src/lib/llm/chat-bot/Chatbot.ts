@@ -4,17 +4,23 @@ import { LLMUsageInfo } from "@/actions/tokenUsage";
 import { ProviderFactory } from "@/lib/llm/providers";
 import logger from "@/lib/logger";
 import { applyProofreadFixes } from "@/lib/proofread/applyFixes";
+import { applyResumeOps, ResumeOp } from "@/lib/resume/editor";
+import { useModelStore } from "@/store/modelStore";
 import { HumanizerJSON } from "@/types/humanizer";
-import { ProviderType, LLMResult, PromptMessage } from "@/types/llm";
+import {
+  ProviderType,
+  LLMResult,
+  LLMGenerationOptions,
+  ReasoningEffort,
+  PromptMessage,
+} from "@/types/llm";
 import { ProofreadIssue } from "@/types/proofread";
 import {
   ATSAnalysisJSON,
   JobDetailsJSON,
   jobDetailsToCompactPositional,
-  ResumeField,
   ResumeJSON,
   resumeJsonToCompactPositional,
-  ResumeSchema,
 } from "@/types/resume";
 
 import {
@@ -40,13 +46,14 @@ import {
   AtsFixMappingSchema,
   buildAtsFixPrompt,
   buildKeywordMappingPrompt,
-  groupMappingsByField,
+  mappingsToResumeOps,
 } from "./prompts/keywordMappingPrompt";
-import { FieldEdit, RESUME_TOOLS, validateEditFieldArgs } from "./tools";
+import { RESUME_TOOLS, validateEditResumeArgs } from "./tools";
 
 export type ChatBotOptions = {
   provider: ProviderType;
   model: string;
+  reasoningEffort?: ReasoningEffort;
 };
 
 // per-intent status narration shown immediately after intent classification
@@ -120,6 +127,34 @@ export type ChatStreamEvent =
   | { type: "done"; usage?: LLMUsageInfo };
 
 type ChatHistoryLabel = "chat";
+
+/**
+ * Build a human-readable note for a tool_result event out of applyResumeOps'
+ * applied/rejected lists — a rejected op is reported inline instead of
+ * throwing and aborting the whole chat turn.
+ */
+function buildOpsNote(
+  label: string,
+  applied: ResumeOp[],
+  rejected: { op: ResumeOp; reason: string }[]
+): string {
+  const parts: string[] = [];
+
+  parts.push(
+    applied.length > 0
+      ? `${label} applied to: ${applied.map((op) => op.path).join(", ")}`
+      : `${label}: no changes could be applied`
+  );
+
+  if (rejected.length > 0) {
+    const reasons = rejected
+      .map((r) => `${r.op.path} (${r.reason})`)
+      .join("; ");
+    parts.push(`${rejected.length} change(s) could not be applied: ${reasons}`);
+  }
+
+  return parts.join(" — ");
+}
 
 class ResumeChatBot {
   protected model: string;
@@ -219,6 +254,40 @@ class ResumeChatBot {
     return this.provider !== null;
   }
 
+  /**
+   * Defaults `reasoningEffort` from the model-selector's per-model
+   * preference (src/store/modelStore.ts) when the caller didn't set one
+   * explicitly — same behavior as LLMService.
+   */
+  private resolveReasoningEffort(
+    options: ChatBotOptions
+  ): ReasoningEffort | undefined {
+    return (
+      options.reasoningEffort ??
+      useModelStore
+        .getState()
+        .getReasoningEffort(options.provider, options.model) ??
+      undefined
+    );
+  }
+
+  /**
+   * Merges call-specific options (maxTokens, tools, etc.) with the model +
+   * reasoning effort for this turn.
+   */
+  private callOptions<T extends Partial<LLMGenerationOptions> = object>(
+    options: ChatBotOptions,
+    extra: T = {} as T
+  ): T & { model: string; reasoningEffort?: ReasoningEffort } {
+    const reasoningEffort = this.resolveReasoningEffort(options);
+
+    return {
+      model: options.model,
+      ...(reasoningEffort ? { reasoningEffort } : {}),
+      ...extra,
+    };
+  }
+
   // ── Multi-agent tailoring pipeline ────────────────────────────────────────
   // Chains the four agents (requirements → rewrite → verify → score) with a
   // bounded verification loop. Kept separate from chat() intent routing.
@@ -229,7 +298,7 @@ class ResumeChatBot {
     for await (const event of runPipeline(this.provider, {
       resume: this.resume,
       jobDetails: this.jobDetails,
-      options,
+      options: this.callOptions(options),
     })) {
       // adopt the tailored resume into session state so later chat turns see it
       if (event.stage === "done") this.resume = event.updatedResume;
@@ -250,7 +319,7 @@ class ResumeChatBot {
         { role: "system", content: INTENT_CLASSIFIER_PROMPT },
         { role: "user", content: userInput },
       ],
-      { model: options.model, maxTokens: 5, temperature: 0 }
+      this.callOptions(options, { maxTokens: 5, temperature: 0 })
     ) as Promise<LLMResult<IntentLabel>>;
   }
 
@@ -283,33 +352,20 @@ class ResumeChatBot {
     this.chatHistory[label] = [];
   }
 
-  applyEdits(resume: ResumeJSON, edits: FieldEdit[]): { resume: ResumeJSON } {
-    const seen = new Set<string>();
-
-    let updated = { ...resume };
-
-    for (const edit of edits) {
-      if (seen.has(edit.field)) {
-        console.warn(
-          `Duplicate edit for field "${edit.field}" — last one wins`
-        );
-      }
-      seen.add(edit.field);
-
-      // Validate against the Zod schema for this field before applying
-      const fieldSchema = ResumeSchema.shape[edit.field];
-      const parsed = fieldSchema.safeParse(edit.updated_content);
-      if (!parsed.success) {
-        throw new Error(
-          `Model returned invalid content for field "${edit.field}": ` +
-            parsed.error.message
-        );
-      }
-
-      updated = { ...updated, [edit.field]: parsed.data };
-    }
-
-    return { resume: updated };
+  /**
+   * Apply a batch of path-targeted ops to `resume`. Never throws — a bad op
+   * (invalid path, schema-invalid result) lands in `rejected` with a reason
+   * and every other op still gets a chance to apply.
+   */
+  applyEdits(
+    resume: ResumeJSON,
+    ops: ResumeOp[]
+  ): {
+    resume: ResumeJSON;
+    applied: ResumeOp[];
+    rejected: { op: ResumeOp; reason: string }[];
+  } {
+    return applyResumeOps(resume, ops);
   }
 
   async *chat(
@@ -357,9 +413,12 @@ class ResumeChatBot {
       let chunkCount = 0;
       let streamUsage: LLMUsageInfo | undefined;
 
+      const reasoningEffort = this.resolveReasoningEffort(options);
+
       const stream = textOnly(
         this.provider.runLLM(messages, {
           model: options.model,
+          ...(reasoningEffort ? { reasoningEffort } : {}),
           maxTokens: 2000,
           stream: true,
           onUsage: (usage) => {
@@ -445,7 +504,7 @@ class ResumeChatBot {
             jobDetails: this.jobDetails,
             atsAnalysis: this.atsAnalysis,
           },
-          { model: options.model }
+          this.callOptions(options)
         );
 
         this.pushToHistory("chat", userMessage, {
@@ -488,7 +547,7 @@ class ResumeChatBot {
             resume: this.resume,
             jobDetails: this.jobDetails,
           },
-          { model: options.model }
+          this.callOptions(options)
         );
 
         this.atsAnalysis = result;
@@ -521,7 +580,7 @@ class ResumeChatBot {
           const { result, usage } = await domainOps.analyzeATS(
             this.provider,
             { resume: this.resume, jobDetails: this.jobDetails },
-            { model: options.model }
+            this.callOptions(options)
           );
           this.atsAnalysis = result;
           analysis = result;
@@ -550,7 +609,7 @@ class ResumeChatBot {
             jobDetails: this.jobDetails,
             baseProfile: this.baseProfile,
           },
-          { model: options.model }
+          this.callOptions(options)
         );
 
         // Only auto-apply the deterministic lint-sourced findings — those are
@@ -560,8 +619,11 @@ class ResumeChatBot {
         const lintIssues = result.issues.filter(
           (issue) => issue.source === "lint"
         );
-        const { resume: updatedResume, applied, unapplied } =
-          applyProofreadFixes(this.resume, lintIssues);
+        const {
+          resume: updatedResume,
+          applied,
+          unapplied,
+        } = applyProofreadFixes(this.resume, lintIssues);
 
         const reviewCount = result.issues.length - applied.length;
         const note =
@@ -619,7 +681,7 @@ class ResumeChatBot {
             customInstructions: userMessage.content,
             styleGuide: undefined,
           },
-          { model: options.model }
+          this.callOptions(options)
         );
 
         this.pushToHistory("chat", userMessage, {
@@ -655,7 +717,7 @@ class ResumeChatBot {
         const { result, usage } = await domainOps.humanizeContent(
           this.provider,
           this.coverLetter,
-          { model: options.model }
+          this.callOptions(options)
         );
 
         this.pushToHistory("chat", userMessage, {
@@ -723,7 +785,7 @@ class ResumeChatBot {
     const { result, usage: extractUsage } =
       await this.provider.runStructuredLLM(
         prompt,
-        { model: options.model, maxTokens: 500 },
+        this.callOptions(options, { maxTokens: 500 }),
         EditFieldOutputSchema,
         "EditFieldOutputSchema"
       );
@@ -741,14 +803,13 @@ class ResumeChatBot {
     // For edit_field we need to run the LLM to get the tool args, then apply the tool result to update resume state
     const { toolCalls, usage: editUsage } = await this.provider.runLLM(
       messages,
-      {
-        model: options.model,
+      this.callOptions(options, {
         tools: [tool],
         toolChoice: {
           type: "tool",
           name: tool.name,
         },
-      }
+      })
     );
 
     if (!toolCalls || toolCalls.length === 0) {
@@ -760,16 +821,20 @@ class ResumeChatBot {
 
     const args = toolCalls?.[0].arguments;
 
-    validateEditFieldArgs(args);
+    validateEditResumeArgs(args);
 
     logger.info(
       "ResumeChatBot",
-      `Tool call received — ${args.edits.length} fields: ${String(args.edits.map((a) => a.field).join(", "))}`
+      `Tool call received — ${args.ops.length} op(s): ${args.ops.map((o) => o.path).join(", ")}`
     );
 
-    const { resume: updatedResume } = this.applyEdits(this.resume, args.edits);
+    const {
+      resume: updatedResume,
+      applied,
+      rejected,
+    } = this.applyEdits(this.resume, args.ops);
 
-    const note = `Edit applied to resume field: ${String(args.edits.map((a) => a.field).join(", "))}`;
+    const note = buildOpsNote("Edit", applied, rejected);
 
     logger.info("ResumeChatBot", note);
     const editIntentUsage = mergeLLMUsageInfo(extractUsage, editUsage);
@@ -861,78 +926,52 @@ class ResumeChatBot {
   }
 
   /**
-   * Shared second half of the "map findings → field edits" flow used by both
-   * fixMissingKeywords and fixAllAtsIssues: build the edit_fields prompt from
-   * already-grouped per-field change instructions, call the tool, apply the
-   * result. `notePrefix` labels the resulting note (e.g. "Keyword fix" vs
-   * "ATS fix"); `priorUsage` is merged in from the mapping call that preceded
-   * this step.
+   * Shared second half of the "map findings → path-targeted ops" flow used by
+   * both fixMissingKeywords and fixAllAtsIssues: apply the ops the mapping
+   * call already produced. `notePrefix` labels the resulting note (e.g.
+   * "Keyword fix" vs "ATS fix"); `usage` is the total usage of the mapping
+   * call(s) that produced `ops` — there is no further LLM call here, `ops`
+   * are applied directly via applyResumeOps, and any rejected op is surfaced
+   * in the note instead of throwing and aborting the turn.
    */
   private async *applyFieldChanges(
-    fieldEdits: { field: ResumeField; change: string }[],
-    options: ChatBotOptions,
+    ops: ResumeOp[],
     notePrefix: string,
-    priorUsage: LLMUsageInfo | undefined,
+    usage: LLMUsageInfo,
     resultIntent: Extract<ToolIntent, "edit" | "fix_ats"> = IntentLabel.Edit
   ): AsyncGenerator<ChatStreamEvent> {
     this.isSessionInitialized();
 
-    const jd = jobDetailsToCompactPositional(this.jobDetails);
-    const editFieldOutput = { edits: fieldEdits };
-    const systemPrompt = buildEditFieldPrompt(this.resume, editFieldOutput, jd);
-    const tool = RESUME_TOOLS.edit;
+    const {
+      resume: updatedResume,
+      applied,
+      rejected,
+    } = this.applyEdits(this.resume, ops);
 
-    const messages: PromptMessage[] = [
-      { role: "system", content: systemPrompt },
-      {
-        role: "user",
-        content:
-          "Apply the edits as instructed. Return all edited fields in full.",
-      },
-    ];
-
-    const { toolCalls, usage: editUsage } = await this.provider.runLLM(
-      messages,
-      {
-        model: options.model,
-        tools: [tool],
-        toolChoice: { type: "tool", name: tool.name },
-      }
-    );
-
-    if (!toolCalls || toolCalls.length === 0) {
-      throw new Error(`LLM did not return any tool calls for ${notePrefix}`);
+    if (applied.length > 0) {
+      this.resume = updatedResume;
     }
 
-    const args = toolCalls[0].arguments;
-    validateEditFieldArgs(args);
-
-    const { resume: updatedResume } = this.applyEdits(this.resume, args.edits);
-    const note = `${notePrefix} applied to: ${args.edits.map((e) => e.field).join(", ")}`;
+    const note = buildOpsNote(notePrefix, applied, rejected);
 
     logger.info("ResumeChatBot", note);
-
-    const usage = priorUsage
-      ? mergeLLMUsageInfo(priorUsage, editUsage)
-      : editUsage;
 
     yield {
       type: "tool_result",
       intent: resultIntent,
-      args: { updatedResume, usage, note, summary: args.change_summary },
+      args: { updatedResume, usage, note },
     };
     yield { type: "done", usage };
   }
 
   /**
-   * One-click ATS keyword fix: intelligently maps each missing keyword to the
-   * most appropriate resume field(s) based on existing content, then applies
-   * targeted edits via the edit_fields tool — without fabricating experience.
+   * One-click ATS keyword fix: intelligently maps each missing keyword to
+   * path-targeted edit ops based on existing content, then applies them
+   * directly — without fabricating experience.
    *
    * Flow:
-   *  1. Keyword mapping LLM call  — decides which field each keyword belongs to
-   *  2. Build EditFieldOutput     — groups by field with per-keyword instructions
-   *  3. edit_fields tool call     — applies the edits via buildEditFieldPrompt (applyFieldChanges)
+   *  1. Keyword mapping LLM call — maps each keyword to op(s) targeting real paths
+   *  2. applyFieldChanges        — applies the ops via applyResumeOps directly
    */
   async *fixMissingKeywords(
     keywords: string[],
@@ -961,12 +1000,12 @@ class ResumeChatBot {
       const { result: mapping, usage: mappingUsage } =
         await this.provider.runStructuredLLM(
           mappingPrompt,
-          { model: options.model, maxTokens: 800 },
+          this.callOptions(options, { maxTokens: 800 }),
           AtsFixMappingSchema,
           "AtsFixMappingSchema"
         );
 
-      if (mapping.mappings.length === 0) {
+      if (mapping.ops.length === 0) {
         logger.warn(
           "ResumeChatBot",
           "fixMissingKeywords — no honest keyword anchors found; nothing to edit"
@@ -977,13 +1016,12 @@ class ResumeChatBot {
 
       logger.info(
         "ResumeChatBot",
-        `fixMissingKeywords — mapped to fields: ${[...new Set(mapping.mappings.map((m) => m.field))].join(", ")}`
+        `fixMissingKeywords — mapped to paths: ${mapping.ops.map((m) => m.path).join(", ")}`
       );
 
-      // Steps 2-3: group by field and apply via the shared edit_fields flow
+      // Step 2: apply the mapped ops directly
       yield* this.applyFieldChanges(
-        groupMappingsByField(mapping.mappings),
-        options,
+        mappingsToResumeOps(mapping.ops),
         "Keyword fix",
         mappingUsage
       );
@@ -1002,8 +1040,8 @@ class ResumeChatBot {
   /**
    * One-click "fix everything the ATS analysis found": maps every missing
    * keyword, improvement suggestion, knockout risk, and title-alignment note
-   * to the resume field(s) that can honestly address it, then applies the
-   * edits in one pass via the same edit_fields flow as fixMissingKeywords.
+   * to path-targeted op(s) that can honestly address it, then applies them
+   * in one pass via the same applyFieldChanges flow as fixMissingKeywords.
    */
   async *fixAllAtsIssues(
     analysis: ATSAnalysisJSON,
@@ -1038,7 +1076,7 @@ class ResumeChatBot {
       const { result: mapping, usage: mappingUsage } =
         await this.provider.runStructuredLLM(
           mappingPrompt,
-          { model: options.model, maxTokens: 1500 },
+          this.callOptions(options, { maxTokens: 1500 }),
           AtsFixMappingSchema,
           "AtsFixMappingSchema"
         );
@@ -1047,7 +1085,7 @@ class ResumeChatBot {
         ? mergeLLMUsageInfo(priorUsage, mappingUsage)
         : mappingUsage;
 
-      if (mapping.mappings.length === 0) {
+      if (mapping.ops.length === 0) {
         logger.warn(
           "ResumeChatBot",
           "fixAllAtsIssues — no honest anchors found for any finding; nothing to edit"
@@ -1058,12 +1096,11 @@ class ResumeChatBot {
 
       logger.info(
         "ResumeChatBot",
-        `fixAllAtsIssues — mapped to fields: ${[...new Set(mapping.mappings.map((m) => m.field))].join(", ")}`
+        `fixAllAtsIssues — mapped to paths: ${mapping.ops.map((m) => m.path).join(", ")}`
       );
 
       yield* this.applyFieldChanges(
-        groupMappingsByField(mapping.mappings),
-        options,
+        mappingsToResumeOps(mapping.ops),
         "ATS fix",
         usage,
         IntentLabel.FixAts

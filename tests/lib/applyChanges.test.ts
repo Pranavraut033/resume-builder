@@ -93,4 +93,60 @@ describe("applyChangesToResume", () => {
       "Leveraged synergies to spearhead innovative solutions."
     );
   });
+
+  it("scopes a `path`-bearing change to that one leaf, ignoring the same substring elsewhere", () => {
+    const resumeWithSharedSubstring: ResumeJSON = {
+      ...baseResume,
+      summary: "Leveraged synergies across the whole org.",
+      experience: [
+        {
+          company: "Acme",
+          role: "Engineer",
+          startDate: "2020",
+          endDate: null,
+          description: "Leveraged synergies to modernize infra.",
+          achievements: ["Leveraged synergies to ship the release."],
+        },
+      ],
+    };
+
+    const next = applyChangesToResume(resumeWithSharedSubstring, [
+      {
+        original: "Leveraged synergies",
+        replacement: "Used teamwork",
+        reason: "cliche",
+        path: "/experience/0/achievements/0",
+      },
+    ]);
+
+    expect(next.experience[0].achievements[0]).toBe(
+      "Used teamwork to ship the release."
+    );
+    // Untouched: the same substring appears in summary and description too,
+    // but `path` scopes the fix to only the named achievement.
+    expect(next.summary).toBe("Leveraged synergies across the whole org.");
+    expect(next.experience[0].description).toBe(
+      "Leveraged synergies to modernize infra."
+    );
+  });
+
+  it("mixes path-based and whitelist-fallback changes in one call", () => {
+    const next = applyChangesToResume(baseResume, [
+      {
+        original: "Spearheaded a project.",
+        replacement: "Led a project.",
+        reason: "buzzword",
+        path: "/experience/0/achievements/0",
+      },
+      {
+        original: "Leveraged synergies to spearhead innovative solutions.",
+        replacement: "Built better solutions.",
+        reason: "buzzword",
+        // no `path` — falls back to the whitelist walk
+      },
+    ]);
+
+    expect(next.experience[0].achievements[0]).toBe("Led a project.");
+    expect(next.summary).toBe("Built better solutions.");
+  });
 });

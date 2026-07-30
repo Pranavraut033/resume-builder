@@ -14,7 +14,7 @@ export const EditFieldOutputSchema = z
     edits: z.array(
       z.object({
         field: z
-          .string({})
+          .enum(RESUME_FIELD_NAMES)
           .describe("Top-level resume field name from the schema"),
         change: z.string().describe("Concise description of what to change"),
       })

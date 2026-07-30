@@ -44,6 +44,7 @@ export { templateRegistry } from "./registry";
 
 // Convenience functions
 
+import { resumePathLines } from "@/lib/resume/editor";
 import {
   resumeJsonToCompactPositional,
   jobDetailsToCompactPositional,
@@ -101,6 +102,14 @@ function normalizedFieldsToString(
     // fence it's interpolated into.
     resumeFull: context.resumeFull
       ? sanitizeUntrustedText(JSON.stringify(context.resumeFull, null, 2))
+      : "",
+    // One line per string leaf as an RFC-6902 JSON Pointer (see
+    // src/lib/resume/editor.ts::resumePathLines) — path-editing templates
+    // (proofread, humanizer) feed this alongside resumeFull so the model can
+    // name the exact leaf a finding/change lives at instead of only echoing
+    // text back. App-generated from resumeFull, so no sanitization needed.
+    resumePathLines: context.resumeFull
+      ? sanitizeUntrustedText(resumePathLines(context.resumeFull))
       : "",
     jobDetails: context.jobDetails
       ? jobDetailsToCompactPositional(context.jobDetails)

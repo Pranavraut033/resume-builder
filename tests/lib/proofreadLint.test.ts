@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { lintResume } from "@/lib/proofread/lint";
+import { resumePathLines } from "@/lib/resume/editor";
 import { ProofreadCategory } from "@/types/proofread";
 import { ResumeJSON } from "@/types/resume";
 
@@ -115,13 +116,14 @@ describe("lintResume — corpus defects", () => {
 
   it("flags the trailing hyphen glued to the GitHub URL as stray_artifact", () => {
     const stray = issuesOf("stray_artifact");
-    expect(
-      stray.some((i) => i.original === "github.com/pranavraut033-")
-    ).toBe(true);
+    expect(stray.some((i) => i.original === "github.com/pranavraut033-")).toBe(
+      true
+    );
     const urlIssue = stray.find(
       (i) => i.original === "github.com/pranavraut033-"
     );
     expect(urlIssue?.suggestion).toBe("github.com/pranavraut033");
+    expect(urlIssue?.path).toBe("/header/github");
   });
 
   it("flags the two phone spellings as contact_format", () => {
@@ -129,11 +131,15 @@ describe("lintResume — corpus defects", () => {
     expect(contact.some((i) => i.original === "+49 15510 256211")).toBe(true);
     const phoneIssue = contact.find((i) => i.original === "+49 15510 256211");
     expect(phoneIssue?.suggestion).toBe("+49 1551 0256211");
+    // The stray phone spelling was in the summary, not the header.
+    expect(phoneIssue?.path).toBe("/summary");
   });
 
   it("flags the double space as spacing", () => {
     const spacing = issuesOf("spacing");
     expect(spacing.some((i) => i.original === "  ")).toBe(true);
+    const spacingIssue = spacing.find((i) => i.original === "  ");
+    expect(spacingIssue?.path).toBe("/experience/0/achievements/1");
   });
 
   it("flags the en-dash date range as date_format when a hyphen range also exists", () => {
@@ -141,6 +147,7 @@ describe("lintResume — corpus defects", () => {
     expect(dates.some((i) => i.original === "2018 – 2020")).toBe(true);
     const dateIssue = dates.find((i) => i.original === "2018 – 2020");
     expect(dateIssue?.suggestion).toBe("2018 - 2020");
+    expect(dateIssue?.path).toBe("/experience/1/description");
   });
 
   it("flags the bullet duplicated verbatim under two employers as exact_duplicate_bullet", () => {
@@ -151,10 +158,25 @@ describe("lintResume — corpus defects", () => {
     );
     expect(duplicates[0].location).toContain("Beta Inc");
     expect(duplicates[0].severity).toBe("error");
+    // Duplicate is under the second experience entry (Beta Inc), bullet 0.
+    expect(duplicates[0].path).toBe("/experience/1/achievements/0");
   });
 
   it("every issue is attributed to the lint pass", () => {
     expect(issues.every((i) => i.source === "lint")).toBe(true);
+  });
+
+  it("every issue's `path` resolves to a leaf that appears in resumePathLines", () => {
+    const pathLines = resumePathLines(corpusResume);
+    for (const issue of issues) {
+      expect(issue.path).toBeTruthy();
+      expect(pathLines).toMatch(
+        new RegExp(
+          `^${(issue.path ?? "").replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}: `,
+          "m"
+        )
+      );
+    }
   });
 });
 
@@ -164,7 +186,9 @@ describe("lintResume — placeholder text", () => {
       summary: "TODO: rewrite this summary for [Company].",
     });
     const issues = lintResume(resume);
-    const placeholders = issues.filter((i) => i.category === "placeholder_text");
+    const placeholders = issues.filter(
+      (i) => i.category === "placeholder_text"
+    );
     expect(placeholders.some((i) => i.original === "TODO")).toBe(true);
     expect(placeholders.some((i) => i.original === "[Company]")).toBe(true);
   });
@@ -196,5 +220,6 @@ describe("lintResume — bullet punctuation", () => {
     expect(punctuation).toHaveLength(1);
     expect(punctuation[0].original).toBe("Cut infra spend by 20%");
     expect(punctuation[0].suggestion).toBe("Cut infra spend by 20%.");
+    expect(punctuation[0].path).toBe("/experience/0/achievements/3");
   });
 });

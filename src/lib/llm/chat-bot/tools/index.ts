@@ -1,60 +1,58 @@
-import z from "zod";
-
 import logger from "@/lib/logger";
+import { ResumeOp } from "@/lib/resume/editor";
 import { JSONSchemaProperty, ToolDefinition } from "@/types/llm";
-import { RESUME_FIELD_NAMES, ResumeField, ResumeSchema } from "@/types/resume";
 
 import { IntentLabel } from "../prompts/intentClassifier";
 
-export interface FieldEdit {
-  field: ResumeField; // keyof typeof ResumeSchema.shape
-  updated_content: unknown;
-}
-
-export type EditToolResult = {
-  edits: FieldEdit[];
+export type EditResumeToolResult = {
+  ops: ResumeOp[];
   change_summary?: string;
 };
 
-function buildEditFieldsTool(): ToolDefinition {
-  const fieldSchemas = RESUME_FIELD_NAMES.map((key) => {
-    const schema = ResumeSchema.shape[key];
-    const jsonSchema = schema
-      ? (z.toJSONSchema(schema) as JSONSchemaProperty)
-      : { type: "object" as const };
-    return { title: key, ...jsonSchema };
-  }).filter(Boolean);
+const RESUME_OP_SCHEMA: JSONSchemaProperty = {
+  type: "object",
+  description:
+    "A single RFC-6902-style JSON Patch operation targeting the resume by " +
+    "JSON Pointer path — never echo the field's existing content back.",
+  properties: {
+    op: {
+      type: "string",
+      enum: ["replace", "add", "remove"],
+      description:
+        '"replace" changes an existing leaf/array item in place; "add" ' +
+        "inserts at an array index or appends with a trailing /- path; " +
+        '"remove" deletes an existing leaf/array item.',
+    },
+    path: {
+      type: "string",
+      description:
+        'JSON Pointer to the target, e.g. "/experience/0/achievements/1" or ' +
+        '"/summary". Must name a path that exists in the resume path list ' +
+        "(for add, the parent array must exist; the index may be the array's " +
+        'length or "-" to append).',
+    },
+    value: {
+      description:
+        "New value for the path. Required for replace/add; omit for remove.",
+    },
+  },
+  required: ["op", "path"],
+};
 
+function buildEditResumeTool(): ToolDefinition {
   return {
-    name: "edit_fields",
+    name: "edit_resume",
     description:
-      "Update one or more resume sections. Each edit targets a specific field; " +
-      "for subsection changes (e.g. one job entry), return the complete field " +
-      "array with the targeted item already merged in.",
+      "Apply one or more targeted edits to the resume by JSON Pointer path. " +
+      "Never echo whole fields or arrays back — name only the paths that " +
+      "actually change.",
     parameters: {
       type: "object",
       properties: {
-        edits: {
+        ops: {
           type: "array",
-          description: "List of field edits to apply atomically",
-          items: {
-            type: "object",
-            properties: {
-              field: {
-                type: "string",
-                enum: RESUME_FIELD_NAMES,
-                description: "The resume section to update",
-              },
-              updated_content: {
-                description:
-                  "Complete new value for the field. For array fields " +
-                  "(experience, education, projects, skills) always return " +
-                  "the full array even when editing a single item.",
-                anyOf: fieldSchemas,
-              },
-            },
-            required: ["field", "updated_content"],
-          },
+          description: "List of JSON Patch-style ops to apply atomically",
+          items: RESUME_OP_SCHEMA,
           minItems: 1,
         },
         change_summary: {
@@ -62,21 +60,23 @@ function buildEditFieldsTool(): ToolDefinition {
           description: "One sentence describing what changed and why",
         },
       },
-      required: ["edits"],
+      required: ["ops"],
     },
   };
 }
 
 export const RESUME_TOOLS = {
-  [IntentLabel.Edit]: buildEditFieldsTool(),
+  [IntentLabel.Edit]: buildEditResumeTool(),
 };
 
-export function validateEditFieldArgs(
+const VALID_OPS = new Set(["replace", "add", "remove"]);
+
+export function validateEditResumeArgs(
   args: unknown
-): asserts args is EditToolResult {
+): asserts args is EditResumeToolResult {
   logger.info(
-    "validateEditFieldArgs",
-    "Validating edit_fields tool arguments:",
+    "validateEditResumeArgs",
+    "Validating edit_resume tool arguments:",
     args
   );
 
@@ -88,79 +88,33 @@ export function validateEditFieldArgs(
 
   const obj = args as Record<string, unknown>;
 
-  // "edits" must be present and must be an array
-  if (!("edits" in obj)) {
+  if (!("ops" in obj)) {
     throw new Error(
-      `Invalid tool call arguments: missing required field "edits"`
+      `Invalid tool call arguments: missing required field "ops"`
     );
   }
 
-  if (!Array.isArray(obj.edits)) {
+  if (!Array.isArray(obj.ops)) {
     throw new Error(
-      `Invalid tool call arguments: "edits" must be an array, got ${obj.edits === null ? "null" : typeof obj.edits}`
+      `Invalid tool call arguments: "ops" must be an array, got ${obj.ops === null ? "null" : typeof obj.ops}`
     );
   }
 
-  if (obj.edits.length === 0) {
+  if (obj.ops.length === 0) {
     throw new Error(
-      `Invalid tool call arguments: "edits" must contain at least one item`
+      `Invalid tool call arguments: "ops" must contain at least one item`
     );
   }
 
-  // Pass 1: recover items the LLM placed incorrectly inside the edits array.
-  const cleanEdits: unknown[] = [];
-
-  for (const item of obj.edits) {
-    if (typeof item !== "string") {
-      cleanEdits.push(item);
-      continue;
-    }
-
-    // Some LLMs append change_summary as a trailing string element inside edits.
-    // Detect by key name; extract the value and promote it to the top level.
-    if (/change_summary/i.test(item)) {
-      if (!("change_summary" in obj)) {
-        const match = item.match(/change_summary[^:]*[:'"]+\s*([\s\S]+)/i);
-        if (match) {
-          obj.change_summary = match[1].replace(/['"]\s*$/, "").trim();
-        }
-      }
-      // Either way, discard this item — it is not an edit object.
-      continue;
-    }
-
-    // Try to recover a stringified edit object via JSON.parse.
+  obj.ops.forEach((item, i) => {
     try {
-      const parsed = JSON.parse(item);
-      if (parsed !== null && typeof parsed === "object") {
-        cleanEdits.push(parsed);
-        continue;
-      }
-    } catch {
-      // not recoverable — keep the string so validateSingleEditArg reports a clear error
-    }
-    cleanEdits.push(item);
-  }
-
-  if (cleanEdits.length === 0) {
-    throw new Error(
-      `Invalid tool call arguments: "edits" must contain at least one valid edit object`
-    );
-  }
-
-  obj.edits = cleanEdits;
-
-  // cleanEdits and obj.edits should now contain the same items, but with any stringified objects recovered as actual objects. Now validate each item.
-  // Pass 2: validate each remaining item.
-  for (let i = 0; i < cleanEdits.length; i++) {
-    try {
-      validateSingleEditArg(cleanEdits[i]);
+      validateSingleOpArg(item);
     } catch (e) {
       throw new Error(
-        `Invalid tool call arguments: edits[${i}] is invalid — ${(e as Error).message}`
+        `Invalid tool call arguments: ops[${i}] is invalid — ${(e as Error).message}`
       );
     }
-  }
+  });
 
   if ("change_summary" in obj && typeof obj.change_summary !== "string") {
     throw new Error(
@@ -169,7 +123,7 @@ export function validateEditFieldArgs(
   }
 }
 
-export function validateSingleEditArg(arg: unknown): asserts arg is FieldEdit {
+export function validateSingleOpArg(arg: unknown): asserts arg is ResumeOp {
   if (arg === null || typeof arg !== "object") {
     throw new Error(
       `expected object, got ${arg === null ? "null" : typeof arg}`
@@ -178,25 +132,21 @@ export function validateSingleEditArg(arg: unknown): asserts arg is FieldEdit {
 
   const obj = arg as Record<string, unknown>;
 
-  if (!("field" in obj)) {
-    throw new Error(`missing required property "field"`);
+  if (!("op" in obj) || typeof obj.op !== "string") {
+    throw new Error(`missing or non-string required property "op"`);
   }
 
-  if (typeof obj.field !== "string") {
-    throw new Error(`"field" must be a string, got ${typeof obj.field}`);
-  }
-
-  if (!RESUME_FIELD_NAMES.includes(obj.field as ResumeField)) {
+  if (!VALID_OPS.has(obj.op)) {
     throw new Error(
-      `"field" must be one of [${RESUME_FIELD_NAMES.join(", ")}], got "${obj.field}"`
+      `"op" must be one of [replace, add, remove], got "${obj.op}"`
     );
   }
 
-  if (!("updated_content" in obj)) {
-    throw new Error(`missing required property "updated_content"`);
+  if (!("path" in obj) || typeof obj.path !== "string" || obj.path === "") {
+    throw new Error(`"path" must be a non-empty string`);
   }
 
-  if (obj.updated_content === null || obj.updated_content === undefined) {
-    throw new Error(`"updated_content" must not be null or undefined`);
+  if ((obj.op === "replace" || obj.op === "add") && !("value" in obj)) {
+    throw new Error(`"value" is required for op "${obj.op}"`);
   }
 }

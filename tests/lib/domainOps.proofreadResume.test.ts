@@ -58,7 +58,7 @@ function providerReturningIssues(issues: ProofreadIssue[]): LLMProvider {
 }
 
 describe("proofreadResume", () => {
-  it("forces source: \"llm\" even when the model mislabels a judgment issue as \"lint\"", async () => {
+  it('forces source: "llm" even when the model mislabels a judgment issue as "lint"', async () => {
     const resume = makeResume();
     // Mirrors the live-observed bug: the model returned these two
     // judgment-only categories tagged source: "lint".
@@ -103,7 +103,36 @@ describe("proofreadResume", () => {
     }
   });
 
-  it("still tags genuine lintResume() findings as source: \"lint\"", async () => {
+  it("passes through the LLM-supplied `path` field when merging with lint issues", async () => {
+    const resume = makeResume();
+    const modelIssues: ProofreadIssue[] = [
+      {
+        field: "summary",
+        category: "unquantified_claim",
+        severity: "warning",
+        location: "Summary",
+        path: "/summary",
+        original: "Senior backend engineer.",
+        suggestion: "",
+        explanation: "No metrics or scope given.",
+        source: "llm",
+      },
+    ];
+    const provider = providerReturningIssues(modelIssues);
+
+    const { result } = await proofreadResume(
+      provider,
+      { resumeFull: resume, jobDetails: null, baseProfile: null },
+      { model: "test-model" }
+    );
+
+    const issue = result.issues.find(
+      (i) => i.category === "unquantified_claim"
+    );
+    expect(issue?.path).toBe("/summary");
+  });
+
+  it('still tags genuine lintResume() findings as source: "lint"', async () => {
     // A resume with a real lint-detectable defect (double space) and no
     // model-reported issues at all.
     const resume = makeResume({
