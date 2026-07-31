@@ -66,6 +66,7 @@ Local-first desktop resume/cover-letter builder: Next.js 16 (App Router) + Tauri
   - `src/lib/proofread/` — `lint.ts` (deterministic rule-based checks) + `applyFixes.ts`; results feed `ProofreadDrawer.tsx` for LLM-judged issues alongside auto-applied lint fixes (see Job page below).
   - `src/lib/llm/prompts/` — prompt templates per operation; untrusted/user-supplied data is wrapped in delimiters before interpolation to block prompt injection.
   - `src/lib/llm/chat-bot/` — chat-based editing assistant.
+  - `src/lib/resume/editor.ts` — `applyResumeOps()`, the single deterministic, path-based (RFC-6902 JSON Patch via `fast-json-patch`) resume editor shared by every AI-driven mutation flow (proofread, humanizer, chat edit, tailor pipeline); the model names a JSON Pointer path per op instead of echoing text/arrays back, each op is re-validated against `ResumeSchema`, and a bad op is rejected without blocking the rest of the batch.
   - `src/lib/llm/tokenTracker.ts` — tracks token usage, persisted via `tokenUsage` server action.
   - `src/lib/keyStorage.ts` — API key storage: AES-256-GCM encrypted file on desktop (key derived from a per-install master key in the OS keychain via `src-tauri/src/keychain.rs`/`keyring`), `localStorage` on web. Use `getApiKey()`/`setKey()`, never store plaintext elsewhere.
 
@@ -127,4 +128,4 @@ On every launch, `sync_database_schema` (`src-tauri/src/lib.rs`) runs `migrate-a
 - `tailwind-ui-designer` (`.claude/skills/tailwind-ui-designer/SKILL.md`) — invoke whenever the user asks to build, restyle, or improve UI. Enforces the Tailwind v4 styling constraints above and follows the `frontend-design` skill.
 - `resume-mcp` (`skills/resume-mcp/SKILL.md`) — for an MCP-connected host (not Claude Code itself) driving this app's resume flows via `src/mcp/`; the step-by-step tool-chain runbook referenced from `docs/MCP.md`.
 
-<!-- last-sync-docs: 9e4897c43186ab180af5242edd09d31fd2cfae0b -->
+<!-- last-sync-docs: 77e36110797e13a792046c919f7483428cf63a4a -->

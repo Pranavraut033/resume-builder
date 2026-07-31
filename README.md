@@ -204,7 +204,9 @@ udaan/
     ├── QUICK_REFERENCE.md
     ├── UI_COMPONENTS_GUIDE.md
     ├── DISTRIBUTION.md
-    └── MCP.md                     # MCP server setup, security, troubleshooting
+    ├── SECURITY_AUDIT.md
+    ├── MCP.md                     # MCP server setup, security, troubleshooting
+    └── MCP_ARCHITECTURE.md        # MCP server internals: tool surface, request lifecycle, add_job draft state machine
 ```
 
 ## Available Scripts
