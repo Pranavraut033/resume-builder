@@ -156,7 +156,9 @@ function makeDeps(overrides: Partial<McpDeps> = {}): McpDeps {
     getResumeByJobId: vi.fn().mockRejectedValue(new Error("not found")),
     getCoverLetterByJobId: vi.fn().mockRejectedValue(new Error("not found")),
     getAllJob: vi.fn().mockResolvedValue([]),
-    getProfileById: vi.fn().mockResolvedValue({ ...makeResume(), label: "Jamie" }),
+    getProfileById: vi
+      .fn()
+      .mockResolvedValue({ ...makeResume(), label: "Jamie" }),
     getAllProfiles: vi.fn().mockResolvedValue([{ id: 1, label: "Jamie" }]),
     createJob: vi.fn().mockResolvedValue({ jobId: 42 }),
     updateResume: vi.fn().mockResolvedValue({ success: true }),
@@ -206,7 +208,9 @@ describe("submitTool — add_job draft chain", () => {
     expect(step3.jobId).toBeNull();
     expect(step3.next).toBe("generate_cover_letter");
     expect(deps.updateResume).not.toHaveBeenCalled();
-    expect(getDraft(draftId)?.tailoredResume?.summary).toBe("Tailored summary.");
+    expect(getDraft(draftId)?.tailoredResume?.summary).toBe(
+      "Tailored summary."
+    );
 
     const step4 = await submitTool(deps, {
       purpose: "generate_cover_letter",
@@ -220,7 +224,8 @@ describe("submitTool — add_job draft chain", () => {
     expect(step4.nextPrompt).toBeUndefined();
 
     expect(deps.createJob).toHaveBeenCalledTimes(1);
-    const created = (deps.createJob as ReturnType<typeof vi.fn>).mock.calls[0][0];
+    const created = (deps.createJob as ReturnType<typeof vi.fn>).mock
+      .calls[0][0];
     expect(created.jobDetails).toEqual(jobDetails);
     expect(created.tailoredResume.summary).toBe("Tailored summary.");
     expect(created.coverLetterText).toBe("<p>Cover letter.</p>");
@@ -255,7 +260,8 @@ describe("submitTool — add_job draft chain", () => {
     });
     expect(step4.ok).toBe(true);
 
-    const created = (deps.createJob as ReturnType<typeof vi.fn>).mock.calls[0][0];
+    const created = (deps.createJob as ReturnType<typeof vi.fn>).mock
+      .calls[0][0];
     expect(created.jobDetails.job.job_title).toBe("Overridden Title");
     expect(created.tailoredResume.summary).toBe("Override resume.");
   });
@@ -496,7 +502,8 @@ describe("submitTool — generate_cover_letter edge cases", () => {
     });
 
     expect(result.ok).toBe(true);
-    const created = (deps.createJob as ReturnType<typeof vi.fn>).mock.calls[0][0];
+    const created = (deps.createJob as ReturnType<typeof vi.fn>).mock
+      .calls[0][0];
     expect(created.profileId).toBe(1);
   });
 });

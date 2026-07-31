@@ -198,11 +198,10 @@ export default function SettingsMcpClaudeCodePage() {
               Hosts that install MCP servers from a downloaded plugin archive
               (Cowork, Claude Code&apos;s own plugin marketplace) instead of a
               hand-typed command can install this directly: download a
-              self-contained <code>udaan.plugin</code> file — the
-              server&apos;s command/args/env plus this skill&apos;s runbook —
-              and point the host&apos;s plugin installer at it. Same bundled
-              node/stdio.js as above, so it only works with this install on
-              this machine.
+              self-contained <code>udaan.plugin</code> file — the server&apos;s
+              command/args/env plus this skill&apos;s runbook — and point the
+              host&apos;s plugin installer at it. Same bundled node/stdio.js as
+              above, so it only works with this install on this machine.
             </p>
             <Button
               variant="secondary"

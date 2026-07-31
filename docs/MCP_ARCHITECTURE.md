@@ -10,7 +10,7 @@ about the code, not how to use it.
 
 The MCP server is a thin, additive layer: two process entry points
 (`stdio.ts` / `http.ts`) wrap one shared tool definition (`server.ts`),
-which reuses this app's *existing* prompt/validation/persistence code
+which reuses this app's _existing_ prompt/validation/persistence code
 rather than reimplementing any of it. It never calls an LLM and never
 touches API keys — the connected host (Claude Desktop, Claude Code, etc.)
 does the reasoning; this server only serves prompts and persists whatever
@@ -67,15 +67,15 @@ graph TD
 annotations (native to `@modelcontextprotocol/sdk`) tell a host which calls
 are safe to retry or skip confirming.
 
-| Tool | Read-only? | Purpose |
-| --- | --- | --- |
-| `list_flows` | ✅ | Static catalog of every flow and its purpose order |
-| `get_prompt` | ✅ | Resolve a purpose's `systemPrompt`/`userPrompt`/`outputSchema` |
-| `submit` | ❌ | Validate → guard → persist a result; returns `nextPrompt` inline |
-| `apply_resume_ops` | ❌ (idempotent) | Apply JSON-Patch-style ops to a job's resume |
-| `list_profiles` | ✅ | Base profiles, for `generate_cover_letter`'s profile disambiguation |
-| `list_jobs` | ✅ | Jobs already tracked in the app |
-| `get_job_state` | ✅ | A job's details, resume path-lines, ATS score, cover-letter presence |
+| Tool               | Read-only?      | Purpose                                                              |
+| ------------------ | --------------- | -------------------------------------------------------------------- |
+| `list_flows`       | ✅              | Static catalog of every flow and its purpose order                   |
+| `get_prompt`       | ✅              | Resolve a purpose's `systemPrompt`/`userPrompt`/`outputSchema`       |
+| `submit`           | ❌              | Validate → guard → persist a result; returns `nextPrompt` inline     |
+| `apply_resume_ops` | ❌ (idempotent) | Apply JSON-Patch-style ops to a job's resume                         |
+| `list_profiles`    | ✅              | Base profiles, for `generate_cover_letter`'s profile disambiguation  |
+| `list_jobs`        | ✅              | Jobs already tracked in the app                                      |
+| `get_job_state`    | ✅              | A job's details, resume path-lines, ATS score, cover-letter presence |
 
 There is deliberately no `validate` tool — `submit` already runs the same
 schema check before persisting, so a failed `submit` doubles as the dry
@@ -193,7 +193,7 @@ stateDiagram-v2
 ## 6. Context resolution priority
 
 Every field `hydrateContext` needs follows the same three-source
-fallback chain — this is what lets the *same* purpose serve both the
+fallback chain — this is what lets the _same_ purpose serve both the
 draft-based `add_job` flow (no `jobId`) and the DB-hydrated flows
 (`jobId` present) without branching logic per caller.
 
@@ -358,16 +358,16 @@ classDiagram
 
 ## 10. File reference
 
-| File | Responsibility |
-| --- | --- |
-| `server.ts` | All 8→7 tool handlers, `McpDeps`, `hydrateContext`, `submitTool`, `buildServer()` — the bulk of the logic |
-| `draft.ts` | In-memory `add_job` scratch state + the `lastSent` fingerprint dedup |
-| `flows.ts` | `FLOW_CATALOG` (data, mirrors §7's diagram) + `nextPurposeFor()` |
-| `guards.ts` | Post-Zod safety checks (`guardTailoredResume`, `guardProofreadResult`) applied inside `submit`, before persistence |
-| `db.ts` | Bootstrap: resolves `DATABASE_URL`, flips SQLite to WAL — must be imported before `server.ts` |
-| `stdio.ts` | Process entry point for Claude Desktop/Code (spawns this directly) |
-| `http.ts` | Process entry point for URL-based hosts (`127.0.0.1` only, Origin-checked) |
-| `tests/lib/mcp/` | `flows.test.ts`, `guards.test.ts`, `applyResumeOpsTool.test.ts`, `submitTool.test.ts` |
+| File             | Responsibility                                                                                                     |
+| ---------------- | ------------------------------------------------------------------------------------------------------------------ |
+| `server.ts`      | All 8→7 tool handlers, `McpDeps`, `hydrateContext`, `submitTool`, `buildServer()` — the bulk of the logic          |
+| `draft.ts`       | In-memory `add_job` scratch state + the `lastSent` fingerprint dedup                                               |
+| `flows.ts`       | `FLOW_CATALOG` (data, mirrors §7's diagram) + `nextPurposeFor()`                                                   |
+| `guards.ts`      | Post-Zod safety checks (`guardTailoredResume`, `guardProofreadResult`) applied inside `submit`, before persistence |
+| `db.ts`          | Bootstrap: resolves `DATABASE_URL`, flips SQLite to WAL — must be imported before `server.ts`                      |
+| `stdio.ts`       | Process entry point for Claude Desktop/Code (spawns this directly)                                                 |
+| `http.ts`        | Process entry point for URL-based hosts (`127.0.0.1` only, Origin-checked)                                         |
+| `tests/lib/mcp/` | `flows.test.ts`, `guards.test.ts`, `applyResumeOpsTool.test.ts`, `submitTool.test.ts`                              |
 
 Reused (not MCP-specific): `src/lib/db/job.ts` (Prisma reads/writes with no
 `next/cache` import, so the MCP bundle never needs Next resolvable at
