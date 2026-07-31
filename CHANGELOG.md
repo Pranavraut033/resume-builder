@@ -2,6 +2,26 @@
 
 All notable changes to this project are documented in this file.
 
+## [1.7.0] - 2026-07-31
+
+### Added
+
+- Optional MCP server exposing job parsing, tailoring, ATS analysis, cover letter generation, editing, proofreading, and humanizing as tools, so an external MCP host (e.g. Claude Desktop) can drive them on the user's own subscription; opt-in via Settings, off by default, and never touches API keys ([ccabe01])
+- The MCP server's `add_job` flow now builds up a job incrementally via a submit-tool draft state machine, and prompt templates skip re-sending resume/job data already shared earlier in the conversation ([77e3611])
+- Model picker gained a reasoning-effort selector ([540875d])
+
+### Changed
+
+- AI-driven resume edits (tailoring, proofreading, chat edits, humanizing) now go through a single path-based JSON-Patch editor instead of ad hoc text/array rewrites, so a bad edit op is rejected without blocking the rest of the batch ([588f363])
+
+### Fixed
+
+- Chat-rewritten resume bullets are now verified against their original bullet index and company before being applied ([2a7c161])
+
+### Internal
+
+- Synced CLAUDE.md and README with the JSON-Patch editor and new MCP architecture docs ([9d24346])
+
 ## [1.6.0] - 2026-07-28
 
 ### Added

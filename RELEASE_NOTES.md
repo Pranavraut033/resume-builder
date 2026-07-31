@@ -1,3 +1,11 @@
+# v1.7.0 — 2026-07-31
+
+Connect your own AI chat client to your resumes, and steadier AI editing under the hood.
+
+- **Drive your resumes from Claude Desktop (or any MCP-compatible chat client).** A new optional MCP server exposes job parsing, tailoring, ATS analysis, cover letter generation, editing, proofreading, and humanizing as tools — using your own chat subscription instead of a configured API key. Off by default; turn it on in Settings.
+- **More reliable AI edits.** Every AI-driven edit — tailoring, proofreading, chat edits, humanizing — now goes through the same underlying editor, so a single bad edit no longer risks the rest of the batch.
+- **Fixed:** chat-rewritten resume bullets are now checked against the right original bullet before being applied.
+
 # v1.6.0 — 2026-07-28
 
 More accurate, more trustworthy AI output: proofreading, stricter fidelity to your real experience, and a rendering bug fix.
