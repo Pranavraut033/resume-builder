@@ -34,7 +34,6 @@ describe("nextPurposeFor", () => {
     expect(nextPurposeFor("proofread_resume")).toBeNull();
     expect(nextPurposeFor("fix_ats_issues")).toBeNull();
     expect(nextPurposeFor("humanize_content")).toBeNull();
-    expect(nextPurposeFor("parse_resume")).toBeNull();
   });
 });
 

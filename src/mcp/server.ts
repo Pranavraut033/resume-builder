@@ -1,5 +1,5 @@
 /**
- * MCP server definition — 6 tools that let an external LLM (Claude Desktop,
+ * MCP server definition — 7 tools that let an external LLM (Claude Desktop,
  * etc.) drive this app's resume flows using its OWN reasoning. This module
  * never calls an LLM and never touches an API key: it only serves prompts
  * already built by this app's existing prompt system, and validates/
@@ -8,8 +8,9 @@
  * Every tool handler is exported as a plain async function taking an
  * explicit `McpDeps` bag instead of reaching for the real DB/action
  * functions itself — `buildServer()` wires the real ones in, tests inject
- * fakes. See `tests/lib/mcp/` for the guard/flow/apply_resume_ops coverage;
- * transports (`stdio.ts`/`http.ts`) are intentionally not exercised here.
+ * fakes. See `tests/lib/mcp/` for the guard/flow/submit/apply_resume_ops
+ * coverage; transports (`stdio.ts`/`http.ts`) are intentionally not
+ * exercised here.
  */
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
@@ -42,20 +43,23 @@ import { ProofreadJSON, ProofreadSchema } from "@/types/proofread";
 import {
   ATSAnalysisJSON,
   ATSAnalysisSchema,
-  getResumeSchemaForPrompt,
   JobDetailsJSON,
   JobDetailsSchema,
   ResumeJSON,
   ResumeSchema,
 } from "@/types/resume";
 
-import { FLOW_CATALOG, nextPurposeFor } from "./flows";
 import {
-  applyGuard,
-  guardParsedResume,
-  guardProofreadResult,
-  guardTailoredResume,
-} from "./guards";
+  createDraft,
+  Draft,
+  DraftField,
+  deleteDraft,
+  getDraft,
+  shouldInline,
+  updateDraft,
+} from "./draft";
+import { FLOW_CATALOG, nextPurposeFor } from "./flows";
+import { applyGuard, guardProofreadResult, guardTailoredResume } from "./guards";
 
 // ── Dependency injection (tests supply fakes; buildServer() supplies these) ─
 
@@ -85,11 +89,11 @@ export const defaultDeps: McpDeps = {
   updateCoverLetter: dbUpdateCoverLetter,
 };
 
-// ── Purpose surface (Non-goal: no base-profile-builder purposes, no generate_text) ─
+// ── Purpose surface (Non-goal: no base-profile-builder purposes, no
+// generate_text, no parse_resume — unreachable via any FLOW_CATALOG flow) ──
 
 export const MCP_PURPOSES = [
   "parse_job",
-  "parse_resume",
   "analyze_ats",
   "generate_tailored_resume",
   "generate_cover_letter",
@@ -109,7 +113,6 @@ const RESULT_SCHEMAS: Record<
   z.ZodTypeAny
 > = {
   parse_job: JobDetailsSchema,
-  parse_resume: ResumeSchema,
   analyze_ats: ATSAnalysisSchema,
   generate_tailored_resume: ResumeSchema,
   humanize_content: HumanizerSchema,
@@ -124,28 +127,28 @@ function schemaFor(purpose: McpPurpose): z.ZodTypeAny {
     : RESULT_SCHEMAS[purpose];
 }
 
-// The `result` param on `submit`/`validate`: a JSON object for every purpose
-// except generate_cover_letter, which is a raw HTML string (see schemaFor
-// above) — so this must accept both shapes. Each union branch keeps an
-// explicit "type" in the generated JSON Schema (object | string) rather than
-// falling back to z.unknown()'s empty `{}` schema: an untyped schema is
-// ambiguous enough that some MCP clients stringify whatever they send,
-// which then fails schemaFor(purpose).safeParse with "Expected object,
-// received string" for every purpose but generate_cover_letter.
+// The `result` param on `submit`: a JSON object for every purpose except
+// generate_cover_letter, which is a raw HTML string (see schemaFor above) —
+// so this must accept both shapes. Each union branch keeps an explicit
+// "type" in the generated JSON Schema (object | string) rather than falling
+// back to z.unknown()'s empty `{}` schema: an untyped schema is ambiguous
+// enough that some MCP clients stringify whatever they send, which then
+// fails schemaFor(purpose).safeParse with "Expected object, received
+// string" for every purpose but generate_cover_letter.
 const McpResultSchema = z.union([
   z.record(z.string(), z.unknown()),
   z.string().min(1),
 ]);
 
-// Resume-shaped purposes go through getResumeSchemaForPrompt() (native
-// z.toJSONSchema, same as every other resume schema call site in this repo
-// — see packages/llm-core's gemini.ts/ollama.ts for the same convention);
-// everything else uses the same native helper directly rather than the
-// zod-to-json-schema package, whose published types target zod/v3's
-// ZodSchema and don't type-check against this repo's zod v4 schemas.
+// generate_tailored_resume goes through z.toJSONSchema(ResumeSchema)
+// directly (native, same convention as every other resume schema call site
+// in this repo — see packages/llm-core's gemini.ts/ollama.ts); everything
+// else uses the same native helper rather than the zod-to-json-schema
+// package, whose published types target zod/v3's ZodSchema and don't
+// type-check against this repo's zod v4 schemas.
 function getOutputSchemaJson(purpose: McpPurpose): unknown {
-  if (purpose === "generate_tailored_resume" || purpose === "parse_resume") {
-    return JSON.parse(getResumeSchemaForPrompt());
+  if (purpose === "generate_tailored_resume") {
+    return z.toJSONSchema(ResumeSchema);
   }
   if (purpose === "generate_cover_letter") return null;
   return z.toJSONSchema(RESULT_SCHEMAS[purpose]);
@@ -157,11 +160,32 @@ function formatZodError(error: z.ZodError): string[] {
   );
 }
 
+/**
+ * Some MCP clients JSON-stringify an object-typed tool argument before
+ * sending it (observed in practice, not just theoretical — see
+ * McpResultSchema's comment above). Because that schema's string branch
+ * exists for generate_cover_letter's real string result, a stringified
+ * object silently passes the outer MCP arg validation and only fails once
+ * schemaFor(purpose) tries to parse it as the wrong purpose's object shape,
+ * surfacing as a confusing "Expected object, received string" on every
+ * field — including a trivial one-key probe payload. Unwrap it here rather
+ * than let that failure mode reach the caller.
+ */
+function coerceResult(purpose: McpPurpose, result: unknown): unknown {
+  if (purpose === "generate_cover_letter" || typeof result !== "string") {
+    return result;
+  }
+  try {
+    return JSON.parse(result);
+  } catch {
+    return result;
+  }
+}
+
 // ── input passthrough (get_prompt/submit's `input`) ─────────────────────────
 
 const McpInputSchema = z.object({
   jobDescription: z.string().optional(),
-  resumeText: z.string().optional(),
   userInput: z.string().optional(),
   additionalInstructions: z.string().optional(),
   styleGuide: z.string().optional(),
@@ -172,9 +196,8 @@ const McpInputSchema = z.object({
   baseProfile: ResumeSchema.optional(),
   resume: ResumeSchema.optional(),
   resumeFull: ResumeSchema.optional(),
-  // The generate_tailored_resume submit's guarded output, carried forward by
-  // the caller into the final generate_cover_letter submit — see that
-  // handler below for why.
+  // Back-compat override: a caller can still force-carry a value forward
+  // via `input` even though the draft (below) now does this by default.
   tailoredResume: ResumeSchema.optional(),
 });
 
@@ -189,22 +212,38 @@ async function safeGetResume(deps: McpDeps, jobId: number | undefined) {
   }
 }
 
+type ResumeRow = Awaited<ReturnType<typeof safeGetResume>>;
+
+interface Hydrated {
+  context: PromptContext;
+  resumeRow: ResumeRow;
+}
+
+/** `value` if it should be re-inlined into the prompt, `undefined` if the
+ * host's own conversation already has this exact value (see draft.ts). */
+function pick<T>(
+  draft: Draft | null,
+  field: DraftField,
+  value: T | null | undefined
+): T | null | undefined {
+  if (value == null) return value;
+  return shouldInline(draft, field, value) ? value : undefined;
+}
+
 async function hydrateContext(
   deps: McpDeps,
   purpose: McpPurpose,
   jobId: number | undefined,
-  rawInput: unknown
-): Promise<PromptContext> {
+  rawInput: unknown,
+  draft: Draft | null
+): Promise<Hydrated> {
   const input: McpInput = McpInputSchema.parse(rawInput ?? {});
   const job = jobId != null ? await deps.getJob(jobId) : null;
   const resumeRow = await safeGetResume(deps, jobId);
 
   switch (purpose) {
     case "parse_job":
-      return { jobDescription: input.jobDescription };
-
-    case "parse_resume":
-      return { resumeText: input.resumeText };
+      return { context: { jobDescription: input.jobDescription }, resumeRow };
 
     case "analyze_ats": {
       // add_job (no resume yet): score the base profile, mirroring
@@ -215,9 +254,15 @@ async function hydrateContext(
         : ((await deps.getProfileById(
             input.profileId ?? job?.profileId ?? null
           )) ?? undefined);
+      const resumeValue = input.resume ?? baseline ?? null;
+      const jobDetailsValue =
+        input.jobDetails ?? draft?.jobDetails ?? job?.details ?? null;
       return {
-        resume: input.resume ?? baseline ?? null,
-        jobDetails: input.jobDetails ?? job?.details ?? null,
+        context: {
+          resume: pick(draft, "baseProfile", resumeValue),
+          jobDetails: pick(draft, "jobDetails", jobDetailsValue),
+        },
+        resumeRow,
       };
     }
 
@@ -225,43 +270,77 @@ async function hydrateContext(
       const profile = await deps.getProfileById(
         input.profileId ?? job?.profileId ?? null
       );
+      const baseProfileValue = input.baseProfile ?? profile ?? null;
+      const jobDetailsValue =
+        input.jobDetails ?? draft?.jobDetails ?? job?.details ?? null;
+      const atsAnalysisValue =
+        input.atsAnalysis ??
+        draft?.atsAnalysis ??
+        job?.baseProfileAnalysis ??
+        resumeRow?.atsAnalysis ??
+        null;
       return {
-        baseProfile: input.baseProfile ?? profile ?? null,
-        jobDetails: input.jobDetails ?? job?.details ?? null,
-        atsAnalysis:
-          input.atsAnalysis ??
-          job?.baseProfileAnalysis ??
-          resumeRow?.atsAnalysis ??
-          null,
+        context: {
+          baseProfile: pick(draft, "baseProfile", baseProfileValue),
+          jobDetails: pick(draft, "jobDetails", jobDetailsValue),
+          atsAnalysis: pick(draft, "atsAnalysis", atsAnalysisValue),
+        },
+        resumeRow,
       };
     }
 
-    case "generate_cover_letter":
+    case "generate_cover_letter": {
+      const resumeValue =
+        input.resume ??
+        input.tailoredResume ??
+        draft?.tailoredResume ??
+        resumeRow?.contentJson ??
+        null;
+      const jobDetailsValue =
+        input.jobDetails ?? draft?.jobDetails ?? job?.details ?? null;
       return {
-        jobDetails: input.jobDetails ?? job?.details ?? null,
-        resume:
-          input.resume ??
-          input.tailoredResume ??
-          resumeRow?.contentJson ??
-          null,
-        additionalInstructions: input.additionalInstructions,
-        styleGuide: input.styleGuide,
+        context: {
+          jobDetails: pick(draft, "jobDetails", jobDetailsValue),
+          resume: pick(draft, "tailoredResume", resumeValue),
+          additionalInstructions: input.additionalInstructions,
+          styleGuide: input.styleGuide,
+        },
+        resumeRow,
       };
+    }
 
     case "humanize_content":
+      // Unlike every other purpose, there is no DB fallback for this one —
+      // humanize_content can operate on a resume bullet, a whole cover
+      // letter, or arbitrary pasted text, and the server has no way to know
+      // which the caller means. Silently rendering CONTENT as an empty
+      // block (the previous behavior) makes an empty humanize prompt look
+      // like a valid "nothing to rewrite" result instead of the missing
+      // argument it actually is — fail loudly instead.
+      if (!input.userInput) {
+        throw new Error(
+          "humanize_content requires input.userInput — the exact text to rewrite (a resume bullet, a whole cover letter, etc.). The server does not fetch it from the database automatically."
+        );
+      }
       return {
-        userInput: input.userInput,
-        resumeFull: input.resumeFull ?? resumeRow?.contentJson ?? undefined,
+        context: {
+          userInput: input.userInput,
+          resumeFull: input.resumeFull ?? resumeRow?.contentJson ?? undefined,
+        },
+        resumeRow,
       };
 
     case "extract_fields_to_edit":
-      return { userInput: input.userInput };
+      return { context: { userInput: input.userInput }, resumeRow };
 
     case "fix_ats_issues":
       return {
-        resume: input.resume ?? resumeRow?.contentJson ?? null,
-        jobDetails: input.jobDetails ?? job?.details ?? null,
-        userInput: input.userInput,
+        context: {
+          resume: input.resume ?? resumeRow?.contentJson ?? null,
+          jobDetails: input.jobDetails ?? job?.details ?? null,
+          userInput: input.userInput,
+        },
+        resumeRow,
       };
 
     case "proofread_resume": {
@@ -269,9 +348,12 @@ async function hydrateContext(
         ? await deps.getProfileById(job.profileId)
         : null;
       return {
-        resumeFull: input.resumeFull ?? resumeRow?.contentJson ?? null,
-        jobDetails: input.jobDetails ?? job?.details ?? null,
-        baseProfile: input.baseProfile ?? baseProfile ?? undefined,
+        context: {
+          resumeFull: input.resumeFull ?? resumeRow?.contentJson ?? null,
+          jobDetails: input.jobDetails ?? job?.details ?? null,
+          baseProfile: input.baseProfile ?? baseProfile ?? undefined,
+        },
+        resumeRow,
       };
     }
   }
@@ -286,40 +368,47 @@ export interface GetPromptResult {
   next: PromptPurpose | null;
 }
 
-export async function getPromptTool(
+async function resolvePrompt(
   deps: McpDeps,
-  args: { purpose: McpPurpose; jobId?: number; input?: unknown }
+  purpose: McpPurpose,
+  jobId: number | undefined,
+  input: unknown,
+  draft: Draft | null
 ): Promise<GetPromptResult> {
-  const context = await hydrateContext(
+  const { context, resumeRow } = await hydrateContext(
     deps,
-    args.purpose,
-    args.jobId,
-    args.input
+    purpose,
+    jobId,
+    input,
+    draft
   );
-  const resolved = PromptSystem.generatePrompt(args.purpose, context);
-  const hasResume = (await safeGetResume(deps, args.jobId)) !== null;
+  const resolved = PromptSystem.generatePrompt(purpose, context);
+  const hasResume = jobId != null ? resumeRow !== null : draft?.tailoredResume != null;
 
   return {
     systemPrompt: resolved.systemPrompt,
     userPrompt: resolved.userPrompt,
-    outputSchema: getOutputSchemaJson(args.purpose),
-    next: nextPurposeFor(args.purpose, { hasResume }),
+    outputSchema: getOutputSchemaJson(purpose),
+    next: nextPurposeFor(purpose, { hasResume }),
   };
 }
 
-// ── validate ─────────────────────────────────────────────────────────────
-
-export type ValidateResult = { ok: true } | { ok: false; errors: string[] };
-
-export function validateTool(args: {
-  purpose: McpPurpose;
-  result: unknown;
-}): ValidateResult {
-  const parsed = schemaFor(args.purpose).safeParse(args.result);
-  if (!parsed.success) {
-    return { ok: false, errors: formatZodError(parsed.error) };
+export async function getPromptTool(
+  deps: McpDeps,
+  args: {
+    purpose: McpPurpose;
+    jobId?: number;
+    draftId?: string;
+    input?: unknown;
   }
-  return { ok: true };
+): Promise<GetPromptResult> {
+  return resolvePrompt(
+    deps,
+    args.purpose,
+    args.jobId,
+    args.input,
+    getDraft(args.draftId)
+  );
 }
 
 // ── submit ───────────────────────────────────────────────────────────────
@@ -327,7 +416,10 @@ export function validateTool(args: {
 export interface SubmitSuccess {
   ok: true;
   jobId: number | null;
+  draftId?: string;
   next: PromptPurpose | null;
+  nextPrompt?: GetPromptResult;
+  guardChanges?: string[];
   result?: unknown;
 }
 export interface SubmitFailure {
@@ -368,11 +460,28 @@ export async function submitTool(
   args: {
     purpose: McpPurpose;
     jobId?: number;
+    draftId?: string;
     result: unknown;
     input?: unknown;
   }
 ): Promise<SubmitResult> {
-  const { purpose, jobId, result } = args;
+  const { purpose, jobId } = args;
+  const result = coerceResult(purpose, args.result);
+
+  // A string surviving coerceResult for a non-string purpose means it
+  // looked like a string to begin with but wasn't valid JSON — most likely
+  // truncated or corrupted in transit (a large/unescaped payload hitting a
+  // transport size limit), not a legitimate string result. Surface that
+  // directly instead of the confusing generic "Expected object, received
+  // string" schemaFor(purpose) would otherwise produce.
+  if (purpose !== "generate_cover_letter" && typeof result === "string") {
+    return {
+      ok: false,
+      errors: [
+        `result must be a JSON object for purpose "${purpose}", but arrived as a string that isn't valid JSON either — this usually means the payload was truncated or malformed in transit (check for an oversized or unescaped result). Received ${result.length} character(s), starting with: ${JSON.stringify(result.slice(0, 80))}`,
+      ],
+    };
+  }
 
   const parsed = schemaFor(purpose).safeParse(result);
   if (!parsed.success) {
@@ -383,25 +492,35 @@ export async function submitTool(
   const hasResumeBefore = (await safeGetResume(deps, jobId)) !== null;
   const next = () => nextPurposeFor(purpose, { hasResume: hasResumeBefore });
 
+  // No jobId yet: this submit belongs to the stateless add_job draft phase.
+  // Mint a draft on first use so the caller doesn't have to carry every
+  // field forward as `input` itself.
+  let draftId = args.draftId;
+  if (jobId == null && draftId == null) draftId = createDraft();
+  const draft = jobId == null ? getDraft(draftId) : null;
+
+  const withNextPrompt = async (
+    base: Omit<SubmitSuccess, "nextPrompt">
+  ): Promise<SubmitSuccess> => {
+    if (!base.next) return base;
+    const nextPrompt = await resolvePrompt(
+      deps,
+      base.next as McpPurpose,
+      base.jobId ?? undefined,
+      undefined,
+      base.jobId == null ? getDraft(draftId) : null
+    );
+    return { ...base, nextPrompt };
+  };
+
   try {
     switch (purpose) {
-      case "parse_job":
+      case "parse_job": {
         // No standalone write for jobDetails alone — see generate_cover_letter
-        // below for where a brand-new job is actually created. The caller
-        // carries this validated JobDetailsJSON forward via input.jobDetails.
-        return { ok: true, jobId: null, next: next() };
-
-      case "parse_resume": {
-        const guarded = applyGuard(() =>
-          guardParsedResume(parsed.data as ResumeJSON)
-        );
-        if (!guarded.ok) return { ok: false, errors: [guarded.error] };
-        return {
-          ok: true,
-          jobId: jobId ?? null,
-          next: next(),
-          result: guarded.value,
-        };
+        // below for where a brand-new job is actually created. The draft
+        // carries this validated JobDetailsJSON forward automatically.
+        if (draftId) updateDraft(draftId, { jobDetails: parsed.data as JobDetailsJSON });
+        return withNextPrompt({ ok: true, jobId: null, draftId, next: next() });
       }
 
       case "analyze_ats": {
@@ -409,18 +528,20 @@ export async function submitTool(
           await withBusyRetry(() =>
             deps.saveAtsAnalysis(jobId, parsed.data as ATSAnalysisJSON)
           );
-          return {
+          return withNextPrompt({
             ok: true,
             jobId,
             next: nextPurposeFor(purpose, { hasResume: true }),
-          };
+          });
         }
         // add_job phase: no resume exists yet to attach this analysis to
         // (job.baseProfileAnalysis is only settable via createJob's own
-        // atsAnalysis param at creation time). Validated only; caller
-        // carries this forward via input.atsAnalysis to the final
-        // generate_cover_letter submit, which performs the real createJob.
-        return { ok: true, jobId: jobId ?? null, next: next() };
+        // atsAnalysis param at creation time). Validated only; the draft
+        // carries this forward to the final generate_cover_letter submit,
+        // which performs the real createJob.
+        if (draftId)
+          updateDraft(draftId, { atsAnalysis: parsed.data as ATSAnalysisJSON });
+        return withNextPrompt({ ok: true, jobId: null, draftId, next: next() });
       }
 
       case "generate_tailored_resume": {
@@ -445,6 +566,13 @@ export async function submitTool(
         );
         if (!guarded.ok) return { ok: false, errors: [guarded.error] };
 
+        const submittedLayout = (parsed.data as ResumeJSON).sectionLayout;
+        const guardChanges =
+          JSON.stringify(submittedLayout) !==
+          JSON.stringify(guarded.value.sectionLayout)
+            ? ["sectionLayout carried over from base profile (display-only field, not model-authored)"]
+            : undefined;
+
         if (jobId != null) {
           const resumeRow = await deps.getResumeByJobId(jobId);
           await withBusyRetry(() =>
@@ -455,12 +583,12 @@ export async function submitTool(
               "MCP tailor"
             )
           );
-          return {
+          return withNextPrompt({
             ok: true,
             jobId,
             next: nextPurposeFor(purpose, { hasResume: true }),
-            result: guarded.value,
-          };
+            guardChanges,
+          });
         }
 
         // No job yet: nothing is persisted here. src/app/job/new/page.tsx
@@ -470,10 +598,16 @@ export async function submitTool(
         // that shape (createJob) but has no "attach a resume to an
         // already-created, resume-less job" primitive, so a brand-new job
         // can't be split across this write and generate_cover_letter's.
-        // The caller carries this guarded resume forward via
-        // input.tailoredResume to the final submit, which performs the
-        // actual createJob call.
-        return { ok: true, jobId: null, next: next(), result: guarded.value };
+        // The draft carries this guarded resume forward to the final
+        // submit, which performs the actual createJob call.
+        if (draftId) updateDraft(draftId, { tailoredResume: guarded.value });
+        return withNextPrompt({
+          ok: true,
+          jobId: null,
+          draftId,
+          next: next(),
+          guardChanges,
+        });
       }
 
       case "generate_cover_letter": {
@@ -494,23 +628,25 @@ export async function submitTool(
           await withBusyRetry(() =>
             deps.updateCoverLetter(jobId, text, coverLetterRow.customizations)
           );
-          return {
+          return withNextPrompt({
             ok: true,
             jobId,
             next: nextPurposeFor(purpose, { hasResume: true }),
-          };
+          });
         }
 
-        if (!input.jobDetails || !input.tailoredResume) {
+        const jobDetails = input.jobDetails ?? draft?.jobDetails;
+        const tailoredResume = input.tailoredResume ?? draft?.tailoredResume;
+        if (!jobDetails || !tailoredResume) {
           return {
             ok: false,
             errors: [
-              "Creating a new job requires input.jobDetails (the validated parse_job result) and input.tailoredResume (the guarded generate_tailored_resume result) alongside the cover letter text.",
+              "Creating a new job requires jobDetails (from parse_job) and a tailoredResume (from generate_tailored_resume) — carried automatically via draftId, or pass input.jobDetails/input.tailoredResume explicitly if the draft expired.",
             ],
           };
         }
 
-        let profileId = input.profileId;
+        let profileId = input.profileId ?? draft?.profileId;
         if (profileId == null) {
           // Jobs are only visible in the app's dashboard when their
           // profileId matches the currently-selected profile there (see
@@ -536,19 +672,20 @@ export async function submitTool(
 
         const created = await withBusyRetry(() =>
           deps.createJob({
-            jobDetails: input.jobDetails as JobDetailsJSON,
-            tailoredResume: input.tailoredResume,
+            jobDetails: jobDetails as JobDetailsJSON,
+            tailoredResume: tailoredResume as ResumeJSON,
             coverLetterText: text,
-            atsAnalysis: input.atsAnalysis ?? undefined,
-            url: input.url,
+            atsAnalysis: input.atsAnalysis ?? draft?.atsAnalysis ?? undefined,
+            url: input.url ?? draft?.url,
             profileId,
           })
         );
-        return {
+        if (draftId) deleteDraft(draftId);
+        return withNextPrompt({
           ok: true,
           jobId: created.jobId,
           next: nextPurposeFor(purpose, { hasResume: true }),
-        };
+        });
       }
 
       case "extract_fields_to_edit":
@@ -557,7 +694,7 @@ export async function submitTool(
         // Validate-only — the caller applies the result itself via
         // apply_resume_ops (edit ops / ATS fix ops) or a follow-up submit
         // (humanized cover-letter text), never a direct DB write here.
-        return { ok: true, jobId: jobId ?? null, next: next() };
+        return withNextPrompt({ ok: true, jobId: jobId ?? null, next: next() });
 
       case "proofread_resume": {
         if (jobId == null) {
@@ -571,12 +708,12 @@ export async function submitTool(
           resumeRow.contentJson,
           parsed.data as ProofreadJSON
         );
-        return {
+        return withNextPrompt({
           ok: true,
           jobId,
           next: nextPurposeFor(purpose, { hasResume: true }),
           result: guardedResult,
-        };
+        });
       }
     }
   } catch (err) {
@@ -659,7 +796,6 @@ export async function getJobStateTool(deps: McpDeps, args: { jobId: number }) {
     status: job.status,
     company: job.company.name,
     jobDetails: job.details,
-    baseProfileAnalysis: job.baseProfileAnalysis,
     resume: resumeRow
       ? {
           pathLines: resumePathLines(resumeRow.contentJson),
@@ -679,14 +815,16 @@ export function listFlowsTool() {
 // ── McpServer wiring ─────────────────────────────────────────────────────
 
 function toToolResult(payload: unknown) {
-  return {
-    content: [
-      { type: "text" as const, text: JSON.stringify(payload, null, 2) },
-    ],
-  };
+  return { content: [{ type: "text" as const, text: JSON.stringify(payload) }] };
 }
 
 const purposeSchema = z.enum(MCP_PURPOSES);
+
+// These are hints, not enforcement — they let a host skip confirmation
+// prompts on read-only calls and avoid blindly retrying a non-idempotent
+// write. Native to @modelcontextprotocol/sdk's registerTool, no new
+// dependency.
+const readOnly = { readOnlyHint: true, idempotentHint: true } as const;
 
 export function buildServer(deps: McpDeps = defaultDeps): McpServer {
   const server = new McpServer({
@@ -700,6 +838,7 @@ export function buildServer(deps: McpDeps = defaultDeps): McpServer {
       title: "List flows",
       description:
         "List every flow (add_job, edit, proofread, ats_fix, humanize, cover_letter) and the ordered purposes each one walks through get_prompt/submit.",
+      annotations: readOnly,
     },
     async () => toToolResult(listFlowsTool())
   );
@@ -709,12 +848,14 @@ export function buildServer(deps: McpDeps = defaultDeps): McpServer {
     {
       title: "Get prompt",
       description:
-        "Get the system/user prompt and expected output JSON Schema for a purpose, hydrated from this app's DB (via jobId) and/or `input`. Reason over it yourself, then call submit with your JSON result.",
+        "Get the system/user prompt and expected output JSON Schema for a purpose, hydrated from this app's DB (via jobId) and/or `input`. Reason over it yourself, then call submit with your JSON result. Usually unnecessary mid-flow — submit's response already includes nextPrompt.",
       inputSchema: {
         purpose: purposeSchema,
         jobId: z.number().int().positive().optional(),
+        draftId: z.string().optional(),
         input: z.record(z.string(), z.unknown()).optional(),
       },
+      annotations: readOnly,
     },
     async (args) => toToolResult(await getPromptTool(deps, args))
   );
@@ -724,29 +865,17 @@ export function buildServer(deps: McpDeps = defaultDeps): McpServer {
     {
       title: "Submit",
       description:
-        "Submit your JSON result for a purpose. Validated against its schema, guarded (e.g. rejects a gutted tailored resume), persisted, and returns the next purpose to call (or null when the flow ends in apply_resume_ops instead).",
+        "Submit your JSON result for a purpose. Validated against its schema, guarded (e.g. rejects a gutted tailored resume), persisted when a jobId exists, and returns the next purpose's prompt inline as `nextPrompt` (or nothing when the flow ends in apply_resume_ops instead). Before a job exists, pass the returned `draftId` on every call instead of re-uploading jobDetails/atsAnalysis/the tailored resume yourself.",
       inputSchema: {
         purpose: purposeSchema,
         jobId: z.number().int().positive().optional(),
+        draftId: z.string().optional(),
         result: McpResultSchema,
         input: z.record(z.string(), z.unknown()).optional(),
       },
+      annotations: { readOnlyHint: false, idempotentHint: false },
     },
     async (args) => toToolResult(await submitTool(deps, args))
-  );
-
-  server.registerTool(
-    "validate",
-    {
-      title: "Validate",
-      description:
-        "Dry-run schema validation for a purpose's result with no persistence — use to self-check before calling submit.",
-      inputSchema: {
-        purpose: purposeSchema,
-        result: McpResultSchema,
-      },
-    },
-    async (args) => toToolResult(validateTool(args))
   );
 
   server.registerTool(
@@ -759,6 +888,7 @@ export function buildServer(deps: McpDeps = defaultDeps): McpServer {
         jobId: z.number().int().positive(),
         ops: z.array(ResumeOpSchema),
       },
+      annotations: { readOnlyHint: false, idempotentHint: true },
     },
     async (args) =>
       toToolResult(
@@ -775,6 +905,7 @@ export function buildServer(deps: McpDeps = defaultDeps): McpServer {
       title: "List profiles",
       description:
         "List every base profile (id + label) this app knows about. Call before creating a job (generate_cover_letter's final submit) whenever there's more than one — pass the right id as input.profileId, or the created job won't show up in the app's dashboard (it's filtered by the currently-selected profile there).",
+      annotations: readOnly,
     },
     async () => toToolResult(await listProfilesTool(deps))
   );
@@ -788,6 +919,7 @@ export function buildServer(deps: McpDeps = defaultDeps): McpServer {
       inputSchema: {
         profileId: z.number().int().positive().optional(),
       },
+      annotations: readOnly,
     },
     async (args) => toToolResult(await listJobsTool(deps, args))
   );
@@ -797,10 +929,11 @@ export function buildServer(deps: McpDeps = defaultDeps): McpServer {
     {
       title: "Get job state",
       description:
-        "Get a job's details, resume path lines, ATS scores, and whether a cover letter exists — enough context to orient without re-fetching everything.",
+        "Get a job's details, resume path lines, ATS score, and whether a cover letter exists — enough context to orient without re-fetching everything.",
       inputSchema: {
         jobId: z.number().int().positive(),
       },
+      annotations: readOnly,
     },
     async (args) => toToolResult(await getJobStateTool(deps, args))
   );

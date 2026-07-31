@@ -47,15 +47,6 @@ export function guardTailoredResume(
   return { ...tailored, sectionLayout: baseProfile.sectionLayout };
 }
 
-/**
- * `parse_resume` guard: a freshly parsed resume has no prior layout to
- * inherit, so force the UI-only `sectionLayout` field to its default rather
- * than trust whatever the model invented for it.
- */
-export function guardParsedResume(parsed: ResumeJSON): ResumeJSON {
-  return { ...parsed, sectionLayout: null };
-}
-
 // Duplicated from domainOps.ts's private helper of the same name (kept in
 // sync manually) rather than imported: domainOps.proofreadResume bundles
 // this dedupe/merge step together with the actual LLM call, which this

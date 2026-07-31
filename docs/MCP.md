@@ -18,7 +18,20 @@ returns prompts for whatever's connected to reason over. The in-app chat
 (`Chatbot.ts`) is completely unaffected by whether this is enabled.
 
 See `skills/resume-mcp/SKILL.md` for the step-by-step runbook a connected
-model should follow once it's talking to this server.
+model should follow once it's talking to this server, and
+[`MCP_ARCHITECTURE.md`](./MCP_ARCHITECTURE.md) for how the server itself is
+built (module map, request lifecycle, the `add_job` draft state machine,
+guard/validation flow) — this doc covers setup and security, not internals.
+
+The server exposes 7 tools: `list_flows`, `get_prompt`, `submit`,
+`apply_resume_ops`, `list_profiles`, `list_jobs`, `get_job_state`. There is
+no standalone `validate` tool — `submit` already runs the same schema check
+before persisting anything, so a failed `submit` doubles as the dry run.
+Before a job exists yet (mid-`add_job`), `submit` mints a short-lived
+`draftId` and returns it — pass that on subsequent calls instead of
+re-uploading `jobDetails`/the ATS analysis/the tailored resume yourself, and
+`submit`'s response includes the next step's prompt inline as `nextPrompt`
+so a full `add_job` run is 5 tool calls, not 8+.
 
 ## Setup
 

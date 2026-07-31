@@ -2,7 +2,6 @@ import { describe, expect, it } from "vitest";
 
 import {
   applyGuard,
-  guardParsedResume,
   guardProofreadResult,
   guardTailoredResume,
 } from "@/mcp/guards";
@@ -122,26 +121,6 @@ describe("guardTailoredResume", () => {
     const pruned = makeResume({ projects: [] });
 
     expect(() => guardTailoredResume(base, pruned)).not.toThrow();
-  });
-});
-
-describe("guardParsedResume", () => {
-  it("forces sectionLayout to null regardless of what was submitted", () => {
-    const parsed = makeResume({
-      sectionLayout: { order: ["header"], hidden: [], custom: [] },
-    });
-
-    const result = guardParsedResume(parsed);
-
-    expect(result.sectionLayout).toBeNull();
-  });
-
-  it("leaves every other field untouched", () => {
-    const parsed = makeResume();
-
-    const result = guardParsedResume(parsed);
-
-    expect(result).toEqual({ ...parsed, sectionLayout: null });
   });
 });
 

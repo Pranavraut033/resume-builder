@@ -84,7 +84,6 @@ export function nextPurposeFor(
     case "generate_tailored_resume":
       return "generate_cover_letter";
     case "generate_cover_letter":
-    case "parse_resume":
     case "extract_fields_to_edit":
     case "proofread_resume":
     case "fix_ats_issues":
