@@ -222,14 +222,35 @@ export async function fetchJobDescriptionFromUrl(
 
     const html = await response.text();
 
+    // Prefer the semantic <main> region when the page has one - drops global
+    // nav, cookie banners, and sign-in prompts that sit outside it (as on
+    // LinkedIn's public job pages). Falls back to the full page otherwise.
+    // ponytail: takes the first <main>...last </main> span, not proper DOM
+    // parsing - fine for the common single-<main> case, would need a real
+    // parser (e.g. jsdom) for pages that nest more than one.
+    const mainStart = html.search(/<main\b/i);
+    const mainEnd = html.toLowerCase().lastIndexOf("</main>");
+    const mainContent =
+      mainStart !== -1 && mainEnd > mainStart
+        ? html.slice(mainStart, mainEnd)
+        : html;
+
     // Basic text extraction - remove script/style tags and strip HTML
-    const textContent = html
+    const textContent = mainContent
       // Remove script tags and their content
       .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, "")
       // Remove style tags and their content
       .replace(/<style\b[^<]*(?:(?!<\/style>)<[^<]*)*<\/style>/gi, "")
       // Remove HTML comments
       .replace(/<!--[\s\S]*?-->/g, "")
+      // Drop nav/header/footer/aside/form chrome (site nav, cookie banners,
+      // related-jobs rails, sign-in prompts) - not part of the job
+      // description itself.
+      .replace(/<nav\b[^<]*(?:(?!<\/nav>)<[^<]*)*<\/nav>/gi, "")
+      .replace(/<header\b[^<]*(?:(?!<\/header>)<[^<]*)*<\/header>/gi, "")
+      .replace(/<footer\b[^<]*(?:(?!<\/footer>)<[^<]*)*<\/footer>/gi, "")
+      .replace(/<aside\b[^<]*(?:(?!<\/aside>)<[^<]*)*<\/aside>/gi, "")
+      .replace(/<form\b[^<]*(?:(?!<\/form>)<[^<]*)*<\/form>/gi, "")
       // Remove all HTML tags
       .replace(/<[^>]+>/g, " ")
       // Decode common HTML entities

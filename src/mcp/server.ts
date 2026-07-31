@@ -24,6 +24,7 @@ import "@/lib/llm/chat-bot/prompts/extractFieldsToEdit";
 import "@/lib/llm/chat-bot/prompts/keywordMappingPrompt";
 
 import { getAllProfiles, getProfileById } from "@/actions/profile";
+import { fetchJobDescriptionFromUrl } from "@/actions/urlFetcher";
 import {
   createJob as dbCreateJob,
   getAllJob,
@@ -59,7 +60,11 @@ import {
   updateDraft,
 } from "./draft";
 import { FLOW_CATALOG, nextPurposeFor } from "./flows";
-import { applyGuard, guardProofreadResult, guardTailoredResume } from "./guards";
+import {
+  applyGuard,
+  guardProofreadResult,
+  guardTailoredResume,
+} from "./guards";
 
 // ── Dependency injection (tests supply fakes; buildServer() supplies these) ─
 
@@ -383,7 +388,8 @@ async function resolvePrompt(
     draft
   );
   const resolved = PromptSystem.generatePrompt(purpose, context);
-  const hasResume = jobId != null ? resumeRow !== null : draft?.tailoredResume != null;
+  const hasResume =
+    jobId != null ? resumeRow !== null : draft?.tailoredResume != null;
 
   return {
     systemPrompt: resolved.systemPrompt,
@@ -519,7 +525,8 @@ export async function submitTool(
         // No standalone write for jobDetails alone — see generate_cover_letter
         // below for where a brand-new job is actually created. The draft
         // carries this validated JobDetailsJSON forward automatically.
-        if (draftId) updateDraft(draftId, { jobDetails: parsed.data as JobDetailsJSON });
+        if (draftId)
+          updateDraft(draftId, { jobDetails: parsed.data as JobDetailsJSON });
         return withNextPrompt({ ok: true, jobId: null, draftId, next: next() });
       }
 
@@ -570,7 +577,9 @@ export async function submitTool(
         const guardChanges =
           JSON.stringify(submittedLayout) !==
           JSON.stringify(guarded.value.sectionLayout)
-            ? ["sectionLayout carried over from base profile (display-only field, not model-authored)"]
+            ? [
+                "sectionLayout carried over from base profile (display-only field, not model-authored)",
+              ]
             : undefined;
 
         if (jobId != null) {
@@ -783,6 +792,13 @@ export async function listJobsTool(
   }));
 }
 
+export async function fetchUrlTool(args: { url: string }) {
+  const result = await fetchJobDescriptionFromUrl(args.url);
+  return result.success
+    ? { ok: true, content: result.content }
+    : { ok: false, error: result.error };
+}
+
 export async function getJobStateTool(deps: McpDeps, args: { jobId: number }) {
   const job = await deps.getJob(args.jobId);
   const resumeRow = await safeGetResume(deps, args.jobId);
@@ -815,7 +831,9 @@ export function listFlowsTool() {
 // ── McpServer wiring ─────────────────────────────────────────────────────
 
 function toToolResult(payload: unknown) {
-  return { content: [{ type: "text" as const, text: JSON.stringify(payload) }] };
+  return {
+    content: [{ type: "text" as const, text: JSON.stringify(payload) }],
+  };
 }
 
 const purposeSchema = z.enum(MCP_PURPOSES);
@@ -922,6 +940,20 @@ export function buildServer(deps: McpDeps = defaultDeps): McpServer {
       annotations: readOnly,
     },
     async (args) => toToolResult(await listJobsTool(deps, args))
+  );
+
+  server.registerTool(
+    "fetch_url",
+    {
+      title: "Fetch URL",
+      description:
+        "Fetch a job posting URL server-side and return its extracted text content. Use this when a host's own fetch is blocked (e.g. LinkedIn, or other sites requiring a browser/CORS) so a job description can still be parsed. HTTP/HTTPS only; internal/private network addresses are rejected.",
+      inputSchema: {
+        url: z.string().url(),
+      },
+      annotations: readOnly,
+    },
+    async (args) => toToolResult(await fetchUrlTool(args))
   );
 
   server.registerTool(
