@@ -33,6 +33,7 @@
     "fs:allow-read-text-file",
     "fs:default",
     "dialog:allow-open",
+    "dialog:allow-save",
     "dialog:default",
     "process:allow-restart",
     "process:default",

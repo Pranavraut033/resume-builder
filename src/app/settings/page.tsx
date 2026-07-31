@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState, useEffect, useRef } from "react";
 
 import { exportAppData, importAppData } from "@/actions/backup";
@@ -23,6 +24,15 @@ import { setApiKey, getApiKey, isTauriContext } from "@/lib/keyStorage";
 import { validateProviderConnection } from "@/lib/llm/clientLLM";
 import { getAvailableProviders } from "@/lib/llm/providers";
 import { createLogger } from "@/lib/logger";
+import {
+  startMcpServer,
+  stopMcpServer,
+  getMcpServerStatus,
+  getMcpStdioCommand,
+  MCP_SERVER_PORT,
+  McpStdioCommand,
+} from "@/lib/mcpServer";
+import { useMcpServerStore } from "@/store/mcpServerStore";
 import { useModelStore } from "@/store/modelStore";
 import { ProviderType } from "@/types/llm";
 
@@ -52,6 +62,36 @@ export default function SettingsPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { state: updaterState, checkForUpdates } = useAppUpdaterContext();
   const [checkingForUpdates, setCheckingForUpdates] = useState(false);
+
+  const { setEnabled: setMcpEnabled } = useMcpServerStore();
+  const [mcpRunning, setMcpRunning] = useState(false);
+  const [mcpPending, setMcpPending] = useState(false);
+  const [mcpConfigCopied, setMcpConfigCopied] = useState(false);
+  const [mcpStdioCommand, setMcpStdioCommand] =
+    useState<McpStdioCommand | null>(null);
+
+  useEffect(() => {
+    if (!isTauriContext()) return;
+    let cancelled = false;
+    getMcpServerStatus()
+      .then((running) => {
+        if (!cancelled) setMcpRunning(running);
+      })
+      .catch((err) => {
+        logger.error("Error checking MCP server status", { err });
+      });
+    // Rejects in dev (nothing bundled under `resources/next/mcp/` outside a
+    // release build) — mcpStdioCommand just stays null, and the snippet
+    // below falls back to the repo-clone / `npm run mcp` instructions.
+    getMcpStdioCommand()
+      .then((command) => {
+        if (!cancelled) setMcpStdioCommand(command);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const handleCheckForUpdates = async () => {
     setCheckingForUpdates(true);
@@ -231,6 +271,68 @@ export default function SettingsPage() {
       await restoreFromText(await file.text());
     } finally {
       e.target.value = "";
+    }
+  };
+
+  const handleMcpToggle = async (next: boolean) => {
+    setMcpPending(true);
+    try {
+      if (next) {
+        await startMcpServer();
+        setMcpRunning(true);
+        setMcpEnabled(true);
+      } else {
+        await stopMcpServer();
+        setMcpRunning(false);
+        setMcpEnabled(false);
+      }
+    } catch (err) {
+      logger.error("Error toggling MCP server", { err });
+      pushToast({
+        title: next ? "Couldn't start MCP server" : "Couldn't stop MCP server",
+        description:
+          err instanceof Error
+            ? err.message
+            : "Please try again, and check $APPDATA/logs/mcp.log for details.",
+        variant: "error",
+      });
+    } finally {
+      setMcpPending(false);
+    }
+  };
+
+  // Points at THIS install's own bundled Node + stdio.js when available
+  // (built app) — no repo clone or system Node needed. Falls back to the
+  // dev workflow (this repo checked out, `npm run mcp`) only when running
+  // under `tauri dev`, where nothing is bundled yet.
+  const claudeDesktopConfigSnippet = JSON.stringify(
+    {
+      mcpServers: {
+        "resume-builder": mcpStdioCommand
+          ? {
+              command: mcpStdioCommand.nodePath,
+              args: [mcpStdioCommand.stdioPath],
+              env: { DATABASE_URL: mcpStdioCommand.databaseUrl },
+            }
+          : {
+              command: "npm",
+              args: ["run", "mcp"],
+              cwd: "<path to your resume-builder repo checkout>",
+            },
+      },
+    },
+    null,
+    2
+  );
+
+  const handleCopyMcpConfig = async () => {
+    try {
+      await navigator.clipboard.writeText(claudeDesktopConfigSnippet);
+      setMcpConfigCopied(true);
+      setTimeout(() => setMcpConfigCopied(false), 2000);
+    } catch (err) {
+      logger.error("Error copying MCP config snippet", { err });
+      pushToast({ title: "Couldn't copy to clipboard", variant: "error" });
     }
   };
 
@@ -481,6 +583,72 @@ export default function SettingsPage() {
             />
           </SurfacePanel>
         </PageSection>
+
+        {/* MCP Server — desktop-only, spawns/kills the bundled MCP server */}
+        {isTauriContext() && (
+          <PageSection title="MCP Server">
+            <SurfacePanel stack>
+              <SettingsRow
+                label="External AI Access (MCP Server)"
+                description="Let an external MCP client (e.g. Claude Desktop) drive this app's resume flows using your own chat subscription instead of an API key. Off by default."
+                control={
+                  <Toggle
+                    checked={mcpRunning}
+                    onChange={(checked) => handleMcpToggle(checked)}
+                    disabled={mcpPending}
+                    label="MCP Server"
+                  />
+                }
+              />
+
+              <p className="text-agent-on-surface-variant text-sm">
+                Prefer Claude Code (CLI) over Claude Desktop?{" "}
+                <Link
+                  href="/settings/mcp"
+                  className="text-agent-primary underline"
+                >
+                  See setup instructions
+                </Link>
+                .
+              </p>
+
+              {mcpRunning && (
+                <div className="bg-agent-surface-container space-y-3 rounded-xl px-4 py-3">
+                  <p className="text-agent-on-surface text-sm">
+                    Running on{" "}
+                    <code className="text-agent-primary font-mono">
+                      http://127.0.0.1:{MCP_SERVER_PORT}
+                    </code>
+                  </p>
+                  <div>
+                    <div className="mb-1.5 flex items-center justify-between">
+                      <p className="text-agent-on-surface-variant text-xs font-semibold tracking-wider uppercase">
+                        claude_desktop_config.json
+                      </p>
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        onClick={handleCopyMcpConfig}
+                      >
+                        {mcpConfigCopied ? "Copied" : "Copy"}
+                      </Button>
+                    </div>
+                    <pre className="bg-agent-surface text-agent-on-surface overflow-x-auto rounded-lg p-3 text-xs">
+                      <code>{claudeDesktopConfigSnippet}</code>
+                    </pre>
+                    <p className="text-agent-on-surface-variant mt-2 text-xs">
+                      {mcpStdioCommand
+                        ? "Points at this install's own bundled Node + stdio.js — no repo clone or separate Node install needed."
+                        : "No bundled entrypoint found (expected only in a dev build) — falling back to the repo-checkout dev workflow."}{" "}
+                      See <code>docs/MCP.md</code> for the HTTP alternative and
+                      full setup.
+                    </p>
+                  </div>
+                </div>
+              )}
+            </SurfacePanel>
+          </PageSection>
+        )}
 
         {/* General Preferences */}
         <PageSection title="General Preferences">

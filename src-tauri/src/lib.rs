@@ -12,10 +12,11 @@ use tauri::{Manager, WebviewUrl};
 
 mod browser;
 mod keychain;
+mod mcp_server;
 
 struct NextServerState(Mutex<Option<Child>>);
 
-fn wait_for_local_server(host: &str, port: u16, timeout: Duration) -> bool {
+pub(crate) fn wait_for_local_server(host: &str, port: u16, timeout: Duration) -> bool {
     let address = format!("{host}:{port}");
     let start = Instant::now();
 
@@ -228,6 +229,11 @@ pub fn run() {
 
             app.manage(NextServerState(Mutex::new(next_server_child)));
 
+            // Unlike NextServerState, this is never populated here — the MCP
+            // server only starts when the user turns the Settings toggle on
+            // (mcp_server::mcp_server_start), in both dev and release.
+            app.manage(mcp_server::McpServerState(Mutex::new(None)));
+
             let mut window_config = app
                 .config()
                 .app
@@ -261,6 +267,11 @@ pub fn run() {
             browser::browser_set_bounds,
             browser::browser_destroy_all,
             keychain::get_or_create_master_key,
+            mcp_server::mcp_server_start,
+            mcp_server::mcp_server_stop,
+            mcp_server::mcp_server_status,
+            mcp_server::mcp_server_stdio_command,
+            mcp_server::export_cowork_plugin,
         ])
         .build(tauri::generate_context!())
         .unwrap_or_else(|error| {
@@ -271,6 +282,13 @@ pub fn run() {
     app.run(|app_handle, event| {
         if let tauri::RunEvent::Exit = event {
             if let Some(state) = app_handle.try_state::<NextServerState>() {
+                if let Ok(mut guard) = state.0.lock() {
+                    if let Some(mut child) = guard.take() {
+                        let _ = child.kill();
+                    }
+                }
+            }
+            if let Some(state) = app_handle.try_state::<mcp_server::McpServerState>() {
                 if let Ok(mut guard) = state.0.lock() {
                     if let Some(mut child) = guard.take() {
                         let _ = child.kill();

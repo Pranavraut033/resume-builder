@@ -87,6 +87,10 @@ Section content (order, visibility, custom sections) is resolved once via `build
 
 `src/app/job/[jobId]/` + `src/components/job-v2/` — the Inline Editor: WYSIWYG inline editing directly on the rendered document (`InlineJobPageLayout.tsx`, `DocumentCanvas.tsx` with zoom controls, `resume/InlineField.tsx`, `InlineEditContext.tsx`, `ChatOverlay.tsx`, `CustomizationDrawer.tsx`, `TemplatePicker.tsx`, `HistoryDrawer.tsx` for resume version history, `HumanizerModal.tsx` for AI humanizing, `ProofreadDrawer.tsx` for reviewing/applying LLM-judged proofread issues (deterministic lint fixes are auto-applied), `CoverLetterActionBar.tsx` for cover-letter regeneration with selectable tone/style presets from `src/lib/llm/prompts/coverLetterStyles.ts`). The chat assistant (`src/lib/llm/chat-bot/`) supports intents including resume tailoring, cover letter generation, humanize, proofread, fix-all-ATS-issues, and undo. This is now the only job detail page implementation — the earlier drag-and-drop editor and its standalone `/inline` route were removed. `src/app/documents/` lists all generated resumes/cover letters with version history across jobs.
 
+### MCP server
+
+`src/mcp/` exposes this app's resume flows (job parsing, tailoring, ATS analysis, cover letter generation, editing, proofreading, humanizing) as [Model Context Protocol](https://modelcontextprotocol.io) tools, so an external chat host (Claude Desktop, etc.) can drive them on the user's own subscription instead of a configured provider API key. It's purely additive and opt-in (off by default, toggled in Settings) — `Chatbot.ts` and the in-app chat are untouched. The server only reads/writes the same local SQLite database the app already uses and reuses the app's own prompt registry/validation/persistence layer; it never calls an LLM itself and never touches API keys. See `docs/MCP.md` for setup/security details and `skills/resume-mcp/SKILL.md` for the tool-driving runbook.
+
 ### External links
 
 `src/components/ExternalLinkGuard.tsx` intercepts anchor clicks app-wide and confirms with the user before opening external URLs via `src/lib/externalLink.ts` (`tauri-plugin-opener` on desktop, `window.open` on web) instead of navigating in-app.
@@ -121,5 +125,6 @@ On every launch, `sync_database_schema` (`src-tauri/src/lib.rs`) runs `migrate-a
 ## Skills
 
 - `tailwind-ui-designer` (`.claude/skills/tailwind-ui-designer/SKILL.md`) — invoke whenever the user asks to build, restyle, or improve UI. Enforces the Tailwind v4 styling constraints above and follows the `frontend-design` skill.
+- `resume-mcp` (`skills/resume-mcp/SKILL.md`) — for an MCP-connected host (not Claude Code itself) driving this app's resume flows via `src/mcp/`; the step-by-step tool-chain runbook referenced from `docs/MCP.md`.
 
 <!-- last-sync-docs: 9e4897c43186ab180af5242edd09d31fd2cfae0b -->

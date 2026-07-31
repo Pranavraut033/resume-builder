@@ -1,6 +1,15 @@
-import { execFileSync } from "node:child_process";
+import { execFileSync, spawn } from "node:child_process";
 import { createWriteStream, existsSync } from "node:fs";
-import { chmod, cp, mkdir, mkdtemp, rm } from "node:fs/promises";
+import {
+  chmod,
+  cp,
+  lstat,
+  mkdir,
+  mkdtemp,
+  readFile,
+  rm,
+  writeFile,
+} from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { Readable } from "node:stream";
@@ -11,6 +20,159 @@ const standaloneDir = path.join(root, ".next", "standalone");
 const staticDir = path.join(root, ".next", "static");
 const publicDir = path.join(root, "public");
 const outputDir = path.join(root, "src-tauri", "resources", "next");
+const distMcpDir = path.join(root, "dist-mcp");
+const mcpOutputDir = path.join(outputDir, "mcp");
+
+// tsup (tsup.mcp.config.ts) leaves some dependencies as plain `require(...)`
+// calls rather than inlining them, and those in turn `require()` their OWN
+// dependencies at runtime — transitively, arbitrarily deep. Two prior
+// versions of this function guessed at that set (a hardcoded list, then a
+// package.json-"dependencies" walk) and both shipped a build that crashed
+// with a real Cannot-find-module error, because both guess from metadata
+// instead of asking Node what it actually resolves. Walking package.json by
+// name is specifically unsound here: npm nests a different version of a
+// package (e.g. ajv) inside a dependency's own node_modules when a version
+// conflict requires it (@modelcontextprotocol/sdk needs ajv@8, this repo's
+// hoisted root ajv is an unrelated v6 with a different dependency set) — a
+// name-only lookup silently reads the WRONG package.json and misses real
+// transitive deps like fast-uri.
+//
+// So: actually run the two built entry points with a require-patching
+// preload (same technique @vercel/nft/pkg/nexe use), record every absolute
+// path Node resolves outside our own dist-mcp output, then copy exactly
+// those package directories — preserving whatever nested-vs-hoisted
+// structure npm actually laid out on disk, which is what makes Node's own
+// module resolution find the right version at runtime instead of a
+// same-named-but-wrong-version one three levels up.
+const TRACE_PRELOAD = `
+const Module = require("node:module");
+const fs = require("node:fs");
+const resolved = new Set();
+const original = Module._resolveFilename;
+Module._resolveFilename = function (request, ...rest) {
+  const result = original.call(this, request, ...rest);
+  if (typeof result === "string" && result.includes("node_modules")) {
+    resolved.add(result);
+  }
+  return result;
+};
+function flush() {
+  try {
+    fs.writeFileSync(process.env.__TRACE_OUTPUT__, JSON.stringify([...resolved]));
+  } catch {}
+}
+process.on("exit", flush);
+process.on("SIGTERM", () => {
+  flush();
+  process.exit(0);
+});
+`;
+
+// Loading src/mcp/http.ts's built output runs its top-level main() (opens
+// the DB, starts listening) as a side effect of require()ing it — that's
+// the whole point of the trace (it has to actually load the real require
+// graph), but it means this needs a scratch DB/port, and a deliberate kill
+// once the (synchronous, require-time) graph has settled rather than a
+// signal that the process would otherwise never send on its own.
+async function traceRuntimeDependencies(entryFiles, traceDir) {
+  const preloadPath = path.join(traceDir, "trace-preload.cjs");
+  await writeFile(preloadPath, TRACE_PRELOAD);
+
+  const resolvedPaths = new Set();
+
+  for (const [index, entryFile] of entryFiles.entries()) {
+    const outputPath = path.join(traceDir, `resolved-${index}.json`);
+    const child = spawn(
+      process.execPath,
+      ["--require", preloadPath, entryFile],
+      {
+        cwd: distMcpDir,
+        env: {
+          ...process.env,
+          DATABASE_URL: `file:${path.join(traceDir, "trace.db")}`,
+          PORT: String(39500 + index),
+          __TRACE_OUTPUT__: outputPath,
+        },
+        stdio: "ignore",
+      }
+    );
+
+    // Give the (synchronous) require graph time to fully resolve before
+    // killing — this is trace-time settle, not a health check; http.js
+    // never exits on its own once its server is listening, but stdio.js
+    // DOES (stdin is /dev/null here, so its transport sees immediate EOF
+    // and exits cleanly well before this timeout) — `exit` only fires once
+    // and isn't replayed, so attaching the listener after an early exit
+    // already happened would hang this await forever. Check first.
+    await new Promise((resolve) => setTimeout(resolve, 1500));
+    if (child.exitCode === null && child.signalCode === null) {
+      child.kill("SIGTERM");
+      await new Promise((resolve) => child.once("exit", resolve));
+    }
+
+    if (existsSync(outputPath)) {
+      for (const p of JSON.parse(await readFile(outputPath, "utf8"))) {
+        resolvedPaths.add(p);
+      }
+    }
+  }
+
+  return resolvedPaths;
+}
+
+// Symlinked packages (this repo's two `file:packages/...` submodule deps,
+// e.g. @pranavraut033/llm-core) are the one case the require-trace above
+// structurally can't see: Node resolves a symlinked module to its REAL
+// filesystem path (packages/llm-core/..., not node_modules/@pranavraut033/
+// llm-core/...) before Module._resolveFilename ever returns it, so the
+// trace's own "does this path contain node_modules" filter excludes it —
+// there's no node_modules segment left in the resolved path to find. Detect
+// these by name (from the same simple require() scan used everywhere else
+// in this file) and symlink-ness (lstat), not by walking package.json.
+function directRequireSpecifierPackageNames(code) {
+  const names = new Set();
+  for (const match of code.matchAll(/require\(["']([^"'./][^"']*)["']\)/g)) {
+    const specifier = match[1];
+    const segments = specifier.split("/");
+    names.add(
+      specifier.startsWith("@") ? segments.slice(0, 2).join("/") : segments[0]
+    );
+  }
+  return names;
+}
+
+// Given an absolute resolved file path, return its package's path relative
+// to the node_modules directory that contains it — preserving any nested
+// "node_modules/pkg/node_modules/pkg2" structure exactly as npm laid it out,
+// e.g. "@modelcontextprotocol/sdk/node_modules/ajv" (not flattened to just
+// "ajv", which is what caused the version-conflict bug this replaces).
+function packageRelativePathFor(resolvedFile) {
+  const marker = `${path.sep}node_modules${path.sep}`;
+  const firstIndex = resolvedFile.indexOf(marker);
+  if (firstIndex === -1) return null;
+
+  const afterFirst = resolvedFile
+    .slice(firstIndex + marker.length)
+    .split(path.sep);
+  const segments = [];
+  let i = 0;
+  while (i < afterFirst.length) {
+    if (afterFirst[i].startsWith("@")) {
+      segments.push(afterFirst[i], afterFirst[i + 1]);
+      i += 2;
+    } else {
+      segments.push(afterFirst[i]);
+      i += 1;
+    }
+    if (afterFirst[i] === "node_modules") {
+      segments.push(afterFirst[i]);
+      i += 1;
+      continue;
+    }
+    break;
+  }
+  return segments.join("/");
+}
 
 // The end user isn't expected to have Node installed — Tauri's Rust side
 // (src-tauri/src/lib.rs) spawns a bundled `node` binary rather than
@@ -69,6 +231,111 @@ async function downloadNodeRuntime() {
   const bundledBinary = path.join(outputBinDir, "node");
   await cp(cachedBinary, bundledBinary);
   await chmod(bundledBinary, 0o755);
+}
+
+/**
+ * Bundles `src/mcp/{stdio,http}.ts` (built by `npm run build:mcp` into
+ * `dist-mcp/`) into `resources/next/mcp/`, next to the already-bundled Next
+ * server, so `src-tauri/src/mcp_server.rs::spawn_mcp_server` can reuse that
+ * same bundled Node binary rather than shipping a second Node runtime — see
+ * that file's own doc comments for the dev-vs-release DATABASE_URL split.
+ */
+async function bundleMcpServer() {
+  if (!existsSync(distMcpDir)) {
+    console.log("dist-mcp not found, running `npm run build:mcp` first...");
+    const npm = process.platform === "win32" ? "npm.cmd" : "npm";
+    execFileSync(npm, ["run", "build:mcp"], { cwd: root, stdio: "inherit" });
+  }
+
+  await mkdir(mcpOutputDir, { recursive: true });
+  const entryFiles = ["stdio.js", "http.js"];
+  for (const file of [...entryFiles, "stdio.js.map", "http.js.map"]) {
+    const src = path.join(distMcpDir, file);
+    if (existsSync(src)) {
+      await cp(src, path.join(mcpOutputDir, file));
+    }
+  }
+
+  // Bundled alongside stdio.js/http.js so `mcp_server.rs::export_cowork_plugin`
+  // can package it into a downloadable plugin without any new tauri.conf.json
+  // resources entry — it rides along inside the already-bundled mcp/ dir.
+  const skillSrc = path.join(root, "skills", "resume-mcp", "SKILL.md");
+  if (existsSync(skillSrc)) {
+    const skillOutDir = path.join(mcpOutputDir, "skills", "resume-mcp");
+    await mkdir(skillOutDir, { recursive: true });
+    await cp(skillSrc, path.join(skillOutDir, "SKILL.md"));
+  }
+
+  const traceDir = await mkdtemp(path.join(os.tmpdir(), "mcp-trace-"));
+  let resolvedPaths;
+  try {
+    resolvedPaths = await traceRuntimeDependencies(entryFiles, traceDir);
+  } finally {
+    await rm(traceDir, { recursive: true, force: true });
+  }
+
+  const outputNodeModules = path.join(outputDir, "node_modules");
+  const packageRelativePaths = new Set();
+  for (const resolvedFile of resolvedPaths) {
+    // Only our own dist-mcp output resolves outside node_modules entirely
+    // (its own directory) — everything real gets a relative path here.
+    const rel = packageRelativePathFor(resolvedFile);
+    if (rel) packageRelativePaths.add(rel);
+  }
+
+  for (const relPath of packageRelativePaths) {
+    const dest = path.join(outputNodeModules, relPath);
+    if (existsSync(dest)) continue;
+
+    // Recover the real source directory by re-finding the same relative
+    // path under a real node_modules on disk — every resolved path traced
+    // above already came from somewhere with that exact structure, so any
+    // resolved file whose path ends in `/node_modules/${relPath}/...`
+    // points at the right source; take the first match.
+    const marker = `${path.sep}node_modules${path.sep}${relPath}${path.sep}`;
+    const exampleFile = [...resolvedPaths].find((p) => p.includes(marker));
+    if (!exampleFile) continue; // relPath was itself a package root with no traced file under it — shouldn't happen
+    const src = exampleFile.slice(
+      0,
+      exampleFile.indexOf(marker) + marker.length - 1
+    );
+    if (!existsSync(src)) continue;
+
+    await mkdir(path.dirname(dest), { recursive: true });
+    // dereference: some transitively-discovered packages can themselves be
+    // symlinks too (not just the two submodules handled below) — copy real
+    // contents so the bundled output stays self-contained either way.
+    await cp(src, dest, { recursive: true, dereference: true });
+  }
+
+  // Symlinked direct dependencies (see directRequireSpecifierPackageNames's
+  // doc comment) — the trace above can't see these at all.
+  const directNames = new Set();
+  for (const file of entryFiles) {
+    const src = path.join(distMcpDir, file);
+    if (!existsSync(src)) continue;
+    for (const name of directRequireSpecifierPackageNames(
+      await readFile(src, "utf8")
+    )) {
+      directNames.add(name);
+    }
+  }
+  for (const name of directNames) {
+    const dest = path.join(outputNodeModules, name);
+    if (existsSync(dest)) continue;
+
+    const src = path.join(root, "node_modules", name);
+    let stats;
+    try {
+      stats = await lstat(src);
+    } catch {
+      continue;
+    }
+    if (!stats.isSymbolicLink()) continue; // real node_modules entries are the trace's job
+
+    await mkdir(path.dirname(dest), { recursive: true });
+    await cp(src, dest, { recursive: true, dereference: true });
+  }
 }
 
 async function main() {
@@ -138,6 +405,7 @@ async function main() {
   );
 
   await downloadNodeRuntime();
+  await bundleMcpServer();
 
   console.log("Prepared bundled Next standalone server for Tauri:", outputDir);
 }

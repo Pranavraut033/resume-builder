@@ -27,6 +27,7 @@
 - **Documents view**: browse all generated resumes and cover letters across jobs (`/documents`)
 - **PDF & TXT export**: generate application-ready documents
 - **Multiple LLM providers**: OpenAI, Google Gemini, Anthropic (Claude), xAI Grok, Perplexity, local Ollama, or a managed pay-as-you-go gateway (no key required) — switch per job
+- **MCP server (optional)**: drive the same job-parsing/tailoring/ATS/proofreading/humanizing flows from Claude Desktop or another MCP host on your own chat subscription, no API key configured in this app required — opt-in toggle in **Settings**, off by default; see [docs/MCP.md](./docs/MCP.md)
 - **Secure key storage**: API keys are AES-256-GCM encrypted on disk (desktop), keyed off a per-install master key held in the OS keychain, or `localStorage` (web) — never on the server
 - **Backup & restore**: export the entire local database to a JSON file and restore it later, from **Settings**
 - **Local-first**: all data in a local SQLite database; no mandatory cloud dependency
@@ -115,6 +116,8 @@ The app is **self-signed** (not signed by a CA-trusted/registered publisher), so
 
 The optional **managed provider** is an alternative to BYOK for users without their own key: `server/llm-gateway/` is a separate, self-hosted LiteLLM proxy (+ a Stripe webhook handler for prepaid credits) that the client talks to exactly like any other OpenAI-compatible endpoint — it doesn't change the Next.js server's DB-only role. See [server/llm-gateway/README.md](./server/llm-gateway/README.md) for self-hosting it.
 
+The optional **MCP server** (`src/mcp/`) is a third, purely additive way to drive the same flows: an external chat host (Claude Desktop, etc.) reasons on its own subscription while the server hands out this app's prompts and validates/persists results into the same local SQLite database — no LLM calls and no API keys touched inside the server itself. Off by default; see [docs/MCP.md](./docs/MCP.md).
+
 ## Getting Started
 
 ### Prerequisites
@@ -186,7 +189,9 @@ udaan/
 │   │   ├── pdf/                   # PDF generation engine (mirrors the DOM engine)
 │   │   ├── prisma.ts             # Prisma client singleton
 │   │   └── keyStorage.ts         # Tauri/localStorage API key storage
+│   ├── mcp/                      # Optional MCP server exposing resume flows as tools (see docs/MCP.md)
 │   └── types/                    # Shared TypeScript types
+├── skills/resume-mcp/             # SKILL.md runbook for driving the MCP server's tool chain
 ├── packages/llm-core/             # LLM provider base classes, prompt resolver, registry (local package)
 ├── packages/ats-checker/          # ATS scoring/parsing logic (local package)
 ├── server/llm-gateway/            # Optional self-hosted LiteLLM proxy for the managed provider
@@ -198,7 +203,8 @@ udaan/
     ├── plans/                     # PRDs, requirements, implementation plans
     ├── QUICK_REFERENCE.md
     ├── UI_COMPONENTS_GUIDE.md
-    └── DISTRIBUTION.md
+    ├── DISTRIBUTION.md
+    └── MCP.md                     # MCP server setup, security, troubleshooting
 ```
 
 ## Available Scripts

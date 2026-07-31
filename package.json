@@ -27,7 +27,9 @@
     "test:run": "vitest run",
     "test:coverage": "vitest run --coverage",
     "test:e2e": "playwright test",
-    "test:e2e:ui": "playwright test --ui"
+    "test:e2e:ui": "playwright test --ui",
+    "mcp": "tsx src/mcp/stdio.ts",
+    "build:mcp": "tsup --config tsup.mcp.config.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.92.0",
@@ -36,6 +38,7 @@
     "@dnd-kit/utilities": "^3.2.2",
     "@google/genai": "^2",
     "@headlessui/react": "^2.2.9",
+    "@modelcontextprotocol/sdk": "^1.30.0",
     "@pranavraut033/ats-checker": "file:packages/ats-checker",
     "@pranavraut033/llm-core": "file:packages/llm-core",
     "@prisma/adapter-better-sqlite3": "^7.2.0",
@@ -60,8 +63,10 @@
     "@tiptap/starter-kit": "^3.23.4",
     "@types/better-sqlite3": "^7.6.13",
     "@types/handlebars": "^4.0.40",
+    "better-sqlite3": "^12.11.1",
     "clsx": "^1.2.1",
     "dompurify": "^3.4.3",
+    "dotenv": "^17.4.2",
     "fast-json-patch": "^3.1.1",
     "handlebars": "^4.7.8",
     "lucide-react": "^0.561.0",

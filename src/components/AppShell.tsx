@@ -12,6 +12,7 @@ import { CacheInitializer } from "./CacheInitializer";
 import { DevKeySeeder } from "./DevKeySeeder";
 import { ExternalLinkGuard } from "./ExternalLinkGuard";
 import { KeychainNoticeGate } from "./KeychainNoticeGate";
+import { McpServerAutostart } from "./McpServerAutostart";
 import { Header } from "./ui";
 import { ToastProvider } from "./ui/ToastProvider";
 import { UpdatePrompt } from "./UpdatePrompt";
@@ -32,6 +33,7 @@ export default function AppShell({ children }: AppShellProps) {
             <DevKeySeeder />
             <ExternalLinkGuard />
             <KeychainNoticeGate />
+            <McpServerAutostart />
           </AppUpdaterProvider>
         </ToastProvider>
       </ThemeProvider>

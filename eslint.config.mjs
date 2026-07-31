@@ -79,6 +79,7 @@ const eslintConfig = defineConfig([
     "drizzle/meta/_journal.json",
     "drizzle/0000_*.sql",
     "**/dist/**",
+    "dist-mcp/**",
     "node_modules/**",
     ".vscode/**",
     "prisma/migrations/**",

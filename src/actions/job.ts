@@ -1,120 +1,29 @@
 "use server";
 
-import {
-  Company,
-  Contact,
-  CoverLetter,
-  Customization,
-  Job,
-  Resume,
-} from "@prisma/client";
+import { Customization } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 
+import * as dbJob from "@/lib/db/job";
 import { prisma } from "@/lib/prisma";
 import {
-  DEFAULT_CUSTOMIZATION,
   SanitizedCustomization,
   validateCustomization,
 } from "@/types/customization";
 import { JobStatus, JOB_STATUSES } from "@/types/job";
-import {
-  ResumeJSON,
-  JobDetailsJSON,
-  ATSAnalysisJSON,
-  ATSAnalysisSchema,
-  normalizeSkills,
-} from "@/types/resume";
+import { ResumeJSON, ATSAnalysisJSON, normalizeSkills } from "@/types/resume";
 
 /**
  * Create a new job with parsed details, resume, and cover letter
  * Note: Job parsing, resume generation, and cover letter generation happen on client side
  */
-export async function createJob(input: {
-  jobDetails: JobDetailsJSON;
-  tailoredResume?: ResumeJSON;
-  coverLetterText?: string;
-  atsAnalysis?: ATSAnalysisJSON | null;
-  url?: string;
-  profileId?: number;
-}): Promise<{ jobId: number }> {
-  const {
-    jobDetails,
-    tailoredResume,
-    coverLetterText,
-    atsAnalysis,
-    url,
-    profileId,
-  } = input;
-
-  const data: Parameters<typeof prisma.job.create>[0]["data"] = {
-    role: jobDetails.job.job_title,
-    description: jobDetails.raw_description,
-    // Use human-friendly Title Case default status expected by tests
-    status: "Draft",
-    jobDetailsJson: JSON.stringify(jobDetails),
-    url: url || null,
-    ...(profileId ? { profile: { connect: { id: profileId } } } : {}),
-    company: {
-      create: {
-        name: jobDetails.company.company_name,
-        industry: jobDetails.company.company_industry,
-        description: jobDetails.company.company_description,
-        marketPosition: jobDetails.company.company_market_position,
-        locationCity: jobDetails.company.company_location_city,
-        locationCountry: jobDetails.company.company_location_country,
-        officeLocationDetails: jobDetails.company.office_location_details,
-      },
-    },
-  };
-
-  const hasContact =
-    (!!jobDetails.contact &&
-      (!!jobDetails.contact.contact_email ||
-        !!jobDetails.contact.contact_phone ||
-        !!jobDetails.contact.recruiter_name ||
-        !!jobDetails.contact.recruiter_role)) ??
-    false;
-
-  if (hasContact) {
-    data.contact = {
-      create: {
-        recruiterName: jobDetails.contact.recruiter_name,
-        recruiterRole: jobDetails.contact.recruiter_role,
-        contactEmail: jobDetails.contact.contact_email,
-        contactPhone: jobDetails.contact.contact_phone,
-        contactWhatsappAvailable: jobDetails.contact.contact_whatsapp_available,
-      },
-    };
-  }
-
-  if (atsAnalysis) {
-    data.baseProfileAnalysis = {
-      create: { contentJson: JSON.stringify(atsAnalysis) },
-    };
-  }
-
-  if (tailoredResume) {
-    data.resume = {
-      create: {
-        contentJson: JSON.stringify(tailoredResume),
-        customizations: { create: { ...DEFAULT_CUSTOMIZATION } },
-      },
-    };
-  }
-
-  if (coverLetterText) {
-    data.coverLetter = {
-      create: {
-        contentText: coverLetterText,
-        customizations: { create: { ...DEFAULT_CUSTOMIZATION } },
-      },
-    };
-  }
-  const job = await prisma.job.create({ data });
+export async function createJob(
+  input: Parameters<typeof dbJob.createJob>[0]
+): Promise<{ jobId: number }> {
+  const result = await dbJob.createJob(input);
 
   revalidatePath("/");
 
-  return { jobId: job.id };
+  return result;
 }
 
 /**
@@ -138,53 +47,16 @@ export async function getJobById(id: number) {
   return job;
 }
 
-export type JobData = Omit<Job, "baseProfileAnalysis"> & {
-  details: JobDetailsJSON;
-  baseProfileAnalysis: ATSAnalysisJSON | null;
-  contact: Contact | null;
-  company: Company;
-};
-
-/**
- * Get full job context with all details for resume editing
- * Includes parsed job details for LLM-assisted generation
- */
+// Next-free (no revalidatePath) — see src/lib/db/job.ts for why this and
+// the other three thin wrappers below delegate there instead of holding
+// their own Prisma logic: the MCP server imports the same implementations
+// directly and must never pull in next/cache transitively. A bare
+// `export { getJob } from "@/lib/db/job"` re-export would be simpler, but
+// Next's "use server" compiler rejects any export in this file that isn't a
+// locally-declared async function — hence the wrapper.
+export type { JobData } from "@/lib/db/job";
 export async function getJob(jobId: number) {
-  const job = await prisma.job.findUniqueOrThrow({
-    where: { id: jobId },
-    include: {
-      company: true,
-      contact: true,
-      baseProfileAnalysis: true,
-    },
-  });
-
-  let jobDetails: JobDetailsJSON;
-  try {
-    jobDetails = JSON.parse(job.jobDetailsJson) as JobDetailsJSON;
-  } catch {
-    throw new Error(`Failed to parse jobDetailsJson for job ${jobId}`);
-  }
-
-  let baseProfileAnalysis: ATSAnalysisJSON | null = null;
-  if (job.baseProfileAnalysis?.contentJson) {
-    try {
-      baseProfileAnalysis = ATSAnalysisSchema.parse(
-        JSON.parse(job.baseProfileAnalysis.contentJson)
-      );
-    } catch {
-      console.error(
-        "Failed to parse baseProfileAnalysis contentJson for job",
-        jobId
-      );
-    }
-  }
-
-  return {
-    ...job,
-    details: jobDetails,
-    baseProfileAnalysis: baseProfileAnalysis,
-  };
+  return dbJob.getJob(jobId);
 }
 
 /**
@@ -215,42 +87,8 @@ export async function deleteJob(id: number) {
   return { success: true };
 }
 
-/**
- * Get resume for a job
- */
-export async function getResumeByJobId(jobId: number): Promise<
-  Omit<Resume, "contentJson"> & {
-    contentJson: ResumeJSON;
-    customizations: Customization;
-    atsAnalysis: ATSAnalysisJSON | null;
-  }
-> {
-  return await prisma.job
-    .findFirstOrThrow({
-      where: { id: jobId },
-      select: {
-        resume: { include: { customizations: true, atsAnalysis: true } },
-      },
-    })
-    .then((job) => {
-      if (!job.resume) {
-        throw new Error(`Resume not found for job ${jobId}`);
-      }
-
-      const contentJson = JSON.parse(job.resume.contentJson) as ResumeJSON;
-      return {
-        ...job.resume,
-        contentJson: {
-          ...contentJson,
-          skills: normalizeSkills(contentJson.skills),
-        },
-        atsAnalysis: job.resume.atsAnalysis?.contentJson
-          ? ATSAnalysisSchema.parse(
-              JSON.parse(job.resume.atsAnalysis.contentJson)
-            )
-          : null,
-      };
-    });
+export async function getResumeByJobId(jobId: number) {
+  return dbJob.getResumeByJobId(jobId);
 }
 
 const MAX_RESUME_SNAPSHOTS = 20;
@@ -264,33 +102,15 @@ export async function updateResume(
   customization: SanitizedCustomization,
   label = "Manual save"
 ) {
-  const job = await prisma.job.findUniqueOrThrow({
-    where: { id: jobId },
-    select: { resume: { select: { id: true, contentJson: true } } },
-  });
-
-  const nextContentJson = JSON.stringify(contentJson);
-
-  await Promise.all([
-    prisma.job.update({
-      where: { id: jobId },
-      data: {
-        resume: {
-          update: {
-            contentJson: nextContentJson,
-            updatedAt: new Date(),
-          },
-        },
-      },
-    }),
-    updateOrCreateCustomization(customization),
-    job.resume && job.resume.contentJson !== nextContentJson
-      ? snapshotResume(job.resume.id, job.resume.contentJson, label)
-      : Promise.resolve(),
-  ]);
+  const result = await dbJob.updateResume(
+    jobId,
+    contentJson,
+    customization,
+    label
+  );
 
   revalidatePath(`/job/${jobId}/resume`);
-  return { success: true };
+  return result;
 }
 
 async function snapshotResume(
@@ -375,28 +195,10 @@ export async function saveAtsAnalysis(
   jobId: number,
   atsAnalysis: ATSAnalysisJSON
 ) {
-  const resume = await getResumeByJobId(jobId);
-
-  if (!resume)
-    throw new Error(
-      `Cannot save ATS analysis: Resume not found for job ${jobId}`
-    );
-
-  const now = new Date();
-  await prisma.resume.update({
-    where: { id: resume.id },
-    data: {
-      updatedAt: now,
-      atsAnalysis: {
-        ...(resume.aTSAnalysisId
-          ? { update: { contentJson: JSON.stringify(atsAnalysis) } }
-          : { create: { contentJson: JSON.stringify(atsAnalysis) } }),
-      },
-    },
-  });
+  const result = await dbJob.saveAtsAnalysis(jobId, atsAnalysis);
 
   revalidatePath(`/job/${jobId}/resume`);
-  return { success: true };
+  return result;
 }
 
 export async function deleteJobById(id: number) {
@@ -406,42 +208,13 @@ export async function deleteJobById(id: number) {
   return { success: true };
 }
 
-/**
- * Get cover letter for a job
- */
-export async function getCoverLetterByJobId(
-  jobId: number
-): Promise<CoverLetter & { customizations: Customization }> {
-  return await prisma.job
-    .findFirstOrThrow({
-      where: { id: jobId },
-      select: { coverLetter: { include: { customizations: true } } },
-    })
-    .then((job) => {
-      if (!job.coverLetter) {
-        throw new Error(`Cover letter not found for job ${jobId}`);
-      }
-
-      return job.coverLetter;
-    });
+export async function getCoverLetterByJobId(jobId: number) {
+  return dbJob.getCoverLetterByJobId(jobId);
 }
 
-export type JobRecord = Job & {
-  company: Company;
-  contact: Contact | null;
-  status: JobStatus;
-};
-
-export async function getAllJob(
-  profileId?: number | null
-): Promise<JobRecord[]> {
-  const jobList = await prisma.job.findMany({
-    where: profileId ? { profileId } : undefined,
-    orderBy: { createdAt: "desc" },
-    include: { company: true, contact: true },
-  });
-
-  return jobList as JobRecord[];
+export type { JobRecord } from "@/lib/db/job";
+export async function getAllJob(profileId?: number | null) {
+  return dbJob.getAllJob(profileId);
 }
 
 export type DocumentRecord = {
@@ -525,16 +298,14 @@ export async function updateCoverLetter(
   contentText: string,
   customization: SanitizedCustomization
 ) {
-  await Promise.all([
-    prisma.job.update({
-      where: { id: jobId },
-      data: { coverLetter: { update: { contentText, updatedAt: new Date() } } },
-    }),
-    updateOrCreateCustomization(customization),
-  ]);
+  const result = await dbJob.updateCoverLetter(
+    jobId,
+    contentText,
+    customization
+  );
 
   revalidatePath(`/job/${jobId}/cover-letter`);
-  return { success: true };
+  return result;
 }
 
 export async function updateOrCreateCustomization({
