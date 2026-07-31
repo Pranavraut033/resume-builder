@@ -241,11 +241,12 @@ async function downloadNodeRuntime() {
  * that file's own doc comments for the dev-vs-release DATABASE_URL split.
  */
 async function bundleMcpServer() {
-  if (!existsSync(distMcpDir)) {
-    console.log("dist-mcp not found, running `npm run build:mcp` first...");
-    const npm = process.platform === "win32" ? "npm.cmd" : "npm";
-    execFileSync(npm, ["run", "build:mcp"], { cwd: root, stdio: "inherit" });
-  }
+  // Always rebuild - dist-mcp existing from a previous run doesn't mean it's
+  // current, and a stale bundle would silently ship without the latest
+  // src/mcp changes.
+  console.log("Running `npm run build:mcp`...");
+  const npm = process.platform === "win32" ? "npm.cmd" : "npm";
+  execFileSync(npm, ["run", "build:mcp"], { cwd: root, stdio: "inherit" });
 
   await mkdir(mcpOutputDir, { recursive: true });
   const entryFiles = ["stdio.js", "http.js"];
