@@ -11,7 +11,7 @@ const hasCustomDomain = existsSync(new URL("./public/CNAME", import.meta.url));
 export default defineConfig({
   output: "static",
   site: hasCustomDomain
-    ? "https://nextrole.pranavraut.dev"
+    ? "https://udaan.pranavraut.dev"
     : "https://pranavraut033.github.io",
   base: hasCustomDomain ? "/" : "/resume-builder",
   vite: {
