@@ -7,6 +7,11 @@ const base = import.meta.env.BASE_URL.endsWith('/')
 const REPO = 'https://github.com/Pranavraut033/resume-builder';
 const RELEASES = `${REPO}/releases`;
 
+// Social scrapers (LinkedIn, Slack, X) reject relative image/URL values, so
+// these are resolved against `site` from astro.config.mjs.
+const canonical = new URL(base, Astro.site).href;
+const ogImage = new URL(`${base}og.png`, Astro.site).href;
+
 const title = 'Udaan — give your career the takeoff it deserves';
 const description =
   'Free, open-source desktop app that turns a job description and your base profile into a tailored, ATS-friendly resume and cover letter — so every application is your best shot at flight. Bring your own AI key or run Ollama locally, all data stays on your machine.';
@@ -64,9 +69,23 @@ const hookWords: [string, ('s' | 'ins')?][] = [
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>{title}</title>
     <meta name="description" content={description} />
+    <link rel="canonical" href={canonical} />
     <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Udaan" />
+    <meta property="og:url" content={canonical} />
     <meta property="og:title" content={title} />
     <meta property="og:description" content={description} />
+    <meta property="og:image" content={ogImage} />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta
+      property="og:image:alt"
+      content="Udaan — every application deserves its own resume. Local-first AI resume and cover letter tailoring."
+    />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content={title} />
+    <meta name="twitter:description" content={description} />
+    <meta name="twitter:image" content={ogImage} />
     <meta name="theme-color" content="#ffffff" />
     <link rel="icon" type="image/svg+xml" href={`${base}favicon.svg`} />
     <meta name="generator" content={Astro.generator} />
@@ -502,6 +521,24 @@ const hookWords: [string, ('s' | 'ins')?][] = [
           </div>
           <p class="reveal reveal-3 mt-6 font-mono text-xs text-term-muted">
             Free forever · MIT licensed · no subscription, no sign-up, no cloud storage
+          </p>
+
+          <!-- The builds are self-signed, so every OS shows a scary one-time
+               warning. Saying so up front beats a stranger hitting it cold. -->
+          <p
+            class="reveal reveal-3 mx-auto mt-8 max-w-lg rounded-lg border border-term-line px-4 py-3 text-xs leading-relaxed text-term-muted"
+          >
+            <span class="font-semibold text-term-fg">First launch:</span> Udaan is open-source and self-signed, not
+            paid-publisher signed — so macOS says “cannot be verified” and Windows shows SmartScreen once.
+            On macOS right-click the app → <span class="font-semibold">Open</span>; on Windows click
+            <span class="font-semibold">More info</span> → <span class="font-semibold">Run anyway</span>.
+            <a
+              href={`${REPO}#download--install`}
+              rel="noopener"
+              class="underline underline-offset-4 transition-colors hover:text-term-fg"
+            >
+              Full install steps
+            </a>
           </p>
         </div>
       </section>
