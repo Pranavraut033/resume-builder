@@ -87,6 +87,12 @@ const hookWords: [string, ('s' | 'ins')?][] = [
     <meta name="twitter:description" content={description} />
     <meta name="twitter:image" content={ogImage} />
     <meta name="theme-color" content="#ffffff" />
+    <!-- Cloudflare Web Analytics: pageviews + Core Web Vitals only, no PII, no cookie banner needed -->
+    <script
+      type="module"
+      src="https://static.cloudflareinsights.com/beacon.min.js"
+      data-cf-beacon='{"token": "ebc729c0ef5640c6b6814c45ccaf4fea"}'
+    ></script>
     <link rel="icon" type="image/svg+xml" href={`${base}favicon.svg`} />
     <meta name="generator" content={Astro.generator} />
     <script is:inline>
