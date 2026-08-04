@@ -2,6 +2,7 @@ import { BackgroundId, isBackgroundId } from "@/lib/backgrounds/types";
 import { DateFormat, VALID_DATE_FORMATS } from "@/lib/date";
 import { SanitizedCustomization, ThemeColors } from "@/types/customization";
 
+import { getFitScale } from "./fitScale";
 import { registerPDFFont } from "./fonts";
 
 /** Page dimensions in PDF points, used for full-bleed background layers. */
@@ -114,6 +115,12 @@ export function resolvePDFCustomization(
     ? (rawDateFormat as DateFormat)
     : "locale";
 
+  // "Fit to one page": the DOM engine is the only place that can measure
+  // content, so it computes and stores this scale (see fitScale.ts);
+  // reproduce the same shrink here by scaling every font/margin/line-height
+  // number instead of re-measuring (which the PDF renderer can't do).
+  const fitScale = customization.fitToPage ? getFitScale() : 1;
+
   return {
     primaryColor,
     secondaryColor,
@@ -121,12 +128,12 @@ export function resolvePDFCustomization(
     textColor,
     backgroundColor,
     fontFamily,
-    fontSize: FONT_SIZE_PT[sizeKey] ?? 10,
-    smallFontSize: SMALL_SIZE_PT[sizeKey] ?? 9,
-    headingFontSize: HEADING_SIZE_PT[sizeKey] ?? 15,
-    nameFontSize: NAME_SIZE_PT[sizeKey] ?? 24,
-    lineHeight: LINE_HEIGHT[lineHeightKey] ?? 1.5,
-    marginPt: MARGIN_PT[marginKey] ?? 36,
+    fontSize: (FONT_SIZE_PT[sizeKey] ?? 10) * fitScale,
+    smallFontSize: (SMALL_SIZE_PT[sizeKey] ?? 9) * fitScale,
+    headingFontSize: (HEADING_SIZE_PT[sizeKey] ?? 15) * fitScale,
+    nameFontSize: (NAME_SIZE_PT[sizeKey] ?? 24) * fitScale,
+    lineHeight: (LINE_HEIGHT[lineHeightKey] ?? 1.5) * fitScale,
+    marginPt: (MARGIN_PT[marginKey] ?? 36) * fitScale,
     pageFormat: customization.pageFormat === "letter" ? "LETTER" : "A4",
     background,
     colorsTuple,

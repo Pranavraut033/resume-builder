@@ -1,6 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import type { SanitizedCustomization } from "@/types/customization";
+import type { TemplateConfig } from "@/components/job-v2/engine/types";
+import type {
+  TemplateType,
+  SanitizedCustomization,
+} from "@/types/customization";
 import type { ResumeJSON } from "@/types/resume";
 
 const toBlob = vi.fn();
@@ -12,8 +16,11 @@ vi.mock("@/lib/pdf/resolveStyles", () => ({
   resolvePDFCustomization: vi.fn(() => ({ fontFamily: "Inter" })),
 }));
 
+const mockTemplateConfig: Partial<Record<TemplateType, TemplateConfig>> = {
+  "modern-minimal": { columns: 1, heading: "underline" },
+};
 vi.mock("@/components/job-v2/engine/templates", () => ({
-  TEMPLATE_CONFIG: { "modern-minimal": { columns: 1 } },
+  TEMPLATE_CONFIG: mockTemplateConfig,
 }));
 
 function markerComponent(name: string) {

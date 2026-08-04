@@ -1,11 +1,14 @@
 import type { useInlineEdit } from "@/components/job-v2/resume/InlineEditContext";
 import type useResolveCustomizationFn from "@/hooks/useResolveCustomization";
 import type {
+  BulletStyle,
+  DateStyle,
   EntryStyle,
   HeaderStyle,
   HeadingStyle,
   PhotoFrame,
   PhotoShape,
+  SkillStyle,
   ThemeConfig,
 } from "@/types/customization";
 import type { ResumeJSON, SectionLayout } from "@/types/resume";
@@ -17,6 +20,10 @@ export type Block = {
   sectionKey: string;
   /** For list-section entries: the index within that section's array. */
   itemIndex?: number;
+  /** Suppresses the block wrapper's bottom margin — for `entryStyle: "timeline"`
+   * entries, whose own `pb-3`/left-rail need to butt directly against the next
+   * entry so the rail reads as one continuous line. */
+  tight?: boolean;
 };
 
 /** Resolved Tailwind-class/color bag a section builder needs to render. */
@@ -39,7 +46,7 @@ export type DomSectionBuilder = (args: {
   instance: SectionInstance;
   theme: ResolvedTheme;
   edit: EditApi;
-  entryStyle?: EntryStyle;
+  config: ResolvedTemplateConfig;
 }) => Block[];
 
 export type TxtSectionBuilder = (args: {
@@ -61,6 +68,10 @@ export type TemplateConfig = {
   heading: HeadingStyle;
   /** Optional: apply small-caps to section headings (for Academic Serif template). */
   headingSmallCaps?: boolean;
+  /** Section-heading text alignment. Defaults to "left". */
+  headingAlign?: "left" | "center";
+  /** Heading style override for column-0 (sidebar) sections in 2-column templates. Defaults to `heading`. */
+  headingSidebar?: HeadingStyle;
   /** Header block layout. Defaults to "underline" when unset. */
   header?: HeaderStyle;
   /** How dated entries (experience/education/projects/volunteer) render. Defaults to "standard". */
@@ -69,6 +80,50 @@ export type TemplateConfig = {
   photoShape?: PhotoShape;
   /** Profile photo border/elevation treatment. Defaults to "ring". */
   photoFrame?: PhotoFrame;
+  /** How the skills section renders. Defaults to "inline". */
+  skillStyle?: SkillStyle;
+  /** Whether entry date ranges render as a tinted pill badge. Defaults to "plain". */
+  dateStyle?: DateStyle;
+  /** Bullet glyph for achievements/custom-section lists. Defaults to "disc". */
+  bulletStyle?: BulletStyle;
+  /** Which physical side the 2-column sidebar renders on. Defaults to "left". */
+  sidebarSide?: "left" | "right";
+  /** How the 2-column sidebar's background is filled: no fill, a light tint, or a
+   * solid `primaryColor` fill (text/headings inside are forced to
+   * `theme.backgroundColor`). Defaults to "none". */
+  sidebarFill?: "none" | "tint" | "solid";
+  /** Whether the header spans the full page width or only the main (non-sidebar)
+   * column — "main" lets a `sidebarFill: "solid"` sidebar run full page height
+   * uninterrupted by the header. Defaults to "full". Ignored for 1-column templates. */
+  headerSpan?: "full" | "main";
+  /** Whether body paragraphs (summary/descriptions) render text-justified. Defaults to false. */
+  justifyText?: boolean;
+  /** Header name font weight. Defaults to "bold". */
+  nameWeight?: "light" | "normal" | "bold";
+  /** Whether a rule renders between consecutive sections (single-column only). Defaults to false. */
+  sectionDivider?: boolean;
 };
+
+/** Fields every template needs a concrete value for — see `resolveTemplateConfig()`. */
+type ResolvedFields =
+  | "header"
+  | "entryStyle"
+  | "photoShape"
+  | "photoFrame"
+  | "skillStyle"
+  | "dateStyle"
+  | "bulletStyle"
+  | "sidebarSide"
+  | "sidebarFill"
+  | "headerSpan"
+  | "justifyText"
+  | "nameWeight"
+  | "sectionDivider"
+  | "headingAlign"
+  | "headingSidebar";
+
+/** `TemplateConfig` with every knob that has a default resolved to a concrete value — see `resolveTemplateConfig()` in `templates.ts`. */
+export type ResolvedTemplateConfig = TemplateConfig &
+  Required<Pick<TemplateConfig, ResolvedFields>>;
 
 export type { ThemeConfig, SectionLayout };

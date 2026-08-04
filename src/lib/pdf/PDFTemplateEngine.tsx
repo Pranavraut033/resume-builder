@@ -3,11 +3,16 @@ import React, { memo } from "react";
 
 import { buildSections } from "@/components/job-v2/engine/buildSections";
 import { photoRadius } from "@/components/job-v2/engine/photoFrame";
-import { TemplateConfig } from "@/components/job-v2/engine/types";
+import { resolveTemplateConfig } from "@/components/job-v2/engine/templates";
+import {
+  ResolvedTemplateConfig,
+  TemplateConfig,
+} from "@/components/job-v2/engine/types";
 import BackgroundPdf from "@/lib/backgrounds/BackgroundPdf";
+import { HeadingStyle } from "@/types/customization";
 import { ResumeJSON, getSectionLayout } from "@/types/resume";
 
-import { ResolvedPDFStyles } from "./resolveStyles";
+import { ResolvedPDFStyles, withAlpha } from "./resolveStyles";
 import { PDF_SECTION_REGISTRY } from "./sections";
 import { PDFTemplateProps } from "./templates/ModernMinimalPDF";
 import { SectionGroup } from "./templates/shared/SectionGroup";
@@ -36,13 +41,14 @@ const SectionHeading = memo(function SectionHeading({
 }: {
   title: string;
   s: ResolvedPDFStyles;
-  headingStyle: "uppercase" | "underline" | "bar" | "serif";
+  headingStyle: HeadingStyle;
   isSidebar?: boolean;
   smallCaps?: boolean;
 }) {
   const {
     primaryColor,
     secondaryColor,
+    accentColor,
     fontFamily,
     headingFontSize,
     fontSize,
@@ -51,6 +57,8 @@ const SectionHeading = memo(function SectionHeading({
   const isUppercase = headingStyle === "uppercase";
   const isBar = headingStyle === "bar";
   const isSerif = headingStyle === "serif";
+  const isPlain = headingStyle === "plain";
+  const isAccentRule = headingStyle === "accent-rule";
   // ponytail: @react-pdf has no reliable fontVariant: small-caps support, so
   // approximate it with an uppercase title at a slightly reduced size.
   const displayTitle = smallCaps ? title.toUpperCase() : title;
@@ -132,6 +140,48 @@ const SectionHeading = memo(function SectionHeading({
     );
   }
 
+  if (isAccentRule) {
+    return (
+      <View
+        style={{
+          marginBottom: 5,
+          marginTop: 10,
+          borderBottomWidth: 2,
+          borderBottomColor: accentColor,
+          paddingBottom: 2,
+        }}
+      >
+        <Text
+          style={{
+            fontFamily,
+            fontSize: headingFontSize,
+            fontWeight: 700,
+            color: primaryColor,
+          }}
+        >
+          {title}
+        </Text>
+      </View>
+    );
+  }
+
+  if (isPlain) {
+    return (
+      <View style={{ marginBottom: 5, marginTop: 10 }}>
+        <Text
+          style={{
+            fontFamily,
+            fontSize: headingFontSize,
+            fontWeight: 700,
+            color: primaryColor,
+          }}
+        >
+          {title}
+        </Text>
+      </View>
+    );
+  }
+
   // default: underline
   return (
     <View
@@ -161,6 +211,12 @@ interface PDFTemplateEngineProps extends PDFTemplateProps {
   config: TemplateConfig;
 }
 
+const NAME_FONT_WEIGHT: Record<ResolvedTemplateConfig["nameWeight"], number> = {
+  light: 300,
+  normal: 400,
+  bold: 700,
+};
+
 /**
  * PDF Template Engine — mirrors TemplateEngine.tsx for DOM rendering.
  * Uses buildSections() to get ordered/hidden/custom-aware section list,
@@ -169,8 +225,9 @@ interface PDFTemplateEngineProps extends PDFTemplateProps {
 export const PDFTemplateEngine: React.FC<PDFTemplateEngineProps> = ({
   resume,
   styles: s,
-  config,
+  config: rawConfig,
 }) => {
+  const config = resolveTemplateConfig(rawConfig);
   const {
     secondaryColor,
     accentColor,
@@ -193,11 +250,12 @@ export const PDFTemplateEngine: React.FC<PDFTemplateEngineProps> = ({
   const col1Instances = instances.filter((s) => s.column === 1);
 
   // ── Header ──────────────────────────────────────────────────────────────
-  const headerStyle = config.header ?? "underline";
+  const headerStyle = config.header;
+  const isFilled = headerStyle === "band" || headerStyle === "gradient";
   const contactLine = buildContactLine(resume.header);
   const photoSizePt = 60;
-  const photoShape = config.photoShape ?? "circle";
-  const photoFrameStyle = config.photoFrame ?? "ring";
+  const photoShape = config.photoShape;
+  const photoFrameStyle = config.photoFrame;
   // ponytail: react-pdf has no box-shadow support, so "shadow" frames
   // approximate elevation with a soft neutral border instead of a real shadow.
   const photoFrameBorder =
@@ -219,12 +277,14 @@ export const PDFTemplateEngine: React.FC<PDFTemplateEngineProps> = ({
     />
   ) : null;
 
+  const nameFontWeight = NAME_FONT_WEIGHT[config.nameWeight];
+
   const bandContent = (
     <View style={{ flex: 1 }}>
       <Text
         style={{
           fontSize: nameFontSize,
-          fontWeight: 700,
+          fontWeight: nameFontWeight,
           color: backgroundColor,
           marginBottom: 3,
         }}
@@ -242,12 +302,12 @@ export const PDFTemplateEngine: React.FC<PDFTemplateEngineProps> = ({
     </View>
   );
 
-  const leftAccentContent = (
+  const plainContent = (
     <View style={{ flex: 1 }}>
       <Text
         style={{
           fontSize: nameFontSize,
-          fontWeight: 700,
+          fontWeight: nameFontWeight,
           color: textColor,
           marginBottom: 3,
         }}
@@ -259,7 +319,30 @@ export const PDFTemplateEngine: React.FC<PDFTemplateEngineProps> = ({
           {resume.header.headline}
         </Text>
       ) : null}
-      <Text style={{ fontSize: smallFontSize, color: "#6b7280" }}>
+      <Text style={{ fontSize: smallFontSize, color: secondaryColor }}>
+        {contactLine}
+      </Text>
+    </View>
+  );
+
+  const leftAccentContent = (
+    <View style={{ flex: 1 }}>
+      <Text
+        style={{
+          fontSize: nameFontSize,
+          fontWeight: nameFontWeight,
+          color: textColor,
+          marginBottom: 3,
+        }}
+      >
+        {resume.header.name}
+      </Text>
+      {resume.header.headline ? (
+        <Text style={{ fontSize, color: accentColor, marginBottom: 3 }}>
+          {resume.header.headline}
+        </Text>
+      ) : null}
+      <Text style={{ fontSize: smallFontSize, color: secondaryColor }}>
         {contactLine}
       </Text>
     </View>
@@ -270,7 +353,7 @@ export const PDFTemplateEngine: React.FC<PDFTemplateEngineProps> = ({
       <Text
         style={{
           fontSize: nameFontSize,
-          fontWeight: 700,
+          fontWeight: nameFontWeight,
           color: textColor,
           marginBottom: 2,
         }}
@@ -283,7 +366,7 @@ export const PDFTemplateEngine: React.FC<PDFTemplateEngineProps> = ({
           </Text>
         ) : null}
       </Text>
-      <Text style={{ fontSize: smallFontSize, color: "#6b7280" }}>
+      <Text style={{ fontSize: smallFontSize, color: secondaryColor }}>
         {contactLine}
       </Text>
     </View>
@@ -294,7 +377,7 @@ export const PDFTemplateEngine: React.FC<PDFTemplateEngineProps> = ({
       <Text
         style={{
           fontSize: nameFontSize,
-          fontWeight: 700,
+          fontWeight: nameFontWeight,
           color: textColor,
           marginBottom: 3,
         }}
@@ -306,21 +389,28 @@ export const PDFTemplateEngine: React.FC<PDFTemplateEngineProps> = ({
           {resume.header.headline}
         </Text>
       ) : null}
-      <Text style={{ fontSize: smallFontSize, color: "#6b7280" }}>
+      <Text style={{ fontSize: smallFontSize, color: secondaryColor }}>
         {contactLine}
       </Text>
     </View>
   );
 
-  const headerNode = headerHidden ? null : headerStyle === "band" ? (
+  const filledBackground =
+    headerStyle === "gradient"
+      ? {
+          background: `linear-gradient(135deg, ${s.primaryColor}, ${accentColor})`,
+        }
+      : { backgroundColor: s.primaryColor };
+
+  const headerNode = headerHidden ? null : isFilled ? (
     <View
       style={{
         marginBottom: 14,
-        backgroundColor: s.primaryColor,
         padding: marginPt * 0.6,
         flexDirection: "row",
         alignItems: "center",
         gap: 10,
+        ...filledBackground,
       }}
     >
       {bandContent}
@@ -349,7 +439,7 @@ export const PDFTemplateEngine: React.FC<PDFTemplateEngineProps> = ({
       <Text
         style={{
           fontSize: nameFontSize,
-          fontWeight: 700,
+          fontWeight: nameFontWeight,
           color: textColor,
           marginBottom: 3,
           textAlign: "center",
@@ -372,7 +462,7 @@ export const PDFTemplateEngine: React.FC<PDFTemplateEngineProps> = ({
       <Text
         style={{
           fontSize: smallFontSize,
-          color: "#6b7280",
+          color: secondaryColor,
           textAlign: "center",
         }}
       >
@@ -391,6 +481,117 @@ export const PDFTemplateEngine: React.FC<PDFTemplateEngineProps> = ({
       {minimalContent}
       {photoImage}
     </View>
+  ) : headerStyle === "plain" ? (
+    <View
+      style={{
+        marginBottom: 14,
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 10,
+      }}
+    >
+      {plainContent}
+      {photoImage}
+    </View>
+  ) : headerStyle === "boxed" ? (
+    // Echoes entryStyle "table"'s bordered look (bjet-professional): a 1px
+    // box around the whole header, name row separated from the contact row
+    // by a bottom rule.
+    <View
+      style={{
+        marginBottom: 14,
+        borderWidth: 1,
+        borderColor: withAlpha(secondaryColor, "40"),
+        borderRadius: 3,
+        padding: marginPt * 0.5,
+      }}
+    >
+      <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+        <View style={{ flex: 1 }}>
+          <Text
+            style={{
+              fontSize: nameFontSize,
+              fontWeight: nameFontWeight,
+              color: textColor,
+              marginBottom: 3,
+            }}
+          >
+            {resume.header.name}
+          </Text>
+          {resume.header.headline ? (
+            <Text style={{ fontSize, color: accentColor }}>
+              {resume.header.headline}
+            </Text>
+          ) : null}
+        </View>
+        {photoImage}
+      </View>
+      <View
+        style={{
+          borderTopWidth: 1,
+          borderTopColor: withAlpha(secondaryColor, "40"),
+          marginTop: 6,
+          paddingTop: 6,
+        }}
+      >
+        <Text style={{ fontSize: smallFontSize, color: secondaryColor }}>
+          {contactLine}
+        </Text>
+      </View>
+    </View>
+  ) : headerStyle === "split" ? (
+    // two-tone: left ~60% solid primaryColor (name/headline in
+    // backgroundColor), right ~40% tinted accentColor for the contact stack
+    // + photo.
+    <View
+      style={{
+        marginBottom: 14,
+        flexDirection: "row",
+        borderRadius: 3,
+      }}
+    >
+      <View
+        style={{
+          width: "60%",
+          backgroundColor: s.primaryColor,
+          padding: marginPt * 0.5,
+          justifyContent: "center",
+        }}
+      >
+        <Text
+          style={{
+            fontSize: nameFontSize,
+            fontWeight: nameFontWeight,
+            color: backgroundColor,
+            marginBottom: 3,
+          }}
+        >
+          {resume.header.name}
+        </Text>
+        {resume.header.headline ? (
+          <Text style={{ fontSize, color: backgroundColor }}>
+            {resume.header.headline}
+          </Text>
+        ) : null}
+      </View>
+      <View
+        style={{
+          width: "40%",
+          backgroundColor: withAlpha(accentColor, "1a"),
+          padding: marginPt * 0.5,
+          flexDirection: "row",
+          alignItems: "center",
+          gap: 8,
+        }}
+      >
+        <Text
+          style={{ fontSize: smallFontSize, color: secondaryColor, flex: 1 }}
+        >
+          {contactLine}
+        </Text>
+        {photoImage}
+      </View>
+    </View>
   ) : (
     <View
       style={{
@@ -405,6 +606,23 @@ export const PDFTemplateEngine: React.FC<PDFTemplateEngineProps> = ({
     </View>
   );
 
+  // A `sidebarFill: "solid"` sidebar (tech-sidebar) forces its heading/accent
+  // colors to `backgroundColor` so they read light-on-dark instead of the
+  // usual primary/secondary/accent colors. Substituting these fields on the
+  // `styles` bag handed to both `SectionHeading` and the section builders
+  // covers every color they draw from theme — everything except the couple
+  // of hardcoded gray literals `pdf/sections.tsx` uses for plain body text,
+  // which is Cluster 2's file and out of scope here.
+  const isSolidSidebar = config.sidebarFill === "solid";
+  const sidebarStyles: ResolvedPDFStyles = isSolidSidebar
+    ? {
+        ...s,
+        primaryColor: backgroundColor,
+        secondaryColor: backgroundColor,
+        accentColor: backgroundColor,
+      }
+    : s;
+
   // ── Helper: Render section with heading ──────────────────────────────────
   const renderSection = (
     instance: { id: string; type: string; title: string },
@@ -413,20 +631,27 @@ export const PDFTemplateEngine: React.FC<PDFTemplateEngineProps> = ({
     const builder = PDF_SECTION_REGISTRY[instance.type];
     if (!builder) return null;
 
+    const sectionStyles = isSidebar ? sidebarStyles : s;
+
     const content = builder({
       resume,
       instance,
-      styles: s,
-      entryStyle: config.entryStyle,
+      styles: sectionStyles,
+      config,
     });
 
     if (!content) return null;
 
+    const headingStyleForColumn =
+      isSidebar && config.columns === 2
+        ? config.headingSidebar
+        : config.heading;
+
     const heading = (
       <SectionHeading
         title={instance.title}
-        s={s}
-        headingStyle={config.heading}
+        s={sectionStyles}
+        headingStyle={headingStyleForColumn}
         isSidebar={isSidebar}
         smallCaps={config.headingSmallCaps}
       />
@@ -466,13 +691,60 @@ export const PDFTemplateEngine: React.FC<PDFTemplateEngineProps> = ({
 
   // Two-column layout
   const [ratio0, ratio1] = config.columnRatio ?? [0.35, 0.65];
-  const sidebarBg = secondaryColor + "10";
+  const sidebarBg =
+    config.sidebarFill === "solid"
+      ? s.primaryColor
+      : config.sidebarFill === "tint"
+        ? withAlpha(secondaryColor, "1a")
+        : undefined;
+  // `sidebarSide: "right"` swaps which physical side the sidebar renders on
+  // (creative-modern); `headerSpan: "main"` renders the header inside the
+  // main column instead of full page width, so a `sidebarFill: "solid"`
+  // sidebar (tech-sidebar) can stretch the full column height uninterrupted
+  // by it — `alignItems: "stretch"` on the row below makes the sidebar's
+  // background match whichever column (header + content, or content alone)
+  // ends up taller.
+  const sidebarRight = config.sidebarSide === "right";
+  const headerSpansMain = config.headerSpan === "main";
 
   const col0Sections = col0Instances.map((instance) =>
     renderSection(instance, true)
   );
   const col1Sections = col1Instances.map((instance) =>
     renderSection(instance, false)
+  );
+
+  const sidebarView = (
+    <View
+      key="sidebar"
+      style={{
+        width: `${ratio0 * 100}%`,
+        backgroundColor: sidebarBg,
+        padding: marginPt * 0.7,
+      }}
+    >
+      {col0Sections}
+    </View>
+  );
+
+  // Extra padding on the side adjacent to the sidebar forms the gutter
+  // against it, since react-pdf Views have no column gap.
+  const mainView = (
+    <View
+      key="main"
+      style={{
+        width: `${ratio1 * 100}%`,
+        paddingTop: marginPt * 0.7,
+        paddingBottom: marginPt * 0.7,
+        paddingLeft: sidebarRight ? marginPt * 0.7 : marginPt,
+        paddingRight: sidebarRight ? marginPt : marginPt * 0.7,
+      }}
+    >
+      {headerSpansMain && headerNode && (
+        <View style={{ marginBottom: marginPt * 0.5 }}>{headerNode}</View>
+      )}
+      {col1Sections}
+    </View>
   );
 
   return (
@@ -488,8 +760,9 @@ export const PDFTemplateEngine: React.FC<PDFTemplateEngineProps> = ({
       >
         <BackgroundPdf styles={s} />
 
-        {/* Header spans full width */}
-        {headerNode && (
+        {/* Header spans full width, unless headerSpan: "main" renders it
+            inside the main column instead (see mainView above). */}
+        {!headerSpansMain && headerNode && (
           <View style={{ padding: marginPt, paddingBottom: marginPt * 0.5 }}>
             {headerNode}
           </View>
@@ -497,30 +770,7 @@ export const PDFTemplateEngine: React.FC<PDFTemplateEngineProps> = ({
 
         {/* Two-column body */}
         <View style={{ flexDirection: "row", alignItems: "stretch" }}>
-          {/* Sidebar (column 0) */}
-          <View
-            style={{
-              width: `${ratio0 * 100}%`,
-              backgroundColor: sidebarBg,
-              padding: marginPt * 0.7,
-            }}
-          >
-            {col0Sections}
-          </View>
-
-          {/* Main column (column 1) — extra left padding forms the gutter
-              against the sidebar, since react-pdf Views have no column gap. */}
-          <View
-            style={{
-              width: `${ratio1 * 100}%`,
-              paddingTop: marginPt * 0.7,
-              paddingRight: marginPt * 0.7,
-              paddingBottom: marginPt * 0.7,
-              paddingLeft: marginPt,
-            }}
-          >
-            {col1Sections}
-          </View>
+          {sidebarRight ? [mainView, sidebarView] : [sidebarView, mainView]}
         </View>
       </Page>
     </Document>

@@ -110,6 +110,40 @@ const ThemeCustomizationPanel: React.FC<Props> = ({}) => {
             className="mb-2 text-xs font-medium"
             style={{ color: "var(--color-agent-on-surface-variant)" }}
           >
+            Fit to One Page
+          </p>
+          <div
+            className="flex rounded-lg p-0.5"
+            style={{ background: "var(--color-agent-surface-container)" }}
+          >
+            {[
+              { value: false, label: "Off" },
+              { value: true, label: "On" },
+            ].map(({ value, label }) => (
+              <button
+                key={label}
+                onClick={() => updateCustomization({ fitToPage: value })}
+                className="flex-1 rounded-md py-1.5 text-xs font-medium transition-all"
+                style={
+                  Boolean(customization.fitToPage) === value
+                    ? {
+                        background: "var(--color-agent-primary-container)",
+                        color: "var(--color-agent-on-primary-container)",
+                      }
+                    : { color: "var(--color-agent-on-surface-variant)" }
+                }
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div>
+          <p
+            className="mb-2 text-xs font-medium"
+            style={{ color: "var(--color-agent-on-surface-variant)" }}
+          >
             Font Size
           </p>
           <div

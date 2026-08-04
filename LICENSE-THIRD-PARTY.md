@@ -4,9 +4,10 @@
 
 Portions of this project — specifically the resume template designs, the
 template/customization system, and color theming for resume PDFs and
-previews in `src/components/job/templates/` and `src/lib/pdf/templates/` —
-are adapted from [Resumify](https://github.com/Afif718/Resumify) by
-M. H. A. Afif.
+previews in `src/components/job-v2/engine/` and `src/lib/pdf/` (cover-letter
+templates remain in `src/components/job/templates/coverLetter/` and
+`src/lib/pdf/templates/`) — are adapted from
+[Resumify](https://github.com/Afif718/Resumify) by M. H. A. Afif.
 
 Resumify is licensed under the MIT License:
 

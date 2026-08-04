@@ -65,6 +65,19 @@ export function applyResumeOps(
         continue;
       }
 
+      // zod strips unrecognized object keys instead of failing, so an "add"
+      // to a path that isn't part of the schema (e.g. /header/title instead
+      // of /header/headline) would otherwise silently no-op while still
+      // reporting as applied. Compare against the patched document to catch
+      // that and reject it like any other invalid op.
+      if (JSON.stringify(parsed.data) !== JSON.stringify(newDocument)) {
+        rejected.push({
+          op,
+          reason: `path is not part of the resume schema: ${"path" in op ? op.path : ""}`,
+        });
+        continue;
+      }
+
       current = parsed.data;
       applied.push(op);
     } catch (err) {
@@ -145,6 +158,8 @@ export function resumePathLines(resume: ResumeJSON): string {
       leaf(`/projects/${i}/technologies/${j}`, tech)
     );
     leaf(`/projects/${i}/url`, proj.url);
+    leaf(`/projects/${i}/startDate`, proj.startDate);
+    leaf(`/projects/${i}/endDate`, proj.endDate);
   });
 
   // ── skills ──────────────────────────────────────────────────────────────

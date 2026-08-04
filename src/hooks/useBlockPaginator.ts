@@ -35,6 +35,13 @@ interface UseBlockPaginatorResult {
   pageGroups: number[][];
   /** True once all block heights have been observed. */
   measured: boolean;
+  /**
+   * Sum of every block's measured height plus the `gapPx` gaps between them
+   * (i.e. the column's total natural content height, ignoring pagination).
+   * 0 until `measured` is true. Used by "fit to one page" to compute a zoom
+   * scale from the un-paginated content height.
+   */
+  totalHeight: number;
 }
 
 /**
@@ -68,7 +75,11 @@ export function useBlockPaginator({
   const [pageGroups, setPageGroups] = useState<number[][]>(() => [
     Array.from({ length: count }, (_, i) => i),
   ]);
-  const [measured, setMeasured] = useState(false);
+  // Nothing to measure when there are no blocks — start "measured" so
+  // callers gating on `measured` (e.g. fit-to-page's scale computation)
+  // aren't blocked forever by an empty column.
+  const [measured, setMeasured] = useState(count === 0);
+  const [totalHeight, setTotalHeight] = useState(0);
 
   // Stable recompute — reads dimensions from refs so its identity never changes.
   const recompute = useCallback(() => {
@@ -95,6 +106,10 @@ export function useBlockPaginator({
       return groups;
     });
     setMeasured(true);
+    const sum =
+      heights.reduce((acc, h) => acc + h, 0) +
+      gapPxRef.current * Math.max(0, heights.length - 1);
+    setTotalHeight((prev) => (prev === sum ? prev : sum));
   }, []); // stable — no deps
 
   // Reset when count changes.
@@ -105,7 +120,8 @@ export function useBlockPaginator({
 
     elemsRef.current = Array.from({ length: count }, () => null);
     heightsRef.current = Array.from({ length: count }, () => 0);
-    setMeasured(false);
+    setMeasured(count === 0);
+    setTotalHeight(0);
     setPageGroups([Array.from({ length: count }, (_, i) => i)]);
   }, [count]);
 
@@ -158,5 +174,5 @@ export function useBlockPaginator({
     [recompute]
   );
 
-  return { setRef, pageGroups, measured };
+  return { setRef, pageGroups, measured, totalHeight };
 }

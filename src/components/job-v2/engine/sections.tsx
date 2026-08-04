@@ -6,14 +6,70 @@ import { LanguageField } from "@/components/job-v2/resume/LanguageField";
 import { formatDateRange } from "@/lib/date";
 import { isHtml, htmlToPlainText } from "@/lib/htmlUtils";
 
+import { bulletGlyph } from "./bulletGlyph";
 import {
   Block,
   DomSectionBuilder,
+  ResolvedTemplateConfig,
+  ResolvedTheme,
   SectionRegistryEntry,
   TxtSectionBuilder,
 } from "./types";
 
 import type { Skill } from "@/types/resume";
+import type { ReactNode } from "react";
+
+/**
+ * One label/value row for `entryStyle: "table"` (bjet-professional). A CSS
+ * grid `<div>`, not a real `<table>`/`<tr>` — each entry block sits inside
+ * EditableItem's wrapper `<div>` (TemplateEngine.tsx), so real table rows at
+ * that nesting level would be invalid HTML and break contenteditable. Grid
+ * also has a direct react-pdf equivalent (flexDirection: "row"), which a
+ * real table does not.
+ */
+function TableRow({
+  label,
+  children,
+  accentColor,
+  borderColor,
+  last = false,
+}: {
+  label: string;
+  children: ReactNode;
+  accentColor: string;
+  borderColor: string;
+  last?: boolean;
+}) {
+  return (
+    <div
+      className={`grid grid-cols-[110px_1fr] ${last ? "" : "border-b"}`}
+      style={{ borderColor }}
+    >
+      <div
+        className="border-r p-2 text-xs font-semibold"
+        style={{ backgroundColor: accentColor, borderColor }}
+      >
+        {label}
+      </div>
+      <div className="p-2 text-xs">{children}</div>
+    </div>
+  );
+}
+
+/** Shared table-entry wrapper: a bordered box containing `TableRow`s. */
+function TableEntry({
+  children,
+  borderColor,
+}: {
+  children: ReactNode;
+  borderColor: string;
+}) {
+  return (
+    <div className="overflow-hidden border" style={{ borderColor }}>
+      {children}
+    </div>
+  );
+}
 
 export const LIST_SECTIONS: readonly ListSectionId[] = [
   "experience",
@@ -50,8 +106,88 @@ const summary: DomSectionBuilder = ({ resume, theme, edit }) => {
   ];
 };
 
-const experience: DomSectionBuilder = ({ resume, theme, edit, entryStyle }) =>
+/** Shared achievements/bullet-list renderer — one `EditableText` over the
+ * newline-joined string, `renderDisplay` swaps only the glyph/list-style so
+ * the edit surface (a single bullet-mode textarea) never changes shape. */
+function achievementsField({
+  items,
+  onCommit,
+  theme,
+  bulletStyle,
+  editable,
+}: {
+  items: string[];
+  onCommit: (items: string[]) => void;
+  theme: ResolvedTheme;
+  bulletStyle: ResolvedTemplateConfig["bulletStyle"];
+  editable: boolean;
+}) {
+  if (items.length === 0 && !editable) return null;
+  return (
+    <EditableText
+      value={items.join("\n")}
+      onCommit={(v) => onCommit(v.split("\n").filter(Boolean))}
+      fieldType="bullet"
+      placeholder="Add bullet points, one per line…"
+      renderDisplay={(v) => (
+        <ul
+          className={`${theme.textSize} ${theme.lineHeight} list-none space-y-1`}
+        >
+          {v
+            .split("\n")
+            .filter(Boolean)
+            .map((a, i) => (
+              <li key={i}>
+                <span className="mr-1.5" style={{ color: theme.accentColor }}>
+                  {bulletGlyph(bulletStyle)}
+                </span>
+                {a}
+              </li>
+            ))}
+        </ul>
+      )}
+    />
+  );
+}
+
+/** Wraps an `EditableDateRange` in a tinted pill when `dateStyle === "badge"`, otherwise leaves it as secondary-colored plain text. */
+function dateNode({
+  dates,
+  theme,
+  dateStyle,
+  textSize,
+}: {
+  dates: ReactNode;
+  theme: ResolvedTheme;
+  dateStyle: ResolvedTemplateConfig["dateStyle"];
+  textSize: string;
+}) {
+  if (dateStyle === "badge") {
+    return (
+      <span
+        className={`${textSize} shrink-0 rounded-full px-3 py-1 font-medium`}
+        style={{
+          backgroundColor: theme.primaryColor + "1a",
+          color: theme.primaryColor,
+        }}
+      >
+        {dates}
+      </span>
+    );
+  }
+  return (
+    <span
+      className={`${textSize} shrink-0`}
+      style={{ color: theme.secondaryColor }}
+    >
+      {dates}
+    </span>
+  );
+}
+
+const experience: DomSectionBuilder = ({ resume, theme, edit, config }) =>
   resume.experience.map((exp, expIndex): Block => {
+    const entryStyle = config.entryStyle;
     const dates = (
       <EditableDateRange
         startDate={exp.startDate}
@@ -62,31 +198,13 @@ const experience: DomSectionBuilder = ({ resume, theme, edit, entryStyle }) =>
       />
     );
 
-    const achievements = (exp.achievements.length > 0 || edit.editable) && (
-      <EditableText
-        value={exp.achievements.join("\n")}
-        onCommit={(v) =>
-          edit.updateExperienceAchievements(
-            expIndex,
-            v.split("\n").filter(Boolean)
-          )
-        }
-        fieldType="bullet"
-        placeholder="Add bullet points, one per line…"
-        renderDisplay={(v) => (
-          <ul
-            className={`${theme.textSize} ${theme.lineHeight} list-inside list-disc space-y-1`}
-          >
-            {v
-              .split("\n")
-              .filter(Boolean)
-              .map((a, i) => (
-                <li key={i}>{a}</li>
-              ))}
-          </ul>
-        )}
-      />
-    );
+    const achievements = achievementsField({
+      items: exp.achievements,
+      onCommit: (items) => edit.updateExperienceAchievements(expIndex, items),
+      theme,
+      bulletStyle: config.bulletStyle,
+      editable: edit.editable,
+    });
 
     if (entryStyle === "compact") {
       return {
@@ -118,47 +236,8 @@ const experience: DomSectionBuilder = ({ resume, theme, edit, entryStyle }) =>
                 {dates}
               </span>
             </p>
-            {achievements}
-          </div>
-        ),
-      };
-    }
-
-    if (entryStyle === "timeline") {
-      return {
-        sectionKey: "experience",
-        itemIndex: expIndex,
-        node: (
-          <div
-            className="border-l-2 pl-3"
-            style={{ borderColor: theme.accentColor }}
-          >
-            <h3 className="font-semibold" style={{ color: theme.accentColor }}>
-              <span className="mr-1">●</span>
-              <EditableText
-                value={exp.role}
-                onCommit={(v) => edit.updateExperience(expIndex, { role: v })}
-                placeholder="Role"
-              />
-            </h3>
-            <p
-              className={`${theme.textSize}`}
-              style={{ color: theme.secondaryColor }}
-            >
-              <EditableText
-                value={exp.company}
-                onCommit={(v) =>
-                  edit.updateExperience(expIndex, { company: v })
-                }
-                placeholder="Company"
-              />
-              {" · "}
-              {dates}
-            </p>
             {(exp.description || edit.editable) && (
-              <div
-                className={`${theme.textSize} ${theme.lineHeight} mt-1 mb-2`}
-              >
+              <div className={`${theme.textSize} leading-snug`}>
                 <EditableText
                   value={exp.description}
                   onCommit={(v) =>
@@ -171,6 +250,162 @@ const experience: DomSectionBuilder = ({ resume, theme, edit, entryStyle }) =>
             )}
             {achievements}
           </div>
+        ),
+      };
+    }
+
+    if (entryStyle === "timeline" || entryStyle === "marker") {
+      const roleField = (
+        <EditableText
+          value={exp.role}
+          onCommit={(v) => edit.updateExperience(expIndex, { role: v })}
+          placeholder="Role"
+        />
+      );
+      const companyField = (
+        <EditableText
+          value={exp.company}
+          onCommit={(v) => edit.updateExperience(expIndex, { company: v })}
+          placeholder="Company"
+        />
+      );
+      const description = (exp.description || edit.editable) && (
+        <div className={`${theme.textSize} ${theme.lineHeight} mt-1 mb-2`}>
+          <EditableText
+            value={exp.description}
+            onCommit={(v) =>
+              edit.updateExperience(expIndex, { description: v })
+            }
+            fieldType="richtext"
+            placeholder="Describe your role…"
+          />
+        </div>
+      );
+
+      // "timeline" draws a continuous rail with a dot on each entry (rail
+      // segments butt together via `tight` on the Block, see below); "marker"
+      // (creative-modern) drops the rail for a floating dot.
+      return {
+        sectionKey: "experience",
+        itemIndex: expIndex,
+        tight: entryStyle === "timeline" ? true : undefined,
+        node:
+          entryStyle === "timeline" ? (
+            <div
+              className="relative border-l-2 pb-3 pl-4"
+              style={{ borderColor: theme.accentColor }}
+            >
+              <span
+                className="absolute top-1.5 -left-[5px] h-2 w-2 rounded-full"
+                style={{ backgroundColor: theme.accentColor }}
+              />
+              <p
+                className={`${theme.textSize} mb-0.5`}
+                style={{ color: theme.secondaryColor }}
+              >
+                {dates}
+              </p>
+              <h3
+                className="font-semibold"
+                style={{ color: theme.accentColor }}
+              >
+                {roleField}
+              </h3>
+              <p
+                className={`${theme.textSize}`}
+                style={{ color: theme.secondaryColor }}
+              >
+                {companyField}
+              </p>
+              {description}
+              {achievements}
+            </div>
+          ) : (
+            <div className="relative pl-5">
+              <span
+                className="absolute top-1.5 left-0 h-2.5 w-2.5 rounded-full"
+                style={{ backgroundColor: theme.accentColor }}
+              />
+              <h3
+                className="font-semibold"
+                style={{ color: theme.accentColor }}
+              >
+                {roleField}
+              </h3>
+              <p
+                className={`${theme.textSize}`}
+                style={{ color: theme.secondaryColor }}
+              >
+                {companyField}
+                {" · "}
+                {dates}
+              </p>
+              {description}
+              {achievements}
+            </div>
+          ),
+      };
+    }
+
+    if (entryStyle === "table") {
+      const borderColor = theme.secondaryColor + "40";
+      return {
+        sectionKey: "experience",
+        itemIndex: expIndex,
+        node: (
+          <TableEntry borderColor={borderColor}>
+            <TableRow
+              label="Company"
+              accentColor={theme.accentColor + "20"}
+              borderColor={borderColor}
+            >
+              <EditableText
+                value={exp.company}
+                onCommit={(v) =>
+                  edit.updateExperience(expIndex, { company: v })
+                }
+                placeholder="Company"
+              />
+            </TableRow>
+            <TableRow
+              label="Role"
+              accentColor={theme.accentColor + "20"}
+              borderColor={borderColor}
+            >
+              <EditableText
+                value={exp.role}
+                onCommit={(v) => edit.updateExperience(expIndex, { role: v })}
+                placeholder="Role"
+              />
+            </TableRow>
+            <TableRow
+              label="Duration"
+              accentColor={theme.accentColor + "20"}
+              borderColor={borderColor}
+            >
+              {dates}
+            </TableRow>
+            <TableRow
+              label="Details"
+              accentColor={theme.accentColor + "20"}
+              borderColor={borderColor}
+              last
+            >
+              {(exp.description || edit.editable) && (
+                <div className={`${theme.lineHeight} mb-1`}>
+                  <EditableText
+                    value={exp.description}
+                    onCommit={(v) =>
+                      edit.updateExperience(expIndex, { description: v })
+                    }
+                    fieldType="richtext"
+                    placeholder="Describe your role…"
+                  />
+                </div>
+              )}
+              {achievements}
+            </TableRow>
+          </TableEntry>
         ),
       };
     }
@@ -205,12 +440,12 @@ const experience: DomSectionBuilder = ({ resume, theme, edit, entryStyle }) =>
                 />
               </p>
             </div>
-            <span
-              className={`${theme.textSize} shrink-0`}
-              style={{ color: theme.secondaryColor }}
-            >
-              {dates}
-            </span>
+            {dateNode({
+              dates,
+              theme,
+              dateStyle: config.dateStyle,
+              textSize: theme.textSize,
+            })}
           </div>
           {(exp.description || edit.editable) && (
             <div className={`${theme.textSize} ${theme.lineHeight} mb-2`}>
@@ -230,63 +465,224 @@ const experience: DomSectionBuilder = ({ resume, theme, edit, entryStyle }) =>
     };
   });
 
-const projects: DomSectionBuilder = ({ resume, theme, edit, entryStyle }) =>
+const projects: DomSectionBuilder = ({ resume, theme, edit, config }) =>
   resume.projects.map((project, projectIndex): Block => {
+    const entryStyle = config.entryStyle;
+    const nameField = (
+      <EditableText
+        value={project.name}
+        onCommit={(v) => edit.updateProject(projectIndex, { name: v })}
+        placeholder="Project name"
+      />
+    );
+    const urlLinkField = (project.url || edit.editable) && (
+      <EditableLink
+        href={project.url ?? ""}
+        onCommit={(v) => edit.updateProject(projectIndex, { url: v })}
+        placeholder="https://…"
+        className={`${theme.textSize} ml-2 hover:underline`}
+        style={{ color: theme.secondaryColor }}
+      >
+        [Link]
+      </EditableLink>
+    );
+    const descriptionField = (
+      <EditableText
+        value={project.description}
+        onCommit={(v) => edit.updateProject(projectIndex, { description: v })}
+        fieldType="richtext"
+        placeholder="Describe the project…"
+      />
+    );
+    const dateRangeField = (project.startDate ||
+      project.endDate ||
+      edit.editable) && (
+      <EditableDateRange
+        startDate={project.startDate ?? null}
+        endDate={project.endDate ?? null}
+        dateFormat={theme.dateFormat}
+        onCommitStart={(v) =>
+          edit.updateProject(projectIndex, { startDate: v })
+        }
+        onCommitEnd={(v) => edit.updateProject(projectIndex, { endDate: v })}
+      />
+    );
+    const technologiesField = project.technologies.length > 0 && (
+      <div
+        className={`${theme.textSize}`}
+        style={{ color: theme.secondaryColor }}
+      >
+        <span className="font-medium">Technologies:</span>{" "}
+        {project.technologies.map((tech, i) => (
+          <span key={i}>
+            {i > 0 && ", "}
+            <EditableText
+              value={tech}
+              onCommit={(v) => {
+                const next = project.technologies.map((t, ti) =>
+                  ti === i ? v : t
+                );
+                edit.updateProjectTechnologies(projectIndex, next);
+              }}
+              placeholder="Tech"
+            />
+          </span>
+        ))}
+      </div>
+    );
+
     if (entryStyle === "compact") {
+      const compactTechField = project.technologies.length > 0 && (
+        <span style={{ color: theme.secondaryColor }}>
+          {"  ·  "}
+          {project.technologies.map((tech, i) => (
+            <span key={i}>
+              {i > 0 && ", "}
+              <EditableText
+                value={tech}
+                onCommit={(v) => {
+                  const next = project.technologies.map((t, ti) =>
+                    ti === i ? v : t
+                  );
+                  edit.updateProjectTechnologies(projectIndex, next);
+                }}
+                placeholder="Tech"
+              />
+            </span>
+          ))}
+        </span>
+      );
       return {
         sectionKey: "projects",
         itemIndex: projectIndex,
         node: (
-          <p className={`${theme.textSize}`}>
-            <span
-              className="font-semibold"
-              style={{ color: theme.accentColor }}
-            >
-              <EditableText
-                value={project.name}
-                onCommit={(v) => edit.updateProject(projectIndex, { name: v })}
-                placeholder="Project name"
-              />
-            </span>
-            {project.technologies.length > 0 && (
-              <span style={{ color: theme.secondaryColor }}>
-                {"  ·  "}
-                {project.technologies.join(", ")}
+          <div>
+            <p className={`${theme.textSize}`}>
+              <span
+                className="font-semibold"
+                style={{ color: theme.accentColor }}
+              >
+                {nameField}
               </span>
+              {urlLinkField}
+              {compactTechField}
+              {dateRangeField && (
+                <span style={{ color: theme.secondaryColor }}>
+                  {"  ·  "}
+                  {dateRangeField}
+                </span>
+              )}
+            </p>
+            {(project.description || edit.editable) && (
+              <div className={`${theme.textSize} leading-snug`}>
+                {descriptionField}
+              </div>
             )}
-          </p>
+          </div>
         ),
       };
     }
 
-    if (entryStyle === "timeline") {
+    if (entryStyle === "timeline" || entryStyle === "marker") {
+      const dateLine = dateRangeField && (
+        <p
+          className={`${theme.textSize}`}
+          style={{ color: theme.secondaryColor }}
+        >
+          {dateRangeField}
+        </p>
+      );
+      return {
+        sectionKey: "projects",
+        itemIndex: projectIndex,
+        tight: entryStyle === "timeline" ? true : undefined,
+        node:
+          entryStyle === "timeline" ? (
+            <div
+              className="relative border-l-2 pb-3 pl-4"
+              style={{ borderColor: theme.accentColor }}
+            >
+              <span
+                className="absolute top-1.5 -left-[5px] h-2 w-2 rounded-full"
+                style={{ backgroundColor: theme.accentColor }}
+              />
+              {dateRangeField && (
+                <p
+                  className={`${theme.textSize} mb-0.5`}
+                  style={{ color: theme.secondaryColor }}
+                >
+                  {dateRangeField}
+                </p>
+              )}
+              <h3
+                className="font-semibold"
+                style={{ color: theme.accentColor }}
+              >
+                {nameField}
+                {urlLinkField}
+              </h3>
+              <div className={`${theme.textSize} ${theme.lineHeight} mt-1`}>
+                {descriptionField}
+              </div>
+              {technologiesField}
+            </div>
+          ) : (
+            <div className="relative pl-5">
+              <span
+                className="absolute top-1.5 left-0 h-2.5 w-2.5 rounded-full"
+                style={{ backgroundColor: theme.accentColor }}
+              />
+              <h3
+                className="font-semibold"
+                style={{ color: theme.accentColor }}
+              >
+                {nameField}
+                {urlLinkField}
+              </h3>
+              {dateLine}
+              <div className={`${theme.textSize} ${theme.lineHeight} mt-1`}>
+                {descriptionField}
+              </div>
+              {technologiesField}
+            </div>
+          ),
+      };
+    }
+
+    if (entryStyle === "table") {
+      const borderColor = theme.secondaryColor + "40";
       return {
         sectionKey: "projects",
         itemIndex: projectIndex,
         node: (
-          <div
-            className="border-l-2 pl-3"
-            style={{ borderColor: theme.accentColor }}
-          >
-            <h3 className="font-semibold" style={{ color: theme.accentColor }}>
-              <span className="mr-1">●</span>
-              <EditableText
-                value={project.name}
-                onCommit={(v) => edit.updateProject(projectIndex, { name: v })}
-                placeholder="Project name"
-              />
-            </h3>
-            <div className={`${theme.textSize} ${theme.lineHeight} mt-1`}>
-              <EditableText
-                value={project.description}
-                onCommit={(v) =>
-                  edit.updateProject(projectIndex, { description: v })
-                }
-                fieldType="richtext"
-                placeholder="Describe the project…"
-              />
-            </div>
-          </div>
+          <TableEntry borderColor={borderColor}>
+            <TableRow
+              label="Project"
+              accentColor={theme.accentColor + "20"}
+              borderColor={borderColor}
+            >
+              {nameField}
+              {urlLinkField}
+            </TableRow>
+            <TableRow
+              label="Duration"
+              accentColor={theme.accentColor + "20"}
+              borderColor={borderColor}
+            >
+              {dateRangeField}
+            </TableRow>
+            <TableRow
+              label="Details"
+              accentColor={theme.accentColor + "20"}
+              borderColor={borderColor}
+              last
+            >
+              <div className={`${theme.lineHeight} mb-1`}>
+                {descriptionField}
+              </div>
+              {technologiesField}
+            </TableRow>
+          </TableEntry>
         ),
       };
     }
@@ -297,74 +693,21 @@ const projects: DomSectionBuilder = ({ resume, theme, edit, entryStyle }) =>
       node: (
         <div>
           <h3 className="font-semibold" style={{ color: theme.accentColor }}>
-            <EditableText
-              value={project.name}
-              onCommit={(v) => edit.updateProject(projectIndex, { name: v })}
-              placeholder="Project name"
-            />
-            {(project.url || edit.editable) && (
-              <EditableLink
-                href={project.url ?? ""}
-                onCommit={(v) => edit.updateProject(projectIndex, { url: v })}
-                placeholder="https://…"
-                className={`${theme.textSize} ml-2 hover:underline`}
-                style={{ color: theme.secondaryColor }}
-              >
-                [Link]
-              </EditableLink>
-            )}
+            {nameField}
+            {urlLinkField}
           </h3>
-          {(project.startDate || project.endDate || edit.editable) && (
+          {dateRangeField && (
             <div
               className={`${theme.textSize}`}
               style={{ color: theme.secondaryColor }}
             >
-              <EditableDateRange
-                startDate={project.startDate ?? null}
-                endDate={project.endDate ?? null}
-                dateFormat={theme.dateFormat}
-                onCommitStart={(v) =>
-                  edit.updateProject(projectIndex, { startDate: v })
-                }
-                onCommitEnd={(v) =>
-                  edit.updateProject(projectIndex, { endDate: v })
-                }
-              />
+              {dateRangeField}
             </div>
           )}
           <div className={`${theme.textSize} ${theme.lineHeight} mb-1`}>
-            <EditableText
-              value={project.description}
-              onCommit={(v) =>
-                edit.updateProject(projectIndex, { description: v })
-              }
-              fieldType="richtext"
-              placeholder="Describe the project…"
-            />
+            {descriptionField}
           </div>
-          {project.technologies.length > 0 && (
-            <div
-              className={`${theme.textSize}`}
-              style={{ color: theme.secondaryColor }}
-            >
-              <span className="font-medium">Technologies:</span>{" "}
-              {project.technologies.map((tech, i) => (
-                <span key={i}>
-                  {i > 0 && ", "}
-                  <EditableText
-                    value={tech}
-                    onCommit={(v) => {
-                      const next = project.technologies.map((t, ti) =>
-                        ti === i ? v : t
-                      );
-                      edit.updateProjectTechnologies(projectIndex, next);
-                    }}
-                    placeholder="Tech"
-                  />
-                </span>
-              ))}
-            </div>
-          )}
+          {technologiesField}
         </div>
       ),
     };
@@ -439,49 +782,204 @@ function parseSkillsFromEdit(text: string): Skill[] {
     .filter((s) => s.name.length > 0);
 }
 
-const skills: DomSectionBuilder = ({ resume, theme, edit }) => {
+/** Renders ONE skill group (by index into the parsed groups) per `skillStyle`
+ * — chips/list/table are purely `renderDisplay` alternatives to the
+ * always-on inline text. Grouping one category per call (instead of every
+ * group at once) is what lets `skills` below hand the paginator one block
+ * per category, so a long skills list can split across a page break instead
+ * of jumping wholesale (see `serializeSkillsForEdit`/`parseSkillsFromEdit` —
+ * the edit surface itself stays the single textarea over the whole string,
+ * only the *display* is sliced per group). */
+function skillsGroupDisplay(
+  raw: string,
+  groupIndex: number,
+  theme: ResolvedTheme,
+  skillStyle: ResolvedTemplateConfig["skillStyle"],
+  bulletStyle: ResolvedTemplateConfig["bulletStyle"]
+) {
+  const allGroups = groupSkills(parseSkillsFromEdit(raw));
+  const groups = allGroups.length > 0 ? [allGroups[groupIndex]] : [];
+
+  if (skillStyle === "chips") {
+    return (
+      <div className="flex flex-col gap-1.5">
+        {groups.map((group, gi) => (
+          <div key={gi}>
+            {group.category && (
+              <div
+                className="mb-0.5 text-xs font-medium"
+                style={{ color: theme.secondaryColor }}
+              >
+                {group.category}
+              </div>
+            )}
+            <div className="flex flex-wrap gap-1.5">
+              {group.skills.map((s, si) => (
+                <span
+                  key={si}
+                  className="rounded-full px-2 py-0 text-xs font-medium"
+                  style={{
+                    backgroundColor: theme.accentColor + "1a",
+                    color: theme.accentColor,
+                  }}
+                >
+                  {s.name}
+                </span>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  if (skillStyle === "list") {
+    return (
+      <div className="space-y-1">
+        {groups.map((group, gi) => (
+          <div key={gi}>
+            {group.category && (
+              <div
+                className="mb-1 text-xs font-medium"
+                style={{ color: theme.secondaryColor }}
+              >
+                {group.category}
+              </div>
+            )}
+            <div className="space-y-0">
+              {group.skills.map((s, si) => (
+                <div key={si}>
+                  <span className="mr-1.5" style={{ color: theme.accentColor }}>
+                    {bulletGlyph(bulletStyle)}
+                  </span>
+                  {s.name}
+                </div>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  if (skillStyle === "table") {
+    const borderColor = theme.secondaryColor + "40";
+    return (
+      <TableEntry borderColor={borderColor}>
+        {groups.length > 0 ? (
+          groups.map((group, gi) => (
+            <TableRow
+              key={gi}
+              label={group.category ?? "Skills"}
+              accentColor={theme.accentColor + "20"}
+              borderColor={borderColor}
+              last={gi === groups.length - 1}
+            >
+              {group.skills.map((s) => s.name).join(", ")}
+            </TableRow>
+          ))
+        ) : (
+          <TableRow
+            label="Skills"
+            accentColor={theme.accentColor + "20"}
+            borderColor={borderColor}
+            last
+          >
+            —
+          </TableRow>
+        )}
+      </TableEntry>
+    );
+  }
+
+  // "inline" — flat "Category: **primary**, skill" text (one group/block).
+  return (
+    <>
+      {groups.map((group, gi) => (
+        <span key={gi}>
+          {group.category && (
+            <span className="font-medium">{group.category}: </span>
+          )}
+          {group.skills.map((s, si) => (
+            <span key={si}>
+              {si > 0 && ", "}
+              {s.tier === "primary" ? <strong>{s.name}</strong> : s.name}
+            </span>
+          ))}
+        </span>
+      ))}
+    </>
+  );
+}
+
+const skills: DomSectionBuilder = ({ resume, theme, edit, config }) => {
   if (resume.skills.length === 0 && !edit.editable) return [];
-  return [
-    {
+  const serialized = serializeSkillsForEdit(resume.skills);
+  const groupCount = Math.max(groupSkills(resume.skills).length, 1);
+
+  // One block per category group (not one block for the whole section) so
+  // the paginator can split a long skills list across a page break — but
+  // the edit surface must stay a SINGLE EditableText over the whole
+  // serialized string, so only the first block renders the real editable
+  // field; later blocks render display-only nodes for their own group via
+  // the same `skillsGroupDisplay` used by the first block's `renderDisplay`.
+  return Array.from(
+    { length: groupCount },
+    (_, groupIndex): Block => ({
       sectionKey: "skills",
       node: (
         <div className={`${theme.textSize} ${theme.lineHeight}`}>
-          <EditableText
-            value={serializeSkillsForEdit(resume.skills)}
-            onCommit={(v) => edit.updateSkills(parseSkillsFromEdit(v))}
-            fieldType="textarea"
-            placeholder="Languages: *TypeScript, JavaScript | Frameworks: React…"
-            renderDisplay={(v) => (
-              <>
-                {groupSkills(parseSkillsFromEdit(v)).map((group, gi) => (
-                  <span key={gi}>
-                    {gi > 0 && " | "}
-                    {group.category && (
-                      <span className="font-medium">{group.category}: </span>
-                    )}
-                    {group.skills.map((s, si) => (
-                      <span key={si}>
-                        {si > 0 && ", "}
-                        {s.tier === "primary" ? (
-                          <strong>{s.name}</strong>
-                        ) : (
-                          s.name
-                        )}
-                      </span>
-                    ))}
-                  </span>
-                ))}
-              </>
-            )}
-          />
+          {groupIndex === 0 ? (
+            <EditableText
+              value={serialized}
+              onCommit={(v) => edit.updateSkills(parseSkillsFromEdit(v))}
+              fieldType="textarea"
+              placeholder="Languages: *TypeScript, JavaScript | Frameworks: React…"
+              renderDisplay={(v) =>
+                skillsGroupDisplay(
+                  v,
+                  groupIndex,
+                  theme,
+                  config.skillStyle,
+                  config.bulletStyle
+                )
+              }
+            />
+          ) : (
+            skillsGroupDisplay(
+              serialized,
+              groupIndex,
+              theme,
+              config.skillStyle,
+              config.bulletStyle
+            )
+          )}
         </div>
       ),
-    },
-  ];
+    })
+  );
 };
 
-const education: DomSectionBuilder = ({ resume, theme, edit, entryStyle }) =>
+const education: DomSectionBuilder = ({ resume, theme, edit, config }) =>
   resume.education.map((edu, eduIndex): Block => {
+    const entryStyle = config.entryStyle;
+    const institutionField = (
+      <EditableText
+        value={edu.institution}
+        onCommit={(v) => edit.updateEducation(eduIndex, { institution: v })}
+        placeholder="Institution"
+      />
+    );
+    const gpaField = (edu.gpa || edit.editable) && (
+      <>
+        GPA:{" "}
+        <EditableText
+          value={edu.gpa || ""}
+          onCommit={(v) => edit.updateEducation(eduIndex, { gpa: v })}
+          placeholder="—"
+        />
+      </>
+    );
     const degreeField = (
       <>
         <EditableText
@@ -534,40 +1032,133 @@ const education: DomSectionBuilder = ({ resume, theme, edit, entryStyle }) =>
             <span style={{ color: theme.secondaryColor }}>
               {"  ·  "}
               {dates}
+              {gpaField && (
+                <>
+                  {"  ·  "}
+                  {gpaField}
+                </>
+              )}
             </span>
           </p>
         ),
       };
     }
 
-    if (entryStyle === "timeline") {
+    if (entryStyle === "timeline" || entryStyle === "marker") {
+      return {
+        sectionKey: "education",
+        itemIndex: eduIndex,
+        tight: entryStyle === "timeline" ? true : undefined,
+        node:
+          entryStyle === "timeline" ? (
+            <div
+              className="relative border-l-2 pb-3 pl-4"
+              style={{ borderColor: theme.accentColor }}
+            >
+              <span
+                className="absolute top-1.5 -left-[5px] h-2 w-2 rounded-full"
+                style={{ backgroundColor: theme.accentColor }}
+              />
+              <p
+                className={`${theme.textSize} mb-0.5`}
+                style={{ color: theme.secondaryColor }}
+              >
+                {dates}
+              </p>
+              <h3
+                className="font-semibold"
+                style={{ color: theme.accentColor }}
+              >
+                {degreeField}
+              </h3>
+              <p
+                className={`${theme.textSize}`}
+                style={{ color: theme.secondaryColor }}
+              >
+                {institutionField}
+              </p>
+              {gpaField && (
+                <p
+                  className={`${theme.textSize}`}
+                  style={{ color: theme.secondaryColor }}
+                >
+                  {gpaField}
+                </p>
+              )}
+            </div>
+          ) : (
+            <div className="relative pl-5">
+              <span
+                className="absolute top-1.5 left-0 h-2.5 w-2.5 rounded-full"
+                style={{ backgroundColor: theme.accentColor }}
+              />
+              <h3
+                className="font-semibold"
+                style={{ color: theme.accentColor }}
+              >
+                {degreeField}
+              </h3>
+              <p
+                className={`${theme.textSize}`}
+                style={{ color: theme.secondaryColor }}
+              >
+                {institutionField}
+                {" · "}
+                {dates}
+              </p>
+              {gpaField && (
+                <p
+                  className={`${theme.textSize}`}
+                  style={{ color: theme.secondaryColor }}
+                >
+                  {gpaField}
+                </p>
+              )}
+            </div>
+          ),
+      };
+    }
+
+    if (entryStyle === "table") {
+      const borderColor = theme.secondaryColor + "40";
       return {
         sectionKey: "education",
         itemIndex: eduIndex,
         node: (
-          <div
-            className="border-l-2 pl-3"
-            style={{ borderColor: theme.accentColor }}
-          >
-            <h3 className="font-semibold" style={{ color: theme.accentColor }}>
-              <span className="mr-1">●</span>
-              {degreeField}
-            </h3>
-            <p
-              className={`${theme.textSize}`}
-              style={{ color: theme.secondaryColor }}
+          <TableEntry borderColor={borderColor}>
+            <TableRow
+              label="Institution"
+              accentColor={theme.accentColor + "20"}
+              borderColor={borderColor}
             >
-              <EditableText
-                value={edu.institution}
-                onCommit={(v) =>
-                  edit.updateEducation(eduIndex, { institution: v })
-                }
-                placeholder="Institution"
-              />
-              {" · "}
+              {institutionField}
+            </TableRow>
+            <TableRow
+              label="Degree"
+              accentColor={theme.accentColor + "20"}
+              borderColor={borderColor}
+            >
+              {degreeField}
+            </TableRow>
+            <TableRow
+              label="Duration"
+              accentColor={theme.accentColor + "20"}
+              borderColor={borderColor}
+              last={!gpaField}
+            >
               {dates}
-            </p>
-          </div>
+            </TableRow>
+            {gpaField && (
+              <TableRow
+                label="GPA"
+                accentColor={theme.accentColor + "20"}
+                borderColor={borderColor}
+                last
+              >
+                {gpaField}
+              </TableRow>
+            )}
+          </TableEntry>
         ),
       };
     }
@@ -589,13 +1180,7 @@ const education: DomSectionBuilder = ({ resume, theme, edit, entryStyle }) =>
                 className={`${theme.textSize} ${theme.lineHeight}`}
                 style={{ color: theme.secondaryColor }}
               >
-                <EditableText
-                  value={edu.institution}
-                  onCommit={(v) =>
-                    edit.updateEducation(eduIndex, { institution: v })
-                  }
-                  placeholder="Institution"
-                />
+                {institutionField}
               </p>
             </div>
             <span
@@ -605,17 +1190,12 @@ const education: DomSectionBuilder = ({ resume, theme, edit, entryStyle }) =>
               {dates}
             </span>
           </div>
-          {(edu.gpa || edit.editable) && (
+          {gpaField && (
             <p
               className={`${theme.textSize}`}
               style={{ color: theme.secondaryColor }}
             >
-              GPA:{" "}
-              <EditableText
-                value={edu.gpa || ""}
-                onCommit={(v) => edit.updateEducation(eduIndex, { gpa: v })}
-                placeholder="—"
-              />
+              {gpaField}
             </p>
           )}
         </div>
@@ -800,8 +1380,9 @@ const hobbies: DomSectionBuilder = ({ resume, theme, edit }) => {
   ];
 };
 
-const volunteer: DomSectionBuilder = ({ resume, theme, edit, entryStyle }) =>
+const volunteer: DomSectionBuilder = ({ resume, theme, edit, config }) =>
   (resume.volunteer ?? []).map((v, volIndex): Block => {
+    const entryStyle = config.entryStyle;
     const dates = (
       <EditableDateRange
         startDate={v.startDate}
@@ -813,88 +1394,170 @@ const volunteer: DomSectionBuilder = ({ resume, theme, edit, entryStyle }) =>
         onCommitEnd={(val) => edit.updateVolunteer(volIndex, { endDate: val })}
       />
     );
+    const roleField = (
+      <EditableText
+        value={v.role}
+        onCommit={(val) => edit.updateVolunteer(volIndex, { role: val })}
+        placeholder="Role"
+      />
+    );
+    const organizationField = (
+      <EditableText
+        value={v.organization}
+        onCommit={(val) =>
+          edit.updateVolunteer(volIndex, { organization: val })
+        }
+        placeholder="Organization"
+      />
+    );
+    const descriptionField = (v.description || edit.editable) && (
+      <EditableText
+        value={v.description}
+        onCommit={(val) => edit.updateVolunteer(volIndex, { description: val })}
+        fieldType="richtext"
+        placeholder="Describe your volunteer work…"
+      />
+    );
 
     if (entryStyle === "compact") {
       return {
         sectionKey: "volunteer",
         itemIndex: volIndex,
         node: (
-          <p className={`${theme.textSize}`}>
-            <span
-              className="font-semibold"
-              style={{ color: theme.accentColor }}
-            >
-              <EditableText
-                value={v.role}
-                onCommit={(val) =>
-                  edit.updateVolunteer(volIndex, { role: val })
-                }
-                placeholder="Role"
-              />
-            </span>
-            {" — "}
-            <EditableText
-              value={v.organization}
-              onCommit={(val) =>
-                edit.updateVolunteer(volIndex, { organization: val })
-              }
-              placeholder="Organization"
-            />
-            <span style={{ color: theme.secondaryColor }}>
-              {"  ·  "}
-              {dates}
-            </span>
-          </p>
+          <div>
+            <p className={`${theme.textSize}`}>
+              <span
+                className="font-semibold"
+                style={{ color: theme.accentColor }}
+              >
+                {roleField}
+              </span>
+              {" — "}
+              {organizationField}
+              <span style={{ color: theme.secondaryColor }}>
+                {"  ·  "}
+                {dates}
+              </span>
+            </p>
+            {descriptionField && (
+              <div className={`${theme.textSize} leading-snug`}>
+                {descriptionField}
+              </div>
+            )}
+          </div>
         ),
       };
     }
 
-    if (entryStyle === "timeline") {
+    if (entryStyle === "timeline" || entryStyle === "marker") {
+      return {
+        sectionKey: "volunteer",
+        itemIndex: volIndex,
+        tight: entryStyle === "timeline" ? true : undefined,
+        node:
+          entryStyle === "timeline" ? (
+            <div
+              className="relative border-l-2 pb-3 pl-4"
+              style={{ borderColor: theme.accentColor }}
+            >
+              <span
+                className="absolute top-1.5 -left-[5px] h-2 w-2 rounded-full"
+                style={{ backgroundColor: theme.accentColor }}
+              />
+              <p
+                className={`${theme.textSize} mb-0.5`}
+                style={{ color: theme.secondaryColor }}
+              >
+                {dates}
+              </p>
+              <h3
+                className="font-semibold"
+                style={{ color: theme.accentColor }}
+              >
+                {roleField}
+              </h3>
+              <p
+                className={`${theme.textSize}`}
+                style={{ color: theme.secondaryColor }}
+              >
+                {organizationField}
+              </p>
+              {descriptionField && (
+                <div className={`${theme.textSize} ${theme.lineHeight} mt-1`}>
+                  {descriptionField}
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="relative pl-5">
+              <span
+                className="absolute top-1.5 left-0 h-2.5 w-2.5 rounded-full"
+                style={{ backgroundColor: theme.accentColor }}
+              />
+              <h3
+                className="font-semibold"
+                style={{ color: theme.accentColor }}
+              >
+                {roleField}
+              </h3>
+              <p
+                className={`${theme.textSize}`}
+                style={{ color: theme.secondaryColor }}
+              >
+                {organizationField}
+                {" · "}
+                {dates}
+              </p>
+              {descriptionField && (
+                <div className={`${theme.textSize} ${theme.lineHeight} mt-1`}>
+                  {descriptionField}
+                </div>
+              )}
+            </div>
+          ),
+      };
+    }
+
+    if (entryStyle === "table") {
+      const borderColor = theme.secondaryColor + "40";
       return {
         sectionKey: "volunteer",
         itemIndex: volIndex,
         node: (
-          <div
-            className="border-l-2 pl-3"
-            style={{ borderColor: theme.accentColor }}
-          >
-            <h3 className="font-semibold" style={{ color: theme.accentColor }}>
-              <span className="mr-1">●</span>
-              <EditableText
-                value={v.role}
-                onCommit={(val) =>
-                  edit.updateVolunteer(volIndex, { role: val })
-                }
-                placeholder="Role"
-              />
-            </h3>
-            <p
-              className={`${theme.textSize}`}
-              style={{ color: theme.secondaryColor }}
+          <TableEntry borderColor={borderColor}>
+            <TableRow
+              label="Organization"
+              accentColor={theme.accentColor + "20"}
+              borderColor={borderColor}
             >
-              <EditableText
-                value={v.organization}
-                onCommit={(val) =>
-                  edit.updateVolunteer(volIndex, { organization: val })
-                }
-                placeholder="Organization"
-              />
-              {" · "}
+              {organizationField}
+            </TableRow>
+            <TableRow
+              label="Role"
+              accentColor={theme.accentColor + "20"}
+              borderColor={borderColor}
+            >
+              {roleField}
+            </TableRow>
+            <TableRow
+              label="Duration"
+              accentColor={theme.accentColor + "20"}
+              borderColor={borderColor}
+              last={!descriptionField}
+            >
               {dates}
-            </p>
-            {(v.description || edit.editable) && (
-              <div className={`${theme.textSize} ${theme.lineHeight} mt-1`}>
-                <EditableText
-                  value={v.description}
-                  onCommit={(val) =>
-                    edit.updateVolunteer(volIndex, { description: val })
-                  }
-                  fieldType="richtext"
-                  placeholder="Describe your volunteer work…"
-                />
-              </div>
+            </TableRow>
+            {descriptionField && (
+              <TableRow
+                label="Details"
+                accentColor={theme.accentColor + "20"}
+                borderColor={borderColor}
+                last
+              >
+                {descriptionField}
+              </TableRow>
             )}
-          </div>
+          </TableEntry>
         ),
       };
     }
@@ -910,25 +1573,13 @@ const volunteer: DomSectionBuilder = ({ resume, theme, edit, entryStyle }) =>
                 className="font-semibold"
                 style={{ color: theme.accentColor }}
               >
-                <EditableText
-                  value={v.role}
-                  onCommit={(val) =>
-                    edit.updateVolunteer(volIndex, { role: val })
-                  }
-                  placeholder="Role"
-                />
+                {roleField}
               </h3>
               <p
                 className={`${theme.textSize} ${theme.lineHeight}`}
                 style={{ color: theme.secondaryColor }}
               >
-                <EditableText
-                  value={v.organization}
-                  onCommit={(val) =>
-                    edit.updateVolunteer(volIndex, { organization: val })
-                  }
-                  placeholder="Organization"
-                />
+                {organizationField}
               </p>
             </div>
             <span
@@ -938,16 +1589,9 @@ const volunteer: DomSectionBuilder = ({ resume, theme, edit, entryStyle }) =>
               {dates}
             </span>
           </div>
-          {(v.description || edit.editable) && (
+          {descriptionField && (
             <div className={`${theme.textSize} ${theme.lineHeight}`}>
-              <EditableText
-                value={v.description}
-                onCommit={(val) =>
-                  edit.updateVolunteer(volIndex, { description: val })
-                }
-                fieldType="richtext"
-                placeholder="Describe your volunteer work…"
-              />
+              {descriptionField}
             </div>
           )}
         </div>
@@ -1005,7 +1649,7 @@ const awards: DomSectionBuilder = ({ resume, theme, edit }) =>
 // ponytail: custom sections render bullets/text only (matches
 // CustomSectionSchema.type in src/types/resume.ts). Add a richer renderer
 // when a user actually needs dated/timeline entries.
-const custom: DomSectionBuilder = ({ resume, instance }) => {
+const custom: DomSectionBuilder = ({ resume, instance, config }) => {
   const section = (resume.sectionLayout?.custom ?? []).find(
     (c) => c.id === instance.id
   );
@@ -1017,9 +1661,14 @@ const custom: DomSectionBuilder = ({ resume, instance }) => {
         section.type === "text" ? (
           <p>{section.items.join(" ")}</p>
         ) : (
-          <ul className="list-inside list-disc space-y-1">
+          <ul className="list-none space-y-1">
             {section.items.map((item, i) => (
-              <li key={i}>{item}</li>
+              <li key={i}>
+                <span className="mr-1.5">
+                  {bulletGlyph(config.bulletStyle)}
+                </span>
+                {item}
+              </li>
             ))}
           </ul>
         ),

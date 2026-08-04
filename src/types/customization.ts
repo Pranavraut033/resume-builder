@@ -59,6 +59,7 @@ export const DEFAULT_CUSTOMIZATION: SanitizedCustomization = {
   background: "none",
   dateFormat: "locale",
   themeJson: null,
+  fitToPage: false,
 };
 
 export type Template = {
@@ -72,51 +73,82 @@ export type Template = {
 
 export const AVAILABLE_TEMPLATES: Array<Template> = [
   {
-    id: "tech-sidebar",
-    name: "Tech Sidebar",
-    description: "Two-column sidebar layout for developers and engineers",
-    fontFamily: "Inter",
-    features: ["Two-column layout", "Uppercase headings", "Tech-focused"],
-    bestFor: "Software developers, engineers, technical roles",
-  },
-  {
-    id: "business-professional",
-    name: "Business Professional",
-    description: "Centered header, clean and formal design for corporate roles",
-    fontFamily: "Georgia",
-    features: ["Single column", "Centered header", "Professional typography"],
-    bestFor: "Corporate positions, management roles, traditional industries",
-  },
-  {
     id: "modern-minimal",
     name: "Modern Minimal",
-    description: "Balanced single-column design with clean typography",
+    description:
+      "Borderless two-column layout with skill chips and pill-style date badges",
     fontFamily: "Poppins",
-    features: ["Single column", "Underlined headings", "Modern aesthetics"],
+    features: ["Two-column layout", "Skill chips", "Pill date badges"],
     bestFor: "Creative professionals, designers, modern companies",
   },
   {
-    id: "elegant-timeline",
-    name: "Elegant Timeline",
-    description: "Timeline layout emphasizing career progression",
-    fontFamily: "Lora",
-    features: ["Timeline visualization", "Elegant typography", "Career focus"],
-    bestFor: "Experienced professionals, career changers",
+    id: "tech-sidebar",
+    name: "Tech Sidebar",
+    description:
+      "Full-height dark sidebar rail with a plain bullet skills list",
+    fontFamily: "Inter",
+    features: [
+      "Full-height dark sidebar",
+      "Uppercase headings",
+      "Plain skills list",
+    ],
+    bestFor: "Software developers, engineers, technical roles",
   },
   {
     id: "creative-modern",
     name: "Creative Modern",
-    description: "Bold colour-block header with a sidebar layout",
+    description:
+      "Diagonal gradient header over a right-hand accent sidebar with dot-marker entries",
     fontFamily: "Montserrat",
-    features: ["Colour-block header", "Two-column layout", "Bold colors"],
+    features: ["Gradient header", "Right sidebar", "Dot-marker timeline"],
     bestFor: "Creative roles, startups, design-focused companies",
+  },
+  {
+    id: "two-tone",
+    name: "Two-Tone",
+    description: "Split colour-block header with a tinted two-column body",
+    fontFamily: "Poppins",
+    features: ["Split colour-block header", "Tinted sidebar", "Skill chips"],
+    bestFor: "Marketing, sales, and design-forward roles",
+  },
+  {
+    id: "business-professional",
+    name: "Business Professional",
+    description:
+      "Left-aligned header with a right-side photo, uppercase rules, and justified body text",
+    fontFamily: "Georgia",
+    features: [
+      "Left-aligned header",
+      "Justified text",
+      "Traditional structure",
+    ],
+    bestFor: "Corporate positions, management roles, traditional industries",
+  },
+  {
+    id: "academic-serif",
+    name: "Academic",
+    description:
+      "Centered small-caps serif headings, justified text, and rules between sections",
+    fontFamily: "Merriweather",
+    features: ["Serif typography", "Small-caps headings", "Section dividers"],
+    bestFor: "Academics, researchers, education, legal roles",
+  },
+  {
+    id: "elegant-timeline",
+    name: "Elegant Timeline",
+    description:
+      "Fully centered layout with a light-weight name and a connecting timeline rail",
+    fontFamily: "Lora",
+    features: ["Centered layout", "Timeline rail", "Light-weight name"],
+    bestFor: "Experienced professionals, career changers",
   },
   {
     id: "bjet-professional",
     name: "BJet Professional",
-    description: "Left-accent header, executive-level professional template",
+    description:
+      "Boxed header over bordered label/value entry tables, CV-style",
     fontFamily: "Playfair Display",
-    features: ["Left-accent header", "Executive style", "Premium look"],
+    features: ["Bordered entry tables", "Boxed header", "Structured CV format"],
     bestFor: "Senior positions, executive roles, premium applications",
   },
   {
@@ -126,22 +158,6 @@ export const AVAILABLE_TEMPLATES: Array<Template> = [
     fontFamily: "Inter",
     features: ["Compact entries", "Space-efficient", "ATS-friendly"],
     bestFor: "Experienced candidates with lots to fit, ATS submissions",
-  },
-  {
-    id: "two-tone",
-    name: "Two-Tone",
-    description: "Bold colour-block header with a two-column body",
-    fontFamily: "Poppins",
-    features: ["Colour-block header", "Two-column layout", "Strong contrast"],
-    bestFor: "Marketing, sales, and design-forward roles",
-  },
-  {
-    id: "academic-serif",
-    name: "Academic",
-    description: "Centered serif header for academic and research profiles",
-    fontFamily: "Merriweather",
-    features: ["Serif typography", "Small-caps headings", "Formal structure"],
-    bestFor: "Academics, researchers, education, legal roles",
   },
 ];
 
@@ -206,6 +222,7 @@ export function validateCustomization({
   background,
   dateFormat,
   themeJson,
+  fitToPage,
 }: SanitizedCustomization) {
   if (template && !VALID_TEMPLATE_IDS.has(template as TemplateType)) {
     throw new Error("Invalid template selected.");
@@ -242,6 +259,10 @@ export function validateCustomization({
 
   if (dateFormat && !VALID_DATE_FORMATS.includes(dateFormat as DateFormat)) {
     throw new Error("Invalid date format selected.");
+  }
+
+  if (fitToPage !== undefined && typeof fitToPage !== "boolean") {
+    throw new Error("Invalid fitToPage value.");
   }
 
   if (themeJson) {
@@ -312,7 +333,13 @@ export const COLOR_PRESETS: Array<{
 // legacy scalar columns (fontSize/colors/marginSize/lineHeight/fontFamily)
 // so old rows render identically until the user edits and it gets persisted.
 
-export type HeadingStyle = "uppercase" | "underline" | "bar" | "serif";
+export type HeadingStyle =
+  | "uppercase"
+  | "underline"
+  | "bar"
+  | "serif"
+  | "plain"
+  | "accent-rule";
 
 /** Header block layout — how name/headline/contacts are arranged. */
 export type HeaderStyle =
@@ -320,16 +347,34 @@ export type HeaderStyle =
   | "centered"
   | "band"
   | "left-accent"
-  | "minimal";
+  | "minimal"
+  | "plain"
+  | "gradient"
+  | "boxed"
+  | "split";
 
 /** How dated entries (experience/education/projects/volunteer) render. */
-export type EntryStyle = "standard" | "timeline" | "compact";
+export type EntryStyle =
+  | "standard"
+  | "timeline"
+  | "compact"
+  | "marker"
+  | "table";
 
 /** Profile photo corner treatment. */
 export type PhotoShape = "circle" | "squircle" | "square";
 
 /** Profile photo border/elevation treatment. */
 export type PhotoFrame = "none" | "ring" | "shadow";
+
+/** How the skills section renders: flat text, tag chips, a labeled list, or (bjet-professional) a bordered label/value row. */
+export type SkillStyle = "inline" | "chips" | "list" | "table";
+
+/** Whether dated-entry date ranges render as plain text or a tinted pill badge. */
+export type DateStyle = "plain" | "badge";
+
+/** Glyph used for achievement/custom-section bullet points. */
+export type BulletStyle = "disc" | "dot" | "dash";
 
 export type PerSectionOverride = Partial<{
   color: string;
