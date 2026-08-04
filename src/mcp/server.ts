@@ -423,6 +423,7 @@ export interface SubmitSuccess {
   ok: true;
   jobId: number | null;
   draftId?: string;
+  hint?: string;
   next: PromptPurpose | null;
   nextPrompt?: GetPromptResult;
   guardChanges?: string[];
@@ -502,21 +503,50 @@ export async function submitTool(
   // Mint a draft on first use so the caller doesn't have to carry every
   // field forward as `input` itself.
   let draftId = args.draftId;
-  if (jobId == null && draftId == null) draftId = createDraft();
+  if (jobId == null) {
+    if (draftId == null) {
+      draftId = createDraft();
+    } else if (getDraft(draftId) == null) {
+      // A draftId was supplied but doesn't resolve to anything — expired
+      // (2h idle sweep), mistyped, or from a different/completed flow.
+      // Silently treating this as "no draft" would drop whatever the
+      // caller thinks it already carried forward (jobDetails, atsAnalysis,
+      // the tailored resume) with no signal until a much later, more
+      // confusing failure — fail loudly and specifically instead.
+      return {
+        ok: false,
+        errors: [
+          `draftId "${draftId}" was not found — it may have expired (drafts are cleared after 2h idle) or been mistyped. Start the add_job flow over with get_prompt({ purpose: "parse_job" }) and reuse the NEW draftId that submit returns from then on, or pass input.jobDetails/input.atsAnalysis/input.tailoredResume explicitly instead of relying on a draft.`,
+        ],
+      };
+    }
+  }
   const draft = jobId == null ? getDraft(draftId) : null;
 
   const withNextPrompt = async (
     base: Omit<SubmitSuccess, "nextPrompt">
   ): Promise<SubmitSuccess> => {
-    if (!base.next) return base;
+    // draftId is never carried automatically across calls — a host that
+    // drops it silently starts a brand-new, empty draft on the next call
+    // and loses everything gathered so far (only surfacing as a confusing
+    // failure at the flow's last step). Repeat the reminder on every
+    // draft-phase response rather than relying on the host recalling the
+    // tool description from earlier in the conversation.
+    const withHint: SubmitSuccess = base.draftId
+      ? {
+          ...base,
+          hint: `Pass draftId: "${base.draftId}" on your NEXT get_prompt/submit call to continue this add_job flow — it is not carried automatically.`,
+        }
+      : (base as SubmitSuccess);
+    if (!withHint.next) return withHint;
     const nextPrompt = await resolvePrompt(
       deps,
-      base.next as McpPurpose,
-      base.jobId ?? undefined,
+      withHint.next as McpPurpose,
+      withHint.jobId ?? undefined,
       undefined,
-      base.jobId == null ? getDraft(draftId) : null
+      withHint.jobId == null ? getDraft(draftId) : null
     );
-    return { ...base, nextPrompt };
+    return { ...withHint, nextPrompt };
   };
 
   try {
@@ -650,7 +680,7 @@ export async function submitTool(
           return {
             ok: false,
             errors: [
-              "Creating a new job requires jobDetails (from parse_job) and a tailoredResume (from generate_tailored_resume) — carried automatically via draftId, or pass input.jobDetails/input.tailoredResume explicitly if the draft expired.",
+              "Creating a new job requires jobDetails (from parse_job) and a tailoredResume (from generate_tailored_resume). These are only carried forward if you passed the SAME draftId (returned by parse_job's submit) on every call since — draftId is not tracked automatically across calls, you must pass it yourself each time. If you didn't, or the draft expired, pass input.jobDetails/input.tailoredResume explicitly instead.",
             ],
           };
         }

@@ -163,6 +163,26 @@ A draft is pure in-memory scratch state (`Map<string, Draft>` in
 `draft.ts`) — it dies with the server process and is swept after 2h idle.
 It exists only for the stretch of `add_job` before a `jobId` exists.
 
+**`draftId` itself is never carried automatically** — there is no session
+concept at the MCP protocol layer, so the _caller_ must pass the same
+`draftId` (returned by `parse_job`'s `submit`) on every following call in
+the flow. Two failure modes this causes if a host drops it:
+
+- **Omitted entirely**: `jobId == null && draftId == null` mints a brand
+  new, empty draft every call — each `submit` "succeeds" but nothing
+  accumulates, and the flow only fails once `generate_cover_letter` finds
+  no `jobDetails`/`tailoredResume` to create a job with.
+- **Wrong/expired `draftId`** (typo, or past the 2h idle sweep): `submit`
+  now fails immediately with a clear "draftId not found" error instead of
+  silently no-oping the write — this used to fail the same way as the
+  omitted case (data silently dropped, confusing error three steps later)
+  until that was fixed.
+
+Every draft-phase `submit` response also repeats a `hint` field
+(`Pass draftId: "..." on your NEXT call...`) precisely because a host's
+context may not still hold the tool description text from earlier in the
+conversation by the time it matters.
+
 ```mermaid
 stateDiagram-v2
     [*] --> NoDraft: server starts

@@ -236,6 +236,33 @@ describe("submitTool — add_job draft chain", () => {
     expect(getDraft(draftId)).toBeNull();
   });
 
+  it("includes a hint reminding the caller to reuse draftId on every draft-phase response", async () => {
+    const deps = makeDeps();
+
+    const step1 = await submitTool(deps, {
+      purpose: "parse_job",
+      result: jobDetails,
+    });
+    if (!step1.ok) throw new Error("unreachable");
+    expect(step1.hint).toContain(step1.draftId!);
+    expect(step1.hint).toMatch(/not carried automatically/);
+  });
+
+  it("errors clearly instead of silently dropping data when draftId doesn't resolve to anything", async () => {
+    const deps = makeDeps();
+
+    const result = await submitTool(deps, {
+      purpose: "analyze_ats",
+      draftId: "not-a-real-draft-id",
+      result: atsAnalysis,
+    });
+
+    expect(result.ok).toBe(false);
+    if (result.ok) throw new Error("unreachable");
+    expect(result.errors[0]).toMatch(/was not found/);
+    expect(result.errors[0]).toMatch(/not-a-real-draft-id/);
+  });
+
   it("still honors an explicit input.* override over the draft (back-compat)", async () => {
     const deps = makeDeps();
 
