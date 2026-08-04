@@ -29,6 +29,16 @@
   --del: #a40e26;
   --del-soft: #ffebe9;
   --warn: #9a6700;
+
+  /* Section tints — Notion-muted secondary hues, one per new section. Used
+     only as ~4% background washes, eyebrow chips, and a single icon accent —
+     never body text, never a full-bleed saturated band. */
+  --tint-ats: #6d5bc0;
+  --tint-ats-soft: rgba(109, 91, 192, 0.07);
+  --tint-craft: #24897d;
+  --tint-craft-soft: rgba(36, 137, 125, 0.07);
+  --tint-compare: #a8672f;
+  --tint-compare-soft: rgba(168, 103, 47, 0.07);
 }
 
 [data-theme="dark"] {
@@ -45,6 +55,13 @@
   --del: #f85149;
   --del-soft: rgba(248, 81, 73, 0.14);
   --warn: #d29922;
+
+  --tint-ats: #a595e6;
+  --tint-ats-soft: rgba(165, 149, 230, 0.09);
+  --tint-craft: #4dc4b6;
+  --tint-craft-soft: rgba(77, 196, 182, 0.09);
+  --tint-compare: #e0a262;
+  --tint-compare-soft: rgba(224, 162, 98, 0.09);
 }
 
 @theme inline {
@@ -61,6 +78,12 @@
   --color-del: var(--del);
   --color-del-soft: var(--del-soft);
   --color-warn: var(--warn);
+  --color-tint-ats: var(--tint-ats);
+  --color-tint-ats-soft: var(--tint-ats-soft);
+  --color-tint-craft: var(--tint-craft);
+  --color-tint-craft-soft: var(--tint-craft-soft);
+  --color-tint-compare: var(--tint-compare);
+  --color-tint-compare-soft: var(--tint-compare-soft);
 }
 
 @theme {
@@ -271,5 +294,140 @@ body {
   .how-pane,
   .how-step .step-chip {
     transition: none;
+  }
+}
+
+/* ── Section eyebrow / icon accent ───────────────────────────────────────
+   One accent (brand blue) across every section instead of a different
+   hue per section — gives the scroll a single through-line. */
+.tint-eyebrow {
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+  color: var(--accent);
+}
+.tint-icon {
+  color: var(--accent);
+}
+
+/* ── Placeholder image slots (Part 1) ────────────────────────────────────
+   Deliberately unfinished-looking: dashed border, mono filename, muted
+   icon. Swapping in the real screenshot is a file drop, no markup change. */
+.shot-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border: 1.5px dashed var(--line);
+  border-radius: 0.75rem;
+  background: var(--bg-raised);
+  color: var(--fg-muted);
+  text-align: center;
+}
+.shot-placeholder svg {
+  opacity: 0.5;
+}
+
+/* ── Backdrop effects ─────────────────────────────────────────────────────
+   Keyed off the existing --sp/--dp scroll-progress custom properties, both
+   gated behind .motion-ok so the no-JS / reduced-motion resting state is
+   the final, readable page with the backdrop simply static or absent. */
+.backdrop {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  overflow: hidden;
+  pointer-events: none;
+}
+/* Every section holding a .backdrop needs to be its positioning context. */
+#how {
+  position: relative;
+}
+
+/* Hook band — a scan beam sweeps down as --sp advances; faint keyword
+   boxes are the gradient's own hard stops, so no extra markup is needed. */
+.backdrop-scan {
+  background-image: linear-gradient(
+    to bottom,
+    transparent 0%,
+    color-mix(in srgb, var(--color-term-accent) 14%, transparent) 49%,
+    transparent 100%
+  );
+  background-size: 100% 220%;
+  background-position-y: calc(var(--sp, 0) * 140% - 60%);
+  opacity: 0.9;
+}
+
+/* How it works — flight path drawn down the gutter, plane glyph riding
+   the same stroke-dashoffset progress via offset-path. */
+.backdrop-flightpath {
+  display: none;
+}
+@media (min-width: 64rem) {
+  .backdrop-flightpath {
+    display: block;
+    left: -1rem;
+    width: 3rem;
+  }
+  .backdrop-flightpath path {
+    /* pathLength="1" set as an SVG attribute in markup */
+    stroke-dasharray: 1;
+    stroke-dashoffset: 1;
+    fill: none;
+    stroke: var(--line);
+    stroke-width: 1.5;
+  }
+  .motion-ok .backdrop-flightpath path {
+    stroke-dashoffset: calc(1 - var(--dp, 0));
+    transition: stroke-dashoffset 0.1s linear;
+  }
+  .backdrop-flightpath .plane {
+    position: absolute;
+    top: 0;
+    left: 0;
+    opacity: 0;
+  }
+  .motion-ok .backdrop-flightpath .plane {
+    opacity: 1;
+    offset-path: path("M 24 0 C 8 60, 40 140, 12 220 S 36 340, 24 400");
+    offset-distance: calc(var(--dp, 0) * 100%);
+    offset-rotate: auto;
+  }
+}
+
+/* Final CTA — split-flap character reveal. Server-rendered spans stay
+   in the DOM so no-JS text is unaffected; only the entrance animates. */
+@keyframes flap-in {
+  0% {
+    transform: rotateX(90deg);
+    opacity: 0;
+  }
+  60% {
+    transform: rotateX(-12deg);
+  }
+  100% {
+    transform: rotateX(0deg);
+    opacity: 1;
+  }
+}
+.motion-ok .flap-char {
+  display: inline-block;
+  transform-origin: 50% 100%;
+  opacity: 0;
+  animation: flap-in 0.5s ease-out forwards;
+  animation-delay: calc(var(--i, 0) * 0.035s);
+  animation-play-state: paused;
+}
+.motion-ok .reveal.in-view .flap-char {
+  animation-play-state: running;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .backdrop-scan {
+    background-position: initial;
+  }
+  .flap-char {
+    animation: none;
+    opacity: 1;
+    transform: none;
   }
 }
