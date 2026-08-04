@@ -4,6 +4,7 @@ import { Customization } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 
 import * as dbJob from "@/lib/db/job";
+import { ResumeWithDetails } from "@/lib/db/job";
 import { prisma } from "@/lib/prisma";
 import {
   SanitizedCustomization,
@@ -26,6 +27,12 @@ export async function createJob(
   return result;
 }
 
+export async function createResume(
+  resume: ResumeJSON,
+  jobId: number
+): Promise<ResumeWithDetails> {
+  return dbJob.createResume(resume, jobId);
+}
 /**
  * Get all jobs
  */
@@ -87,8 +94,21 @@ export async function deleteJob(id: number) {
   return { success: true };
 }
 
-export async function getResumeByJobId(jobId: number) {
-  return dbJob.getResumeByJobId(jobId);
+export async function getResumeByJobId(
+  jobId: number,
+  allowNull?: false
+): Promise<ResumeWithDetails>;
+
+export async function getResumeByJobId(
+  jobId: number,
+  allowNull?: true
+): Promise<null | ResumeWithDetails>;
+
+export async function getResumeByJobId(
+  jobId: number,
+  allowNull: boolean = false
+): Promise<null | ResumeWithDetails> {
+  return dbJob.getResumeByJobId(jobId, allowNull);
 }
 
 const MAX_RESUME_SNAPSHOTS = 20;

@@ -1,7 +1,12 @@
 import { Metadata } from "next";
 import Link from "next/link";
 
-import { getCoverLetterByJobId, getJob, getResumeByJobId } from "@/actions/job";
+import {
+  createResume,
+  getCoverLetterByJobId,
+  getJob,
+  getResumeByJobId,
+} from "@/actions/job";
 import { getProfileById } from "@/actions/profile";
 import { FallbackState, Button } from "@/components/ui";
 import { JobPageProvider } from "@/contexts/JobPageContext";
@@ -23,10 +28,10 @@ export default async function EditorLayout({
 
   // Load job first to get its profileId, then load the associated profile
   const job = await getJob(jobIdNum);
-  const [coverLetter, profile, resume] = await Promise.all([
+  const [coverLetter, profile, _resume] = await Promise.all([
     getCoverLetterByJobId(jobIdNum),
     getProfileById(job.profileId),
-    getResumeByJobId(jobIdNum),
+    getResumeByJobId(jobIdNum, true),
   ]);
 
   if (!profile) {
@@ -42,6 +47,10 @@ export default async function EditorLayout({
       />
     );
   }
+
+  let resume = _resume;
+  //create from base profile
+  if (!resume) resume = await createResume(profile, jobIdNum);
 
   return (
     <JobPageProvider

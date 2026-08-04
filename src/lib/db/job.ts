@@ -76,14 +76,28 @@ export async function getJob(jobId: number) {
     baseProfileAnalysis: baseProfileAnalysis,
   };
 }
+export type ResumeWithDetails = Omit<
+  import("@prisma/client").Resume,
+  "contentJson"
+> & {
+  contentJson: ResumeJSON;
+  customizations: Customization;
+  atsAnalysis: ATSAnalysisJSON | null;
+};
+export async function getResumeByJobId(
+  jobId: number,
+  allowNull: false
+): Promise<ResumeWithDetails>;
 
-export async function getResumeByJobId(jobId: number): Promise<
-  Omit<import("@prisma/client").Resume, "contentJson"> & {
-    contentJson: ResumeJSON;
-    customizations: Customization;
-    atsAnalysis: ATSAnalysisJSON | null;
-  }
-> {
+export async function getResumeByJobId(
+  jobId: number,
+  allowNull: true
+): Promise<null | ResumeWithDetails>;
+
+export async function getResumeByJobId(
+  jobId: number,
+  allowNull: boolean = false
+): Promise<null | ResumeWithDetails> {
   return await prisma.job
     .findFirstOrThrow({
       where: { id: jobId },
@@ -93,6 +107,9 @@ export async function getResumeByJobId(jobId: number): Promise<
     })
     .then((job) => {
       if (!job.resume) {
+        if (allowNull) {
+          return null;
+        }
         throw new Error(`Resume not found for job ${jobId}`);
       }
 
@@ -112,6 +129,11 @@ export async function getResumeByJobId(jobId: number): Promise<
     });
 }
 
+/**
+ * Check if a cover letter exists for a job, and create one if it doesn't. Returns the cover letter with its customization.
+ * @param jobId The ID of the job to get or create a cover letter for.
+ * @returns The cover letter with its customization.
+ */
 export async function getCoverLetterByJobId(
   jobId: number
 ): Promise<CoverLetter & { customizations: Customization }> {
@@ -120,9 +142,21 @@ export async function getCoverLetterByJobId(
       where: { id: jobId },
       select: { coverLetter: { include: { customizations: true } } },
     })
-    .then((job) => {
+    .then(async (job) => {
       if (!job.coverLetter) {
-        throw new Error(`Cover letter not found for job ${jobId}`);
+        const coverLetter = await prisma.coverLetter.create({
+          data: {
+            contentText: "",
+            customizations: { create: { ...DEFAULT_CUSTOMIZATION } },
+          },
+          include: { customizations: true },
+        });
+        prisma.job.update({
+          where: { id: jobId },
+          data: { coverLetterId: coverLetter.id },
+        });
+        return coverLetter;
+        // throw new Error(`Cover letter not found for job ${jobId}`);
       }
 
       return job.coverLetter;
@@ -373,4 +407,26 @@ export async function updateCoverLetter(
   ]);
 
   return { success: true };
+}
+
+export async function createResume(
+  resume: ResumeJSON,
+  jobId: number
+): Promise<ResumeWithDetails> {
+  return await prisma.resume
+    .create({
+      data: {
+        contentJson: JSON.stringify(resume),
+        customizations: { create: { ...DEFAULT_CUSTOMIZATION } },
+        jobs: { connect: { id: jobId } },
+      },
+      include: { customizations: true, atsAnalysis: true },
+    })
+    .then((resume) => ({
+      ...resume,
+      contentJson: JSON.parse(resume.contentJson),
+      atsAnalysis: resume.atsAnalysis?.contentJson
+        ? ATSAnalysisSchema.parse(JSON.parse(resume.atsAnalysis.contentJson))
+        : null,
+    }));
 }

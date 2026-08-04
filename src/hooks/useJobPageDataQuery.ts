@@ -7,10 +7,11 @@ import { useCallback } from "react";
 
 import { getCoverLetterByJobId, getJob, getResumeByJobId } from "@/actions/job";
 import { getProfileById } from "@/actions/profile";
+import { ResumeWithDetails } from "@/lib/db/job";
 
 type CoverLetter = Awaited<ReturnType<typeof getCoverLetterByJobId>>;
 type Job = Awaited<ReturnType<typeof getJob>>;
-type Resume = Awaited<ReturnType<typeof getResumeByJobId>>;
+type Resume = ResumeWithDetails;
 type Profile = NonNullable<Awaited<ReturnType<typeof getProfileById>>>;
 
 export type JobPageData = {
