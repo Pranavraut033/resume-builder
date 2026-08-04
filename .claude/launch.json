@@ -3,13 +3,13 @@
   "configurations": [
     {
       "name": "dev",
-      "runtimeExecutable": "/Users/pranavraut/.nvm/versions/node/v22.14.0/bin/node",
+      "runtimeExecutable": "/Users/pranavraut/.nvm/versions/node/v24.9.0/bin/node",
       "runtimeArgs": ["node_modules/.bin/next", "dev", "-p", "3008"],
       "port": 3008
     },
     {
       "name": "landing",
-      "runtimeExecutable": "/Users/pranavraut/.nvm/versions/node/v22.14.0/bin/node",
+      "runtimeExecutable": "/Users/pranavraut/.nvm/versions/node/v24.9.0/bin/node",
       "runtimeArgs": [
         "landing/node_modules/astro/bin/astro.mjs",
         "dev",
