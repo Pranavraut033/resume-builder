@@ -66,7 +66,7 @@ export function TemplatePicker() {
               Choose a template
             </p>
           </div>
-          <div className="flex max-h-80 flex-col gap-1 overflow-y-auto p-2">
+          <div className="flex max-h-80 flex-col gap-1 overflow-y-auto overscroll-contain p-2">
             {AVAILABLE_TEMPLATES.map((template) => {
               const isActive = customization.template === template.id;
               return (

@@ -367,8 +367,16 @@ export type PhotoShape = "circle" | "squircle" | "square";
 /** Profile photo border/elevation treatment. */
 export type PhotoFrame = "none" | "ring" | "shadow";
 
-/** How the skills section renders: flat text, tag chips, a labeled list, or (bjet-professional) a bordered label/value row. */
-export type SkillStyle = "inline" | "chips" | "list" | "table";
+/** How the skills section renders: flat text, tag chips, a labeled list, a
+ * bordered label/value row (bjet-professional), a 2-column accent-ruled
+ * grid, or borderless label/value columns (the light-weight cousin of `table`). */
+export type SkillStyle =
+  | "inline"
+  | "chips"
+  | "list"
+  | "table"
+  | "grid"
+  | "columns";
 
 /** Whether dated-entry date ranges render as plain text or a tinted pill badge. */
 export type DateStyle = "plain" | "badge";

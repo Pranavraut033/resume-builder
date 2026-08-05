@@ -142,6 +142,21 @@ describe("generateResumePDF", () => {
     ).rejects.toThrow("network down");
     expect(toBlob).toHaveBeenCalledTimes(1);
   });
+
+  it("retries with Helvetica when the first render throws an unregistered-font Error", async () => {
+    toBlob
+      .mockRejectedValueOnce(new Error("Font family not registered: Georgia"))
+      .mockResolvedValueOnce(blob);
+
+    await generateResumePDF(resume, customization("modern-minimal"), "r.pdf");
+
+    expect(toBlob).toHaveBeenCalledTimes(2);
+    const secondEl = pdf.mock.calls[1][0] as {
+      type: unknown;
+      props: { styles: { fontFamily: string } };
+    };
+    expect(secondEl.props.styles.fontFamily).toBe("Helvetica");
+  });
 });
 
 describe("generateCoverLetterPDF", () => {
@@ -207,5 +222,25 @@ describe("generateCoverLetterPDF", () => {
       )
     ).rejects.toThrow("network down");
     expect(toBlob).toHaveBeenCalledTimes(1);
+  });
+
+  it("retries with Helvetica when the first render throws an unregistered-font Error", async () => {
+    toBlob
+      .mockRejectedValueOnce(new Error("Font family not registered: Georgia"))
+      .mockResolvedValueOnce(blob);
+
+    await generateCoverLetterPDF(
+      "cover letter text",
+      resume,
+      customization("tech-sidebar"),
+      "c.pdf"
+    );
+
+    expect(toBlob).toHaveBeenCalledTimes(2);
+    const secondEl = pdf.mock.calls[1][0] as {
+      type: unknown;
+      props: { styles: { fontFamily: string } };
+    };
+    expect(secondEl.props.styles.fontFamily).toBe("Helvetica");
   });
 });

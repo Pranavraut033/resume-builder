@@ -3,6 +3,7 @@ import { EditableLink } from "@/components/job-v2/resume/EditableLink";
 import { EditableText } from "@/components/job-v2/resume/EditableText";
 import { ListSectionId } from "@/components/job-v2/resume/InlineEditContext";
 import { LanguageField } from "@/components/job-v2/resume/LanguageField";
+import cn from "@/lib/cn";
 import { formatDateRange } from "@/lib/date";
 import { isHtml, htmlToPlainText } from "@/lib/htmlUtils";
 
@@ -782,27 +783,39 @@ function parseSkillsFromEdit(text: string): Skill[] {
     .filter((s) => s.name.length > 0);
 }
 
-/** Renders ONE skill group (by index into the parsed groups) per `skillStyle`
- * — chips/list/table are purely `renderDisplay` alternatives to the
- * always-on inline text. Grouping one category per call (instead of every
- * group at once) is what lets `skills` below hand the paginator one block
- * per category, so a long skills list can split across a page break instead
- * of jumping wholesale (see `serializeSkillsForEdit`/`parseSkillsFromEdit` —
- * the edit surface itself stays the single textarea over the whole string,
- * only the *display* is sliced per group). */
+/** Styles whose paginator block is single (the whole section in one block) —
+ * `list`/`grid`/`columns` stay one-block-per-category so a long skills list
+ * can still split across a page break; see `skills` below. */
+const SINGLE_BLOCK_SKILL_STYLES: ReadonlySet<
+  ResolvedTemplateConfig["skillStyle"]
+> = new Set(["inline", "chips", "table"]);
+
+/** Renders skill group(s) per `skillStyle` — chips/list/table/grid/columns
+ * are purely `renderDisplay` alternatives to the always-on inline text. For
+ * `list`/`grid`/`columns`, `groupIndex` selects ONE category (one paginator
+ * block per category, so a long skills list can split across a page break).
+ * For the single-block styles (`inline`/`chips`/`table`) every group renders
+ * together regardless of `groupIndex` — `skills` below only ever hands them
+ * a single block (see `serializeSkillsForEdit`/`parseSkillsFromEdit` — the
+ * edit surface itself stays the single textarea over the whole string, only
+ * the *display* is sliced/grouped). */
 function skillsGroupDisplay(
   raw: string,
   groupIndex: number,
   theme: ResolvedTheme,
-  skillStyle: ResolvedTemplateConfig["skillStyle"],
-  bulletStyle: ResolvedTemplateConfig["bulletStyle"]
+  skillStyle: ResolvedTemplateConfig["skillStyle"]
 ) {
   const allGroups = groupSkills(parseSkillsFromEdit(raw));
-  const groups = allGroups.length > 0 ? [allGroups[groupIndex]] : [];
+  const groups =
+    allGroups.length === 0
+      ? []
+      : SINGLE_BLOCK_SKILL_STYLES.has(skillStyle)
+        ? allGroups
+        : [allGroups[groupIndex]];
 
   if (skillStyle === "chips") {
     return (
-      <div className="flex flex-col gap-1.5">
+      <div className="flex flex-col gap-1">
         {groups.map((group, gi) => (
           <div key={gi}>
             {group.category && (
@@ -817,7 +830,7 @@ function skillsGroupDisplay(
               {group.skills.map((s, si) => (
                 <span
                   key={si}
-                  className="rounded-full px-2 py-0 text-xs font-medium"
+                  className="rounded-full px-2 py-0.5 text-xs font-medium"
                   style={{
                     backgroundColor: theme.accentColor + "1a",
                     color: theme.accentColor,
@@ -835,25 +848,27 @@ function skillsGroupDisplay(
 
   if (skillStyle === "list") {
     return (
-      <div className="space-y-1">
+      <div className="space-y-0.5">
         {groups.map((group, gi) => (
           <div key={gi}>
             {group.category && (
               <div
-                className="mb-1 text-xs font-medium"
+                className="text-xs font-medium"
                 style={{ color: theme.secondaryColor }}
               >
                 {group.category}
               </div>
             )}
-            <div className="space-y-0">
+            {/* Comma-joined and wrapped, not one skill per line or one
+                bulleted chunk per skill — a narrow sidebar column with 5+
+                skills in a category otherwise burns a line (or several) per
+                category instead of packing keywords tightly. */}
+            <div className="text-xs">
               {group.skills.map((s, si) => (
-                <div key={si}>
-                  <span className="mr-1.5" style={{ color: theme.accentColor }}>
-                    {bulletGlyph(bulletStyle)}
-                  </span>
-                  {s.name}
-                </div>
+                <span key={si}>
+                  {si > 0 && ", "}
+                  {s.tier === "primary" ? <strong>{s.name}</strong> : s.name}
+                </span>
               ))}
             </div>
           </div>
@@ -892,11 +907,69 @@ function skillsGroupDisplay(
     );
   }
 
-  // "inline" — flat "Category: **primary**, skill" text (one group/block).
+  if (skillStyle === "grid") {
+    return (
+      <div className="grid grid-cols-2 gap-x-4 gap-y-2">
+        {groups.map((group, gi) => (
+          <div
+            key={gi}
+            className="border-l-2 pl-2"
+            style={{ borderColor: theme.accentColor }}
+          >
+            {group.category && (
+              <div
+                className="mb-0.5 text-xs font-medium"
+                style={{ color: theme.secondaryColor }}
+              >
+                {group.category}
+              </div>
+            )}
+            <div className="text-xs">
+              {group.skills.map((s, si) => (
+                <span key={si}>
+                  {si > 0 && ", "}
+                  {s.tier === "primary" ? <strong>{s.name}</strong> : s.name}
+                </span>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  if (skillStyle === "columns") {
+    return (
+      <div className="flex flex-col gap-1">
+        {groups.map((group, gi) => (
+          <div key={gi} className="grid grid-cols-[110px_1fr]">
+            <div
+              className="pr-2 text-xs font-medium"
+              style={{ color: theme.secondaryColor }}
+            >
+              {group.category ?? "Skills"}
+            </div>
+            <div className="text-xs">
+              {group.skills.map((s, si) => (
+                <span key={si}>
+                  {si > 0 && ", "}
+                  {s.tier === "primary" ? <strong>{s.name}</strong> : s.name}
+                </span>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  // "inline" — one flowing paragraph, groups joined by a middot separator
+  // (single block: all groups render together, see SINGLE_BLOCK_SKILL_STYLES).
   return (
     <>
       {groups.map((group, gi) => (
         <span key={gi}>
+          {gi > 0 && " • "}
           {group.category && (
             <span className="font-medium">{group.category}: </span>
           )}
@@ -915,14 +988,19 @@ function skillsGroupDisplay(
 const skills: DomSectionBuilder = ({ resume, theme, edit, config }) => {
   if (resume.skills.length === 0 && !edit.editable) return [];
   const serialized = serializeSkillsForEdit(resume.skills);
-  const groupCount = Math.max(groupSkills(resume.skills).length, 1);
+  const groupCount = SINGLE_BLOCK_SKILL_STYLES.has(config.skillStyle)
+    ? 1
+    : Math.max(groupSkills(resume.skills).length, 1);
 
-  // One block per category group (not one block for the whole section) so
-  // the paginator can split a long skills list across a page break — but
-  // the edit surface must stay a SINGLE EditableText over the whole
-  // serialized string, so only the first block renders the real editable
-  // field; later blocks render display-only nodes for their own group via
-  // the same `skillsGroupDisplay` used by the first block's `renderDisplay`.
+  // Single-block styles (inline/chips/table) get ONE block for the whole
+  // section — a flowing paragraph or one bordered box shouldn't paginate
+  // mid-category. The splittable styles (list/grid/columns) still get one
+  // block per category group so a long skills list can split across a page
+  // break — but the edit surface must stay a SINGLE EditableText over the
+  // whole serialized string, so only the first block renders the real
+  // editable field; later blocks render display-only nodes for their own
+  // group via the same `skillsGroupDisplay` used by the first block's
+  // `renderDisplay`.
   return Array.from(
     { length: groupCount },
     (_, groupIndex): Block => ({
@@ -936,23 +1014,11 @@ const skills: DomSectionBuilder = ({ resume, theme, edit, config }) => {
               fieldType="textarea"
               placeholder="Languages: *TypeScript, JavaScript | Frameworks: React…"
               renderDisplay={(v) =>
-                skillsGroupDisplay(
-                  v,
-                  groupIndex,
-                  theme,
-                  config.skillStyle,
-                  config.bulletStyle
-                )
+                skillsGroupDisplay(v, groupIndex, theme, config.skillStyle)
               }
             />
           ) : (
-            skillsGroupDisplay(
-              serialized,
-              groupIndex,
-              theme,
-              config.skillStyle,
-              config.bulletStyle
-            )
+            skillsGroupDisplay(serialized, groupIndex, theme, config.skillStyle)
           )}
         </div>
       ),
@@ -963,6 +1029,8 @@ const skills: DomSectionBuilder = ({ resume, theme, edit, config }) => {
 const education: DomSectionBuilder = ({ resume, theme, edit, config }) =>
   resume.education.map((edu, eduIndex): Block => {
     const entryStyle = config.entryStyle;
+    const isMultiColumn = config.columns > 1;
+
     const institutionField = (
       <EditableText
         value={edu.institution}
@@ -1168,7 +1236,12 @@ const education: DomSectionBuilder = ({ resume, theme, edit, config }) =>
       itemIndex: eduIndex,
       node: (
         <div>
-          <div className="flex items-start justify-between gap-4">
+          <div
+            className={cn(
+              "flex items-start justify-between",
+              isMultiColumn ? "flex-col gap-2" : "gap-4"
+            )}
+          >
             <div>
               <h3
                 className="font-semibold"

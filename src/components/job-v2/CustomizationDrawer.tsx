@@ -1,5 +1,6 @@
 "use client";
 
+import DownloadButton from "@/components/job/DownloadButton";
 import ThemeCustomizationPanel from "@/components/job/ThemeCustomizationPanel";
 import { Icon } from "@/components/ui/Icon";
 import { useEscapeKey } from "@/hooks/useEscapeKey";
@@ -52,6 +53,14 @@ export function CustomizationDrawer({
         <div className="flex-1 overflow-y-auto">
           <ThemeCustomizationPanel />
           <SectionThemeOverrides />
+        </div>
+
+        {/* Export footer */}
+        <div className="border-agent-outline-variant flex flex-col gap-2 border-t px-4 py-3">
+          <h3 className="text-agent-on-surface text-sm font-semibold">
+            Finalize &amp; Export
+          </h3>
+          <DownloadButton />
         </div>
       </div>
     </aside>

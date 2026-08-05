@@ -194,10 +194,29 @@ export const TemplateEngine: React.FC<TemplateEngineProps> = ({
     );
   };
 
+  // A `sidebarFill: "solid"` sidebar (tech-sidebar) inverts to light-on-dark
+  // via `color: sidebarTextColor` on the column's own div below, which only
+  // covers text that inherits color. Section builders that set `secondaryColor`/
+  // `accentColor` explicitly (category labels, degree/institution, bullet
+  // glyphs, dates) override that inheritance and render their normal
+  // light-background colors on the dark fill instead — illegible. Since every
+  // builder reads color off the `theme` object passed in, substituting a
+  // theme with those fields mapped to `backgroundColor` for column 0 fixes
+  // every builder at once, mirroring the PDF engine's `sidebarStyles`.
+  const sidebarTheme =
+    config.sidebarFill === "solid"
+      ? {
+          ...theme,
+          secondaryColor: theme.backgroundColor,
+          accentColor: theme.backgroundColor,
+          textColor: theme.backgroundColor,
+        }
+      : theme;
+
   const col0Blocks = buildColumnBlocks(
     col0Instances,
     resume,
-    theme,
+    sidebarTheme,
     edit,
     config
   );

@@ -41,7 +41,7 @@ const TemplateSelector: React.FC<TemplateSelectorProps> = ({
         Pick a template style before exporting.
       </p>
 
-      <div className="gap-block grid max-h-96 grid-cols-1 overflow-y-auto">
+      <div className="gap-block grid max-h-96 grid-cols-1 overflow-y-auto overscroll-contain">
         <div className="grid gap-2">
           {AVAILABLE_TEMPLATES.map((t) => {
             const isSelected = selectedTemplate === t.id;

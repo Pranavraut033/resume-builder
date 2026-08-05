@@ -22,6 +22,17 @@ import { TwoToneCoverLetterPDF } from "./pdf/templates/TwoToneCoverLetterPDF";
 
 import type { TemplateType } from "@/types/customization";
 
+/**
+ * True for react-pdf's font-store `Error` when a `fontFamily` string was
+ * used in a style without ever being passed through `registerPDFFont()`
+ * (e.g. a hardcoded literal) — its message reads
+ * `Font family not registered: <name>`. Distinct from the `RangeError`
+ * fontkit throws for a font that registered but failed to fetch/parse.
+ */
+function isUnregisteredFontError(err: unknown): boolean {
+  return err instanceof Error && /not registered/i.test(err.message);
+}
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const COVER_LETTER_TEMPLATE_MAP: Record<string, React.ComponentType<any>> = {
   "modern-minimal": ModernMinimalCoverLetterPDF,
@@ -81,10 +92,13 @@ export async function generateResumePDF(
   try {
     blob = await renderBlob(styles);
   } catch (err) {
-    if (err instanceof RangeError) {
+    if (err instanceof RangeError || isUnregisteredFontError(err)) {
       // A RangeError from fontkit means the registered font URL failed to load
-      // or contains a glyph outside the loaded subset. Retry with the built-in
-      // Helvetica which needs no network fetch.
+      // or contains a glyph outside the loaded subset. An "Font family not
+      // registered" Error comes from react-pdf's font store rejecting a
+      // fontFamily string that was never passed through registerPDFFont()
+      // (e.g. a hardcoded literal). Either way, retry with the built-in
+      // Helvetica which needs no network fetch and no registration.
       blob = await renderBlob({ ...styles, fontFamily: "Helvetica" });
     } else {
       throw err;
@@ -136,7 +150,7 @@ export async function generateCoverLetterPDF(
   try {
     blob = await renderBlob(styles);
   } catch (err) {
-    if (err instanceof RangeError) {
+    if (err instanceof RangeError || isUnregisteredFontError(err)) {
       blob = await renderBlob({ ...styles, fontFamily: "Helvetica" });
     } else {
       throw err;

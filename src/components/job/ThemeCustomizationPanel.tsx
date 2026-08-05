@@ -16,7 +16,6 @@ import {
 const DATE_FORMAT_EXAMPLE = "2020-01";
 
 import { Card } from "../ui";
-import DownloadButton from "./DownloadButton";
 import FontSelector from "./FontSelector";
 import TemplateSelector from "./TemplateSelector";
 
@@ -42,18 +41,6 @@ const ThemeCustomizationPanel: React.FC<Props> = ({}) => {
 
   return (
     <div className="relative flex flex-col gap-4 p-4">
-      <div className="bg-agent-surface border-agent-outline-variant sticky top-0 z-10 -mx-4 -mt-4 border-b p-4">
-        <h3
-          className="mb-3 text-sm font-semibold"
-          style={{ color: "var(--color-agent-on-surface)" }}
-        >
-          Finalize &amp; Export
-        </h3>
-        <div className="flex flex-col gap-2">
-          <DownloadButton />
-        </div>
-      </div>
-
       {/* Template selection */}
       <TemplateSelector
         selectedTemplate={customization.template as TemplateType}

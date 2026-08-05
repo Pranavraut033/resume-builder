@@ -58,19 +58,28 @@ export type PDFSectionBuilder = (
 ) => React.ReactNode;
 
 /** One label/value row for `entryStyle: "table"` (bjet-professional) —
- * react-pdf mirror of the DOM `TableRow` in engine/sections.tsx. */
+ * react-pdf mirror of the DOM `TableRow` in engine/sections.tsx.
+ *
+ * `fontSize`/`sp` are optional (defaulting to the pre-fitScale literals) so
+ * the `pdfSkills` "table" skillStyle branch — which also calls this — keeps
+ * compiling/working unchanged; it's Cluster B's job to thread `s.smallFontSize`/
+ * `s.sp` through its own call sites when it touches that file. */
 function PdfTableRow({
   label,
   children,
   accentColor,
   borderColor,
   isLast = false,
+  fontSize = 8,
+  sp = (n: number) => n,
 }: {
   label: string;
   children: React.ReactNode;
   accentColor: string;
   borderColor: string;
   isLast?: boolean;
+  fontSize?: number;
+  sp?: (n: number) => number;
 }) {
   return (
     <View
@@ -82,30 +91,36 @@ function PdfTableRow({
     >
       <View
         style={{
-          width: 80,
+          width: sp(80),
           backgroundColor: accentColor,
           borderRightWidth: 1,
           borderRightColor: borderColor,
-          padding: 4,
+          padding: sp(4),
         }}
       >
-        <Text style={{ fontSize: 8, fontWeight: 700 }}>{label}</Text>
+        <Text style={{ fontSize, fontWeight: 700 }}>{label}</Text>
       </View>
-      <View style={{ flex: 1, padding: 4 }}>{children}</View>
+      <View style={{ flex: 1, padding: sp(4) }}>{children}</View>
     </View>
   );
 }
 
-/** Bordered box wrapping a run of `PdfTableRow`s. */
+/** Bordered box wrapping a run of `PdfTableRow`s.
+ * `sp` is optional for the same reason as `PdfTableRow` above. */
 function PdfTableEntry({
   children,
   borderColor,
+  sp = (n: number) => n,
 }: {
   children: React.ReactNode;
   borderColor: string;
+  sp?: (n: number) => number;
 }) {
   return (
-    <View wrap={false} style={{ marginBottom: 8, borderWidth: 1, borderColor }}>
+    <View
+      wrap={false}
+      style={{ marginBottom: sp(8), borderWidth: 1, borderColor }}
+    >
       {children}
     </View>
   );
@@ -178,7 +193,7 @@ const pdfExperience: PDFSectionBuilder = ({ resume, styles: s, config }) => {
     return (
       <>
         {resume.experience.map((exp, i) => (
-          <View key={i} wrap={false} style={{ marginBottom: 5 }}>
+          <View key={i} wrap={false} style={{ marginBottom: s.sp(5) }}>
             <Text style={{ fontSize, color: s.textColor }}>
               <Text style={{ fontWeight: 700, color: accentColor }}>
                 {exp.role}
@@ -199,7 +214,7 @@ const pdfExperience: PDFSectionBuilder = ({ resume, styles: s, config }) => {
                   fontSize: smallFontSize,
                   lineHeight,
                   color: s.textColor,
-                  marginLeft: 8,
+                  marginLeft: s.sp(8),
                 }}
               >
                 {glyph} {a}
@@ -222,12 +237,16 @@ const pdfExperience: PDFSectionBuilder = ({ resume, styles: s, config }) => {
               entryStyle === "timeline"
                 ? {
                     position: "relative",
-                    paddingLeft: 10,
-                    paddingBottom: 10,
-                    borderLeftWidth: 2,
+                    paddingLeft: s.sp(10),
+                    paddingBottom: s.sp(10),
+                    borderLeftWidth: s.sp(2),
                     borderLeftColor: accentColor,
                   }
-                : { marginBottom: 10, paddingLeft: 12, position: "relative" }
+                : {
+                    marginBottom: s.sp(10),
+                    paddingLeft: s.sp(12),
+                    position: "relative",
+                  }
             }
           >
             <View
@@ -281,7 +300,7 @@ const pdfExperience: PDFSectionBuilder = ({ resume, styles: s, config }) => {
                   fontSize,
                   lineHeight,
                   color: s.textColor,
-                  marginLeft: 8,
+                  marginLeft: s.sp(8),
                 }}
               >
                 {glyph} {a}
@@ -299,11 +318,13 @@ const pdfExperience: PDFSectionBuilder = ({ resume, styles: s, config }) => {
     return (
       <>
         {resume.experience.map((exp, i) => (
-          <PdfTableEntry key={i} borderColor={borderColor}>
+          <PdfTableEntry key={i} borderColor={borderColor} sp={s.sp}>
             <PdfTableRow
               label="Company"
               accentColor={tint}
               borderColor={borderColor}
+              fontSize={smallFontSize}
+              sp={s.sp}
             >
               <Text style={{ fontSize: smallFontSize }}>{exp.company}</Text>
             </PdfTableRow>
@@ -311,6 +332,8 @@ const pdfExperience: PDFSectionBuilder = ({ resume, styles: s, config }) => {
               label="Role"
               accentColor={tint}
               borderColor={borderColor}
+              fontSize={smallFontSize}
+              sp={s.sp}
             >
               <Text style={{ fontSize: smallFontSize }}>{exp.role}</Text>
             </PdfTableRow>
@@ -318,6 +341,8 @@ const pdfExperience: PDFSectionBuilder = ({ resume, styles: s, config }) => {
               label="Duration"
               accentColor={tint}
               borderColor={borderColor}
+              fontSize={smallFontSize}
+              sp={s.sp}
             >
               <Text style={{ fontSize: smallFontSize }}>
                 {formatDateRange(exp.startDate, exp.endDate, dateFormat)}
@@ -328,6 +353,8 @@ const pdfExperience: PDFSectionBuilder = ({ resume, styles: s, config }) => {
               accentColor={tint}
               borderColor={borderColor}
               isLast
+              fontSize={smallFontSize}
+              sp={s.sp}
             >
               {exp.description ? (
                 <Text
@@ -355,7 +382,7 @@ const pdfExperience: PDFSectionBuilder = ({ resume, styles: s, config }) => {
   return (
     <>
       {resume.experience.map((exp, i) => (
-        <View key={i} wrap={false} style={{ marginBottom: 9 }}>
+        <View key={i} wrap={false} style={{ marginBottom: s.sp(9) }}>
           <View
             style={{
               flexDirection: "row",
@@ -402,7 +429,7 @@ const pdfExperience: PDFSectionBuilder = ({ resume, styles: s, config }) => {
                 fontSize,
                 lineHeight,
                 color: s.textColor,
-                marginLeft: 8,
+                marginLeft: s.sp(8),
               }}
             >
               {glyph} {a}
@@ -430,7 +457,7 @@ const pdfProjects: PDFSectionBuilder = ({ resume, styles: s, config }) => {
     return (
       <>
         {resume.projects.map((proj, i) => (
-          <View key={i} wrap={false} style={{ marginBottom: 5 }}>
+          <View key={i} wrap={false} style={{ marginBottom: s.sp(5) }}>
             <Text style={{ fontSize, color: s.textColor }}>
               <Text style={{ fontWeight: 700, color: accentColor }}>
                 {proj.name}
@@ -455,12 +482,16 @@ const pdfProjects: PDFSectionBuilder = ({ resume, styles: s, config }) => {
               entryStyle === "timeline"
                 ? {
                     position: "relative",
-                    paddingLeft: 10,
-                    paddingBottom: 10,
-                    borderLeftWidth: 2,
+                    paddingLeft: s.sp(10),
+                    paddingBottom: s.sp(10),
+                    borderLeftWidth: s.sp(2),
                     borderLeftColor: accentColor,
                   }
-                : { marginBottom: 10, paddingLeft: 12, position: "relative" }
+                : {
+                    marginBottom: s.sp(10),
+                    paddingLeft: s.sp(12),
+                    position: "relative",
+                  }
             }
           >
             <View
@@ -519,11 +550,13 @@ const pdfProjects: PDFSectionBuilder = ({ resume, styles: s, config }) => {
     return (
       <>
         {resume.projects.map((proj, i) => (
-          <PdfTableEntry key={i} borderColor={borderColor}>
+          <PdfTableEntry key={i} borderColor={borderColor} sp={s.sp}>
             <PdfTableRow
               label="Project"
               accentColor={tint}
               borderColor={borderColor}
+              fontSize={smallFontSize}
+              sp={s.sp}
             >
               <Text style={{ fontSize: smallFontSize }}>
                 {proj.name}
@@ -541,6 +574,8 @@ const pdfProjects: PDFSectionBuilder = ({ resume, styles: s, config }) => {
               label="Duration"
               accentColor={tint}
               borderColor={borderColor}
+              fontSize={smallFontSize}
+              sp={s.sp}
             >
               <Text style={{ fontSize: smallFontSize }}>
                 {proj.startDate || proj.endDate
@@ -553,6 +588,8 @@ const pdfProjects: PDFSectionBuilder = ({ resume, styles: s, config }) => {
               accentColor={tint}
               borderColor={borderColor}
               isLast
+              fontSize={smallFontSize}
+              sp={s.sp}
             >
               <Text
                 style={{ fontSize: smallFontSize, lineHeight, marginBottom: 2 }}
@@ -575,7 +612,7 @@ const pdfProjects: PDFSectionBuilder = ({ resume, styles: s, config }) => {
   return (
     <>
       {resume.projects.map((proj, i) => (
-        <View key={i} wrap={false} style={{ marginBottom: 9 }}>
+        <View key={i} wrap={false} style={{ marginBottom: s.sp(9) }}>
           <View
             style={{
               flexDirection: "row",
@@ -631,14 +668,19 @@ const pdfProjects: PDFSectionBuilder = ({ resume, styles: s, config }) => {
   );
 };
 
+/** Styles whose PDF section is a single atomic block (mirrors
+ * `SINGLE_BLOCK_SKILL_STYLES` in `engine/sections.tsx`) — `chips`/`table`
+ * render as one Fragment/View so `SectionGroup` can't split them mid-box,
+ * and `inline` is one flowing paragraph. `list`/`grid`/`columns` instead
+ * return an ARRAY of per-group nodes (not wrapped in one Fragment) so
+ * `SectionGroup` (Cluster A) can split a long skills list across pages. */
 const pdfSkills: PDFSectionBuilder = ({ resume, styles: s, config }) => {
   if (resume.skills.length === 0) return null;
   const groups = groupSkills(resume.skills);
-  const glyph = bulletGlyph(config.bulletStyle);
 
   if (config.skillStyle === "chips") {
     return (
-      <View style={{ flexDirection: "column", gap: 6 }}>
+      <View style={{ flexDirection: "column", gap: s.sp(6) }}>
         {groups.map((group, gi) => (
           <View key={gi}>
             {group.category ? (
@@ -652,7 +694,9 @@ const pdfSkills: PDFSectionBuilder = ({ resume, styles: s, config }) => {
                 {group.category}
               </Text>
             ) : null}
-            <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 4 }}>
+            <View
+              style={{ flexDirection: "row", flexWrap: "wrap", gap: s.sp(4) }}
+            >
               {group.skills.map((skill, si) => (
                 <Text
                   key={si}
@@ -661,8 +705,8 @@ const pdfSkills: PDFSectionBuilder = ({ resume, styles: s, config }) => {
                     color: s.accentColor,
                     backgroundColor: withAlpha(s.accentColor, "1a"),
                     borderRadius: 8,
-                    paddingVertical: 2,
-                    paddingHorizontal: 6,
+                    paddingVertical: s.sp(2),
+                    paddingHorizontal: s.sp(6),
                   }}
                 >
                   {skill.name}
@@ -676,40 +720,116 @@ const pdfSkills: PDFSectionBuilder = ({ resume, styles: s, config }) => {
   }
 
   if (config.skillStyle === "list") {
-    return (
-      <View style={{ flexDirection: "column", gap: 4 }}>
-        {groups.map((group, gi) => (
-          <View key={gi}>
-            {group.category ? (
-              <Text
-                style={{
-                  fontSize: s.smallFontSize,
-                  color: s.secondaryColor,
-                  marginBottom: 2,
-                }}
-              >
-                {group.category}
-              </Text>
-            ) : null}
-            {group.skills.map((skill, si) => (
-              <Text
-                key={si}
-                style={{ fontSize: s.fontSize, color: s.textColor }}
-              >
-                {glyph} {skill.name}
-              </Text>
-            ))}
-          </View>
-        ))}
+    // Comma-joined and wrapped, not one skill per line or one bulleted chunk
+    // per skill — a narrow sidebar column with 5+ skills in a category
+    // otherwise burns a line (or several) per category instead of packing
+    // keywords tightly. Matches the DOM "list" branch in engine/sections.tsx.
+    return groups.map((group, gi) => (
+      <View key={gi} wrap={false} style={{ marginBottom: s.sp(3) }}>
+        {group.category ? (
+          <Text
+            style={{
+              fontSize: s.smallFontSize,
+              color: s.secondaryColor,
+            }}
+          >
+            {group.category}
+          </Text>
+        ) : null}
+        <Text style={{ fontSize: s.smallFontSize, color: s.textColor }}>
+          {group.skills.map((skill, si) => (
+            <Text key={si}>
+              {si > 0 ? ", " : ""}
+              {skill.tier === "primary" ? (
+                <Text style={{ fontWeight: 700 }}>{skill.name}</Text>
+              ) : (
+                skill.name
+              )}
+            </Text>
+          ))}
+        </Text>
       </View>
-    );
+    ));
+  }
+
+  if (config.skillStyle === "grid") {
+    return groups.map((group, gi) => (
+      <View
+        key={gi}
+        wrap={false}
+        style={{
+          marginBottom: s.sp(6),
+          borderLeftWidth: s.sp(2),
+          borderLeftColor: s.accentColor,
+          paddingLeft: s.sp(8),
+        }}
+      >
+        {group.category ? (
+          <Text
+            style={{
+              fontSize: s.smallFontSize,
+              fontWeight: 600,
+              color: s.secondaryColor,
+              marginBottom: 2,
+            }}
+          >
+            {group.category}
+          </Text>
+        ) : null}
+        <Text style={{ fontSize: s.smallFontSize, color: s.textColor }}>
+          {group.skills.map((skill, si) => (
+            <Text key={si}>
+              {si > 0 ? ", " : ""}
+              {skill.tier === "primary" ? (
+                <Text style={{ fontWeight: 700 }}>{skill.name}</Text>
+              ) : (
+                skill.name
+              )}
+            </Text>
+          ))}
+        </Text>
+      </View>
+    ));
+  }
+
+  if (config.skillStyle === "columns") {
+    return groups.map((group, gi) => (
+      <View
+        key={gi}
+        wrap={false}
+        style={{ flexDirection: "row", marginBottom: s.sp(4) }}
+      >
+        <Text
+          style={{
+            width: s.sp(80),
+            fontSize: s.smallFontSize,
+            fontWeight: 600,
+            color: s.secondaryColor,
+          }}
+        >
+          {group.category ?? "Skills"}
+        </Text>
+        <Text style={{ flex: 1, fontSize: s.smallFontSize, color: s.textColor }}>
+          {group.skills.map((skill, si) => (
+            <Text key={si}>
+              {si > 0 ? ", " : ""}
+              {skill.tier === "primary" ? (
+                <Text style={{ fontWeight: 700 }}>{skill.name}</Text>
+              ) : (
+                skill.name
+              )}
+            </Text>
+          ))}
+        </Text>
+      </View>
+    ));
   }
 
   if (config.skillStyle === "table") {
     const borderColor = withAlpha(s.secondaryColor, "40");
     const tint = withAlpha(s.accentColor, "20");
     return (
-      <PdfTableEntry borderColor={borderColor}>
+      <PdfTableEntry borderColor={borderColor} sp={s.sp}>
         {groups.length > 0 ? (
           groups.map((group, gi) => (
             <PdfTableRow
@@ -718,6 +838,8 @@ const pdfSkills: PDFSectionBuilder = ({ resume, styles: s, config }) => {
               accentColor={tint}
               borderColor={borderColor}
               isLast={gi === groups.length - 1}
+              fontSize={s.smallFontSize}
+              sp={s.sp}
             >
               <Text style={{ fontSize: s.smallFontSize }}>
                 {group.skills.map((skill) => skill.name).join(", ")}
@@ -730,6 +852,8 @@ const pdfSkills: PDFSectionBuilder = ({ resume, styles: s, config }) => {
             accentColor={tint}
             borderColor={borderColor}
             isLast
+            fontSize={s.smallFontSize}
+            sp={s.sp}
           >
             <Text style={{ fontSize: s.smallFontSize }}>—</Text>
           </PdfTableRow>
@@ -738,6 +862,7 @@ const pdfSkills: PDFSectionBuilder = ({ resume, styles: s, config }) => {
     );
   }
 
+  // "inline" — one flowing paragraph, groups joined by a middot separator.
   return (
     <Text
       style={{
@@ -749,7 +874,11 @@ const pdfSkills: PDFSectionBuilder = ({ resume, styles: s, config }) => {
       {groups.map((group, gi) => (
         <Text key={gi}>
           {gi > 0 ? "  •  " : ""}
-          {group.category ? `${group.category}: ` : ""}
+          {group.category ? (
+            <Text style={{ fontWeight: 600 }}>{`${group.category}: `}</Text>
+          ) : (
+            ""
+          )}
           {group.skills.map((skill, si) => (
             <Text key={si}>
               {si > 0 ? ", " : ""}
@@ -775,7 +904,7 @@ const pdfEducation: PDFSectionBuilder = ({ resume, styles: s, config }) => {
     return (
       <>
         {resume.education.map((edu, i) => (
-          <View key={i} wrap={false} style={{ marginBottom: 5 }}>
+          <View key={i} wrap={false} style={{ marginBottom: s.sp(5) }}>
             <Text style={{ fontSize, color: s.textColor }}>
               <Text style={{ fontWeight: 700, color: accentColor }}>
                 {edu.degree}
@@ -807,12 +936,16 @@ const pdfEducation: PDFSectionBuilder = ({ resume, styles: s, config }) => {
               entryStyle === "timeline"
                 ? {
                     position: "relative",
-                    paddingLeft: 10,
-                    paddingBottom: 10,
-                    borderLeftWidth: 2,
+                    paddingLeft: s.sp(10),
+                    paddingBottom: s.sp(10),
+                    borderLeftWidth: s.sp(2),
                     borderLeftColor: accentColor,
                   }
-                : { marginBottom: 10, paddingLeft: 12, position: "relative" }
+                : {
+                    marginBottom: s.sp(10),
+                    paddingLeft: s.sp(12),
+                    position: "relative",
+                  }
             }
           >
             <View
@@ -859,11 +992,13 @@ const pdfEducation: PDFSectionBuilder = ({ resume, styles: s, config }) => {
     return (
       <>
         {resume.education.map((edu, i) => (
-          <PdfTableEntry key={i} borderColor={borderColor}>
+          <PdfTableEntry key={i} borderColor={borderColor} sp={s.sp}>
             <PdfTableRow
               label="Institution"
               accentColor={tint}
               borderColor={borderColor}
+              fontSize={smallFontSize}
+              sp={s.sp}
             >
               <Text style={{ fontSize: smallFontSize }}>{edu.institution}</Text>
             </PdfTableRow>
@@ -871,6 +1006,8 @@ const pdfEducation: PDFSectionBuilder = ({ resume, styles: s, config }) => {
               label="Degree"
               accentColor={tint}
               borderColor={borderColor}
+              fontSize={smallFontSize}
+              sp={s.sp}
             >
               <Text style={{ fontSize: smallFontSize }}>
                 {edu.degree}
@@ -882,6 +1019,8 @@ const pdfEducation: PDFSectionBuilder = ({ resume, styles: s, config }) => {
               accentColor={tint}
               borderColor={borderColor}
               isLast={!edu.gpa}
+              fontSize={smallFontSize}
+              sp={s.sp}
             >
               <Text style={{ fontSize: smallFontSize }}>
                 {formatDateRange(edu.startDate, edu.endDate, dateFormat)}
@@ -893,6 +1032,8 @@ const pdfEducation: PDFSectionBuilder = ({ resume, styles: s, config }) => {
                 accentColor={tint}
                 borderColor={borderColor}
                 isLast
+                fontSize={smallFontSize}
+                sp={s.sp}
               >
                 <Text style={{ fontSize: smallFontSize }}>{edu.gpa}</Text>
               </PdfTableRow>
@@ -906,7 +1047,7 @@ const pdfEducation: PDFSectionBuilder = ({ resume, styles: s, config }) => {
   return (
     <>
       {resume.education.map((edu, i) => (
-        <View key={i} wrap={false} style={{ marginBottom: 8 }}>
+        <View key={i} wrap={false} style={{ marginBottom: s.sp(8) }}>
           <View
             style={{
               flexDirection: "row",
@@ -947,7 +1088,7 @@ const pdfCertifications: PDFSectionBuilder = ({ resume, styles: s }) => {
   return (
     <>
       {resume.certifications.map((cert, i) => (
-        <View key={i} wrap={false} style={{ marginBottom: 6 }}>
+        <View key={i} wrap={false} style={{ marginBottom: s.sp(6) }}>
           <Text style={{ fontSize, fontWeight: 700, color: accentColor }}>
             {cert.name}
           </Text>
@@ -978,7 +1119,7 @@ const pdfPublications: PDFSectionBuilder = ({ resume, styles: s }) => {
   return (
     <>
       {pubs.map((pub, i) => (
-        <View key={i} wrap={false} style={{ marginBottom: 6 }}>
+        <View key={i} wrap={false} style={{ marginBottom: s.sp(6) }}>
           <Text style={{ fontSize, fontWeight: 700, color: accentColor }}>
             {pub.title}
           </Text>
@@ -1025,7 +1166,7 @@ const pdfVolunteer: PDFSectionBuilder = ({ resume, styles: s, config }) => {
     return (
       <>
         {vols.map((v, i) => (
-          <View key={i} wrap={false} style={{ marginBottom: 5 }}>
+          <View key={i} wrap={false} style={{ marginBottom: s.sp(5) }}>
             <Text style={{ fontSize, color: s.textColor }}>
               <Text style={{ fontWeight: 700, color: accentColor }}>
                 {v.role}
@@ -1056,12 +1197,16 @@ const pdfVolunteer: PDFSectionBuilder = ({ resume, styles: s, config }) => {
               entryStyle === "timeline"
                 ? {
                     position: "relative",
-                    paddingLeft: 10,
-                    paddingBottom: 10,
-                    borderLeftWidth: 2,
+                    paddingLeft: s.sp(10),
+                    paddingBottom: s.sp(10),
+                    borderLeftWidth: s.sp(2),
                     borderLeftColor: accentColor,
                   }
-                : { marginBottom: 10, paddingLeft: 12, position: "relative" }
+                : {
+                    marginBottom: s.sp(10),
+                    paddingLeft: s.sp(12),
+                    position: "relative",
+                  }
             }
           >
             <View
@@ -1119,11 +1264,13 @@ const pdfVolunteer: PDFSectionBuilder = ({ resume, styles: s, config }) => {
     return (
       <>
         {vols.map((v, i) => (
-          <PdfTableEntry key={i} borderColor={borderColor}>
+          <PdfTableEntry key={i} borderColor={borderColor} sp={s.sp}>
             <PdfTableRow
               label="Organization"
               accentColor={tint}
               borderColor={borderColor}
+              fontSize={smallFontSize}
+              sp={s.sp}
             >
               <Text style={{ fontSize: smallFontSize }}>{v.organization}</Text>
             </PdfTableRow>
@@ -1131,6 +1278,8 @@ const pdfVolunteer: PDFSectionBuilder = ({ resume, styles: s, config }) => {
               label="Role"
               accentColor={tint}
               borderColor={borderColor}
+              fontSize={smallFontSize}
+              sp={s.sp}
             >
               <Text style={{ fontSize: smallFontSize }}>{v.role}</Text>
             </PdfTableRow>
@@ -1139,6 +1288,8 @@ const pdfVolunteer: PDFSectionBuilder = ({ resume, styles: s, config }) => {
               accentColor={tint}
               borderColor={borderColor}
               isLast={!v.description}
+              fontSize={smallFontSize}
+              sp={s.sp}
             >
               <Text style={{ fontSize: smallFontSize }}>
                 {formatDateRange(v.startDate, v.endDate, dateFormat)}
@@ -1150,6 +1301,8 @@ const pdfVolunteer: PDFSectionBuilder = ({ resume, styles: s, config }) => {
                 accentColor={tint}
                 borderColor={borderColor}
                 isLast
+                fontSize={smallFontSize}
+                sp={s.sp}
               >
                 <Text style={{ fontSize: smallFontSize, lineHeight }}>
                   {plain(v.description)}
@@ -1165,7 +1318,7 @@ const pdfVolunteer: PDFSectionBuilder = ({ resume, styles: s, config }) => {
   return (
     <>
       {vols.map((v, i) => (
-        <View key={i} wrap={false} style={{ marginBottom: 8 }}>
+        <View key={i} wrap={false} style={{ marginBottom: s.sp(8) }}>
           <View
             style={{
               flexDirection: "row",
@@ -1213,7 +1366,7 @@ const pdfAwards: PDFSectionBuilder = ({ resume, styles: s }) => {
   return (
     <>
       {awardList.map((award, i) => (
-        <View key={i} wrap={false} style={{ marginBottom: 6 }}>
+        <View key={i} wrap={false} style={{ marginBottom: s.sp(6) }}>
           <Text style={{ fontSize, fontWeight: 700, color: accentColor }}>
             {award.title}
           </Text>

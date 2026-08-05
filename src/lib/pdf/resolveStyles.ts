@@ -62,6 +62,19 @@ export interface ResolvedPDFStyles {
   background: BackgroundId;
   colorsTuple: ThemeColors;
   dateFormat: DateFormat;
+  /**
+   * "Fit to one page" shrink factor (1 = no shrink). Unlike `marginPt`
+   * (which already bakes this in), hardcoded spacing literals sprinkled
+   * through PDFTemplateEngine.tsx/sections.tsx need to route through this
+   * (or the `sp()` helper below) explicitly to shrink along with everything
+   * else.
+   */
+  fitScale: number;
+  /** Scales a raw point value by `fitScale` — use for spacing literals
+   * (margins, gaps, padding, border widths) that aren't already derived
+   * from `marginPt`. Do NOT use for `lineHeight`, which is a unitless
+   * ratio, not a point value. */
+  sp: (n: number) => number;
 }
 
 /**
@@ -117,8 +130,15 @@ export function resolvePDFCustomization(
 
   // "Fit to one page": the DOM engine is the only place that can measure
   // content, so it computes and stores this scale (see fitScale.ts);
-  // reproduce the same shrink here by scaling every font/margin/line-height
-  // number instead of re-measuring (which the PDF renderer can't do).
+  // reproduce the same shrink here by scaling every font/margin number
+  // instead of re-measuring (which the PDF renderer can't do).
+  //
+  // NOTE: `getFitScale()` is a module-level global written by the DOM
+  // engine's measurement pass and never reset — exporting before the
+  // preview has measured the current resume silently ignores fit-to-page,
+  // and a stale scale left over from a *different* resume can leak into an
+  // export. Not fixed here; a proper fix threads the measured scale through
+  // the export call explicitly.
   const fitScale = customization.fitToPage ? getFitScale() : 1;
 
   return {
@@ -132,11 +152,19 @@ export function resolvePDFCustomization(
     smallFontSize: (SMALL_SIZE_PT[sizeKey] ?? 9) * fitScale,
     headingFontSize: (HEADING_SIZE_PT[sizeKey] ?? 15) * fitScale,
     nameFontSize: (NAME_SIZE_PT[sizeKey] ?? 24) * fitScale,
-    lineHeight: (LINE_HEIGHT[lineHeightKey] ?? 1.5) * fitScale,
+    // `lineHeight` is a unitless ratio (CSS `line-height` multiplier), not a
+    // point value — multiplying it by `fitScale` produced a quadratic
+    // leading shrink (font size *and* line height both shrinking) that
+    // caused overlapping lines at low fitScale values. Leave it unscaled,
+    // matching the DOM engine which applies `fitScale` only via a `zoom`
+    // CSS transform and leaves `lineHeight` alone.
+    lineHeight: LINE_HEIGHT[lineHeightKey] ?? 1.5,
     marginPt: (MARGIN_PT[marginKey] ?? 36) * fitScale,
     pageFormat: customization.pageFormat === "letter" ? "LETTER" : "A4",
     background,
     colorsTuple,
     dateFormat,
+    fitScale,
+    sp: (n: number) => n * fitScale,
   };
 }

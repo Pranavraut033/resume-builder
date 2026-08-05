@@ -143,14 +143,14 @@ export default function FontSelector({
             <ComboboxOptions className="border-agent-outline-variant bg-agent-surface shadow-agent-modal absolute top-full right-0 left-0 z-50 mt-2 overflow-hidden rounded-lg border focus:outline-none">
               {/* Search Results Info */}
               {query && (
-                <div className="border-agent-outline-variant bg-agent-surface-high text-agent-on-surface-variant sticky top-0 border-b px-3 py-2 text-xs font-semibold">
+                <div className="border-agent-outline-variant bg-agent-surface-high text-agent-on-surface-variant border-b px-3 py-2 text-xs font-semibold">
                   {allFilteredFonts.length} result
                   {allFilteredFonts.length !== 1 ? "s" : ""} for "{query}"
                 </div>
               )}
 
               {/* Font List with Proper Scrolling */}
-              <div className="max-h-64 divide-y divide-gray-100 overflow-y-auto dark:divide-gray-600">
+              <div className="max-h-64 divide-y divide-gray-100 overflow-y-auto overscroll-contain dark:divide-gray-600">
                 {fontGroups.length > 0 ? (
                   fontGroups.map((group) => (
                     <div key={group.category}>
