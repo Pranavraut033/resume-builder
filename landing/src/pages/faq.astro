@@ -1,0 +1,29 @@
+---
+import Base from '../layouts/Base.astro';
+import Faq from '../components/sections/Faq.astro';
+import { faqs } from '../data/faqs';
+
+const title = 'FAQ · Udaan';
+const description = 'Answers to the specific questions people actually ask about Udaan: pricing, privacy, platforms, and the MCP server.';
+
+const jsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'FAQPage',
+  mainEntity: faqs.map(([q, a]) => ({
+    '@type': 'Question',
+    name: q,
+    acceptedAnswer: { '@type': 'Answer', text: a },
+  })),
+};
+---
+
+<Base title={title} description={description}>
+  <script type="application/ld+json" set:html={JSON.stringify(jsonLd)} />
+  <div class="mx-auto max-w-3xl px-5 pt-16">
+    <p class="font-mono text-xs tracking-[0.2em] text-ink-muted uppercase">Frequently asked</p>
+    <h1 class="mt-5 font-display text-4xl tracking-tight text-balance sm:text-5xl">
+      Everything people actually ask us.
+    </h1>
+  </div>
+  <Faq />
+</Base>

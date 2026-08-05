@@ -1,0 +1,161 @@
+---
+import { getBase } from '../../consts';
+import Media from '../Media.astro';
+
+const base = getBase(import.meta.env.BASE_URL);
+
+const providers = [
+  'OpenAI',
+  'Anthropic',
+  'Gemini',
+  'Grok',
+  'Groq',
+  'DeepSeek',
+  'Mistral',
+  'Perplexity',
+  'OpenRouter',
+];
+---
+
+<!-- ============ Features — one repeating beat: h3, one claim, full-width media ============ -->
+<section id="features" data-scroll class="relative isolate mx-auto max-w-6xl scroll-mt-16 px-5 py-24 md:py-32">
+  <p
+    aria-hidden="true"
+    class="ghost-num pointer-events-none absolute -top-4 right-0 -z-10 font-mono text-[7rem] leading-none font-bold tracking-tighter text-ink/[0.04] select-none md:text-[11rem] dark:text-ink/[0.07]"
+  >
+    01
+  </p>
+  <p class="tint-eyebrow reveal flex w-fit items-center rounded-lg px-2.5 py-1 font-mono text-xs font-bold tracking-[0.18em]">
+    @@ features @@
+  </p>
+  <h2 class="reveal mt-5 max-w-2xl font-display text-4xl tracking-tight text-balance sm:text-5xl">
+    Everything between paste and send.
+  </h2>
+
+  <div class="mt-16 space-y-20">
+    <!-- Beat: inline editor -->
+    <div class="reveal reveal-2 max-w-2xl">
+      <h3 class="text-xl font-semibold">Edit the document, not a form</h3>
+      <p class="mt-3 max-w-[65ch] leading-relaxed text-ink-muted">
+        The inline editor <em>is</em> the resume. Click any line on the rendered page and
+        type; what you see on screen is exactly what exports to PDF.
+      </p>
+    </div>
+    <Media
+      name="editor"
+      alt="The inline WYSIWYG resume editor showing a tailored resume with the toolbar for PDF export, templates, sections, ATS analysis, humanizing, and chat"
+      ratio="aspect-video"
+      class="reveal reveal-2"
+    />
+
+    <!-- Beat: chat assistant -->
+    <div class="reveal max-w-2xl">
+      <h3 class="text-xl font-semibold">An editor you can talk to</h3>
+      <p class="mt-3 max-w-[65ch] leading-relaxed text-ink-muted">
+        Ask the built-in assistant to rewrite a bullet, tighten your summary, or map the
+        job's keywords onto your experience. It runs client-side through whichever provider
+        you picked.
+      </p>
+    </div>
+    <Media
+      name="chat"
+      alt="Chat assistant overlay mid-conversation, applying a requested edit to the resume"
+      ratio="aspect-video"
+      class="reveal"
+    />
+
+    <!-- Beat: providers — inline mono row, no separate media slot (nothing to screenshot) -->
+    <div class="reveal max-w-2xl">
+      <h3 class="text-xl font-semibold">Your keys. Your machine. Your choice of AI.</h3>
+      <p class="mt-3 max-w-[65ch] leading-relaxed text-ink-muted">
+        Bring an API key for any major provider, or point the app at a local Ollama model
+        and skip keys entirely. Every AI call runs client-side and keys sit in encrypted
+        local storage.
+      </p>
+      <ul class="mt-5 flex flex-wrap items-center gap-x-4 gap-y-2 font-mono text-xs text-ink-muted" aria-label="Supported AI providers">
+        {providers.map((p) => <li>{p}</li>)}
+        <li class="text-add">+ Ollama, fully local</li>
+      </ul>
+    </div>
+
+    <!-- Beat: tracker -->
+    <div class="reveal max-w-2xl">
+      <h3 class="text-xl font-semibold">Every application, tracked</h3>
+      <p class="mt-3 max-w-[65ch] leading-relaxed text-ink-muted">
+        Each job keeps its own tailored resume, cover letter, and status from first draft
+        to signed offer.
+      </p>
+      <ul class="mt-5 flex flex-wrap gap-2 font-mono text-xs" aria-label="Application statuses">
+        <li class="rounded-lg border border-line px-2 py-1 text-ink-muted">draft</li>
+        <li class="rounded-lg border border-accent/40 bg-accent/10 px-2 py-1 text-accent">applied</li>
+        <li class="rounded-lg border border-warn/40 bg-warn/10 px-2 py-1 text-warn">interview</li>
+        <li class="rounded-lg border border-add/40 bg-add-soft px-2 py-1 text-add">+ offer</li>
+        <li class="rounded-lg border border-del/40 bg-del-soft px-2 py-1 text-del">- rejected</li>
+      </ul>
+    </div>
+    <Media
+      name="tracker"
+      alt="Application tracker table showing jobs across Draft, Applied, Interview, Offer, and Rejected"
+      ratio="aspect-video"
+      class="reveal"
+    />
+
+    <!-- Beat: templates — a genuine image grid stays a grid, the one justified exception -->
+    <div class="reveal grid gap-5 md:grid-cols-[1.3fr_1fr]">
+      <article class="rounded-2xl border border-line bg-raised p-6 shadow-block transition duration-300 hover:-translate-y-1 hover:shadow-block-lg">
+        <h3 class="font-semibold">9 templates, restyled per job</h3>
+        <p class="mt-2 text-sm leading-relaxed text-ink-muted">
+          Swap color, font, and layout per application: the same content, formatted for a
+          startup or a bank.
+        </p>
+        <div class="mt-4 grid grid-cols-3 gap-2">
+          {
+            [
+              { file: 'template-tech-sidebar', name: 'Tech Sidebar' },
+              { file: 'template-modern-minimal', name: 'Modern Minimal' },
+              { file: 'template-creative-modern', name: 'Creative Modern' },
+            ].map((tpl) => (
+              <img
+                src={`${base}screenshots/${tpl.file}.png`}
+                alt={`${tpl.name} resume template`}
+                width="866"
+                height="1120"
+                loading="lazy"
+                class="aspect-[3/4] rounded-lg border border-line object-cover object-top"
+              />
+            ))
+          }
+        </div>
+        <Media
+          name="customization"
+          alt="Customization drawer open on a resume template, mid-restyle"
+          ratio="aspect-[16/10]"
+          class="mt-3"
+        />
+      </article>
+      <div class="flex flex-col justify-center gap-6 rounded-2xl border border-line bg-raised p-6 shadow-block">
+        <div>
+          <p class="font-mono text-xs text-ink-muted">export</p>
+          <p class="mt-1 font-semibold">PDF or TXT, one click</p>
+          <p class="mt-1 text-sm text-ink-muted">
+            Already formatted for the portal it lands in, no copy-paste cleanup.
+          </p>
+        </div>
+        <div class="border-t border-line pt-6">
+          <p class="font-mono text-xs text-ink-muted">startup</p>
+          <p class="mt-1 font-semibold">Opens instantly</p>
+          <p class="mt-1 text-sm text-ink-muted">
+            A native Tauri window, not a bundled browser: no splash screen, no loading spinner.
+          </p>
+        </div>
+        <div class="border-t border-line pt-6">
+          <p class="font-mono text-xs text-ink-muted">runs offline</p>
+          <p class="mt-1 font-semibold">No account, no cloud</p>
+          <p class="mt-1 text-sm text-ink-muted">
+            Point it at a local Ollama model and the whole pipeline runs on your machine.
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>

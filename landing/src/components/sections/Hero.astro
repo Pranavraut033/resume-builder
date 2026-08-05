@@ -1,0 +1,95 @@
+---
+import { RELEASES, REPO } from '../../consts';
+import Media from '../Media.astro';
+---
+
+<!-- ============ Hero — pinned: the diff card settles as you scroll ============ -->
+<section id="hero-stage" data-scroll="pin">
+  <div class="pin-content">
+    <div class="mx-auto grid w-full max-w-6xl items-center gap-12 px-5 pt-16 pb-20 sm:pt-20 lg:grid-cols-[1.05fr_1fr] lg:gap-16">
+      <div class="hero-copy min-w-0">
+        <p class="reveal flex flex-wrap items-center gap-2 font-mono text-xs tracking-[0.2em] text-ink-muted uppercase">
+          <span>Free · Open source · macOS</span>
+          <span class="rounded-md border border-line px-2 py-0.5 text-[10px] tracking-normal normal-case text-ink-muted">
+            Windows and Linux coming soon
+          </span>
+        </p>
+        <h1 class="reveal mt-5 font-display text-5xl leading-[0.95] tracking-tight text-balance sm:text-6xl lg:text-7xl xl:text-8xl">
+          Every application,
+          <em class="block text-accent">ready for takeoff.</em>
+        </h1>
+        <p class="reveal reveal-2 mt-6 max-w-xl text-lg leading-relaxed text-ink-muted">
+          Paste a job description. Get a resume and cover letter written for <em>that</em>{' '}
+          posting: keyword-matched, ATS-scored, and edited by you before it ever leaves your machine.
+        </p>
+        <div class="reveal reveal-3 mt-8 flex flex-wrap items-center gap-3">
+          <a
+            href={RELEASES}
+            rel="noopener"
+            class="btn-block inline-flex items-center gap-2 rounded-lg bg-accent px-5 py-3 text-sm font-semibold text-on-accent"
+          >
+            <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+              <path d="M7.25 1.5a.75.75 0 0 1 1.5 0v7.69l2.72-2.72a.75.75 0 1 1 1.06 1.06l-4 4a.75.75 0 0 1-1.06 0l-4-4a.75.75 0 0 1 1.06-1.06l2.72 2.72V1.5Z"></path>
+              <path d="M2 13.25a.75.75 0 0 1 .75.75v.5h10.5V14a.75.75 0 0 1 1.5 0v.5c0 .83-.67 1.5-1.5 1.5H2.75c-.83 0-1.5-.67-1.5-1.5V14a.75.75 0 0 1 .75-.75Z"></path>
+            </svg>
+            Download for free
+          </a>
+          <a
+            href={REPO}
+            rel="noopener"
+            class="inline-flex items-center gap-2 rounded-lg border border-line bg-raised px-5 py-3 text-sm font-semibold transition-colors hover:border-accent/50"
+          >
+            <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+              <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z"></path>
+            </svg>
+            View on GitHub
+          </a>
+        </div>
+        <p class="reveal reveal-3 mt-5 font-mono text-xs text-ink-muted">
+          Free forever · your own API key (a few cents per resume) or Ollama, fully offline
+        </p>
+      </div>
+
+      <figure class="reveal reveal-2 tilt-wrap min-w-0">
+        <div class="tilt-card overflow-hidden rounded-2xl border border-term-line bg-term shadow-2xl shadow-black/25">
+          <div class="flex items-center gap-2 border-b border-term-line px-4 py-3">
+            <span aria-hidden="true" class="size-2.5 rounded-full bg-term-del/80"></span>
+            <span aria-hidden="true" class="size-2.5 rounded-full bg-accent-2/80"></span>
+            <span aria-hidden="true" class="size-2.5 rounded-full bg-term-add/80"></span>
+            <span class="ml-2 min-w-0 truncate font-mono text-xs text-term-muted">
+              tailoring resume.pdf → senior-frontend-engineer
+            </span>
+          </div>
+          <div aria-hidden="true" class="space-y-1.5 p-5 font-mono text-[13px] leading-6">
+            <p class="text-term-muted">@@ experience · acme corp @@</p>
+            <p class="text-term-fg">&nbsp;&nbsp;Software Engineer · 2021-2025</p>
+            <p class="rounded-lg bg-term-del-soft px-2 text-term-del">
+              - <s id="diff-del">Responsible for various web development tasks.</s>
+            </p>
+            <p class="min-h-18 rounded-lg bg-term-add-soft px-2 text-term-add sm:min-h-12">
+              + <span id="diff-add">Rebuilt the checkout flow in React and TypeScript, halving page-load time.</span><span class="caret select-none">▍</span>
+            </p>
+            <p class="pt-2 text-term-muted">
+              keywords matched: <span id="diff-meta" class="text-term-fg/80">react · typescript · performance</span>
+            </p>
+          </div>
+        </div>
+        <figcaption class="sr-only">
+          Example of tailoring: a generic resume line is removed and replaced with a line written
+          for the specific job, with matched keywords listed underneath.
+        </figcaption>
+      </figure>
+    </div>
+  </div>
+</section>
+
+<!-- Demo clip sits below the pinned stage, not inside it, so it never
+     interferes with the sticky/pin scroll math above. -->
+<div class="mx-auto max-w-6xl px-5 pb-20">
+  <Media
+    name="hero-demo"
+    alt="Screen recording of Udaan: pasting a job description, generating a tailored resume, editing a line inline, and exporting a PDF"
+    ratio="aspect-video"
+    class="reveal"
+  />
+</div>

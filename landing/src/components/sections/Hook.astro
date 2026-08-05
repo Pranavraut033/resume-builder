@@ -1,0 +1,51 @@
+---
+// Hook sentence, split into words at build time for the scroll-scrubbed
+// reveal. 's' = struck words, 'ins' = inserted words. A sr-only sibling
+// carries the real <s>/<ins> semantics.
+const hookWords: [string, ('s' | 'ins')?][] = [
+  ['Job'],
+  ['hunting'],
+  ['is'],
+  ['a'],
+  ['grind.'],
+  ['One'],
+  ['generic'],
+  ['resume'],
+  ['for'],
+  ['every', 's'],
+  ['job', 's'],
+  ['a', 'ins'],
+  ['tailored', 'ins'],
+  ['one', 'ins'],
+  ['for'],
+  ['each'],
+  ['is'],
+  ['what'],
+  ['gets'],
+  ['you'],
+  ['hired.'],
+];
+---
+
+<!-- ============ Hook — cinematic band, words light up as you scroll ============ -->
+<section data-scroll class="relative border-y border-term-line bg-term">
+  <div class="backdrop backdrop-scan" aria-hidden="true"></div>
+  <div class="mx-auto max-w-4xl px-5 py-28 text-center md:py-44">
+    <p aria-hidden="true" class="wreveal font-display text-3xl leading-snug text-term-fg text-balance sm:text-4xl md:text-5xl">
+      {
+        hookWords.map(([w, kind], i) => (
+          <span
+            data-w
+            class={kind === 's' ? 'wd-s text-term-del' : kind === 'ins' ? 'text-term-add' : ''}
+            style={`--i:${i}`}
+          >
+            {w}
+          </span>
+        ))
+      }
+    </p>
+    <p class="sr-only">
+      Job hunting is a grind. One generic resume for <s>every job</s> <ins>a tailored one for each</ins> is what gets you hired.
+    </p>
+  </div>
+</section>

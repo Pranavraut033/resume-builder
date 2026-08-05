@@ -1,0 +1,37 @@
+---
+// Build-time GitHub stats — fetched once at build, no client request, no
+// runtime dependency. Falls back to static facts if the API call fails or
+// rate-limits during CI, so a network hiccup never breaks the build or
+// prints "undefined". Both star count and download count only show once
+// they clear their threshold — a low number is anti-proof, better omitted
+// than shown.
+const STAR_THRESHOLD = 25;
+const DOWNLOAD_THRESHOLD = 100;
+let repoStats = { stars: 0, downloads: 0, releaseCount: 7 };
+try {
+  const [repoRes, releasesRes] = await Promise.all([
+    fetch('https://api.github.com/repos/Pranavraut033/resume-builder'),
+    fetch('https://api.github.com/repos/Pranavraut033/resume-builder/releases'),
+  ]);
+  const repoJson = await repoRes.json();
+  const releasesJson: { assets: { download_count: number }[] }[] = await releasesRes.json();
+  repoStats = {
+    stars: repoJson.stargazers_count ?? 0,
+    downloads: releasesJson.reduce((sum, r) => sum + r.assets.reduce((s, a) => s + a.download_count, 0), 0),
+    releaseCount: releasesJson.length,
+  };
+} catch {
+  // Network failure or rate limit during build — static fallback above stands.
+}
+---
+
+<!-- ============ Stats strip — honest facts, no invented testimonials ============ -->
+<div class="border-y border-line bg-raised px-5 py-4">
+  <div class="mx-auto flex max-w-6xl flex-wrap items-center justify-center gap-x-8 gap-y-2 font-mono text-xs text-ink-muted">
+    {repoStats.stars >= STAR_THRESHOLD && <span>★ {repoStats.stars}</span>}
+    {repoStats.downloads >= DOWNLOAD_THRESHOLD && <span>{repoStats.downloads} downloads</span>}
+    <span>{repoStats.releaseCount} releases</span>
+    <span>MIT licensed</span>
+    <span>Open source</span>
+  </div>
+</div>

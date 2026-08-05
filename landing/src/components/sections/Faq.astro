@@ -1,0 +1,50 @@
+---
+import { getBase } from '../../consts';
+import { faqs } from '../../data/faqs';
+
+interface Props {
+  /** Cap the visible list (used on the homepage). Omit to show all (used on /faq). */
+  limit?: number;
+  /** Show a link to the full /faq page. Defaults to true when `limit` is set. */
+  showMoreLink?: boolean;
+}
+
+const { limit, showMoreLink = limit !== undefined } = Astro.props;
+const visible = limit ? faqs.slice(0, limit) : faqs;
+const base = getBase(import.meta.env.BASE_URL);
+---
+
+<!-- ============ FAQ — deliberately quiet, no backdrop ============ -->
+<section id="faq" class="border-t border-line px-5 py-24 md:py-32">
+  <div class="mx-auto max-w-3xl">
+    <p class="tint-eyebrow reveal flex w-fit items-center rounded-lg px-2.5 py-1 font-mono text-xs font-bold tracking-[0.18em]">
+      @@ faq @@
+    </p>
+    <h2 class="reveal mt-5 font-display text-4xl tracking-tight text-balance sm:text-5xl">
+      The questions you're actually asking.
+    </h2>
+    <div class="reveal reveal-2 mt-10 divide-y divide-line">
+      {
+        visible.map(([q, a]) => (
+          <details class="group py-5">
+            <summary class="flex cursor-pointer list-none items-center justify-between gap-4 font-semibold text-ink marker:content-none">
+              {q}
+              <span aria-hidden="true" class="shrink-0 text-ink-muted transition-transform group-open:rotate-45">+</span>
+            </summary>
+            <p class="mt-3 max-w-2xl leading-relaxed text-ink-muted">{a}</p>
+          </details>
+        ))
+      }
+    </div>
+    {
+      showMoreLink && (
+        <a
+          href={`${base}faq`}
+          class="reveal mt-8 inline-flex items-center gap-1.5 text-sm font-semibold text-accent underline underline-offset-4"
+        >
+          See all questions →
+        </a>
+      )
+    }
+  </div>
+</section>

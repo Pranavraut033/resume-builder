@@ -1,0 +1,53 @@
+---
+const comparisonRows: [string, string, string, string][] = [
+  ['Tailored per job', 'Yes', 'Yes, manually, every time', 'Mostly templates'],
+  ['ATS-scored against the posting', 'Yes', 'No', 'Often paywalled'],
+  ['Your data', 'Stays on your machine', 'Sent to OpenAI', "Stored on their servers"],
+  ['Tracks applications', 'Yes', 'No', 'Paid tiers only'],
+  ['Cost', 'Free + your own API key', 'Subscription', '$10 to $30 a month'],
+  ['Formatting', 'PDF/TXT, WYSIWYG editor', 'You rebuild it by hand', 'Locked to their templates'],
+];
+---
+
+<!-- ============ Comparison ============ -->
+<section class="border-t border-line px-5 py-24 md:py-32">
+  <div class="mx-auto max-w-5xl">
+    <p class="tint-eyebrow reveal flex w-fit items-center rounded-lg px-2.5 py-1 font-mono text-xs font-bold tracking-[0.18em]">
+      @@ comparison @@
+    </p>
+    <h2 class="reveal mt-5 font-display text-4xl tracking-tight text-balance sm:text-5xl">
+      Why not just paste it into ChatGPT?
+    </h2>
+    <p class="reveal reveal-2 mt-4 max-w-2xl leading-relaxed text-ink-muted">
+      You can, plenty of people do. Here's what that costs you against a purpose-built tool.
+    </p>
+    <div class="reveal reveal-2 mt-10 -mx-5 overflow-x-auto px-5">
+      <table class="w-full min-w-[680px] border-collapse text-left font-mono text-base">
+        <thead>
+          <tr class="text-ink-muted">
+            <th class="pb-3 pr-4 font-medium"></th>
+            <th class="rounded-t-xl bg-add-soft px-6 py-4 text-base font-bold text-add">+ udaan</th>
+            <th class="pb-3 pr-4 pl-6 font-medium">chatgpt copy-paste</th>
+            <th class="pb-3 pl-6 font-medium">online builders</th>
+          </tr>
+        </thead>
+        <tbody>
+          {
+            comparisonRows.map(([label, udaan, chatgpt, builders], i) => (
+              <tr>
+                <th scope="row" class="border-b border-line/60 py-4 pr-4 font-sans font-medium text-ink-muted">{label}</th>
+                <td class={`bg-add-soft px-6 py-4 font-medium text-add ${i === comparisonRows.length - 1 ? 'rounded-b-xl' : ''}`}>+ {udaan}</td>
+                <td class="border-b border-line/60 bg-del-soft/40 py-4 pr-4 pl-6 text-ink-muted">
+                  <span class="text-del">-</span> {chatgpt}
+                </td>
+                <td class="border-b border-line/60 bg-del-soft/40 py-4 pl-6 text-ink-muted">
+                  <span class="text-del">-</span> {builders}
+                </td>
+              </tr>
+            ))
+          }
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>

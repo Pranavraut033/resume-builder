@@ -1,0 +1,211 @@
+---
+import '../styles/global.css';
+import { REPO, RELEASES, getBase } from '../consts';
+
+interface Props {
+  title: string;
+  description: string;
+  ogImage?: string;
+}
+
+const { title, description, ogImage } = Astro.props;
+const base = getBase(import.meta.env.BASE_URL);
+
+// Social scrapers (LinkedIn, Slack, X) reject relative image/URL values, so
+// these are resolved against `site` from astro.config.mjs.
+const canonical = new URL(Astro.url.pathname, Astro.site).href;
+const resolvedOgImage = new URL(ogImage ?? `${base}og.png`, Astro.site).href;
+---
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    <link rel="canonical" href={canonical} />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Udaan" />
+    <meta property="og:url" content={canonical} />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:image" content={resolvedOgImage} />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta
+      property="og:image:alt"
+      content="Udaan · every application deserves its own resume. Local-first AI resume and cover letter tailoring."
+    />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content={title} />
+    <meta name="twitter:description" content={description} />
+    <meta name="twitter:image" content={resolvedOgImage} />
+    <meta name="theme-color" content="#0d1117" />
+    <!-- Cloudflare Web Analytics: pageviews + Core Web Vitals only, no PII, no cookie banner needed -->
+    <script
+      type="module"
+      src="https://static.cloudflareinsights.com/beacon.min.js"
+      data-cf-beacon='{"token": "ebc729c0ef5640c6b6814c45ccaf4fea"}'
+    ></script>
+    <link rel="icon" type="image/svg+xml" href={`${base}favicon.svg`} />
+    <link rel="icon" type="image/x-icon" sizes="any" href={`${base}favicon.ico`} />
+    <link rel="alternate" type="application/rss+xml" title="Udaan · Writing" href={`${base}rss.xml`} />
+    <meta name="generator" content={Astro.generator} />
+    <script is:inline>
+      document.documentElement.dataset.theme = localStorage.theme || 'dark';
+    </script>
+  </head>
+
+  <body>
+    <a
+      href="#main"
+      class="sr-only focus:not-sr-only focus:absolute focus:top-3 focus:left-3 focus:z-50 focus:rounded-lg focus:bg-accent focus:px-4 focus:py-2 focus:text-sm focus:font-semibold focus:text-on-accent"
+    >
+      Skip to content
+    </a>
+
+    <header id="site-header" class="sticky top-0 z-40 border-b bg-surface/85 backdrop-blur">
+      <nav aria-label="Main" class="mx-auto flex h-14 max-w-6xl items-center justify-between px-5">
+        <a href={base} class="flex items-center gap-2 font-mono text-sm font-semibold tracking-tight">
+          <img src={`${base}favicon.svg`} alt="" width="20" height="20" class="rounded-md" />
+          udaan
+        </a>
+        <div class="hidden items-center gap-6 text-sm text-ink-muted sm:flex">
+          <a href={`${base}#features`} class="transition-colors hover:text-ink">Features</a>
+          <a href={`${base}#how`} class="transition-colors hover:text-ink">How it works</a>
+          <a href={`${base}faq`} class="transition-colors hover:text-ink">FAQ</a>
+          <a href={`${base}blog`} class="transition-colors hover:text-ink">Writing</a>
+          <a href={REPO} rel="noopener" class="transition-colors hover:text-ink">GitHub</a>
+        </div>
+        <div class="flex items-center gap-2.5">
+          <button
+            id="theme-toggle"
+            type="button"
+            aria-label="Toggle between white and dark theme"
+            class="inline-grid size-9 place-items-center rounded-lg border border-line bg-raised text-ink-muted transition-colors hover:border-accent-2 hover:text-ink dark:hover:text-accent-2"
+          >
+            <svg class="dark:hidden" aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79Z"></path>
+            </svg>
+            <svg class="hidden dark:block" aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="4"></circle>
+              <path d="M12 2v2m0 16v2M4.93 4.93l1.41 1.41m11.32 11.32 1.41 1.41M2 12h2m16 0h2M4.93 19.07l1.41-1.41m11.32-11.32 1.41-1.41"></path>
+            </svg>
+          </button>
+          <a
+            href={RELEASES}
+            rel="noopener"
+            class="hidden items-center gap-1.5 rounded-lg bg-accent px-3.5 py-1.5 text-sm font-semibold text-on-accent transition-opacity hover:opacity-90 sm:inline-flex"
+          >
+            Download
+          </a>
+          <!-- Mobile nav: a details/summary disclosure needs no JS -->
+          <details class="relative sm:hidden">
+            <summary
+              aria-label="Open menu"
+              class="grid size-9 list-none place-items-center rounded-lg border border-line bg-raised text-ink-muted marker:content-none [&::-webkit-details-marker]:hidden"
+            >
+              <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M4 6h16M4 12h16M4 18h16"></path>
+              </svg>
+            </summary>
+            <div class="absolute top-11 right-0 flex w-44 flex-col gap-1 rounded-lg border border-line bg-surface p-2 text-sm shadow-block">
+              <a href={`${base}#features`} class="rounded-md px-3 py-2 text-ink-muted hover:bg-raised hover:text-ink">Features</a>
+              <a href={`${base}#how`} class="rounded-md px-3 py-2 text-ink-muted hover:bg-raised hover:text-ink">How it works</a>
+              <a href={`${base}faq`} class="rounded-md px-3 py-2 text-ink-muted hover:bg-raised hover:text-ink">FAQ</a>
+              <a href={`${base}blog`} class="rounded-md px-3 py-2 text-ink-muted hover:bg-raised hover:text-ink">Writing</a>
+              <a href={REPO} rel="noopener" class="rounded-md px-3 py-2 text-ink-muted hover:bg-raised hover:text-ink">GitHub</a>
+              <a href={RELEASES} rel="noopener" class="rounded-md bg-accent px-3 py-2 font-semibold text-on-accent">Download</a>
+            </div>
+          </details>
+        </div>
+      </nav>
+      <div id="progress-hairline" aria-hidden="true" class="absolute inset-x-0 -bottom-px h-0.5 bg-accent"></div>
+    </header>
+
+    <main id="main">
+      <slot />
+    </main>
+
+    <footer class="border-t border-line">
+      <div class="mx-auto grid max-w-6xl gap-10 px-5 py-12 sm:grid-cols-[1.2fr_1fr_1fr_1fr]">
+        <div>
+          <a href={base} class="flex items-center gap-2 font-mono text-sm font-semibold tracking-tight">
+            <img src={`${base}favicon.svg`} alt="" width="20" height="20" class="rounded-md" />
+            udaan
+          </a>
+          <p class="mt-3 max-w-xs text-sm leading-relaxed text-ink-muted">
+            Free, open-source, local-first. macOS today, Windows and Linux coming soon.
+          </p>
+        </div>
+        <nav aria-label="Product" class="flex flex-col gap-2 text-sm">
+          <p class="font-mono text-xs font-semibold tracking-[0.14em] text-ink-muted uppercase">Product</p>
+          <a href={RELEASES} rel="noopener" class="text-ink-muted transition-colors hover:text-ink">Download</a>
+          <a href={`${base}#features`} class="text-ink-muted transition-colors hover:text-ink">Features</a>
+          <a href={`${base}#how`} class="text-ink-muted transition-colors hover:text-ink">How it works</a>
+          <a href={`${base}faq`} class="text-ink-muted transition-colors hover:text-ink">FAQ</a>
+        </nav>
+        <nav aria-label="Resources" class="flex flex-col gap-2 text-sm">
+          <p class="font-mono text-xs font-semibold tracking-[0.14em] text-ink-muted uppercase">Resources</p>
+          <a href={`${base}blog`} class="text-ink-muted transition-colors hover:text-ink">Writing</a>
+          <a href={`${REPO}/blob/main/docs/MCP.md`} rel="noopener" class="text-ink-muted transition-colors hover:text-ink">MCP setup</a>
+          <a href={`${REPO}#download--install`} rel="noopener" class="text-ink-muted transition-colors hover:text-ink">Install steps</a>
+          <a href={`${base}rss.xml`} class="text-ink-muted transition-colors hover:text-ink">RSS</a>
+        </nav>
+        <nav aria-label="Project" class="flex flex-col gap-2 text-sm">
+          <p class="font-mono text-xs font-semibold tracking-[0.14em] text-ink-muted uppercase">Project</p>
+          <a href={REPO} rel="noopener" class="text-ink-muted transition-colors hover:text-ink">GitHub</a>
+          <a href={RELEASES} rel="noopener" class="text-ink-muted transition-colors hover:text-ink">Releases</a>
+          <a href={`${REPO}/issues`} rel="noopener" class="text-ink-muted transition-colors hover:text-ink">Issues</a>
+          <a href={`${REPO}/blob/main/LICENSE`} rel="noopener" class="text-ink-muted transition-colors hover:text-ink">MIT License</a>
+        </nav>
+      </div>
+      <div class="border-t border-line px-5 py-5">
+        <p class="mx-auto max-w-6xl text-xs text-ink-muted">
+          Resume templates adapted from
+          <a href="https://github.com/Afif718/Resumify" rel="noopener" class="underline-offset-4 transition-colors hover:text-ink hover:underline">Resumify</a>.
+        </p>
+      </div>
+    </footer>
+
+    <script>
+      // Theme toggle — head script already set data-theme before paint
+      document.getElementById('theme-toggle')?.addEventListener('click', () => {
+        const next = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark';
+        document.documentElement.dataset.theme = next;
+        localStorage.theme = next;
+      });
+
+      // Header elevation + scroll-progress hairline — runs on every page.
+      // Index.astro's own scroll engine additionally drives --sp for its
+      // section-pin/reveal effects; this one only owns --dp and the header.
+      {
+        const header = document.getElementById('site-header');
+        const doc = document.documentElement;
+        let ticking = false;
+        const update = () => {
+          ticking = false;
+          doc.style.setProperty('--dp', (window.scrollY / Math.max(1, doc.scrollHeight - window.innerHeight)).toFixed(4));
+          header?.classList.toggle('scrolled', window.scrollY > 8);
+        };
+        const onScroll = () => {
+          if (!ticking) {
+            ticking = true;
+            requestAnimationFrame(update);
+          }
+        };
+        window.addEventListener('scroll', onScroll, { passive: true });
+        window.addEventListener('resize', onScroll, { passive: true });
+        update();
+      }
+
+      // Autoplaying demo videos opt in only when motion is allowed; the
+      // `poster` frame is the fallback for everyone else — see Media.astro.
+      if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+        document.querySelectorAll<HTMLVideoElement>('video[data-autoplay]').forEach((v) => {
+          v.play().catch(() => {});
+        });
+      }
+    </script>
+  </body>
+</html>

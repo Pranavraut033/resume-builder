@@ -1,0 +1,43 @@
+---
+import { getCollection } from 'astro:content';
+import Base from '../../layouts/Base.astro';
+import { getBase } from '../../consts';
+
+const base = getBase(import.meta.env.BASE_URL);
+const isDev = import.meta.env.DEV;
+
+const posts = (await getCollection('blog', ({ data }) => isDev || !data.draft)).sort(
+  (a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf()
+);
+
+const title = 'Writing · Udaan';
+const description = 'Notes on building Udaan: ATS screening, local-first architecture, and how the app is put together.';
+---
+
+<Base title={title} description={description}>
+  <div class="mx-auto max-w-3xl px-5 py-16">
+    <p class="font-mono text-xs tracking-[0.2em] text-ink-muted uppercase">Writing</p>
+    <h1 class="mt-5 font-display text-4xl tracking-tight text-balance sm:text-5xl">Notes on building Udaan.</h1>
+
+    {
+      posts.length === 0 ? (
+        <p class="mt-10 text-ink-muted">Nothing published yet, check back soon.</p>
+      ) : (
+        <ol class="mt-12 divide-y divide-line">
+          {posts.map((post) => (
+            <li class="py-6">
+              <a href={`${base}blog/${post.id}`} class="group block">
+                <p class="font-mono text-xs text-ink-muted">
+                  {post.data.pubDate.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}
+                  {post.data.draft && <span class="ml-2 rounded border border-warn/40 bg-warn/10 px-1.5 py-0.5 text-warn">draft</span>}
+                </p>
+                <h2 class="mt-2 text-xl font-semibold group-hover:text-accent">{post.data.title}</h2>
+                <p class="mt-2 max-w-[65ch] leading-relaxed text-ink-muted">{post.data.description}</p>
+              </a>
+            </li>
+          ))}
+        </ol>
+      )
+    }
+  </div>
+</Base>

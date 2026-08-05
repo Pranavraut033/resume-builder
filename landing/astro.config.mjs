@@ -1,5 +1,6 @@
 // @ts-check
 import { existsSync } from "node:fs";
+import sitemap from "@astrojs/sitemap";
 import tailwindcss from "@tailwindcss/vite";
 import { defineConfig } from "astro/config";
 
@@ -14,6 +15,7 @@ export default defineConfig({
     ? "https://udaan.pranavraut.dev"
     : "https://pranavraut033.github.io",
   base: hasCustomDomain ? "/" : "/resume-builder",
+  integrations: [sitemap()],
   vite: {
     plugins: [tailwindcss()],
   },

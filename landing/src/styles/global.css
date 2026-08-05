@@ -29,16 +29,6 @@
   --del: #a40e26;
   --del-soft: #ffebe9;
   --warn: #9a6700;
-
-  /* Section tints — Notion-muted secondary hues, one per new section. Used
-     only as ~4% background washes, eyebrow chips, and a single icon accent —
-     never body text, never a full-bleed saturated band. */
-  --tint-ats: #6d5bc0;
-  --tint-ats-soft: rgba(109, 91, 192, 0.07);
-  --tint-craft: #24897d;
-  --tint-craft-soft: rgba(36, 137, 125, 0.07);
-  --tint-compare: #a8672f;
-  --tint-compare-soft: rgba(168, 103, 47, 0.07);
 }
 
 [data-theme="dark"] {
@@ -55,13 +45,6 @@
   --del: #f85149;
   --del-soft: rgba(248, 81, 73, 0.14);
   --warn: #d29922;
-
-  --tint-ats: #a595e6;
-  --tint-ats-soft: rgba(165, 149, 230, 0.09);
-  --tint-craft: #4dc4b6;
-  --tint-craft-soft: rgba(77, 196, 182, 0.09);
-  --tint-compare: #e0a262;
-  --tint-compare-soft: rgba(224, 162, 98, 0.09);
 }
 
 @theme inline {
@@ -78,12 +61,6 @@
   --color-del: var(--del);
   --color-del-soft: var(--del-soft);
   --color-warn: var(--warn);
-  --color-tint-ats: var(--tint-ats);
-  --color-tint-ats-soft: var(--tint-ats-soft);
-  --color-tint-craft: var(--tint-craft);
-  --color-tint-craft-soft: var(--tint-craft-soft);
-  --color-tint-compare: var(--tint-compare);
-  --color-tint-compare-soft: var(--tint-compare-soft);
 }
 
 @theme {
@@ -325,6 +302,70 @@ body {
 }
 .shot-placeholder svg {
   opacity: 0.5;
+}
+
+/* ── Blog post body ───────────────────────────────────────────────────────
+   Three pages worth of markdown don't justify @tailwindcss/typography as a
+   dependency — this covers the tags Content actually renders. */
+.prose {
+  max-width: 65ch;
+  color: var(--fg);
+  line-height: 1.75;
+}
+.prose > * + * {
+  margin-top: 1.25em;
+}
+.prose h2 {
+  margin-top: 2em;
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  font-weight: 600;
+}
+.prose h3 {
+  margin-top: 1.75em;
+  font-size: 1.2rem;
+  font-weight: 600;
+}
+.prose p,
+.prose li {
+  color: var(--fg-muted);
+}
+.prose a {
+  color: var(--accent);
+  text-underline-offset: 3px;
+}
+.prose ul,
+.prose ol {
+  padding-inline-start: 1.5em;
+}
+.prose ul {
+  list-style: disc;
+}
+.prose ol {
+  list-style: decimal;
+}
+.prose code {
+  background: var(--bg-raised);
+  border-radius: 0.25em;
+  padding: 0.15em 0.4em;
+  font-size: 0.9em;
+}
+.prose pre {
+  overflow-x: auto;
+  border-radius: 0.75rem;
+  border: 1px solid var(--line);
+  background: var(--bg-raised);
+  padding: 1em;
+}
+.prose pre code {
+  background: none;
+  padding: 0;
+}
+.prose blockquote {
+  border-inline-start: 3px solid var(--line);
+  padding-inline-start: 1em;
+  color: var(--fg-muted);
+  font-style: italic;
 }
 
 /* ── Backdrop effects ─────────────────────────────────────────────────────
