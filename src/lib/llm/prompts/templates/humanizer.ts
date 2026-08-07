@@ -65,13 +65,13 @@ TASK:
 1. Check the content against every rule in your instructions, in order
 2. Rewrite each flagged phrase — simpler verb, tighter structure, varied rhythm — without altering any fact
 3. Verify every metric, technology, and outcome from the input is present and unchanged in the output
-4. List every change you made in the "changes" array, one entry per fix{{#if resumePathLines}}, including its "path" when it matches a leaf in RESUME PATHS{{/if}}
+4. List every change you made in the "changes" array, one entry per fix. Every change must include a "path": {{#if resumePathLines}}copy it VERBATIM from RESUME PATHS when the change matches one of those leaves, otherwise set it to null{{else}}set it to null (no RESUME PATHS were provided){{/if}}
 
 Return ONLY valid JSON matching the HumanizerSchema. Example:
 {
   "rewritten": "Built the payment retry queue in Go, cutting failed-charge recovery time from 6 hours to 12 minutes.",
   "changes": [
-    { "original": "Successfully leveraged Go to architect a payment retry queue", "replacement": "Built the payment retry queue in Go", "reason": "inflation verb + filler adverb"{{#if resumePathLines}}, "path": "/experience/0/achievements/1"{{/if}} }
+    { "original": "Successfully leveraged Go to architect a payment retry queue", "replacement": "Built the payment retry queue in Go", "reason": "inflation verb + filler adverb", "path": {{#if resumePathLines}}"/experience/0/achievements/1"{{else}}null{{/if}} }
   ]
 }`,
 

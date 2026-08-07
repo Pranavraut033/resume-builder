@@ -15,9 +15,11 @@ export const HumanizerSchema = z.object({
         // JSON Pointer (see src/lib/resume/editor.ts::resumePathLines) to
         // the exact resume leaf this change targets, when the humanizer was
         // run against a resume (as opposed to free-standing text like a
-        // cover letter). Optional for backward compat with callers that
-        // don't have a resume to path against.
-        path: z.string().optional(),
+        // cover letter). null when there's no resume to path against.
+        // OpenAI structured outputs require every field present and
+        // disallow `.optional()` — nullable is the supported way to mark a
+        // field as "may be absent": https://platform.openai.com/docs/guides/structured-outputs?api-mode=responses#all-fields-must-be-required
+        path: z.string().nullable(),
       })
     )
     .describe("Audit trail of every change made"),

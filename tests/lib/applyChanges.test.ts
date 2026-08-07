@@ -48,6 +48,7 @@ describe("applyChangesToText", () => {
         original: "Leveraged synergies",
         replacement: "Used teamwork",
         reason: "cliche",
+        path: null,
       },
     ]);
     expect(result).toBe("Used teamwork to build things.");
@@ -59,6 +60,7 @@ describe("applyChangesToText", () => {
         original: "Leveraged synergies",
         replacement: "Used teamwork",
         reason: "cliche",
+        path: null,
       },
     ]);
     expect(result).toBe("Built a dashboard.");
@@ -72,16 +74,19 @@ describe("applyChangesToResume", () => {
         original: "Leveraged synergies to spearhead innovative solutions.",
         replacement: "Built better solutions.",
         reason: "buzzword",
+        path: null,
       },
       {
         original: "Utilized cutting-edge technology.",
         replacement: "Used modern tools.",
         reason: "buzzword",
+        path: null,
       },
       {
         original: "Spearheaded a project.",
         replacement: "Led a project.",
         reason: "buzzword",
+        path: null,
       },
     ]);
 
@@ -142,7 +147,7 @@ describe("applyChangesToResume", () => {
         original: "Leveraged synergies to spearhead innovative solutions.",
         replacement: "Built better solutions.",
         reason: "buzzword",
-        // no `path` — falls back to the whitelist walk
+        path: null, // falls back to the whitelist walk
       },
     ]);
 

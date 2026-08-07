@@ -42,6 +42,7 @@ export function HumanizerDrawer({
     mutate: humanize,
     data,
     status,
+    error,
     reset,
   } = useHumanizeContent({
     onSuccess: (result) => {
@@ -146,6 +147,29 @@ export function HumanizerDrawer({
           <div className="text-agent-on-surface-variant flex items-center justify-center gap-2 py-12 text-sm">
             <Icon name="spinner" className="h-4 w-4 animate-spin" />
             Humanizing…
+          </div>
+        )}
+
+        {status === "error" && (
+          <div className="flex flex-col gap-3">
+            <div
+              className="rounded-xl px-4 py-3 text-xs"
+              style={{
+                background: "var(--color-agent-error-container)",
+                color: "var(--color-agent-on-error-container)",
+              }}
+            >
+              {error instanceof Error
+                ? error.message
+                : "Something went wrong while humanizing this text."}
+            </div>
+            <button
+              onClick={handleStart}
+              className="bg-agent-primary text-agent-on-primary flex items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-sm font-semibold transition-opacity hover:opacity-90"
+            >
+              <Icon name="wand" className="h-4 w-4" />
+              Try again
+            </button>
           </div>
         )}
 
