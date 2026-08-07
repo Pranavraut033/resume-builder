@@ -11,28 +11,54 @@ interface Props {
   ratio: string;
   caption?: string;
   class?: string;
+  /** Ambient demo loops (default) replay forever; narrative clips with a punchline set this false. */
+  loop?: boolean;
+  /** Ambient demo loops (default) autoplay on page load; narrative clips play once the viewer scrolls to them. */
+  autoplayOnView?: boolean;
 }
 
-const { name, alt, ratio, caption, class: extraClass = '' } = Astro.props;
+const { name, alt, ratio, caption, class: extraClass = '', loop = true, autoplayOnView = false } = Astro.props;
 const base = getBase(import.meta.env.BASE_URL);
 const resolved = resolveMedia(name);
 ---
 
 {
   resolved ? (
-    <figure class={`overflow-hidden rounded-2xl border border-line ${ratio} w-full ${extraClass}`}>
+    <figure class={`relative overflow-hidden rounded-2xl border border-line ${ratio} w-full ${extraClass}`}>
       {resolved.kind === 'video' ? (
-        <video
-          src={`${base}${resolved.src}`}
-          poster={resolved.poster ? `${base}${resolved.poster}` : undefined}
-          class="size-full object-cover"
-          data-autoplay
-          muted
-          loop
-          playsinline
-          preload="metadata"
-          aria-label={alt}
-        />
+        <>
+          <video
+            src={`${base}${resolved.src}`}
+            poster={resolved.poster ? `${base}${resolved.poster}` : undefined}
+            class="size-full object-cover"
+            data-autoplay={!autoplayOnView}
+            data-autoplay-inview={autoplayOnView}
+            muted
+            loop={loop}
+            playsinline
+            preload="metadata"
+            aria-label={alt}
+          />
+          {/* Flashes center-screen the moment this clip comes into view, then
+              fades to reveal the autoplaying video underneath — otherwise a
+              muted autoplaying clip reads as just another static screenshot.
+              See the video-flash script in Base.astro for the timing. */}
+          <div
+            aria-hidden="true"
+            class="media-flash pointer-events-none absolute inset-0 flex items-center justify-center bg-term/55 backdrop-blur-[1px]"
+          >
+            <span class="inline-grid size-16 place-items-center rounded-full bg-accent text-on-accent shadow-block-lg">
+              <svg width="20" height="20" viewBox="0 0 16 16" fill="currentColor"><path d="M4 2.5v11l10-5.5Z" /></svg>
+            </span>
+          </div>
+          <span
+            aria-hidden="true"
+            class="pointer-events-none absolute top-3 right-3 inline-flex items-center gap-1.5 rounded-full border border-term-line bg-term/80 px-2.5 py-1 font-mono text-[10px] font-semibold tracking-wide text-term-fg uppercase backdrop-blur-sm"
+          >
+            <svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor"><path d="M1 0.5 7 4 1 7.5Z" /></svg>
+            Watch
+          </span>
+        </>
       ) : (
         <img
           src={`${base}${resolved.src}`}
@@ -52,7 +78,7 @@ const resolved = resolveMedia(name);
         <path d="m3 16 5-5 4 4 3-3 6 6" />
       </svg>
       <p class="font-mono text-xs">
-        drop <span class="font-semibold">{name}.png</span> or <span class="font-semibold">{name}.mp4</span> in{' '}
+        drop <span class="font-semibold">{name}.png</span> or <span class="font-semibold">{name}.mp4 </span> in{' '}
         <span class="font-semibold">public/screenshots/</span>
       </p>
     </div>

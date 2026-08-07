@@ -81,6 +81,7 @@ import Media from '../Media.astro';
       </figure>
     </div>
   </div>
+
 </section>
 
 <!-- Demo clip sits below the pinned stage, not inside it, so it never
@@ -88,6 +89,8 @@ import Media from '../Media.astro';
 <div class="mx-auto max-w-6xl px-5 pb-20">
   <Media
     name="hero-demo"
+    loop={false}
+    autoplayOnView={true}
     alt="Screen recording of Udaan: pasting a job description, generating a tailored resume, editing a line inline, and exporting a PDF"
     ratio="aspect-video"
     class="reveal"

@@ -1,10 +1,21 @@
 import { existsSync, readdirSync } from 'node:fs';
-import { fileURLToPath } from 'node:url';
+import { join } from 'node:path';
 
 // Build-time only (Astro frontmatter runs in Node). Globs public/screenshots/
 // once so a new file dropped in by name is picked up on the next build with
 // zero markup changes — see Media.astro.
-const SCREENSHOTS_DIR = fileURLToPath(new URL('../../public/screenshots/', import.meta.url));
+// process.cwd() rather than import.meta.url: Vite relocates this module when
+// bundling for `astro build`, which silently breaks an import.meta.url-relative
+// path (it resolves into dist/, which has no public/screenshots) even though
+// the same code works fine in `astro dev`.
+// cwd isn't always the astro project root, though — some launchers invoke
+// `astro dev --root landing` from the monorepo root, leaving cwd one level
+// up. Try both so either invocation style finds the real directory.
+const CANDIDATE_DIRS = [
+  join(process.cwd(), 'public/screenshots/'),
+  join(process.cwd(), 'landing/public/screenshots/'),
+];
+const SCREENSHOTS_DIR = CANDIDATE_DIRS.find((dir) => existsSync(dir)) ?? CANDIDATE_DIRS[0];
 
 const files = existsSync(SCREENSHOTS_DIR) ? readdirSync(SCREENSHOTS_DIR) : [];
 

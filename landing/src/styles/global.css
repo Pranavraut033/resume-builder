@@ -304,6 +304,18 @@ body {
   opacity: 0.5;
 }
 
+/* ── Video flash ──────────────────────────────────────────────────────────
+   Full-bleed center flash on a video slot: visible by default (the no-JS /
+   reduced-motion resting state, since those never autoplay) and faded out
+   by Base.astro's script ~250ms after the clip comes into view. */
+.media-flash {
+  opacity: 1;
+  transition: opacity 0.35s ease;
+}
+.media-flash.is-hidden {
+  opacity: 0;
+}
+
 /* ── Blog post body ───────────────────────────────────────────────────────
    Three pages worth of markdown don't justify @tailwindcss/typography as a
    dependency — this covers the tags Content actually renders. */
