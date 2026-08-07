@@ -1,6 +1,7 @@
 "use client";
 
 import { useQueryClient } from "@tanstack/react-query";
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
@@ -48,11 +49,9 @@ export default function Sidebar() {
       {/* Logo */}
       <div className="flex flex-col gap-0.5 px-5 pt-6 pb-4">
         <div className="flex items-center gap-2">
-          <div className="from-agent-primary to-agent-primary-container flex h-8 w-8 items-center justify-center rounded-lg bg-linear-to-br">
-            <Icon name="fileText" size={16} className="text-agent-on-primary" />
-          </div>
+          <Image src="/logo.png" alt="" width={32} height={32} className="rounded-lg" />
           <span className="text-agent-inverse-on-surface text-base font-bold tracking-tight">
-            Curator AI
+            Udaan
           </span>
         </div>
         <span className="text-agent-outline pl-10 text-[10px] font-medium tracking-widest uppercase">

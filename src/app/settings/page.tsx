@@ -513,7 +513,7 @@ export default function SettingsPage() {
               encryption key generated for your device and stored in your
               operating system&apos;s secure keychain before being written to
               disk locally. Our &ldquo;Local-First&rdquo; philosophy ensures
-              that Curator AI operates as a sovereign vault for your
+              that Udaan operates as a sovereign vault for your
               professional identity.
             </p>
             <ul className="space-y-2.5">
