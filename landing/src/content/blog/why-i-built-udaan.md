@@ -1,8 +1,8 @@
 ---
-title: 'Every application deserves its own resume — why I built Udaan'
-description: 'The origin story behind Udaan: the problem, the three claims it makes, and why it runs locally instead of as another cloud subscription.'
+title: "Every application deserves its own resume — why I built Udaan"
+description: "The origin story behind Udaan: the problem, the three claims it makes, and why it runs locally instead of as another cloud subscription."
 pubDate: 2026-08-10
-tags: ['origin', 'privacy']
+tags: ["origin", "privacy"]
 draft: true
 ---
 

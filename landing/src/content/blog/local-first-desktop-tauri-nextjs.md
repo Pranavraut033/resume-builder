@@ -1,8 +1,8 @@
 ---
-title: 'Building a local-first desktop app with Tauri and Next.js'
-description: 'The technical piece: architecture, the client-only LLM constraint, why the database is local, and what was hard about shipping Udaan on Tauri.'
+title: "Building a local-first desktop app with Tauri and Next.js"
+description: "The technical piece: architecture, the client-only LLM constraint, why the database is local, and what was hard about shipping Udaan on Tauri."
 pubDate: 2026-08-18
-tags: ['tauri', 'nextjs', 'architecture']
+tags: ["tauri", "nextjs", "architecture"]
 draft: true
 ---
 

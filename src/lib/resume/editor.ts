@@ -126,7 +126,9 @@ export function resumePathLines(resume: ResumeJSON): string {
     // has no way to know a path like /skills/12/category exists at all when
     // it's currently unset, and can't reliably enumerate every item in a
     // bulk/array-wide edit (e.g. "group all my skills into two categories").
-    lines.push(value === null ? `${path}: null` : `${path}: "${truncate(value)}"`);
+    lines.push(
+      value === null ? `${path}: null` : `${path}: "${truncate(value)}"`
+    );
   };
 
   const arrayLength = (path: string, length: number) => {

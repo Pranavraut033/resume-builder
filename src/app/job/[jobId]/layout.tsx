@@ -44,8 +44,12 @@ export default async function EditorLayout({
   const params = await _p;
   const jobIdNum = parseInt(params.jobId);
 
-  const { job, coverLetter, profile, resume: _resume } =
-    await loadJobPageData(jobIdNum);
+  const {
+    job,
+    coverLetter,
+    profile,
+    resume: _resume,
+  } = await loadJobPageData(jobIdNum);
 
   if (!profile) {
     return (

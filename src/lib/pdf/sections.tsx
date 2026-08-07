@@ -798,7 +798,9 @@ const pdfSkills: PDFSectionBuilder = ({ resume, styles: s, config }) => {
         >
           {group.category ?? "Skills"}
         </Text>
-        <Text style={{ flex: 1, fontSize: s.smallFontSize, color: s.textColor }}>
+        <Text
+          style={{ flex: 1, fontSize: s.smallFontSize, color: s.textColor }}
+        >
           {group.skills.map((skill, si) => (
             <Text key={si}>
               {si > 0 ? ", " : ""}

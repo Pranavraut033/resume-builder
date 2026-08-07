@@ -16,6 +16,7 @@ This guide explains how to build, code-sign, and distribute Udaan as a macOS `.d
 ## 1. Generate a Self-Signed Code Signing Certificate
 
 Run this once on your Mac. The certificate is stored in your login keychain.
+
 ```bash
 # 1. Create a private key
 openssl genrsa -out udaan-key.pem 2048
@@ -44,6 +45,7 @@ rm udaan-key.pem udaan-cert.pem
 ```
 
 After import, verify the certificate is visible:
+
 ```bash
 security find-identity -v -p codesigning
 # Output should include: "Udaan Self-Signed"
@@ -106,6 +108,7 @@ npm run tauri build
 ```
 
 `npm run prepare:tauri-server` copies:
+
 - `.next/standalone` into `src-tauri/resources/next`
 - `.next/static` into `src-tauri/resources/next/.next/static`
 - `public` into `src-tauri/resources/next/public`
@@ -113,6 +116,7 @@ npm run tauri build
 This is required so the packaged app can run Next.js with Server Actions.
 
 Output locations:
+
 - `.dmg`: `src-tauri/target/release/bundle/dmg/Udaan_<version>_<arch>.dmg` (e.g. `_aarch64` on Apple Silicon, `_x64` on Intel; the release workflow instead builds a universal binary named `_universal.dmg`, see [Section 5](#5-github-actions-cicd-setup))
 - `.app`: `src-tauri/target/release/bundle/macos/Udaan.app`
 
@@ -129,12 +133,13 @@ codesign -vv --deep "src-tauri/target/release/bundle/macos/Udaan.app"
 
 1. Double-click the `.dmg` to mount it
 2. Drag **Udaan** → **Applications**
-3. On first launch, macOS Gatekeeper will warn: *"Udaan cannot be verified"*
+3. On first launch, macOS Gatekeeper will warn: _"Udaan cannot be verified"_
 4. **To open**: Right-click → **Open** → **Open** in the dialog
 
 This is a one-time step; subsequent launches open normally.
 
 Alternatively, users can run:
+
 ```bash
 xattr -d com.apple.quarantine /Applications/Udaan.app
 ```
@@ -147,14 +152,14 @@ xattr -d com.apple.quarantine /Applications/Udaan.app
 
 Configure these in your GitHub repository under **Settings → Secrets and variables → Actions**:
 
-| Secret | Description |
-|---|---|
-| `APPLE_CERTIFICATE` | Base64-encoded `.p12` certificate file |
-| `APPLE_CERTIFICATE_PASSWORD` | Password set during `.p12` export |
-| `APPLE_SIGNING_IDENTITY` | Common Name from the certificate (e.g. `Udaan Self-Signed`) — if unset, both workflows fall back to ad-hoc signing (`-`) |
-| `KEYCHAIN_PASSWORD` | Any strong random password for the temporary CI keychain |
-| `TAURI_SIGNING_PRIVATE_KEY` | Contents of `~/.tauri/udaan-update.key` |
-| `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` | Password for the update signing key (if set) |
+| Secret                               | Description                                                                                                              |
+| ------------------------------------ | ------------------------------------------------------------------------------------------------------------------------ |
+| `APPLE_CERTIFICATE`                  | Base64-encoded `.p12` certificate file                                                                                   |
+| `APPLE_CERTIFICATE_PASSWORD`         | Password set during `.p12` export                                                                                        |
+| `APPLE_SIGNING_IDENTITY`             | Common Name from the certificate (e.g. `Udaan Self-Signed`) — if unset, both workflows fall back to ad-hoc signing (`-`) |
+| `KEYCHAIN_PASSWORD`                  | Any strong random password for the temporary CI keychain                                                                 |
+| `TAURI_SIGNING_PRIVATE_KEY`          | Contents of `~/.tauri/udaan-update.key`                                                                                  |
+| `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` | Password for the update signing key (if set)                                                                             |
 
 ### Encode the certificate for GitHub Secrets
 
@@ -165,11 +170,11 @@ base64 -i udaan.p12 | pbcopy
 
 ### Workflows
 
-| Workflow | File | Trigger |
-|---|---|---|
-| Build (manual smoke build) | `.github/workflows/build.yml` | Manual (`workflow_dispatch`) — macOS only for now (see the `ponytail` comment in the file: Windows/Linux are disabled until `prepareTauriServer.mjs` supports them) |
-| CI (type-check + lint) | `.github/workflows/ci.yml` | Push, pull requests — no build or signing, just `type-check`/`lint` |
-| Release | `.github/workflows/release.yml` | Push of a version tag (e.g. `v1.0.0`), or manual dispatch with a `tag` input |
+| Workflow                   | File                            | Trigger                                                                                                                                                             |
+| -------------------------- | ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Build (manual smoke build) | `.github/workflows/build.yml`   | Manual (`workflow_dispatch`) — macOS only for now (see the `ponytail` comment in the file: Windows/Linux are disabled until `prepareTauriServer.mjs` supports them) |
+| CI (type-check + lint)     | `.github/workflows/ci.yml`      | Push, pull requests — no build or signing, just `type-check`/`lint`                                                                                                 |
+| Release                    | `.github/workflows/release.yml` | Push of a version tag (e.g. `v1.0.0`), or manual dispatch with a `tag` input                                                                                        |
 
 ### Publishing a Release
 
@@ -181,6 +186,7 @@ git push origin v1.0.0
 ```
 
 GitHub Actions will automatically:
+
 1. Create a draft GitHub release
 2. Build the universal `.dmg` (macOS only — other platforms are disabled in the matrix, same as the Build workflow)
 3. Sign with your certificate (or ad-hoc, if `APPLE_SIGNING_IDENTITY` isn't set)
@@ -211,6 +217,7 @@ Check that your certificate Common Name exactly matches `signingIdentity` in `ta
 ### "The application is damaged and can't be opened"
 
 This happens when quarantine attributes are set. Run:
+
 ```bash
 xattr -d com.apple.quarantine /Applications/Udaan.app
 ```

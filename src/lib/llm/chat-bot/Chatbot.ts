@@ -283,7 +283,9 @@ class ResumeChatBot {
   private resolveTemperature(options: ChatBotOptions): number | undefined {
     return (
       options.temperature ??
-      useModelStore.getState().getTemperature(options.provider, options.model) ??
+      useModelStore
+        .getState()
+        .getTemperature(options.provider, options.model) ??
       undefined
     );
   }
@@ -1009,7 +1011,13 @@ class ResumeChatBot {
     yield {
       type: "tool_result",
       intent: resultIntent,
-      args: { updatedResume, usage, note, summary, rejectedCount: rejected.length },
+      args: {
+        updatedResume,
+        usage,
+        note,
+        summary,
+        rejectedCount: rejected.length,
+      },
     };
     yield { type: "done", usage };
   }

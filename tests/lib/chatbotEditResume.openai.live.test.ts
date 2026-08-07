@@ -19,8 +19,7 @@ import { JobDetailsJSON, ResumeJSON } from "@/types/resume";
 const MODEL = "gpt-4o-mini";
 
 vi.mock("@/lib/llm/providers", async (importOriginal) => {
-  const actual =
-    await importOriginal<typeof import("@/lib/llm/providers")>();
+  const actual = await importOriginal<typeof import("@/lib/llm/providers")>();
   const { getProviderInstance } = await import("@pranavraut033/llm-core");
   await import("@pranavraut033/llm-core/providers/register-builtins");
   const provider = await getProviderInstance("openai", {
@@ -58,8 +57,7 @@ function makeResume(): ResumeJSON {
       website: null,
       photoDataUrl: null,
     },
-    summary:
-      "Backend engineer with 5 years experience in Python and Django.",
+    summary: "Backend engineer with 5 years experience in Python and Django.",
     experience: [
       {
         company: "Acme Corp",
@@ -93,9 +91,7 @@ async function runEdit(
   resume: ResumeJSON,
   userInput: string
 ): Promise<{ events: ChatStreamEvent[]; updatedResume?: ResumeJSON }> {
-  const { default: ResumeChatBot } = await import(
-    "@/lib/llm/chat-bot/Chatbot"
-  );
+  const { default: ResumeChatBot } = await import("@/lib/llm/chat-bot/Chatbot");
 
   const bot = new ResumeChatBot(
     ProviderType.OPENAI,
@@ -137,140 +133,106 @@ describe.skipIf(!process.env.OPENAI_API_KEY)(
   "ResumeChatBot edit intent (live, OpenAI, messy input)",
   () => {
     describe("happy path", () => {
-      it(
-        "adds a named skill",
-        async () => {
-          const resume = makeResume();
-          const { events, updatedResume } = await runEdit(
-            resume,
-            "Add Kubernetes to my skills list"
-          );
+      it("adds a named skill", async () => {
+        const resume = makeResume();
+        const { events, updatedResume } = await runEdit(
+          resume,
+          "Add Kubernetes to my skills list"
+        );
 
-          expectCleanCompletion(events);
-          expect(
-            updatedResume?.skills.some((s) => /kubernetes/i.test(s.name))
-          ).toBe(true);
-        },
-        60_000
-      );
+        expectCleanCompletion(events);
+        expect(
+          updatedResume?.skills.some((s) => /kubernetes/i.test(s.name))
+        ).toBe(true);
+      }, 60_000);
 
-      it(
-        "rewrites the summary",
-        async () => {
-          const resume = makeResume();
-          const { events, updatedResume } = await runEdit(
-            resume,
-            "Rewrite my summary to mention I have experience leading teams"
-          );
+      it("rewrites the summary", async () => {
+        const resume = makeResume();
+        const { events, updatedResume } = await runEdit(
+          resume,
+          "Rewrite my summary to mention I have experience leading teams"
+        );
 
-          expectCleanCompletion(events);
-          expect(updatedResume?.summary).toBeTruthy();
-          expect(updatedResume?.summary).not.toBe(resume.summary);
-        },
-        60_000
-      );
+        expectCleanCompletion(events);
+        expect(updatedResume?.summary).toBeTruthy();
+        expect(updatedResume?.summary).not.toBe(resume.summary);
+      }, 60_000);
     });
 
     describe("messy grammar / typos", () => {
-      it(
-        "typo'd summary edit still lands on summary",
-        async () => {
-          const resume = makeResume();
-          const { events, updatedResume } = await runEdit(
-            resume,
-            "can u fix my sumary section its rly bad make it soundbetter"
-          );
+      it("typo'd summary edit still lands on summary", async () => {
+        const resume = makeResume();
+        const { events, updatedResume } = await runEdit(
+          resume,
+          "can u fix my sumary section its rly bad make it soundbetter"
+        );
 
-          expectCleanCompletion(events);
-          expect(updatedResume?.summary).not.toBe(resume.summary);
-        },
-        60_000
-      );
+        expectCleanCompletion(events);
+        expect(updatedResume?.summary).not.toBe(resume.summary);
+      }, 60_000);
 
-      it(
-        "bad-grammar skills edit adds the named skill",
-        async () => {
-          const resume = makeResume();
-          const { events, updatedResume } = await runEdit(
-            resume,
-            "the skils part not good need add docker asap"
-          );
+      it("bad-grammar skills edit adds the named skill", async () => {
+        const resume = makeResume();
+        const { events, updatedResume } = await runEdit(
+          resume,
+          "the skils part not good need add docker asap"
+        );
 
-          expectCleanCompletion(events);
-          expect(
-            updatedResume?.skills.some((s) => /docker/i.test(s.name))
-          ).toBe(true);
-        },
-        60_000
-      );
+        expectCleanCompletion(events);
+        expect(updatedResume?.skills.some((s) => /docker/i.test(s.name))).toBe(
+          true
+        );
+      }, 60_000);
 
-      it(
-        "typo'd achievement edit changes experience achievements",
-        async () => {
-          const resume = makeResume();
-          const { events, updatedResume } = await runEdit(
-            resume,
-            "pls make my achevments at acme corp sound more impresive"
-          );
+      it("typo'd achievement edit changes experience achievements", async () => {
+        const resume = makeResume();
+        const { events, updatedResume } = await runEdit(
+          resume,
+          "pls make my achevments at acme corp sound more impresive"
+        );
 
-          expectCleanCompletion(events);
-          expect(updatedResume?.experience[0]?.achievements).not.toEqual(
-            resume.experience[0].achievements
-          );
-        },
-        60_000
-      );
+        expectCleanCompletion(events);
+        expect(updatedResume?.experience[0]?.achievements).not.toEqual(
+          resume.experience[0].achievements
+        );
+      }, 60_000);
 
-      it(
-        "run-on headline edit updates the headline",
-        async () => {
-          const resume = makeResume();
-          const { events, updatedResume } = await runEdit(
-            resume,
-            "change headline to senior backend engineer i think its outdated rn"
-          );
+      it("run-on headline edit updates the headline", async () => {
+        const resume = makeResume();
+        const { events, updatedResume } = await runEdit(
+          resume,
+          "change headline to senior backend engineer i think its outdated rn"
+        );
 
-          expectCleanCompletion(events);
-          expect(updatedResume?.header.headline).not.toBe(
-            resume.header.headline
-          );
-          expect(updatedResume?.header.headline).toMatch(
-            /senior backend engineer/i
-          );
-        },
-        60_000
-      );
+        expectCleanCompletion(events);
+        expect(updatedResume?.header.headline).not.toBe(resume.header.headline);
+        expect(updatedResume?.header.headline).toMatch(
+          /senior backend engineer/i
+        );
+      }, 60_000);
     });
 
     describe("edge cases", () => {
-      it(
-        "multi-field messy instruction touches both named fields",
-        async () => {
-          const resume = makeResume();
-          const { events, updatedResume } = await runEdit(
-            resume,
-            "fix bothh my sumary and skils section their outdated add react to skils"
-          );
+      it("multi-field messy instruction touches both named fields", async () => {
+        const resume = makeResume();
+        const { events, updatedResume } = await runEdit(
+          resume,
+          "fix bothh my sumary and skils section their outdated add react to skils"
+        );
 
-          expectCleanCompletion(events);
-          expect(updatedResume?.summary).not.toBe(resume.summary);
-          expect(
-            updatedResume?.skills.some((s) => /react/i.test(s.name))
-          ).toBe(true);
-        },
-        60_000
-      );
+        expectCleanCompletion(events);
+        expect(updatedResume?.summary).not.toBe(resume.summary);
+        expect(updatedResume?.skills.some((s) => /react/i.test(s.name))).toBe(
+          true
+        );
+      }, 60_000);
 
-      it(
-        "ultra-terse instruction still completes cleanly",
-        async () => {
-          const resume = makeResume();
-          const { events } = await runEdit(resume, "fix summary");
+      it("ultra-terse instruction still completes cleanly", async () => {
+        const resume = makeResume();
+        const { events } = await runEdit(resume, "fix summary");
 
-          expectCleanCompletion(events);
-        },
-        60_000
-      );
+        expectCleanCompletion(events);
+      }, 60_000);
     });
   }
 );

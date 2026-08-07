@@ -68,7 +68,7 @@ Three files, no engine changes, no new axis. That is the shape a new template sh
 2. Add the value to the union in `customization.ts`, plus a `CONFIG_DEFAULTS` entry and a `ResolvedFields` member in `templates.ts`/`types.ts` if it's optional.
 3. Thread the branch through the DOM side (`TemplateEngine.tsx`, and `engine/sections.tsx` if it affects section content) **and** the PDF side (`PDFTemplateEngine.tsx`, `lib/pdf/sections.tsx`). Not `resolveStyles.ts`. Not the TXT builders.
 4. **Parity check:** grep both engines for the axis name and confirm the branch counts match. There is no PDF-side distinctness or parity test — a value implemented in the DOM engine and forgotten in the PDF engine leaves the whole suite green and the export broken. (`header: "band"` and `"left-accent"` are implemented on both sides but unused by any template — those are available combinations, not gaps.)
-5. Each new DOM branch must wrap the *same* `EditableText`/`EditableDateRange`/etc. fields the other branches use — never substitute plain text, or you'll fail the editability-parity test.
+5. Each new DOM branch must wrap the _same_ `EditableText`/`EditableDateRange`/etc. fields the other branches use — never substitute plain text, or you'll fail the editability-parity test.
 6. Add the axis to `AXIS_KEYS` in the distinctness test.
 
 ## Running the gate
@@ -77,12 +77,12 @@ Run the **full suite** — `npm run test:run`. `buildSections`, `txtExport`, `pd
 
 Then read `tests/lib/templateDistinctness.test.tsx`'s result by assertion:
 
-| Failure | Meaning |
-|---|---|
-| `covers all N templates` | Expected when adding a template. Bump the count. |
-| axis-overlap (`only N axes differ`) | Your config is too close to a sibling. Change the **config**, never the `≥3` threshold. |
-| markup collision | Two templates render byte-identical DOM. A real bug in your DOM branch. |
-| editability parity | Your branch exposes fewer editable fields than its siblings. A real bug in your DOM branch. |
+| Failure                             | Meaning                                                                                     |
+| ----------------------------------- | ------------------------------------------------------------------------------------------- |
+| `covers all N templates`            | Expected when adding a template. Bump the count.                                            |
+| axis-overlap (`only N axes differ`) | Your config is too close to a sibling. Change the **config**, never the `≥3` threshold.     |
+| markup collision                    | Two templates render byte-identical DOM. A real bug in your DOM branch.                     |
+| editability parity                  | Your branch exposes fewer editable fields than its siblings. A real bug in your DOM branch. |
 
 Never relax the last three.
 
@@ -103,7 +103,7 @@ Required for every design/polish fix and every new template. The dev database is
 
 This is as much your job as adding new ones — an unpolished template is a real defect, not a nice-to-have. Reproduce visually first (above), then:
 
-1. **Diagnose at the right layer.** If the problem is generic (cramped spacing, poor contrast, inconsistent heading treatment, awkward line-height) it's usually a bug in a *shared* branch — `TemplateEngine.tsx`/`PDFTemplateEngine.tsx`'s axis handling, or `bulletGlyph.ts`/`photoFrame.ts` — and fixing it there improves every template using that axis value, which is almost always what's wanted. Only patch a single `TEMPLATE_CONFIG` entry when the issue is genuinely specific to that one config combination (e.g. a particular `sidebarFill`+`skillStyle` pairing clipping text) — a one-off fix to a shared branch masquerading as a config tweak will look inconsistent against sibling templates.
+1. **Diagnose at the right layer.** If the problem is generic (cramped spacing, poor contrast, inconsistent heading treatment, awkward line-height) it's usually a bug in a _shared_ branch — `TemplateEngine.tsx`/`PDFTemplateEngine.tsx`'s axis handling, or `bulletGlyph.ts`/`photoFrame.ts` — and fixing it there improves every template using that axis value, which is almost always what's wanted. Only patch a single `TEMPLATE_CONFIG` entry when the issue is genuinely specific to that one config combination (e.g. a particular `sidebarFill`+`skillStyle` pairing clipping text) — a one-off fix to a shared branch masquerading as a config tweak will look inconsistent against sibling templates.
 2. **Worth checking on any polish pass:** visual hierarchy, contrast on `sidebarFill: "solid"` backgrounds, consistent padding/gaps across sections, PDF pagination (no orphaned headings at a page bottom, no awkward mid-entry breaks — see the fit-to-page/pagination logic already in the engine), and graceful handling of missing optional fields (photo, headline, links) instead of dangling gaps.
 3. **Re-run the gate even for "just a polish fix."** Nudging a shared axis's styling can make two templates read as more similar, or trip the markup-collision check. A polish fix that quietly breaks distinctness for another template is not done.
 

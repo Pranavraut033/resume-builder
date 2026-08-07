@@ -11,7 +11,10 @@
 
 "use client";
 
-import { supportsReasoning, supportsTemperature } from "@pranavraut033/llm-core";
+import {
+  supportsReasoning,
+  supportsTemperature,
+} from "@pranavraut033/llm-core";
 import Link from "next/link";
 import { useMemo, useState } from "react";
 

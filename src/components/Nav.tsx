@@ -49,7 +49,13 @@ export default function Sidebar() {
       {/* Logo */}
       <div className="flex flex-col gap-0.5 px-5 pt-6 pb-4">
         <div className="flex items-center gap-2">
-          <Image src="/logo.png" alt="" width={32} height={32} className="rounded-lg" />
+          <Image
+            src="/logo.png"
+            alt=""
+            width={32}
+            height={32}
+            className="rounded-lg"
+          />
           <span className="text-agent-inverse-on-surface text-base font-bold tracking-tight">
             Udaan
           </span>

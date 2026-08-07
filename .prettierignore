@@ -5,6 +5,9 @@ node_modules/
 packages/llm-core/
 packages/ats-checker/
 
+# Nested Claude Code worktrees (separate working directories, own history)
+.claude/worktrees/
+
 # Next.js
 .next/
 out/
