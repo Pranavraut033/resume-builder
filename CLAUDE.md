@@ -76,7 +76,7 @@ SQLite via Prisma. Core models: `Profile` (base profile, with skills/experience/
 
 ### Resume rendering / templates
 
-Section content (order, visibility, custom sections) is resolved once via `buildSections()` (`src/components/job-v2/engine/buildSections.ts`) and rendered by three engines from the same `TemplateConfig`/section registry — DOM, PDF, and TXT stay in sync by construction. Each of the 9 templates is a `TemplateConfig` — columns, header/heading variant, `entryStyle` (standard/timeline/marker/compact/table), `skillStyle` (inline/chips/list/table), `dateStyle`, `bulletStyle`, `sidebarTint`, `justifyText`, etc. — resolved once via `resolveTemplateConfig()` (`engine/templates.ts`) so both engines apply the same defaults; `tests/lib/templateDistinctness.test.ts` asserts every pair of templates differs on ≥3 axes and exposes identical editable fields (config-driven templates share the same inline-editable surface, so a new `entryStyle`/`skillStyle` branch must re-wrap the same `EditableText`/`EditableDateRange` fields as the standard branch, not replace them with plain text):
+Section content (order, visibility, custom sections) is resolved once via `buildSections()` (`src/components/job-v2/engine/buildSections.ts`) and rendered by three engines from the same `TemplateConfig`/section registry — DOM, PDF, and TXT stay in sync by construction. Each of the 9 templates is a `TemplateConfig` — columns, header/heading variant, `entryStyle` (standard/timeline/marker/compact/table), `skillStyle` (inline/chips/list/table/grid/columns), `dateStyle`, `bulletStyle`, `sidebarTint`, `justifyText`, etc. — resolved once via `resolveTemplateConfig()` (`engine/templates.ts`) so both engines apply the same defaults; `tests/lib/templateDistinctness.test.ts` asserts every pair of templates differs on ≥3 axes and exposes identical editable fields (config-driven templates share the same inline-editable surface, so a new `entryStyle`/`skillStyle` branch must re-wrap the same `EditableText`/`EditableDateRange` fields as the standard branch, not replace them with plain text):
 
 - `src/components/job-v2/engine/` — `TemplateEngine.tsx` (DOM/WYSIWYG rendering), `sections.tsx` (section registry), `templates.ts` (all resume templates — `modern-minimal`, `tech-sidebar`, `creative-modern`, `two-tone`, etc. — as layout/style config objects, not components), `types.ts`, `bulletGlyph.ts`/`photoFrame.ts` (shared DOM+PDF style primitives).
 - `src/components/job/templates/TemplateRenderer.tsx` dispatches `customization.template` to `TemplateEngine` via `engine/templates.ts`, falling back to the `modern-minimal` config for a legacy/unrecognized `template` value (originally adapted from the Resumify project, see `LICENSE-THIRD-PARTY.md`).
@@ -103,7 +103,7 @@ Section content (order, visibility, custom sections) is resolved once via `build
 ### State management
 
 - `src/contexts/` — React context (`JobPageContext`, `ThemeContext`).
-- `src/store/modelStore.ts` — Zustand store for selected LLM model/provider.
+- `src/store/modelStore.ts` — Zustand store for selected LLM model/provider, plus per-model reasoning-effort/temperature/top-p preferences.
 - TanStack Query (`QueryClientProvider` in `src/components/AppShell.tsx`) wraps Server Action calls — `useQuery`/`useMutation` for data fetching/mutation (e.g. `useProfileQuery.ts`, `useJobPageDataQuery.ts`, `JobPageContext.tsx`), `useReactTable` (`@tanstack/react-table`) for the job/table list views (`ui/Table.tsx`, `JobTableClient.tsx`).
 
 ### Styling
@@ -128,4 +128,4 @@ On every launch, `sync_database_schema` (`src-tauri/src/lib.rs`) runs `migrate-a
 - `tailwind-ui-designer` (`.claude/skills/tailwind-ui-designer/SKILL.md`) — invoke whenever the user asks to build, restyle, or improve UI. Enforces the Tailwind v4 styling constraints above and follows the `frontend-design` skill.
 - `resume-mcp` (`skills/resume-mcp/SKILL.md`) — for an MCP-connected host (not Claude Code itself) driving this app's resume flows via `src/mcp/`; the step-by-step tool-chain runbook referenced from `docs/MCP.md`.
 
-<!-- last-sync-docs: 77e36110797e13a792046c919f7483428cf63a4a -->
+<!-- last-sync-docs: b369e98d81b131710e72abb2e915379cf7edece5 -->

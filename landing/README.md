@@ -16,6 +16,11 @@ npm run preview   # preview the production build locally
 ## Notes
 
 - Static output only (`output: 'static'` in `astro.config.mjs`) — no SSR, no backend.
+- Pages (`src/pages/`) are composed from section components in `src/components/sections/`
+  (Hero, Features, Ats, CoverLetters, HowItWorks, Comparison, Faq, Stats, Mcp, FinalCta,
+  etc.) — one file per landing-page section, not one monolithic page.
+- `src/content/blog/` is an Astro content collection (`src/content.config.ts`) rendered at
+  `/blog` and `/blog/[...slug]`; `/faq` reads `src/data/faqs.ts`.
 - Design tokens live in `src/styles/global.css` (`@theme` block); they are lifted from the
   main app's `src/styles/global.css` (primary blue scale, blocky yellow `#eab308` + its
   hard-offset shadow, agent-theme dark surfaces) but redefined here, not imported across
@@ -25,4 +30,6 @@ npm run preview   # preview the production build locally
 - Scroll interactions (pinned hero, word-by-word hook reveal, sticky how-it-works
   walkthrough) run off one vanilla-JS rAF handler writing `--sp`/`--dp` custom properties;
   everything is gated on `.motion-ok`, so no-JS and reduced-motion get a static page.
-- Screenshot placeholders (dashed frames) mark where real app screenshots should go.
+- `Media.astro` (`src/lib/media.ts`) resolves `name` to a real screenshot/clip under
+  `public/screenshots/` at build time; real media now exists for most sections, and the
+  dashed-frame placeholder only renders as a fallback when a named file is missing.

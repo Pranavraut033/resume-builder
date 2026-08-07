@@ -1,6 +1,6 @@
 # macOS Distribution Guide
 
-This guide explains how to build, code-sign, and distribute Resume Builder as a macOS `.dmg` installer without registering with Apple.
+This guide explains how to build, code-sign, and distribute Udaan as a macOS `.dmg` installer without registering with Apple.
 
 ---
 
@@ -18,35 +18,35 @@ This guide explains how to build, code-sign, and distribute Resume Builder as a 
 Run this once on your Mac. The certificate is stored in your login keychain.
 ```bash
 # 1. Create a private key
-openssl genrsa -out resume-builder-key.pem 2048
+openssl genrsa -out udaan-key.pem 2048
 
 # 2. Create a self-signed certificate (valid for 10 years)
-openssl req -new -x509 -key resume-builder-key.pem \
-  -out resume-builder-cert.pem \
+openssl req -new -x509 -key udaan-key.pem \
+  -out udaan-cert.pem \
   -days 3650 \
-  -subj "/CN=Resume Builder Self-Signed/O=Resume Builder/C=US"
+  -subj "/CN=Udaan Self-Signed/O=Udaan/C=US"
 
 # 3. Bundle key + cert into a .p12 file (you'll be prompted for a password)
 openssl pkcs12 -export \
   -legacy \
-  -inkey resume-builder-key.pem \
-  -in resume-builder-cert.pem \
-  -out resume-builder.p12 \
-  -name "Resume Builder Self-Signed"
+  -inkey udaan-key.pem \
+  -in udaan-cert.pem \
+  -out udaan.p12 \
+  -name "Udaan Self-Signed"
 
 # 4. Import the .p12 into your login keychain
-security import resume-builder.p12 \
+security import udaan.p12 \
   -k ~/Library/Keychains/login.keychain-db \
   -T /usr/bin/codesign
 
-# 5. Clean up key files (keep resume-builder.p12 for CI/CD)
-rm resume-builder-key.pem resume-builder-cert.pem
+# 5. Clean up key files (keep udaan.p12 for CI/CD)
+rm udaan-key.pem udaan-cert.pem
 ```
 
 After import, verify the certificate is visible:
 ```bash
 security find-identity -v -p codesigning
-# Output should include: "Resume Builder Self-Signed"
+# Output should include: "Udaan Self-Signed"
 ```
 
 ### Set the signing identity in Tauri config
@@ -55,11 +55,11 @@ Edit `src-tauri/tauri.conf.json` and set the `signingIdentity` field:
 
 ```json
 "macOS": {
-  "signingIdentity": "Resume Builder Self-Signed"
+  "signingIdentity": "Udaan Self-Signed"
 }
 ```
 
-> **Note**: Leave `signingIdentity` as `null` to build without code signing (useful for quick local tests). Set to `"-"` for ad-hoc signing (no identity required but offers no user verification).
+> **Note**: `src-tauri/tauri.conf.json` currently ships with `signingIdentity` set to `"-"` (ad-hoc signing — no identity required but offers no user verification), which is what local builds and CI use by default. Leave it as `null` to build without code signing at all (useful for quick local tests), or set it to your own certificate's Common Name as above for a real signing identity.
 
 ---
 
@@ -69,10 +69,10 @@ The updater requires a separate Ed25519 key pair to verify update packages.
 
 ```bash
 # Generate keys (save the output — the private key is shown only once)
-npx tauri signer generate -w ~/.tauri/resume-builder-update.key
+npx tauri signer generate -w ~/.tauri/udaan-update.key
 
 # This outputs:
-#   Private key: (saved to ~/.tauri/resume-builder-update.key)
+#   Private key: (saved to ~/.tauri/udaan-update.key)
 #   Public key:  (copy this into tauri.conf.json)
 ```
 
@@ -113,13 +113,13 @@ npm run tauri build
 This is required so the packaged app can run Next.js with Server Actions.
 
 Output locations:
-- `.dmg`: `src-tauri/target/release/bundle/dmg/Resume Builder_0.1.0_x64.dmg`
-- `.app`: `src-tauri/target/release/bundle/macos/Resume Builder.app`
+- `.dmg`: `src-tauri/target/release/bundle/dmg/Udaan_<version>_<arch>.dmg` (e.g. `_aarch64` on Apple Silicon, `_x64` on Intel; the release workflow instead builds a universal binary named `_universal.dmg`, see [Section 5](#5-github-actions-cicd-setup))
+- `.app`: `src-tauri/target/release/bundle/macos/Udaan.app`
 
 ### Verify code signing
 
 ```bash
-codesign -vv --deep "src-tauri/target/release/bundle/macos/Resume Builder.app"
+codesign -vv --deep "src-tauri/target/release/bundle/macos/Udaan.app"
 # Should show: "satisfies its Designated Requirement"
 ```
 
@@ -128,15 +128,15 @@ codesign -vv --deep "src-tauri/target/release/bundle/macos/Resume Builder.app"
 ## 4. Test the Installer
 
 1. Double-click the `.dmg` to mount it
-2. Drag **Resume Builder** → **Applications**
-3. On first launch, macOS Gatekeeper will warn: *"Resume Builder cannot be verified"*
+2. Drag **Udaan** → **Applications**
+3. On first launch, macOS Gatekeeper will warn: *"Udaan cannot be verified"*
 4. **To open**: Right-click → **Open** → **Open** in the dialog
 
 This is a one-time step; subsequent launches open normally.
 
 Alternatively, users can run:
 ```bash
-xattr -d com.apple.quarantine /Applications/Resume\ Builder.app
+xattr -d com.apple.quarantine /Applications/Udaan.app
 ```
 
 ---
@@ -151,15 +151,15 @@ Configure these in your GitHub repository under **Settings → Secrets and varia
 |---|---|
 | `APPLE_CERTIFICATE` | Base64-encoded `.p12` certificate file |
 | `APPLE_CERTIFICATE_PASSWORD` | Password set during `.p12` export |
-| `APPLE_SIGNING_IDENTITY` | Common Name from the certificate (e.g. `Resume Builder Self-Signed`) |
+| `APPLE_SIGNING_IDENTITY` | Common Name from the certificate (e.g. `Udaan Self-Signed`) — if unset, both workflows fall back to ad-hoc signing (`-`) |
 | `KEYCHAIN_PASSWORD` | Any strong random password for the temporary CI keychain |
-| `TAURI_SIGNING_PRIVATE_KEY` | Contents of `~/.tauri/resume-builder-update.key` |
+| `TAURI_SIGNING_PRIVATE_KEY` | Contents of `~/.tauri/udaan-update.key` |
 | `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` | Password for the update signing key (if set) |
 
 ### Encode the certificate for GitHub Secrets
 
 ```bash
-base64 -i resume-builder.p12 | pbcopy
+base64 -i udaan.p12 | pbcopy
 # Paste the clipboard value into the APPLE_CERTIFICATE secret
 ```
 
@@ -167,8 +167,9 @@ base64 -i resume-builder.p12 | pbcopy
 
 | Workflow | File | Trigger |
 |---|---|---|
-| Build (PR/main) | `.github/workflows/build-macos.yml` | Push to `main`, pull requests |
-| Release | `.github/workflows/release.yml` | Push version tag (e.g. `v1.0.0`) |
+| Build (manual smoke build) | `.github/workflows/build.yml` | Manual (`workflow_dispatch`) — macOS only for now (see the `ponytail` comment in the file: Windows/Linux are disabled until `prepareTauriServer.mjs` supports them) |
+| CI (type-check + lint) | `.github/workflows/ci.yml` | Push, pull requests — no build or signing, just `type-check`/`lint` |
+| Release | `.github/workflows/release.yml` | Push of a version tag (e.g. `v1.0.0`), or manual dispatch with a `tag` input |
 
 ### Publishing a Release
 
@@ -180,11 +181,12 @@ git push origin v1.0.0
 ```
 
 GitHub Actions will automatically:
-1. Build the `.dmg`
-2. Sign with your certificate
-3. Sign the update package with your Ed25519 key
-4. Create a GitHub release with the `.dmg` and `update.json` artifacts
-5. Publish the release
+1. Create a draft GitHub release
+2. Build the universal `.dmg` (macOS only — other platforms are disabled in the matrix, same as the Build workflow)
+3. Sign with your certificate (or ad-hoc, if `APPLE_SIGNING_IDENTITY` isn't set)
+4. Sign the update package with your Ed25519 key
+5. Upload the `.dmg`/`.app.tar.gz` and generated `update.json` to the release
+6. Publish the release (undraft it)
 
 ---
 
@@ -210,13 +212,12 @@ Check that your certificate Common Name exactly matches `signingIdentity` in `ta
 
 This happens when quarantine attributes are set. Run:
 ```bash
-xattr -d com.apple.quarantine /Applications/Resume\ Builder.app
+xattr -d com.apple.quarantine /Applications/Udaan.app
 ```
 
 ### App launches but shows a blank page / cannot connect
 
-The packaged app starts a local Next server at `127.0.0.1:3008`.
-Ensure Node.js is installed on the target machine (`node --version`).
+The packaged app starts a local Next server at `127.0.0.1:3009` (distinct from the `3008` used by `npm run dev`), using a Node runtime bundled into the app by `scripts/prepareTauriServer.mjs` — the end user does not need Node.js installed. Check `$APPDATA/logs/server.log` for the actual startup error (see the project's `CLAUDE.md` for the exact path per OS).
 
 ### Updater doesn't detect new versions
 

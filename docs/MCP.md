@@ -23,9 +23,12 @@ model should follow once it's talking to this server, and
 built (module map, request lifecycle, the `add_job` draft state machine,
 guard/validation flow) — this doc covers setup and security, not internals.
 
-The server exposes 7 tools: `list_flows`, `get_prompt`, `submit`,
-`apply_resume_ops`, `list_profiles`, `list_jobs`, `get_job_state`. There is
-no standalone `validate` tool — `submit` already runs the same schema check
+The server exposes 8 tools: `list_flows`, `get_prompt`, `submit`,
+`apply_resume_ops`, `list_profiles`, `list_jobs`, `fetch_url`,
+`get_job_state`. `fetch_url` fetches a job posting URL server-side and
+returns its extracted text when a host's own fetch is blocked (e.g.
+LinkedIn). There is no standalone `validate` tool — `submit` already runs
+the same schema check
 before persisting anything, so a failed `submit` doubles as the dry run.
 Before a job exists yet (mid-`add_job`), `submit` mints a short-lived
 `draftId` and returns it — pass that on subsequent calls instead of

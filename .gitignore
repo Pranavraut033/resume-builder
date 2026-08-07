@@ -59,8 +59,7 @@ keys.enc
 dev.db
 dev.db-shm
 dev.db-wal
-resume-builder.p12
-docs/DISTRIBUTION.md
+*.p12
 src-tauri/resources/next
 .codegraph/
 
@@ -69,6 +68,9 @@ src-tauri/resources/next
 
 # Claude Code plan-mode scratch files
 .claude/plans/
+
+# Unreferenced/staged media not yet wired into landing or docs
+/.artifacts/
 
 # Playwright
 /test-results/

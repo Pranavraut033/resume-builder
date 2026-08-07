@@ -10,7 +10,9 @@
 
 ## Demo
 
-> _Add a screenshot or screen recording of the job dashboard, resume generation flow, and inline editor here (e.g. `docs/media/demo.gif`)._
+![Inline WYSIWYG editor](./landing/public/screenshots/editor.png)
+
+More screenshots and demo clips (ATS analysis, chat editing, cover letters, customization) are on the [landing page](https://udaan.pranavraut.dev).
 
 ## Features
 
@@ -36,11 +38,11 @@
 
 Prebuilt desktop apps for macOS, Windows, and Linux are published on the [Releases](https://github.com/Pranavraut033/resume-builder/releases) page for every `v*.*.*` tag.
 
-| Platform | File                                                | Notes                                          |
-| -------- | --------------------------------------------------- | ---------------------------------------------- |
-| macOS    | `Resume.Builder_<version>_universal.dmg`            | Universal binary (Apple Silicon + Intel)       |
-| Windows  | `Resume.Builder_<version>_x64-setup.exe`            | NSIS installer                                 |
-| Linux    | `Resume.Builder_<version>_amd64.AppImage` or `.deb` | AppImage is portable; `.deb` for Debian/Ubuntu |
+| Platform | File                                       | Notes                                          |
+| -------- | ------------------------------------------ | ---------------------------------------------- |
+| macOS    | `Udaan_<version>_universal.dmg`            | Universal binary (Apple Silicon + Intel)       |
+| Windows  | `Udaan_<version>_x64-setup.exe`            | NSIS installer                                 |
+| Linux    | `Udaan_<version>_amd64.AppImage` or `.deb` | AppImage is portable; `.deb` for Debian/Ubuntu |
 
 The app is **self-signed** (not signed by a CA-trusted/registered publisher), so each OS will show a one-time warning before the first launch. This is expected — follow the steps below to open it.
 
@@ -50,7 +52,7 @@ The app is **self-signed** (not signed by a CA-trusted/registered publisher), so
 2. On first launch, Gatekeeper will say _"Udaan cannot be verified"_ — **right-click the app → Open → Open** in the dialog
 3. If you instead see _"The application is damaged and can't be opened"_, clear the quarantine flag:
    ```bash
-   xattr -d com.apple.quarantine /Applications/Resume\ Builder.app
+   xattr -d com.apple.quarantine /Applications/Udaan.app
    ```
 
 ### Windows
@@ -63,12 +65,12 @@ The app is **self-signed** (not signed by a CA-trusted/registered publisher), so
 
 - **AppImage** (portable, no install):
   ```bash
-  chmod +x Resume.Builder_*_amd64.AppImage
-  ./Resume.Builder_*_amd64.AppImage
+  chmod +x Udaan_*_amd64.AppImage
+  ./Udaan_*_amd64.AppImage
   ```
 - **.deb** (Debian/Ubuntu):
   ```bash
-  sudo dpkg -i Resume.Builder_*_amd64.deb
+  sudo dpkg -i Udaan_*_amd64.deb
   ```
 
 ## Tech Stack
@@ -205,6 +207,7 @@ udaan/
     ├── UI_COMPONENTS_GUIDE.md
     ├── DISTRIBUTION.md
     ├── SECURITY_AUDIT.md
+    ├── BRAND_VOICE.md             # Brand voice/copy guidelines for landing page + marketing content
     ├── MCP.md                     # MCP server setup, security, troubleshooting
     └── MCP_ARCHITECTURE.md        # MCP server internals: tool surface, request lifecycle, add_job draft state machine
 ```
