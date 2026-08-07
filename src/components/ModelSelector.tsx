@@ -11,7 +11,7 @@
 
 "use client";
 
-import { supportsReasoning } from "@pranavraut033/llm-core";
+import { supportsReasoning, supportsTemperature } from "@pranavraut033/llm-core";
 import Link from "next/link";
 import { useMemo, useState } from "react";
 
@@ -53,6 +53,10 @@ export function ModelSelector({
     setSelectedModel,
     getReasoningEffort,
     setReasoningEffort,
+    getTemperature,
+    setTemperature,
+    getTopP,
+    setTopP,
   } = useModelStore();
 
   const [isOpen, setIsOpen] = useState(false);
@@ -63,6 +67,20 @@ export function ModelSelector({
   const activeModelSupportsReasoning = activeModelPair
     ? supportsReasoning(activeModelPair[1])
     : false;
+
+  const activeTemperature = activeModelPair
+    ? getTemperature(activeModelPair[0], activeModelPair[1])
+    : null;
+  // Top P is part of the same OpenAI sampling-param family as temperature —
+  // reasoning models reject both, so they share one capability check.
+  const activeModelSupportsTemperature = activeModelPair
+    ? supportsTemperature(activeModelPair[1])
+    : false;
+  const activeTopP = activeModelPair
+    ? getTopP(activeModelPair[0], activeModelPair[1])
+    : null;
+  const hasAdvancedOptions =
+    activeModelSupportsReasoning || activeModelSupportsTemperature;
 
   // Get preselected models by provider (from settings)
   const preselectedByProvider = useMemo(
@@ -79,7 +97,9 @@ export function ModelSelector({
   const handleModelClick = (model: string, provider: ProviderType) => {
     setSelectedModel(provider, model);
     onModelSelected?.(model, provider);
-    setIsOpen(false);
+    // Keep the modal open — advanced options (reasoning effort, temperature)
+    // for the newly-picked model render right below, and closing here would
+    // hide them before the user can see or adjust them.
   };
 
   const selectedProviderInfo = activeModelPair
@@ -212,6 +232,21 @@ export function ModelSelector({
         size="md"
       >
         <div className="space-y-5">
+          <p
+            className="-mt-1 text-xs"
+            style={{ color: "var(--color-agent-on-surface-variant)" }}
+          >
+            Need a different model or provider?{" "}
+            <Link
+              href="/settings"
+              className="font-semibold underline"
+              style={{ color: "var(--color-agent-primary)" }}
+              onClick={() => setIsOpen(false)}
+            >
+              Manage in Settings
+            </Link>
+          </p>
+
           {preselectedByProvider.map(({ provider, models }) => {
             const providerInfo = PROVIDER_INFO[provider];
 
@@ -263,53 +298,206 @@ export function ModelSelector({
             );
           })}
 
-          {/* Reasoning effort — only for the active model, and only when it supports it */}
-          {activeModelPair && activeModelSupportsReasoning && (
-            <div>
+          {/* Advanced options — only for the active model, and only the
+              controls that model actually supports (e.g. reasoning models
+              reject `temperature` outright, so it's hidden rather than sent
+              and rejected by the API). */}
+          {activeModelPair && hasAdvancedOptions && (
+            <div
+              className="border-t pt-4"
+              style={{ borderColor: "var(--color-agent-outline-variant)" }}
+            >
               <p
                 className="mb-3 text-sm font-semibold"
                 style={{ color: "var(--color-agent-on-surface)" }}
               >
-                Reasoning effort for {activeModelPair[1]}
+                Advanced options for {activeModelPair[1]}
               </p>
-              <div className="flex flex-wrap gap-2">
-                {REASONING_EFFORTS.map((effort) => {
-                  const isSelected = activeReasoningEffort === effort;
-                  return (
-                    <button
-                      key={effort}
-                      onClick={() =>
-                        setReasoningEffort(
-                          activeModelPair[0],
-                          activeModelPair[1],
-                          isSelected ? null : effort
-                        )
-                      }
-                      className="rounded-full px-3 py-1.5 text-xs font-medium capitalize transition-all hover:shadow-sm active:scale-95"
-                      style={{
-                        background: isSelected
-                          ? "var(--color-agent-primary)"
-                          : "var(--color-agent-surface-container)",
-                        color: isSelected
-                          ? "var(--color-agent-on-primary)"
-                          : "var(--color-agent-on-surface)",
-                        border: isSelected
-                          ? "2px solid var(--color-agent-primary)"
-                          : "1px solid var(--color-agent-outline-variant)",
-                      }}
+
+              {activeModelSupportsReasoning && (
+                <div className="mb-4">
+                  <p
+                    className="mb-2 flex items-center gap-1.5 text-xs font-medium"
+                    style={{ color: "var(--color-agent-on-surface)" }}
+                  >
+                    Reasoning effort
+                    <span
+                      title="How much the model 'thinks' before answering. Higher effort can improve quality on hard tasks but is slower and costs more tokens. Provider default is used unless you pick one."
+                      className="inline-flex cursor-help"
                     >
-                      {effort}
-                    </button>
-                  );
-                })}
-              </div>
-              <p
-                className="mt-2 text-xs"
-                style={{ color: "var(--color-agent-on-surface-variant)" }}
-              >
-                Provider default is used unless you pick one. Click again to
-                clear.
-              </p>
+                      <Icon
+                        name="info"
+                        className="text-agent-on-surface-variant h-3.5 w-3.5"
+                      />
+                    </span>
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    {REASONING_EFFORTS.map((effort) => {
+                      const isSelected = activeReasoningEffort === effort;
+                      return (
+                        <button
+                          key={effort}
+                          onClick={() =>
+                            setReasoningEffort(
+                              activeModelPair[0],
+                              activeModelPair[1],
+                              isSelected ? null : effort
+                            )
+                          }
+                          className="rounded-full px-3 py-1.5 text-xs font-medium capitalize transition-all hover:shadow-sm active:scale-95"
+                          style={{
+                            background: isSelected
+                              ? "var(--color-agent-primary)"
+                              : "var(--color-agent-surface-container)",
+                            color: isSelected
+                              ? "var(--color-agent-on-primary)"
+                              : "var(--color-agent-on-surface)",
+                            border: isSelected
+                              ? "2px solid var(--color-agent-primary)"
+                              : "1px solid var(--color-agent-outline-variant)",
+                          }}
+                        >
+                          {effort}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <p
+                    className="mt-2 text-xs"
+                    style={{ color: "var(--color-agent-on-surface-variant)" }}
+                  >
+                    Click a selected value again to clear it.
+                  </p>
+                </div>
+              )}
+
+              {activeModelSupportsTemperature && (
+                <div>
+                  <div className="mb-2 flex items-center justify-between">
+                    <p
+                      className="flex items-center gap-1.5 text-xs font-medium"
+                      style={{ color: "var(--color-agent-on-surface)" }}
+                    >
+                      Temperature
+                      <span
+                        title="Controls randomness. Lower values (near 0) make output more focused and deterministic; higher values (near 2) make it more varied and creative. Provider default is 0.7 unless you set one."
+                        className="inline-flex cursor-help"
+                      >
+                        <Icon
+                          name="info"
+                          className="text-agent-on-surface-variant h-3.5 w-3.5"
+                        />
+                      </span>
+                    </p>
+                    <span
+                      className="text-xs font-medium tabular-nums"
+                      style={{ color: "var(--color-agent-on-surface-variant)" }}
+                    >
+                      {activeTemperature ?? "default"}
+                    </span>
+                  </div>
+                  <input
+                    type="range"
+                    min={0}
+                    max={2}
+                    step={0.1}
+                    value={activeTemperature ?? 0.7}
+                    onChange={(e) =>
+                      setTemperature(
+                        activeModelPair[0],
+                        activeModelPair[1],
+                        Number(e.target.value)
+                      )
+                    }
+                    className="w-full accent-[var(--color-agent-primary)]"
+                  />
+                  <div className="mt-1 flex items-center justify-between">
+                    <p
+                      className="text-xs"
+                      style={{ color: "var(--color-agent-on-surface-variant)" }}
+                    >
+                      Focused (0) to creative (2).
+                    </p>
+                    {activeTemperature !== null && (
+                      <button
+                        onClick={() =>
+                          setTemperature(
+                            activeModelPair[0],
+                            activeModelPair[1],
+                            null
+                          )
+                        }
+                        className="text-xs font-medium underline"
+                        style={{ color: "var(--color-agent-primary)" }}
+                      >
+                        Reset to default
+                      </button>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {activeModelSupportsTemperature && (
+                <div className="mt-4">
+                  <div className="mb-2 flex items-center justify-between">
+                    <p
+                      className="flex items-center gap-1.5 text-xs font-medium"
+                      style={{ color: "var(--color-agent-on-surface)" }}
+                    >
+                      Top P
+                      <span
+                        title="An alternative to temperature — narrows the model to only its most likely next words. Lower values (near 0) are more focused; 1 considers the full range. Provider default is used unless you set one. Usually left alone if you're already adjusting temperature."
+                        className="inline-flex cursor-help"
+                      >
+                        <Icon
+                          name="info"
+                          className="text-agent-on-surface-variant h-3.5 w-3.5"
+                        />
+                      </span>
+                    </p>
+                    <span
+                      className="text-xs font-medium tabular-nums"
+                      style={{ color: "var(--color-agent-on-surface-variant)" }}
+                    >
+                      {activeTopP ?? "default"}
+                    </span>
+                  </div>
+                  <input
+                    type="range"
+                    min={0}
+                    max={1}
+                    step={0.05}
+                    value={activeTopP ?? 1}
+                    onChange={(e) =>
+                      setTopP(
+                        activeModelPair[0],
+                        activeModelPair[1],
+                        Number(e.target.value)
+                      )
+                    }
+                    className="w-full accent-[var(--color-agent-primary)]"
+                  />
+                  <div className="mt-1 flex items-center justify-between">
+                    <p
+                      className="text-xs"
+                      style={{ color: "var(--color-agent-on-surface-variant)" }}
+                    >
+                      Narrow (0) to full range (1).
+                    </p>
+                    {activeTopP !== null && (
+                      <button
+                        onClick={() =>
+                          setTopP(activeModelPair[0], activeModelPair[1], null)
+                        }
+                        className="text-xs font-medium underline"
+                        style={{ color: "var(--color-agent-primary)" }}
+                      >
+                        Reset to default
+                      </button>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </div>

@@ -54,6 +54,8 @@ export type ChatBotOptions = {
   provider: ProviderType;
   model: string;
   reasoningEffort?: ReasoningEffort;
+  temperature?: number;
+  topP?: number;
 };
 
 // per-intent status narration shown immediately after intent classification
@@ -90,6 +92,8 @@ export type ChatStreamEvent =
         usage: LLMUsageInfo;
         note: string;
         summary?: string;
+        /** Count of ops the model produced that couldn't be applied (schema-invalid path/value) — lets the UI show a friendly warning + retry instead of silently looking identical to a full success. */
+        rejectedCount?: number;
       };
     }
   | {
@@ -272,18 +276,55 @@ class ResumeChatBot {
   }
 
   /**
+   * Defaults `temperature` from the model-selector's per-model preference
+   * when the caller didn't set one explicitly — same behavior as
+   * LLMService's `withTemperature`.
+   */
+  private resolveTemperature(options: ChatBotOptions): number | undefined {
+    return (
+      options.temperature ??
+      useModelStore.getState().getTemperature(options.provider, options.model) ??
+      undefined
+    );
+  }
+
+  /**
+   * Defaults `topP` from the model-selector's per-model preference — same
+   * pattern as `resolveTemperature`.
+   */
+  private resolveTopP(options: ChatBotOptions): number | undefined {
+    return (
+      options.topP ??
+      useModelStore.getState().getTopP(options.provider, options.model) ??
+      undefined
+    );
+  }
+
+  /**
    * Merges call-specific options (maxTokens, tools, etc.) with the model +
-   * reasoning effort for this turn.
+   * reasoning effort + temperature + topP for this turn. `extra` is spread
+   * last so an explicit override in a specific call site (e.g.
+   * `classifyIntent`'s deterministic `temperature: 0`) always wins over the
+   * stored preference.
    */
   private callOptions<T extends Partial<LLMGenerationOptions> = object>(
     options: ChatBotOptions,
     extra: T = {} as T
-  ): T & { model: string; reasoningEffort?: ReasoningEffort } {
+  ): T & {
+    model: string;
+    reasoningEffort?: ReasoningEffort;
+    temperature?: number;
+    topP?: number;
+  } {
     const reasoningEffort = this.resolveReasoningEffort(options);
+    const temperature = this.resolveTemperature(options);
+    const topP = this.resolveTopP(options);
 
     return {
       model: options.model,
       ...(reasoningEffort ? { reasoningEffort } : {}),
+      ...(temperature !== undefined ? { temperature } : {}),
+      ...(topP !== undefined ? { topP } : {}),
       ...extra,
     };
   }
@@ -846,6 +887,7 @@ class ResumeChatBot {
         usage: editIntentUsage,
         note,
         summary: args.change_summary,
+        rejectedCount: rejected.length,
       },
     };
 
@@ -956,10 +998,18 @@ class ResumeChatBot {
 
     logger.info("ResumeChatBot", note);
 
+    // No LLM-authored change_summary for this path (ops come from a mapping
+    // call, not a conversational tool call) — synthesize a friendly one so
+    // the UI has something better than the raw path-list note to show.
+    const summary =
+      applied.length > 0
+        ? `${notePrefix}: updated ${applied.length} item${applied.length === 1 ? "" : "s"}`
+        : `${notePrefix}: no changes could be applied`;
+
     yield {
       type: "tool_result",
       intent: resultIntent,
-      args: { updatedResume, usage, note },
+      args: { updatedResume, usage, note, summary, rejectedCount: rejected.length },
     };
     yield { type: "done", usage };
   }

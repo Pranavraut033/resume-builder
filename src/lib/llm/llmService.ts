@@ -48,6 +48,7 @@ export interface LLMServiceOptions {
   provider: ProviderType;
   model: string;
   temperature?: number;
+  topP?: number;
   reasoningEffort?: ReasoningEffort;
 }
 
@@ -63,6 +64,34 @@ function withReasoningEffort(options: LLMServiceOptions): LLMServiceOptions {
     .getState()
     .getReasoningEffort(options.provider, options.model);
   return reasoningEffort ? { ...options, reasoningEffort } : options;
+}
+
+/**
+ * Fills in `temperature` from the user's model-selector preference the same
+ * way `withReasoningEffort` does. Providers already no-op temperature on
+ * models that reject it (`LLMProvider.resolveTemperature`), so no capability
+ * check is needed here either.
+ */
+function withTemperature(options: LLMServiceOptions): LLMServiceOptions {
+  if (options.temperature !== undefined) return options;
+  const temperature = useModelStore
+    .getState()
+    .getTemperature(options.provider, options.model);
+  return temperature !== null ? { ...options, temperature } : options;
+}
+
+/**
+ * Fills in `topP` from the user's model-selector preference the same way
+ * `withTemperature` does. Providers already no-op topP on models that reject
+ * it (`OpenAICompatibleProvider.toOpenAISamplingParams`), so no capability
+ * check is needed here either.
+ */
+function withTopP(options: LLMServiceOptions): LLMServiceOptions {
+  if (options.topP !== undefined) return options;
+  const topP = useModelStore
+    .getState()
+    .getTopP(options.provider, options.model);
+  return topP !== null ? { ...options, topP } : options;
 }
 
 // map each purpose to the keys from PromptContext that must be present
@@ -111,7 +140,7 @@ class LLMService {
     context: RequiredFor<P>,
     rawOptions: LLMServiceOptions
   ): Promise<LLMResult<T>> {
-    const options = withReasoningEffort(rawOptions);
+    const options = withTopP(withTemperature(withReasoningEffort(rawOptions)));
     const requestId = generateRequestId(purpose);
     const startTime = Date.now();
 
@@ -360,7 +389,7 @@ class LLMService {
     atsAnalysis: ATSAnalysisJSON | null,
     rawOptions: LLMServiceOptions
   ): Promise<VerifiedResumeResult> {
-    const options = withReasoningEffort(rawOptions);
+    const options = withTopP(withTemperature(withReasoningEffort(rawOptions)));
     const requestId = generateRequestId("generate_tailored_resume");
     const startTime = Date.now();
 

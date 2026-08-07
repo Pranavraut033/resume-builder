@@ -28,6 +28,12 @@ export type ModelProviderPair = [ProviderType, string]; // [provider, model]
 // Keyed by "provider:model" — reasoning effort is a model-specific preference,
 // not a global one (a non-reasoning model has nothing to set it to).
 type ReasoningEffortByModel = Record<string, ReasoningEffort>;
+// Same "provider:model" keying as reasoning effort — temperature support
+// also varies per model (reasoning models reject it outright).
+type TemperatureByModel = Record<string, number>;
+// Same keying and rejection rule as temperature — top_p is part of the same
+// sampling-param family OpenAI's reasoning models reject outright.
+type TopPByModel = Record<string, number>;
 
 const modelKey = (provider: ProviderType, model: string) =>
   `${provider}:${model}`;
@@ -46,6 +52,12 @@ interface ModelState {
 
   // Reasoning effort preference, per "provider:model"
   reasoningEffortByModel: ReasoningEffortByModel;
+
+  // Temperature preference, per "provider:model"
+  temperatureByModel: TemperatureByModel;
+
+  // Top P preference, per "provider:model"
+  topPByModel: TopPByModel;
 
   // Cache timestamp for 6-hour refresh validation
   cacheTimestamp: number | null;
@@ -69,6 +81,12 @@ interface ModelState {
     model: string,
     effort: ReasoningEffort | null
   ) => void;
+  setTemperature: (
+    provider: ProviderType,
+    model: string,
+    temperature: number | null
+  ) => void;
+  setTopP: (provider: ProviderType, model: string, topP: number | null) => void;
   clearError: () => void;
   setCacheTimer: (timerId: NodeJS.Timeout) => void;
   clearCacheTimer: () => void;
@@ -83,6 +101,10 @@ interface ModelState {
     model: string
   ) => ReasoningEffort | null;
   getActiveReasoningEffort: () => ReasoningEffort | null;
+  getTemperature: (provider: ProviderType, model: string) => number | null;
+  getActiveTemperature: () => number | null;
+  getTopP: (provider: ProviderType, model: string) => number | null;
+  getActiveTopP: () => number | null;
 
   // Legacy aliases for UI pages
   loadModels: () => Promise<void>;
@@ -95,6 +117,8 @@ export const useModelStore = create<ModelState>()(
       modelsByProvider: { ...EMPTY_MODELS_MAPS },
       selectedModelsByProvider: {},
       reasoningEffortByModel: {},
+      temperatureByModel: {},
+      topPByModel: {},
       cacheTimestamp: null,
       activeModelPair: null,
       isLoading: false,
@@ -199,6 +223,36 @@ export const useModelStore = create<ModelState>()(
         });
       },
 
+      setTemperature: (
+        provider: ProviderType,
+        model: string,
+        temperature: number | null
+      ) => {
+        set((state) => {
+          const next = { ...state.temperatureByModel };
+          const key = modelKey(provider, model);
+          if (temperature === null) {
+            delete next[key];
+          } else {
+            next[key] = temperature;
+          }
+          return { temperatureByModel: next };
+        });
+      },
+
+      setTopP: (provider: ProviderType, model: string, topP: number | null) => {
+        set((state) => {
+          const next = { ...state.topPByModel };
+          const key = modelKey(provider, model);
+          if (topP === null) {
+            delete next[key];
+          } else {
+            next[key] = topP;
+          }
+          return { topPByModel: next };
+        });
+      },
+
       clearError: () => {
         set({ error: null });
       },
@@ -251,6 +305,31 @@ export const useModelStore = create<ModelState>()(
         return getReasoningEffort(activeModelPair[0], activeModelPair[1]);
       },
 
+      getTemperature: (
+        provider: ProviderType,
+        model: string
+      ): number | null => {
+        const { temperatureByModel } = get();
+        return temperatureByModel[modelKey(provider, model)] ?? null;
+      },
+
+      getActiveTemperature: (): number | null => {
+        const { activeModelPair, getTemperature } = get();
+        if (!activeModelPair) return null;
+        return getTemperature(activeModelPair[0], activeModelPair[1]);
+      },
+
+      getTopP: (provider: ProviderType, model: string): number | null => {
+        const { topPByModel } = get();
+        return topPByModel[modelKey(provider, model)] ?? null;
+      },
+
+      getActiveTopP: (): number | null => {
+        const { activeModelPair, getTopP } = get();
+        if (!activeModelPair) return null;
+        return getTopP(activeModelPair[0], activeModelPair[1]);
+      },
+
       loadModels: async () => {
         await get().initializeCache();
       },
@@ -267,6 +346,8 @@ export const useModelStore = create<ModelState>()(
         activeModelPair: state.activeModelPair,
         selectedModelsByProvider: state.selectedModelsByProvider,
         reasoningEffortByModel: state.reasoningEffortByModel,
+        temperatureByModel: state.temperatureByModel,
+        topPByModel: state.topPByModel,
       }),
     }
   )
