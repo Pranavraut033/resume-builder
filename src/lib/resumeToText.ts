@@ -212,6 +212,18 @@ export function coverLetterToText(
 }
 
 export function htmlToText(html: string): string {
+  // ponytail: render-time SSR guard — some client components pass this
+  // straight into JSX props (not an event handler), so it still runs
+  // during Next's server render of "use client" components, where
+  // `document` doesn't exist. Real parsing only matters once mounted.
+  if (typeof document === "undefined") {
+    return html
+      .replace(/<br\s*\/?>/gi, "\n")
+      .replace(/<\/p>/gi, "\n\n")
+      .replace(/<[^>]+>/g, "")
+      .trim();
+  }
+
   const tempDiv = document.createElement("div");
   tempDiv.innerHTML = html;
 
