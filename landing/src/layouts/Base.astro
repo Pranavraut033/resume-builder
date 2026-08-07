@@ -202,49 +202,50 @@ const resolvedOgImage = new URL(ogImage ?? `${base}og.png`, Astro.site).href;
       // Autoplaying demo videos opt in only when motion is allowed; the
       // `poster` frame is the fallback for everyone else — see Media.astro.
       if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-        document.querySelectorAll<HTMLVideoElement>('video[data-autoplay]').forEach((v) => {
-          v.play().catch(() => {});
-        });
-
-        // Narrative clips (data-autoplay-inview) have a beginning and a punchline,
-        // so they play once the viewer actually scrolls to them instead of on load.
-        const inViewVideos = document.querySelectorAll<HTMLVideoElement>('video[data-autoplay-inview]');
-        if (inViewVideos.length) {
+        // Every video waits until it's almost entirely on screen (not just
+        // 50% — a viewer skimming the copy above it would otherwise trigger
+        // play while still reading, and see the clip mid-loop once they
+        // actually look), then a short pause before it actually starts, so
+        // the flash reads as "about to play" instead of snapping in. The
+        // flash itself holds a bit longer than that so it never looks like
+        // it's racing the video.
+        const PLAY_DELAY_MS = 250;
+        const FLASH_HOLD_MS = 450;
+        const allVideos = document.querySelectorAll<HTMLVideoElement>('figure video');
+        if (allVideos.length) {
           const observer = new IntersectionObserver(
             (entries) => {
               for (const entry of entries) {
-                if (entry.isIntersecting) {
-                  (entry.target as HTMLVideoElement).play().catch(() => {});
-                  observer.unobserve(entry.target);
-                }
+                if (!entry.isIntersecting) continue;
+                const v = entry.target as HTMLVideoElement;
+                observer.unobserve(v);
+                const flash = v.closest('figure')?.querySelector<HTMLElement>('.media-flash');
+                setTimeout(() => v.play().catch(() => {}), PLAY_DELAY_MS);
+                if (flash) setTimeout(() => flash.classList.add('is-hidden'), FLASH_HOLD_MS);
               }
             },
-            { threshold: 0.5 },
+            { threshold: 0.85 },
           );
-          inViewVideos.forEach((v) => observer.observe(v));
+          allVideos.forEach((v) => observer.observe(v));
         }
 
-        // Center flash on every video slot: fires the moment the viewer
-        // actually scrolls it into view (not when .play() happens to be
-        // called — those differ for the on-load autoplay clips above), holds
-        // briefly, then fades to reveal the playing video. See .media-flash
-        // in global.css and the markup in Media.astro.
-        const flashes = document.querySelectorAll<HTMLElement>('.media-flash');
-        if (flashes.length) {
-          const flashObserver = new IntersectionObserver(
-            (entries) => {
-              for (const entry of entries) {
-                if (entry.isIntersecting) {
-                  const flash = entry.target as HTMLElement;
-                  setTimeout(() => flash.classList.add('is-hidden'), 250);
-                  flashObserver.unobserve(flash);
-                }
-              }
-            },
-            { threshold: 0.5 },
-          );
-          flashes.forEach((f) => flashObserver.observe(f));
-        }
+        // "Watch again": a non-looping clip has a punchline, so once it ends,
+        // re-show and re-enable the same flash button (no separate replay
+        // control) so clicking it restarts the clip from the top.
+        document.querySelectorAll<HTMLVideoElement>('video:not([loop])').forEach((v) => {
+          const flash = v.closest('figure')?.querySelector<HTMLButtonElement>('.media-flash');
+          if (!flash) return;
+          v.addEventListener('ended', () => {
+            flash.disabled = false;
+            flash.classList.remove('is-hidden');
+          });
+          flash.addEventListener('click', () => {
+            flash.disabled = true;
+            flash.classList.add('is-hidden');
+            v.currentTime = 0;
+            v.play().catch(() => {});
+          });
+        });
       }
     </script>
   </body>

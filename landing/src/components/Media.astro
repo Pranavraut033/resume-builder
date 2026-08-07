@@ -13,11 +13,9 @@ interface Props {
   class?: string;
   /** Ambient demo loops (default) replay forever; narrative clips with a punchline set this false. */
   loop?: boolean;
-  /** Ambient demo loops (default) autoplay on page load; narrative clips play once the viewer scrolls to them. */
-  autoplayOnView?: boolean;
 }
 
-const { name, alt, ratio, caption, class: extraClass = '', loop = true, autoplayOnView = false } = Astro.props;
+const { name, alt, ratio, caption, class: extraClass = '', loop = true } = Astro.props;
 const base = getBase(import.meta.env.BASE_URL);
 const resolved = resolveMedia(name);
 ---
@@ -31,26 +29,30 @@ const resolved = resolveMedia(name);
             src={`${base}${resolved.src}`}
             poster={resolved.poster ? `${base}${resolved.poster}` : undefined}
             class="size-full object-cover"
-            data-autoplay={!autoplayOnView}
-            data-autoplay-inview={autoplayOnView}
             muted
             loop={loop}
             playsinline
             preload="metadata"
             aria-label={alt}
           />
-          {/* Flashes center-screen the moment this clip comes into view, then
-              fades to reveal the autoplaying video underneath — otherwise a
-              muted autoplaying clip reads as just another static screenshot.
-              See the video-flash script in Base.astro for the timing. */}
-          <div
-            aria-hidden="true"
-            class="media-flash pointer-events-none absolute inset-0 flex items-center justify-center bg-term/55 backdrop-blur-[1px]"
+          {/* Flashes center-screen once the clip is ~85% scrolled into view
+              (not just page-load or 50% — a viewer still reading the copy
+              above shouldn't miss the beginning), holds briefly, then fades
+              to reveal the now-playing video underneath. Disabled (inert) by
+              default; for a non-looping clip, Base.astro re-shows and
+              enables this same button once the video ends, so "watch again"
+              reuses the identical overlay instead of a second one. See the
+              video-flash script in Base.astro for the timing. */}
+          <button
+            type="button"
+            disabled
+            aria-label={`Watch ${alt} again`}
+            class="media-flash absolute inset-0 flex cursor-pointer items-center justify-center bg-term/55 backdrop-blur-[1px] disabled:cursor-default disabled:pointer-events-none"
           >
             <span class="inline-grid size-16 place-items-center rounded-full bg-accent text-on-accent shadow-block-lg">
               <svg width="20" height="20" viewBox="0 0 16 16" fill="currentColor"><path d="M4 2.5v11l10-5.5Z" /></svg>
             </span>
-          </div>
+          </button>
           <span
             aria-hidden="true"
             class="pointer-events-none absolute top-3 right-3 inline-flex items-center gap-1.5 rounded-full border border-term-line bg-term/80 px-2.5 py-1 font-mono text-[10px] font-semibold tracking-wide text-term-fg uppercase backdrop-blur-sm"
