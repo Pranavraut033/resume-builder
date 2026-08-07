@@ -5,13 +5,23 @@ import {
   useCallback,
   useContext,
   useMemo,
-  useState,
   ReactNode,
 } from "react";
+import { useShallow } from "zustand/react/shallow";
+
+import {
+  useNotificationStore,
+  selectLive,
+  type NotificationStatus,
+} from "@/store/notificationStore";
 
 import { Icon } from "./Icon";
 
-// Lightweight toast system for inline success/error messaging
+// Lightweight toast system for inline success/error messaging.
+// Internally this is now a thin subscriber over notificationStore — the
+// toast stack renders live, transient notifications, and pushToast/
+// dismissToast are wrappers around notify/dismiss so the ~18 existing call
+// sites don't need to change.
 export type ToastVariant = "success" | "error" | "info";
 
 export interface ToastMessage {
@@ -47,20 +57,24 @@ const VARIANT_STYLES: Record<
 };
 
 export function ToastProvider({ children }: { children: ReactNode }) {
-  const [toasts, setToasts] = useState<ToastMessage[]>([]);
+  const liveNotifications = useNotificationStore(useShallow(selectLive));
+  const toasts = liveNotifications.filter(
+    (notification) => notification.transient
+  );
 
   const dismissToast = useCallback((id: string) => {
-    setToasts((prev) => prev.filter((toast) => toast.id !== id));
+    useNotificationStore.getState().dismiss(id);
   }, []);
 
   const pushToast = useCallback(
     (toast: Omit<ToastMessage, "id">) => {
-      const id =
-        typeof crypto !== "undefined" && "randomUUID" in crypto
-          ? crypto.randomUUID()
-          : `${Date.now()}-${Math.random()}`;
-      const variant = toast.variant ?? "info";
-      setToasts((prev) => [...prev, { ...toast, id, variant }]);
+      const status: NotificationStatus = toast.variant ?? "info";
+      const id = useNotificationStore.getState().notify({
+        title: toast.title,
+        description: toast.description,
+        status,
+        transient: true,
+      });
       setTimeout(() => dismissToast(id), 4000);
     },
     [dismissToast]
@@ -76,8 +90,8 @@ export function ToastProvider({ children }: { children: ReactNode }) {
       {children}
       <div className="fixed top-4 right-4 z-50 flex min-w-[280px] flex-col gap-3">
         {toasts.map((toast) => {
-          const variant = toast.variant ?? "info";
-          const styles = VARIANT_STYLES[variant];
+          const variant = (toast.status as ToastVariant) ?? "info";
+          const styles = VARIANT_STYLES[variant] ?? VARIANT_STYLES.info;
           return (
             <div
               key={toast.id}

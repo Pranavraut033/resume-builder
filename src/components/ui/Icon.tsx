@@ -57,6 +57,8 @@ const ICON_ALIASES: Record<string, string> = {
   settings: "Settings",
   link: "Link",
   barChart: "BarChart2",
+  bell: "Bell",
+  bookmark: "Bookmark",
 };
 
 /**
