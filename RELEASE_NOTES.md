@@ -1,3 +1,15 @@
+# v1.8.0 — 2026-08-07
+
+Resume Builder is now **Udaan** — plus finer control over AI output and template layout.
+
+- **New name, new logo.** Resume Builder is now Udaan (उड़ान — "flight, takeoff"), with a refreshed sidebar logo.
+- **Dial in your AI model's behavior.** The model picker now has per-model temperature and top-p controls, alongside reasoning effort.
+- **Two new skills layouts.** A two-column grid and a borderless label/value columns style join the existing inline, chips, list, and table options.
+- **Resumes and cover letters now fit the page automatically** instead of overflowing.
+- **Retry a rejected AI edit** right from chat or the humanizer, instead of it failing silently.
+- **MCP users:** a new `fetch_url` tool lets your connected chat client pull a job posting's text when the host's own fetch is blocked (e.g. LinkedIn).
+- **Fixed:** multi-column template layouts, PDF section borders and pagination, ATS panel contrast, and a couple of rendering/hydration edge cases.
+
 # v1.7.0 — 2026-07-31
 
 Connect your own AI chat client to your resumes, and steadier AI editing under the hood.

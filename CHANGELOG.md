@@ -2,6 +2,36 @@
 
 All notable changes to this project are documented in this file.
 
+## [1.8.0] - 2026-08-07
+
+### Added
+
+- Model picker gained per-model temperature and top-p controls alongside the existing reasoning-effort selector ([40201b9])
+- Two new skill-section layouts — a two-column accent-ruled grid and borderless label/value columns — join the existing inline/chips/list/table styles ([5b4da4a])
+- Resume and cover letter pages now scale to fit the page automatically instead of overflowing ([3dc10b7])
+- MCP server gained a `fetch_url` tool so a connected host can pull a job posting's text server-side when its own fetch is blocked (e.g. LinkedIn) ([4ec3eaa])
+- Chat and the humanizer now surface a retry action when an AI-proposed edit is rejected, instead of failing silently ([e75dced], [bef1fbb])
+
+### Changed
+
+- Renamed the app from Resume Builder to **Udaan**, with a new sidebar logo ([da12634])
+
+### Fixed
+
+- A job page with no resume yet now auto-creates one from your base profile instead of showing a broken state ([d8ee148])
+- Multi-column template layout polish; PDF section borders now render at the correct opacity ([0b1384f])
+- PDF section pagination now breaks pages in the right place ([5b4da4a])
+- ATS panel's struck-through original text is readable again in both themes ([07e4004])
+- Resume text no longer breaks during server-side rendering ([3e64b23])
+- Job page no longer re-fetches on every render, fixing a hydration mismatch ([d82019a])
+- MCP server now fails loudly instead of silently on an unresolved `add_job` draft ID, and repeats the carry-forward hint ([08b283b])
+- Desktop build now always rebuilds the MCP server bundle before packaging, so a built app can't ship a stale MCP server ([1ab0c0a])
+
+### Internal
+
+- Landing marketing site rebuilt as componentized Astro pages with a blog and FAQ, refreshed screenshots/demo clips, and analytics/SEO polish ([217b7c6])
+- Synced CLAUDE.md/README/MCP/DISTRIBUTION docs with the skillStyle, MCP tool, and Udaan-branding changes ([631a747])
+
 ## [1.7.0] - 2026-07-31
 
 ### Added
