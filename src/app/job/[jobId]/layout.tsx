@@ -1,5 +1,6 @@
 import { Metadata } from "next";
 import Link from "next/link";
+import { cache } from "react";
 
 import {
   createResume,
@@ -16,6 +17,23 @@ export const metadata: Metadata = {
   description: "WYSIWYG resume and cover letter editor.",
 };
 
+// React `cache()` memoizes this per request — Next can invoke a Server
+// Component's render function more than once for the same navigation (e.g.
+// the initial document render plus a separate RSC flight render). Without
+// memoizing, each invocation re-reads the live DB; if a client-side autosave
+// (e.g. humanize) writes in between, the two reads diverge and SSR/hydration
+// disagree on the resume text — a hydration mismatch, not a rendering bug.
+const loadJobPageData = cache(async (jobIdNum: number) => {
+  // Load job first to get its profileId, then load the associated profile
+  const job = await getJob(jobIdNum);
+  const [coverLetter, profile, resume] = await Promise.all([
+    getCoverLetterByJobId(jobIdNum),
+    getProfileById(job.profileId),
+    getResumeByJobId(jobIdNum, true),
+  ]);
+  return { job, coverLetter, profile, resume };
+});
+
 export default async function EditorLayout({
   params: _p,
   children,
@@ -26,13 +44,8 @@ export default async function EditorLayout({
   const params = await _p;
   const jobIdNum = parseInt(params.jobId);
 
-  // Load job first to get its profileId, then load the associated profile
-  const job = await getJob(jobIdNum);
-  const [coverLetter, profile, _resume] = await Promise.all([
-    getCoverLetterByJobId(jobIdNum),
-    getProfileById(job.profileId),
-    getResumeByJobId(jobIdNum, true),
-  ]);
+  const { job, coverLetter, profile, resume: _resume } =
+    await loadJobPageData(jobIdNum);
 
   if (!profile) {
     return (
