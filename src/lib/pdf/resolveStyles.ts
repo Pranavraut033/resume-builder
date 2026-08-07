@@ -90,6 +90,28 @@ export function withAlpha(hex: string, alphaHex: string): string {
   return `rgba(${r},${g},${b},${a})`;
 }
 
+/**
+ * Blends `hex` toward white by `alphaHex` and returns a plain 6-digit hex —
+ * the border-color equivalent of `withAlpha`. Border props (`borderColor`,
+ * `border{Top,Right,Bottom,Left}Color`) are NOT safe to feed an
+ * `rgba(...)` string: @react-pdf/stylesheet's border transform bakes the
+ * alpha into an 8-digit RRGGBBAA hex, which @react-pdf/pdfkit's
+ * `_normalizeColor` (only understands 6-digit `#RRGGBB`) then bit-shifts as
+ * if it were 24-bit RGB — the alpha byte spills into the red channel,
+ * producing a wildly out-of-range value PDF viewers clamp to a red-dominant
+ * color. `withAlpha` itself stays correct for `color`/`backgroundColor`
+ * (fills go through a real alpha-aware parser), so only borders need this.
+ */
+export function borderTint(hex: string, alphaHex: string): string {
+  const r = parseInt(hex.slice(1, 3), 16);
+  const g = parseInt(hex.slice(3, 5), 16);
+  const b = parseInt(hex.slice(5, 7), 16);
+  const a = parseInt(alphaHex, 16) / 255;
+  const mix = (c: number) => Math.round(c * a + 255 * (1 - a));
+  const toHex = (c: number) => c.toString(16).padStart(2, "0");
+  return `#${toHex(mix(r))}${toHex(mix(g))}${toHex(mix(b))}`;
+}
+
 export function resolvePDFCustomization(
   customization: SanitizedCustomization
 ): ResolvedPDFStyles {

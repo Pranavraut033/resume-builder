@@ -7,7 +7,7 @@ import { formatDateRange } from "@/lib/date";
 import { htmlToPlainText, isHtml } from "@/lib/htmlUtils";
 import { ResumeJSON, Skill } from "@/types/resume";
 
-import { ResolvedPDFStyles, withAlpha } from "./resolveStyles";
+import { borderTint, ResolvedPDFStyles, withAlpha } from "./resolveStyles";
 
 const plain = (text: string | null | undefined): string => {
   if (!text) return "";
@@ -186,6 +186,7 @@ const pdfSummary: PDFSectionBuilder = ({ resume, styles: s, config }) => {
 const pdfExperience: PDFSectionBuilder = ({ resume, styles: s, config }) => {
   const { fontSize, smallFontSize, lineHeight, accentColor, dateFormat } = s;
   const entryStyle = config.entryStyle;
+  const isMultiColumn = config.columns > 1;
   const glyph = bulletGlyph(config.bulletStyle);
   if (resume.experience.length === 0) return null;
 
@@ -313,7 +314,7 @@ const pdfExperience: PDFSectionBuilder = ({ resume, styles: s, config }) => {
   }
 
   if (entryStyle === "table") {
-    const borderColor = withAlpha(s.secondaryColor, "40");
+    const borderColor = borderTint(s.secondaryColor, "40");
     const tint = withAlpha(accentColor, "20");
     return (
       <>
@@ -385,9 +386,10 @@ const pdfExperience: PDFSectionBuilder = ({ resume, styles: s, config }) => {
         <View key={i} wrap={false} style={{ marginBottom: s.sp(9) }}>
           <View
             style={{
-              flexDirection: "row",
-              justifyContent: "space-between",
+              flexDirection: isMultiColumn ? "column" : "row",
+              justifyContent: isMultiColumn ? undefined : "space-between",
               alignItems: "flex-start",
+              gap: isMultiColumn ? s.sp(2) : undefined,
               marginBottom: 2,
             }}
           >
@@ -545,7 +547,7 @@ const pdfProjects: PDFSectionBuilder = ({ resume, styles: s, config }) => {
   }
 
   if (entryStyle === "table") {
-    const borderColor = withAlpha(s.secondaryColor, "40");
+    const borderColor = borderTint(s.secondaryColor, "40");
     const tint = withAlpha(accentColor, "20");
     return (
       <>
@@ -682,37 +684,36 @@ const pdfSkills: PDFSectionBuilder = ({ resume, styles: s, config }) => {
     return (
       <View style={{ flexDirection: "column", gap: s.sp(6) }}>
         {groups.map((group, gi) => (
-          <View key={gi}>
+          <View
+            key={gi}
+            style={{ flexDirection: "row", flexWrap: "wrap", gap: s.sp(6) }}
+          >
             {group.category ? (
               <Text
                 style={{
                   fontSize: s.smallFontSize,
+                  fontWeight: 700,
                   color: s.secondaryColor,
-                  marginBottom: 2,
                 }}
               >
                 {group.category}
               </Text>
             ) : null}
-            <View
-              style={{ flexDirection: "row", flexWrap: "wrap", gap: s.sp(4) }}
-            >
-              {group.skills.map((skill, si) => (
-                <Text
-                  key={si}
-                  style={{
-                    fontSize: s.smallFontSize,
-                    color: s.accentColor,
-                    backgroundColor: withAlpha(s.accentColor, "1a"),
-                    borderRadius: 8,
-                    paddingVertical: s.sp(2),
-                    paddingHorizontal: s.sp(6),
-                  }}
-                >
-                  {skill.name}
-                </Text>
-              ))}
-            </View>
+            {group.skills.map((skill, si) => (
+              <Text
+                key={si}
+                style={{
+                  fontSize: s.smallFontSize,
+                  color: s.accentColor,
+                  backgroundColor: withAlpha(s.accentColor, "1a"),
+                  borderRadius: 8,
+                  paddingVertical: s.sp(2),
+                  paddingHorizontal: s.sp(3),
+                }}
+              >
+                {skill.name}
+              </Text>
+            ))}
           </View>
         ))}
       </View>
@@ -720,23 +721,18 @@ const pdfSkills: PDFSectionBuilder = ({ resume, styles: s, config }) => {
   }
 
   if (config.skillStyle === "list") {
-    // Comma-joined and wrapped, not one skill per line or one bulleted chunk
-    // per skill — a narrow sidebar column with 5+ skills in a category
-    // otherwise burns a line (or several) per category instead of packing
-    // keywords tightly. Matches the DOM "list" branch in engine/sections.tsx.
+    // Category and skills share one Text (not category-then-content
+    // stacked) so a group never burns a line on the label alone — same
+    // space-saving arrangement as the "chips" branch. Matches the DOM
+    // "list" branch in engine/sections.tsx.
     return groups.map((group, gi) => (
       <View key={gi} wrap={false} style={{ marginBottom: s.sp(3) }}>
-        {group.category ? (
-          <Text
-            style={{
-              fontSize: s.smallFontSize,
-              color: s.secondaryColor,
-            }}
-          >
-            {group.category}
-          </Text>
-        ) : null}
         <Text style={{ fontSize: s.smallFontSize, color: s.textColor }}>
+          {group.category ? (
+            <Text style={{ fontWeight: 600, color: s.secondaryColor }}>
+              {group.category}:{" "}
+            </Text>
+          ) : null}
           {group.skills.map((skill, si) => (
             <Text key={si}>
               {si > 0 ? ", " : ""}
@@ -764,19 +760,12 @@ const pdfSkills: PDFSectionBuilder = ({ resume, styles: s, config }) => {
           paddingLeft: s.sp(8),
         }}
       >
-        {group.category ? (
-          <Text
-            style={{
-              fontSize: s.smallFontSize,
-              fontWeight: 600,
-              color: s.secondaryColor,
-              marginBottom: 2,
-            }}
-          >
-            {group.category}
-          </Text>
-        ) : null}
         <Text style={{ fontSize: s.smallFontSize, color: s.textColor }}>
+          {group.category ? (
+            <Text style={{ fontWeight: 600, color: s.secondaryColor }}>
+              {group.category}:{" "}
+            </Text>
+          ) : null}
           {group.skills.map((skill, si) => (
             <Text key={si}>
               {si > 0 ? ", " : ""}
@@ -826,7 +815,7 @@ const pdfSkills: PDFSectionBuilder = ({ resume, styles: s, config }) => {
   }
 
   if (config.skillStyle === "table") {
-    const borderColor = withAlpha(s.secondaryColor, "40");
+    const borderColor = borderTint(s.secondaryColor, "40");
     const tint = withAlpha(s.accentColor, "20");
     return (
       <PdfTableEntry borderColor={borderColor} sp={s.sp}>
@@ -898,6 +887,7 @@ const pdfSkills: PDFSectionBuilder = ({ resume, styles: s, config }) => {
 const pdfEducation: PDFSectionBuilder = ({ resume, styles: s, config }) => {
   const { fontSize, smallFontSize, accentColor, dateFormat } = s;
   const entryStyle = config.entryStyle;
+  const isMultiColumn = config.columns > 1;
   if (resume.education.length === 0) return null;
 
   if (entryStyle === "compact") {
@@ -987,7 +977,7 @@ const pdfEducation: PDFSectionBuilder = ({ resume, styles: s, config }) => {
   }
 
   if (entryStyle === "table") {
-    const borderColor = withAlpha(s.secondaryColor, "40");
+    const borderColor = borderTint(s.secondaryColor, "40");
     const tint = withAlpha(accentColor, "20");
     return (
       <>
@@ -1050,9 +1040,10 @@ const pdfEducation: PDFSectionBuilder = ({ resume, styles: s, config }) => {
         <View key={i} wrap={false} style={{ marginBottom: s.sp(8) }}>
           <View
             style={{
-              flexDirection: "row",
-              justifyContent: "space-between",
+              flexDirection: isMultiColumn ? "column" : "row",
+              justifyContent: isMultiColumn ? undefined : "space-between",
               alignItems: "flex-start",
+              gap: isMultiColumn ? s.sp(2) : undefined,
             }}
           >
             <View style={{ flex: 1 }}>
@@ -1159,6 +1150,7 @@ const pdfLanguages: PDFSectionBuilder = ({ resume, styles: s }) => {
 const pdfVolunteer: PDFSectionBuilder = ({ resume, styles: s, config }) => {
   const { fontSize, smallFontSize, lineHeight, accentColor, dateFormat } = s;
   const entryStyle = config.entryStyle;
+  const isMultiColumn = config.columns > 1;
   const vols = resume.volunteer ?? [];
   if (vols.length === 0) return null;
 
@@ -1259,7 +1251,7 @@ const pdfVolunteer: PDFSectionBuilder = ({ resume, styles: s, config }) => {
   }
 
   if (entryStyle === "table") {
-    const borderColor = withAlpha(s.secondaryColor, "40");
+    const borderColor = borderTint(s.secondaryColor, "40");
     const tint = withAlpha(accentColor, "20");
     return (
       <>
@@ -1321,9 +1313,10 @@ const pdfVolunteer: PDFSectionBuilder = ({ resume, styles: s, config }) => {
         <View key={i} wrap={false} style={{ marginBottom: s.sp(8) }}>
           <View
             style={{
-              flexDirection: "row",
-              justifyContent: "space-between",
+              flexDirection: isMultiColumn ? "column" : "row",
+              justifyContent: isMultiColumn ? undefined : "space-between",
               alignItems: "flex-start",
+              gap: isMultiColumn ? s.sp(2) : undefined,
             }}
           >
             <View style={{ flex: 1 }}>

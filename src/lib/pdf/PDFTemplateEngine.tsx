@@ -24,7 +24,7 @@ import { HeadingStyle } from "@/types/customization";
 import { ResumeJSON, getSectionLayout } from "@/types/resume";
 
 import { registerPDFFont } from "./fonts";
-import { ResolvedPDFStyles, withAlpha } from "./resolveStyles";
+import { borderTint, ResolvedPDFStyles, withAlpha } from "./resolveStyles";
 import { PDF_SECTION_REGISTRY } from "./sections";
 import { PDFTemplateProps } from "./templates/ModernMinimalPDF";
 import { SectionGroup } from "./templates/shared/SectionGroup";
@@ -547,7 +547,7 @@ export const PDFTemplateEngine: React.FC<PDFTemplateEngineProps> = ({
       style={{
         marginBottom: s.sp(14),
         borderWidth: 1,
-        borderColor: withAlpha(secondaryColor, "40"),
+        borderColor: borderTint(secondaryColor, "40"),
         borderRadius: 3,
         padding: marginPt * 0.5,
       }}
@@ -577,7 +577,7 @@ export const PDFTemplateEngine: React.FC<PDFTemplateEngineProps> = ({
       <View
         style={{
           borderTopWidth: 1,
-          borderTopColor: withAlpha(secondaryColor, "40"),
+          borderTopColor: borderTint(secondaryColor, "40"),
           marginTop: s.sp(6),
           paddingTop: s.sp(6),
         }}

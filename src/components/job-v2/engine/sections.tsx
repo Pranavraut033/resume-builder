@@ -189,6 +189,7 @@ function dateNode({
 const experience: DomSectionBuilder = ({ resume, theme, edit, config }) =>
   resume.experience.map((exp, expIndex): Block => {
     const entryStyle = config.entryStyle;
+    const isMultiColumn = config.columns > 1;
     const dates = (
       <EditableDateRange
         startDate={exp.startDate}
@@ -416,7 +417,12 @@ const experience: DomSectionBuilder = ({ resume, theme, edit, config }) =>
       itemIndex: expIndex,
       node: (
         <div>
-          <div className="mb-1 flex items-start justify-between gap-4">
+          <div
+            className={cn(
+              "mb-1 flex items-start justify-between",
+              isMultiColumn ? "flex-col gap-2" : "gap-4"
+            )}
+          >
             <div>
               <h3
                 className="font-semibold"
@@ -817,29 +823,27 @@ function skillsGroupDisplay(
     return (
       <div className="flex flex-col gap-1">
         {groups.map((group, gi) => (
-          <div key={gi}>
+          <div key={gi} className="flex flex-wrap gap-1.5">
             {group.category && (
-              <div
-                className="mb-0.5 text-xs font-medium"
+              <span
+                className="text-xs font-bold"
                 style={{ color: theme.secondaryColor }}
               >
                 {group.category}
-              </div>
+              </span>
             )}
-            <div className="flex flex-wrap gap-1.5">
-              {group.skills.map((s, si) => (
-                <span
-                  key={si}
-                  className="rounded-full px-2 py-0.5 text-xs font-medium"
-                  style={{
-                    backgroundColor: theme.accentColor + "1a",
-                    color: theme.accentColor,
-                  }}
-                >
-                  {s.name}
-                </span>
-              ))}
-            </div>
+            {group.skills.map((s, si) => (
+              <span
+                key={si}
+                className="rounded-full px-1 py-0.5 text-xs font-medium"
+                style={{
+                  backgroundColor: theme.accentColor + "1a",
+                  color: theme.accentColor,
+                }}
+              >
+                {s.name}
+              </span>
+            ))}
           </div>
         ))}
       </div>
@@ -849,28 +853,25 @@ function skillsGroupDisplay(
   if (skillStyle === "list") {
     return (
       <div className="space-y-0.5">
+        {/* Category and skills share one line (not category-then-content
+            stacked) so a group never burns a line on the label alone —
+            same space-saving arrangement as the "chips" branch. */}
         {groups.map((group, gi) => (
-          <div key={gi}>
+          <div key={gi} className="text-xs">
             {group.category && (
-              <div
-                className="text-xs font-medium"
+              <span
+                className="font-medium"
                 style={{ color: theme.secondaryColor }}
               >
-                {group.category}
-              </div>
+                {group.category}:{" "}
+              </span>
             )}
-            {/* Comma-joined and wrapped, not one skill per line or one
-                bulleted chunk per skill — a narrow sidebar column with 5+
-                skills in a category otherwise burns a line (or several) per
-                category instead of packing keywords tightly. */}
-            <div className="text-xs">
-              {group.skills.map((s, si) => (
-                <span key={si}>
-                  {si > 0 && ", "}
-                  {s.tier === "primary" ? <strong>{s.name}</strong> : s.name}
-                </span>
-              ))}
-            </div>
+            {group.skills.map((s, si) => (
+              <span key={si}>
+                {si > 0 && ", "}
+                {s.tier === "primary" ? <strong>{s.name}</strong> : s.name}
+              </span>
+            ))}
           </div>
         ))}
       </div>
@@ -913,25 +914,23 @@ function skillsGroupDisplay(
         {groups.map((group, gi) => (
           <div
             key={gi}
-            className="border-l-2 pl-2"
+            className="border-l-2 pl-2 text-xs"
             style={{ borderColor: theme.accentColor }}
           >
             {group.category && (
-              <div
-                className="mb-0.5 text-xs font-medium"
+              <span
+                className="font-medium"
                 style={{ color: theme.secondaryColor }}
               >
-                {group.category}
-              </div>
+                {group.category}:{" "}
+              </span>
             )}
-            <div className="text-xs">
-              {group.skills.map((s, si) => (
-                <span key={si}>
-                  {si > 0 && ", "}
-                  {s.tier === "primary" ? <strong>{s.name}</strong> : s.name}
-                </span>
-              ))}
-            </div>
+            {group.skills.map((s, si) => (
+              <span key={si}>
+                {si > 0 && ", "}
+                {s.tier === "primary" ? <strong>{s.name}</strong> : s.name}
+              </span>
+            ))}
           </div>
         ))}
       </div>
@@ -1456,6 +1455,7 @@ const hobbies: DomSectionBuilder = ({ resume, theme, edit }) => {
 const volunteer: DomSectionBuilder = ({ resume, theme, edit, config }) =>
   (resume.volunteer ?? []).map((v, volIndex): Block => {
     const entryStyle = config.entryStyle;
+    const isMultiColumn = config.columns > 1;
     const dates = (
       <EditableDateRange
         startDate={v.startDate}
@@ -1640,7 +1640,12 @@ const volunteer: DomSectionBuilder = ({ resume, theme, edit, config }) =>
       itemIndex: volIndex,
       node: (
         <div>
-          <div className="mb-1 flex items-start justify-between gap-4">
+          <div
+            className={cn(
+              "mb-1 flex items-start justify-between",
+              isMultiColumn ? "flex-col gap-2" : "gap-4"
+            )}
+          >
             <div>
               <h3
                 className="font-semibold"
