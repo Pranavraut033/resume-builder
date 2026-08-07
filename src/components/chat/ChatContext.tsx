@@ -345,6 +345,15 @@ export function ChatContextProvider({ children }: { children: ReactNode }) {
             case "tool_result": {
               const toolId = makeId();
               currentId = toolId;
+              const rejectedCount =
+                (event.intent === "edit" ||
+                  event.intent === "tailor" ||
+                  event.intent === "regenerate" ||
+                  event.intent === "fix_ats") &&
+                event.args.rejectedCount
+                  ? event.args.rejectedCount
+                  : 0;
+
               setMessages((prev) =>
                 prev
                   .filter((m) => m.id !== assistantId)
@@ -361,6 +370,10 @@ export function ChatContextProvider({ children }: { children: ReactNode }) {
                           ? event.args.note
                           : "",
                     toolResult: { intent: event.intent, args: event.args },
+                    error:
+                      rejectedCount > 0
+                        ? `${rejectedCount} change${rejectedCount === 1 ? "" : "s"} couldn't be applied — try rephrasing your request.`
+                        : undefined,
                     timestamp: now(),
                   })
               );

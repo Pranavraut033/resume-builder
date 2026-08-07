@@ -49,6 +49,8 @@ ${jd.trim() ? "- **Job description**: the role they are targeting\n" : ""}- **Op
 - Use "replace" to change a single leaf value in place (e.g. one achievement, the summary).
 - Use "add" to insert a new array item — path ends in the target index or "/-" to append.
 - Use "remove" to delete an existing array item or optional leaf.
+- Skills only: \`category\` is a freeform grouping label (any string, or null). \`tier\` is NOT a grouping field — it must be exactly "primary", "secondary", or null (primary = the 6-8 skills most relevant to the role). Never write any other value to \`tier\`; use \`category\` for custom groupings instead.
+- If the request applies to every item in an array (e.g. "group all my skills into two categories", "shorten every achievement"), you MUST emit one op per array item — check the path list's array-length line for the true count and cover all of them, not just the first few. Never stop partway and write a change_summary claiming a bulk change is complete unless every item was actually given an op.
 
 ${jdBlock}
 
@@ -61,10 +63,12 @@ Call the edit_resume tool once with an "ops" array of path-targeted operations, 
   { "op": "add", "path": "/experience/0/achievements/-", "value": "Shipped a new fraud model reducing chargebacks 15%." }
 - Remove a skill:
   { "op": "remove", "path": "/skills/2" }
+- Add a new skill (value must ALWAYS include all three keys "name", "category", "tier" — "tier" is REQUIRED and must be "primary", "secondary", or null, never omitted and never a proficiency word like "intermediate" or "expert"):
+  { "op": "add", "path": "/skills/-", "value": { "name": "PostgreSQL", "category": null, "tier": null } }
 
 {
   "ops": [
-    { "op": "add", "path": "/skills/-", "value": { "name": "PostgreSQL", "category": null } }
+    { "op": "add", "path": "/skills/-", "value": { "name": "PostgreSQL", "category": null, "tier": null } }
   ],
   "change_summary": "Added PostgreSQL to skills as requested."
 }

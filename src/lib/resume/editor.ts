@@ -27,8 +27,16 @@ export interface ApplyOpsResult {
   rejected: { op: ResumeOp; reason: string }[];
 }
 
+/**
+ * `fast-json-patch`'s `JsonPatchError.message` is a multi-line dump —
+ * the short message followed by `name: ...`, `operation: {...}`, and a
+ * pretty-printed `tree: {...}` of the *entire* resume document. Only the
+ * first line is meant for humans; the rest is intended for programmatic
+ * inspection (`err.name`/`err.operation`/`err.tree`), not for display.
+ */
 function errorMessage(err: unknown): string {
-  return err instanceof Error ? err.message : String(err);
+  if (!(err instanceof Error)) return String(err);
+  return err.message.split("\n")[0];
 }
 
 /**
@@ -113,8 +121,12 @@ export function resumePathLines(resume: ResumeJSON): string {
   const lines: string[] = [];
 
   const leaf = (path: string, value: string | null | undefined) => {
-    if (typeof value !== "string") return;
-    lines.push(`${path}: "${truncate(value)}"`);
+    if (value === undefined) return;
+    // Null leaves must still be listed (not skipped) — otherwise the model
+    // has no way to know a path like /skills/12/category exists at all when
+    // it's currently unset, and can't reliably enumerate every item in a
+    // bulk/array-wide edit (e.g. "group all my skills into two categories").
+    lines.push(value === null ? `${path}: null` : `${path}: "${truncate(value)}"`);
   };
 
   const arrayLength = (path: string, length: number) => {
@@ -167,6 +179,7 @@ export function resumePathLines(resume: ResumeJSON): string {
   resume.skills.forEach((skill, i) => {
     leaf(`/skills/${i}/name`, skill.name);
     leaf(`/skills/${i}/category`, skill.category);
+    leaf(`/skills/${i}/tier`, skill.tier);
   });
 
   // ── education ───────────────────────────────────────────────────────────

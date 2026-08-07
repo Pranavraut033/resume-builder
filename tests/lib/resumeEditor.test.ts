@@ -229,4 +229,25 @@ describe("resumePathLines", () => {
     expect(line).toContain("…");
     expect(line.length).toBeLessThan(longText.length);
   });
+
+  it("lists null leaves explicitly instead of omitting them", () => {
+    // A skill with category/tier unset must still surface as editable paths
+    // — otherwise the model can't tell they exist and can't enumerate every
+    // item in a bulk edit like "group all my skills into two categories".
+    const resume = makeResume({
+      skills: [
+        { name: "TypeScript", category: null, tier: null },
+        { name: "AWS", category: "Cloud", tier: "secondary" },
+      ],
+    });
+
+    const lines = resumePathLines(resume).split("\n");
+
+    expect(lines).toContain("/skills/0/category: null");
+    expect(lines).toContain("/skills/0/tier: null");
+    expect(lines).toContain('/skills/1/category: "Cloud"');
+    expect(lines).toContain('/skills/1/tier: "secondary"');
+    // header.linkedin/github/website are null in the fixture.
+    expect(lines).toContain("/header/linkedin: null");
+  });
 });

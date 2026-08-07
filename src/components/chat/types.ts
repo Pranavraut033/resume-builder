@@ -115,10 +115,7 @@ export function getToolResultMeta(
 ): ToolResultMeta {
   switch (intent) {
     case IntentLabel.Edit:
-      return {
-        heading: String(args.note ?? "Updated resume"),
-        icon: "pencil",
-      };
+      return { heading: "Resume updated", icon: "pencil" };
     case IntentLabel.Regenerate:
       return {
         heading: "Resume regenerated from base profile",
@@ -132,7 +129,7 @@ export function getToolResultMeta(
     case IntentLabel.Ats:
       return { heading: "ATS advice", icon: "cpu" };
     case IntentLabel.FixAts:
-      return { heading: String(args.note ?? "ATS issues fixed"), icon: "cpu" };
+      return { heading: "ATS issues fixed", icon: "cpu" };
     case IntentLabel.Proofread: {
       const issues = Array.isArray(args.issues)
         ? (args.issues as { severity?: string }[])

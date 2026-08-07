@@ -175,5 +175,9 @@ describe("ResumeChatBot edit intent — invalid op handling", () => {
     // The invalid op is reported in the note instead of throwing.
     expect(args.note).toMatch(/could not be applied/i);
     expect(args.note).toContain("/experience/99/company");
+    // Structured signal for the chat UI to show a warning + retry instead
+    // of rendering identically to a full success (the raw note is no longer
+    // surfaced as the message heading — see ChatContext/types.ts).
+    expect(args.rejectedCount).toBe(1);
   });
 });

@@ -119,6 +119,12 @@ export function ChatMessageItem({ message }: ChatMessageProps) {
             {formatTime(message.timestamp)}
           </p>
         </div>
+        {message.error && (
+          <div>
+            <p className="text-agent-error mt-1 text-xs">{message.error}</p>
+            <RetryButton messageId={message.id} />
+          </div>
+        )}
       </div>
     );
   }
