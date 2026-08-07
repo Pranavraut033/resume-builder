@@ -64,6 +64,22 @@ const providers = [
       class="reveal"
     />
 
+    <!-- Beat: humanize -->
+    <div class="reveal max-w-2xl">
+      <h3 class="text-xl font-semibold">Sounds like you, not like a model</h3>
+      <p class="mt-3 max-w-[65ch] leading-relaxed text-ink-muted">
+        Humanize flags the phrasing that reads as AI-written and proposes a rewrite for
+        each line. You review every change before it's applied, nothing gets swapped
+        without your say.
+      </p>
+    </div>
+    <Media
+      name="humanize"
+      alt="Humanizer panel showing a list of AI-sounding phrases with proposed rewrites, each with an accept toggle"
+      ratio="aspect-video"
+      class="reveal"
+    />
+
     <!-- Beat: providers — inline mono row, no separate media slot (nothing to screenshot) -->
     <div class="reveal max-w-2xl">
       <h3 class="text-xl font-semibold">Your keys. Your machine. Your choice of AI.</h3>
@@ -111,9 +127,9 @@ const providers = [
         <div class="mt-4 grid grid-cols-3 gap-2">
           {
             [
-              { file: 'template-tech-sidebar', name: 'Tech Sidebar' },
-              { file: 'template-modern-minimal', name: 'Modern Minimal' },
-              { file: 'template-creative-modern', name: 'Creative Modern' },
+              { file: 'template-1', name: 'Tech Sidebar' },
+              { file: 'template-2', name: 'Modern Minimal' },
+              { file: 'template-4', name: 'Creative Modern' },
             ].map((tpl) => (
               <img
                 src={`${base}screenshots/${tpl.file}.png`}
