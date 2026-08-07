@@ -1,5 +1,5 @@
 /**
- * MCP server definition — 7 tools that let an external LLM (Claude Desktop,
+ * MCP server definition — 8 tools that let an external LLM (Claude Desktop,
  * etc.) drive this app's resume flows using its OWN reasoning. This module
  * never calls an LLM and never touches an API key: it only serves prompts
  * already built by this app's existing prompt system, and validates/
