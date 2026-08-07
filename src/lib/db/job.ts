@@ -86,12 +86,12 @@ export type ResumeWithDetails = Omit<
 };
 export async function getResumeByJobId(
   jobId: number,
-  allowNull: false
+  allowNull?: false
 ): Promise<ResumeWithDetails>;
 
 export async function getResumeByJobId(
   jobId: number,
-  allowNull: true
+  allowNull?: true
 ): Promise<null | ResumeWithDetails>;
 
 export async function getResumeByJobId(

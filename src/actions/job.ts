@@ -108,7 +108,9 @@ export async function getResumeByJobId(
   jobId: number,
   allowNull: boolean = false
 ): Promise<null | ResumeWithDetails> {
-  return dbJob.getResumeByJobId(jobId, allowNull);
+  return allowNull
+    ? dbJob.getResumeByJobId(jobId, true)
+    : dbJob.getResumeByJobId(jobId, false);
 }
 
 const MAX_RESUME_SNAPSHOTS = 20;
