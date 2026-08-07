@@ -11,12 +11,14 @@ import { useNavigationOnProfileChange } from "@/hooks/useNavigationOnProfileChan
 import { useProfileSelection } from "@/hooks/useProfileSelection";
 
 import { CreateProfileModal } from "./CreateProfileModal";
+import { NotificationBell } from "./notifications/NotificationBell";
 import { ProfileSelector } from "./ProfileSelector";
 import { Icon } from "./ui/Icon";
 
 const NAV_ITEMS = [
   { href: "/", label: "Dashboard", icon: "grid" as const },
   { href: "/find-jobs", label: "Find Jobs", icon: "search" as const },
+  { href: "/bookmarks", label: "Bookmarks", icon: "bookmark" as const },
   { href: "/job/new", label: "Builder", icon: "edit" as const },
   { href: "/documents", label: "Documents", icon: "folder" as const },
   { href: "/profile", label: "Profile", icon: "user" as const },
@@ -48,17 +50,20 @@ export default function Sidebar() {
     <aside className="bg-agent-inverse-surface flex h-screen w-60 shrink-0 flex-col">
       {/* Logo */}
       <div className="flex flex-col gap-0.5 px-5 pt-6 pb-4">
-        <div className="flex items-center gap-2">
-          <Image
-            src="/logo.png"
-            alt=""
-            width={32}
-            height={32}
-            className="rounded-lg"
-          />
-          <span className="text-agent-inverse-on-surface text-base font-bold tracking-tight">
-            Udaan
-          </span>
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <Image
+              src="/logo.png"
+              alt=""
+              width={32}
+              height={32}
+              className="rounded-lg"
+            />
+            <span className="text-agent-inverse-on-surface text-base font-bold tracking-tight">
+              Udaan
+            </span>
+          </div>
+          <NotificationBell />
         </div>
         <span className="text-agent-outline pl-10 text-[10px] font-medium tracking-widest uppercase">
           Local-First Engine

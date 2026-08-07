@@ -20,9 +20,11 @@ export default function Home() {
     queryFn: () => getAllJob(selectedProfileId),
   });
 
-  const totalApplied = jobList.filter((j) => j.status !== "DRAFT").length;
-  const interviews = jobList.filter((j) => j.status === "INTERVIEW").length;
-  const offers = jobList.filter((j) => j.status === "OFFER").length;
+  const jobs = jobList.filter((j) => j.status !== "BOOKMARKED");
+
+  const totalApplied = jobs.filter((j) => j.status !== "DRAFT").length;
+  const interviews = jobs.filter((j) => j.status === "INTERVIEW").length;
+  const offers = jobs.filter((j) => j.status === "OFFER").length;
   const successRate =
     totalApplied > 0 ? Math.round((offers / totalApplied) * 100) : 0;
 
@@ -109,7 +111,7 @@ export default function Home() {
             <ArrowRightIcon width="14" height="14" />
           </Link>
         </div>
-        <JobTableClient jobs={jobList} />
+        <JobTableClient jobs={jobs} />
       </div>
     </div>
   );

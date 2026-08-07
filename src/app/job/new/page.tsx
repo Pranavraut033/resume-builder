@@ -2,10 +2,10 @@
 
 import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Suspense, useEffect, useState } from "react";
 
-import { createJob } from "@/actions/job";
+import { attachGeneratedMaterials, createJob, getJobById } from "@/actions/job";
 import { getAllProfiles } from "@/actions/profile";
 import { fetchJobDescriptionFromUrl } from "@/actions/urlFetcher";
 import { SelectedModelCard } from "@/components/SelectedModelCard";
@@ -21,6 +21,7 @@ import {
 } from "@/lib/llm/prompts/coverLetterStyles";
 import { createLogger } from "@/lib/logger";
 import { useModelStore } from "@/store/modelStore";
+import { JobDetailsJSON, JobDetailsSchema } from "@/types/resume";
 
 const logger = createLogger("NewJobPage");
 
@@ -38,7 +39,7 @@ const SKIP_TAILORING_STEPS = [
   "Saving your application…",
 ];
 
-export default function NewJobPage() {
+function NewJobPageInner() {
   const [description, setDescription] = useState("");
   const [url, setUrl] = useState("");
   const [inputMode, setInputMode] = useState<"text" | "url">("text");
@@ -51,6 +52,8 @@ export default function NewJobPage() {
   );
   const [skipVerification, setSkipVerification] = useState(false);
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const bookmarkId = searchParams.get("bookmark");
 
   // Use globally selected profile (no override per-job)
   const { selectedProfileId } = useProfileSelection();
@@ -60,6 +63,19 @@ export default function NewJobPage() {
     queryKey: ["profiles"],
     queryFn: getAllProfiles,
   });
+
+  const { data: bookmarkJob } = useQuery({
+    queryKey: ["job", bookmarkId],
+    queryFn: () => getJobById(Number(bookmarkId)),
+    enabled: !!bookmarkId,
+  });
+
+  useEffect(() => {
+    if (bookmarkJob?.description && !description) {
+      setDescription(bookmarkJob.description);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [bookmarkJob]);
 
   const { activeModelPair: selectedModel } = useModelStore();
   const [currentSelectedProvider, currentSelectedModel] = selectedModel ?? [];
@@ -122,56 +138,84 @@ export default function NewJobPage() {
         return;
       }
 
+      if (bookmarkId && !bookmarkJob) {
+        pushToast({
+          title: "Bookmark not loaded yet",
+          description: "Please wait a moment and try again.",
+          variant: "error",
+        });
+        return;
+      }
+
       const modelOptions = {
         model: currentSelectedModel,
         provider: currentSelectedProvider,
       };
 
-      setActiveStep(0);
-      const jobDetails = await LLMService.parseJob(description, modelOptions);
+      // Bookmarks already have parsed job details persisted from the
+      // background queue — skip the parse call (and its step index) and
+      // jump straight to the ATS step.
+      let jobDetailsResult: JobDetailsJSON;
+      if (bookmarkId && bookmarkJob) {
+        jobDetailsResult = JobDetailsSchema.parse(
+          JSON.parse(bookmarkJob.jobDetailsJson)
+        );
+      } else {
+        setActiveStep(0);
+        const jobDetails = await LLMService.parseJob(description, modelOptions);
+        jobDetailsResult = jobDetails.result;
+      }
 
-      setActiveStep(1);
+      setActiveStep(bookmarkId ? 0 : 1);
       const atsAnalysis = await LLMService.analyzeATS(
         profile,
-        jobDetails.result,
+        jobDetailsResult,
         modelOptions
       );
 
       if (skipTailoring) {
-        setActiveStep(2);
+        setActiveStep(bookmarkId ? 1 : 2);
         const { label: _label, ...baseResume } = profile;
 
-        setActiveStep(3);
-        await createJob({
-          jobDetails: jobDetails.result,
-          url: inputMode === "url" && url.trim() ? url : undefined,
-          tailoredResume: baseResume,
-          atsAnalysis: atsAnalysis.result,
-          profileId: selectedProfileId ?? undefined,
-        });
+        setActiveStep(bookmarkId ? 2 : 3);
+        if (bookmarkId) {
+          await attachGeneratedMaterials(Number(bookmarkId), {
+            tailoredResume: baseResume,
+            atsAnalysis: atsAnalysis.result,
+            status: "DRAFT",
+          });
+        } else {
+          await createJob({
+            jobDetails: jobDetailsResult,
+            url: inputMode === "url" && url.trim() ? url : undefined,
+            tailoredResume: baseResume,
+            atsAnalysis: atsAnalysis.result,
+            profileId: selectedProfileId ?? undefined,
+          });
+        }
 
         router.push("/");
         return;
       }
 
-      setActiveStep(2);
+      setActiveStep(bookmarkId ? 1 : 2);
       const [resume, coverLetter] = await Promise.all([
         skipVerification
           ? LLMService.generateTailoredResume(
               profile,
-              jobDetails.result,
+              jobDetailsResult,
               atsAnalysis.result,
               modelOptions
             )
           : LLMService.generateVerifiedTailoredResume(
               profile,
-              jobDetails.result,
+              jobDetailsResult,
               atsAnalysis.result,
               modelOptions
             ),
         LLMService.generateCoverLetter(
           profile,
-          jobDetails.result,
+          jobDetailsResult,
           modelOptions,
           undefined,
           coverLetterStyle
@@ -186,15 +230,24 @@ export default function NewJobPage() {
         });
       }
 
-      setActiveStep(3);
-      await createJob({
-        jobDetails: jobDetails.result,
-        url: inputMode === "url" && url.trim() ? url : undefined,
-        tailoredResume: resume.result,
-        coverLetterText: coverLetter.result,
-        atsAnalysis: atsAnalysis.result,
-        profileId: selectedProfileId ?? undefined,
-      });
+      setActiveStep(bookmarkId ? 2 : 3);
+      if (bookmarkId) {
+        await attachGeneratedMaterials(Number(bookmarkId), {
+          tailoredResume: resume.result,
+          coverLetterText: coverLetter.result,
+          atsAnalysis: atsAnalysis.result,
+          status: "DRAFT",
+        });
+      } else {
+        await createJob({
+          jobDetails: jobDetailsResult,
+          url: inputMode === "url" && url.trim() ? url : undefined,
+          tailoredResume: resume.result,
+          coverLetterText: coverLetter.result,
+          atsAnalysis: atsAnalysis.result,
+          profileId: selectedProfileId ?? undefined,
+        });
+      }
 
       router.push("/");
     } catch (error) {
@@ -498,7 +551,15 @@ export default function NewJobPage() {
             {/* ── Submit button ── */}
             <StepProgressButton
               type="submit"
-              steps={skipTailoring ? SKIP_TAILORING_STEPS : GENERATION_STEPS}
+              steps={
+                skipTailoring
+                  ? bookmarkId
+                    ? SKIP_TAILORING_STEPS.slice(1)
+                    : SKIP_TAILORING_STEPS
+                  : bookmarkId
+                    ? GENERATION_STEPS.slice(1)
+                    : GENERATION_STEPS
+              }
               activeStep={activeStep}
               disabled={!description.trim() || !currentSelectedModel}
               idleLabel={
@@ -571,5 +632,19 @@ export default function NewJobPage() {
         </div>
       </main>
     </div>
+  );
+}
+
+export default function NewJobPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex min-h-screen items-center justify-center bg-(--color-agent-bg)">
+          <div className="border-agent-primary h-8 w-8 animate-spin rounded-full border-2 border-t-transparent" />
+        </div>
+      }
+    >
+      <NewJobPageInner />
+    </Suspense>
   );
 }
