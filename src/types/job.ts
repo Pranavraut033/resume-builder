@@ -1,5 +1,6 @@
 // Shared job status definitions used in UI + Server Actions
 export const JOB_STATUSES = [
+  "BOOKMARKED",
   "DRAFT",
   "APPLIED",
   "INTERVIEW",

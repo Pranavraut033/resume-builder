@@ -192,6 +192,7 @@ export async function createJob(input: {
   atsAnalysis?: ATSAnalysisJSON | null;
   url?: string;
   profileId?: number;
+  status?: JobStatus;
 }): Promise<{ jobId: number }> {
   const {
     jobDetails,
@@ -200,13 +201,14 @@ export async function createJob(input: {
     atsAnalysis,
     url,
     profileId,
+    status,
   } = input;
 
   const data: Parameters<typeof prisma.job.create>[0]["data"] = {
     role: jobDetails.job.job_title,
     description: jobDetails.raw_description,
     // Use human-friendly Title Case default status expected by tests
-    status: "Draft",
+    status: status ?? "Draft",
     jobDetailsJson: JSON.stringify(jobDetails),
     url: url || null,
     ...(profileId ? { profile: { connect: { id: profileId } } } : {}),
@@ -269,6 +271,60 @@ export async function createJob(input: {
   const job = await prisma.job.create({ data });
 
   return { jobId: job.id };
+}
+
+/**
+ * Attach generated materials (resume, cover letter, ATS analysis) to a job
+ * that doesn't have any yet — e.g. flipping a bookmark (status
+ * "BOOKMARKED", no resume/coverLetter/baseProfileAnalysis rows) into a
+ * fully tracked job. Uses nested `create`, mirroring createJob above, since
+ * the child rows don't exist yet; updateResume/updateCoverLetter/
+ * saveAtsAnalysis all assume they already do and would throw.
+ */
+export async function attachGeneratedMaterials(
+  jobId: number,
+  input: {
+    tailoredResume?: ResumeJSON;
+    coverLetterText?: string;
+    atsAnalysis?: ATSAnalysisJSON | null;
+    status?: JobStatus;
+  }
+): Promise<{ success: true }> {
+  const { tailoredResume, coverLetterText, atsAnalysis, status } = input;
+
+  const data: Parameters<typeof prisma.job.update>[0]["data"] = {};
+
+  if (tailoredResume) {
+    data.resume = {
+      create: {
+        contentJson: JSON.stringify(tailoredResume),
+        customizations: { create: { ...DEFAULT_CUSTOMIZATION } },
+      },
+    };
+  }
+
+  if (coverLetterText) {
+    data.coverLetter = {
+      create: {
+        contentText: coverLetterText,
+        customizations: { create: { ...DEFAULT_CUSTOMIZATION } },
+      },
+    };
+  }
+
+  if (atsAnalysis) {
+    data.baseProfileAnalysis = {
+      create: { contentJson: JSON.stringify(atsAnalysis) },
+    };
+  }
+
+  if (status) {
+    data.status = status;
+  }
+
+  await prisma.job.update({ where: { id: jobId }, data });
+
+  return { success: true };
 }
 
 // Duplicated from src/actions/job.ts's updateOrCreateCustomization (kept in

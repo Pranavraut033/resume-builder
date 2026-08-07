@@ -27,6 +27,18 @@ export async function createJob(
   return result;
 }
 
+export async function attachGeneratedMaterials(
+  jobId: number,
+  input: Parameters<typeof dbJob.attachGeneratedMaterials>[1]
+): Promise<{ success: true }> {
+  const result = await dbJob.attachGeneratedMaterials(jobId, input);
+
+  revalidatePath("/");
+  revalidatePath("/bookmarks");
+
+  return result;
+}
+
 export async function createResume(
   resume: ResumeJSON,
   jobId: number

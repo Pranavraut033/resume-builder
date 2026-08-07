@@ -5,6 +5,11 @@ import { JOB_STATUSES, type JobStatus } from "@/types/job";
 
 export function StatusBadge({ status }: { status: JobStatus }) {
   const STATUS_BADGE_STYLES: Record<JobStatus, React.CSSProperties> = {
+    BOOKMARKED: {
+      background: "var(--color-agent-surface-container)",
+      color: "var(--color-agent-on-surface-variant)",
+      borderColor: "var(--color-agent-outline-variant)",
+    },
     DRAFT: { background: "#f1f5f9", color: "#475569", borderColor: "#cbd5e1" },
     APPLIED: {
       background: "var(--color-agent-secondary-container)",
@@ -61,11 +66,13 @@ export function StatusSelector({
       aria-label="Update job status"
       onClick={(event) => event.stopPropagation()}
     >
-      {JOB_STATUSES.map((status) => (
-        <option key={status} value={status}>
-          {formatStatus(status)}
-        </option>
-      ))}
+      {JOB_STATUSES.filter((status) => status !== "BOOKMARKED").map(
+        (status) => (
+          <option key={status} value={status}>
+            {formatStatus(status)}
+          </option>
+        )
+      )}
     </select>
   );
 }
