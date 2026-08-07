@@ -878,7 +878,7 @@ export function ATSAnalysisPanel(props: ATSAnalysisPanelProps) {
               </p>
               {improvement.original_text && improvement.rewrite ? (
                 <div className="mt-2 space-y-1.5">
-                  <p className="text-agent-on-surface-variant rounded-(--radius-agent-sm) bg-rose-50 px-2 py-1 text-[11px] leading-relaxed line-through decoration-rose-400/70">
+                  <p className="rounded-(--radius-agent-sm) bg-rose-50 px-2 py-1 text-[11px] leading-relaxed text-black/80 line-through decoration-rose-400/70">
                     {improvement.original_text}
                   </p>
                   <p className="text-agent-on-surface rounded-(--radius-agent-sm) border border-emerald-200 bg-emerald-50 px-2 py-1 text-[11px] leading-relaxed">
@@ -902,7 +902,7 @@ export function ATSAnalysisPanel(props: ATSAnalysisPanelProps) {
                   ) : null}
                 </div>
               ) : (
-                <p className="bg-agent-surface-high text-agent-on-surface-variant mt-2 rounded-(--radius-agent-sm) px-2 py-1 text-[11px] leading-relaxed">
+                <p className="bg-agent-surface-high mt-2 rounded-(--radius-agent-sm) px-2 py-1 text-[11px] leading-relaxed text-black/80">
                   {improvement.recommended_fix}
                 </p>
               )}
