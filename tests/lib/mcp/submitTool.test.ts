@@ -161,6 +161,7 @@ function makeDeps(overrides: Partial<McpDeps> = {}): McpDeps {
       .mockResolvedValue({ ...makeResume(), label: "Jamie" }),
     getAllProfiles: vi.fn().mockResolvedValue([{ id: 1, label: "Jamie" }]),
     createJob: vi.fn().mockResolvedValue({ jobId: 42 }),
+    findJobByUrl: vi.fn().mockResolvedValue(null),
     updateResume: vi.fn().mockResolvedValue({ success: true }),
     saveAtsAnalysis: vi.fn().mockResolvedValue({ success: true }),
     updateCoverLetter: vi.fn().mockResolvedValue({ success: true }),
@@ -532,6 +533,101 @@ describe("submitTool — generate_cover_letter edge cases", () => {
     const created = (deps.createJob as ReturnType<typeof vi.fn>).mock
       .calls[0][0];
     expect(created.profileId).toBe(1);
+  });
+});
+
+describe("submitTool — bookmark flow", () => {
+  it("creates a BOOKMARKED job from parse_job + input.bookmark/url, with no tailored resume, and stops (next: null)", async () => {
+    const deps = makeDeps();
+
+    const result = await submitTool(deps, {
+      purpose: "parse_job",
+      result: jobDetails,
+      input: { bookmark: true, url: "https://example.com/jobs/1" },
+    });
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) throw new Error("unreachable");
+    expect(result.jobId).toBe(42);
+    expect(result.next).toBeNull();
+    expect(result.duplicate).toBeUndefined();
+
+    expect(deps.createJob).toHaveBeenCalledTimes(1);
+    const created = (deps.createJob as ReturnType<typeof vi.fn>).mock
+      .calls[0][0];
+    expect(created.jobDetails).toEqual(jobDetails);
+    expect(created.tailoredResume).toBeUndefined();
+    expect(created.status).toBe("BOOKMARKED");
+    expect(created.url).toBe("https://example.com/jobs/1");
+    expect(created.profileId).toBe(1);
+  });
+
+  it("returns the existing job as a duplicate instead of creating a second row for an already-bookmarked URL", async () => {
+    const deps = makeDeps({
+      findJobByUrl: vi.fn().mockResolvedValue({ id: 7 }),
+    });
+
+    const result = await submitTool(deps, {
+      purpose: "parse_job",
+      result: jobDetails,
+      input: { bookmark: true, url: "https://example.com/jobs/1" },
+    });
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) throw new Error("unreachable");
+    expect(result.jobId).toBe(7);
+    expect(result.duplicate).toBe(true);
+    expect(deps.createJob).not.toHaveBeenCalled();
+  });
+
+  it("rejects input.bookmark without input.url", async () => {
+    const deps = makeDeps();
+
+    const result = await submitTool(deps, {
+      purpose: "parse_job",
+      result: jobDetails,
+      input: { bookmark: true },
+    });
+
+    expect(result.ok).toBe(false);
+    if (result.ok) throw new Error("unreachable");
+    expect(result.errors[0]).toMatch(/requires input.url/);
+    expect(deps.createJob).not.toHaveBeenCalled();
+  });
+
+  it("rejects bookmark job creation when multiple profiles exist and none was specified", async () => {
+    const deps = makeDeps({
+      getAllProfiles: vi.fn().mockResolvedValue([
+        { id: 1, label: "Jamie" },
+        { id: 2, label: "Alex" },
+      ]),
+    });
+
+    const result = await submitTool(deps, {
+      purpose: "parse_job",
+      result: jobDetails,
+      input: { bookmark: true, url: "https://example.com/jobs/1" },
+    });
+
+    expect(result.ok).toBe(false);
+    if (result.ok) throw new Error("unreachable");
+    expect(result.errors[0]).toMatch(/Multiple profiles exist/);
+    expect(deps.createJob).not.toHaveBeenCalled();
+  });
+
+  it("does not affect a normal (non-bookmark) parse_job submit — still drafts and returns next: analyze_ats", async () => {
+    const deps = makeDeps();
+
+    const result = await submitTool(deps, {
+      purpose: "parse_job",
+      result: jobDetails,
+    });
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) throw new Error("unreachable");
+    expect(result.jobId).toBeNull();
+    expect(result.next).toBe("analyze_ats");
+    expect(deps.createJob).not.toHaveBeenCalled();
   });
 });
 

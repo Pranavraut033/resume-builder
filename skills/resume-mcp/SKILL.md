@@ -70,6 +70,19 @@ the server hydrates prompts from the database automatically.
 - **humanize** — rewrite AI-sounding text: `get_prompt({ purpose: "humanize_content", input: { userInput } })` → `submit`. `userInput` must be the exact text to rewrite — a resume bullet, a whole cover letter, anything. The server has no DB fallback for it (unlike every other purpose) since it can't guess which content you mean; if you already have the text from earlier in the conversation (e.g. a cover letter you just generated), pass that. Omitting `input.userInput` is a hard error, not an empty-content no-op.
 - **cover_letter** — regenerate just the cover letter: `generate_cover_letter`
   → `submit`.
+- **bookmark** — save a job posting URL for later, no resume/cover letter
+  generated: a single `parse_job` step, persisted immediately. When the user
+  hands you one or more URLs to save/bookmark, for each one: `fetch_url` →
+  `get_prompt({ purpose: "parse_job" })` → reason → `submit({ purpose:
+  "parse_job", result, input: { url, bookmark: true, profileId? } })`. This
+  submit does **not** return a `nextPrompt` — `next` is `null` on purpose,
+  don't chain into `analyze_ats`. Call `list_profiles()` once up front if
+  more than one profile exists and reuse that `profileId` for every URL
+  rather than asking per URL. A URL that's already bookmarked comes back
+  with `duplicate: true` and the existing `jobId` — not an error, just skip
+  it. If one URL in a batch fails (bad fetch, parse error), report it and
+  keep going with the rest rather than aborting the whole batch; summarize
+  saved/duplicate/failed at the end.
 
 ## Handling rejections and uncertainty
 

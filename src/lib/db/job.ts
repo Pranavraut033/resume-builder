@@ -182,6 +182,17 @@ export async function getAllJob(
 }
 
 /**
+ * Look up an existing job by its posting URL — used to dedupe bookmarks
+ * (both the in-app queue and the MCP bookmark flow) so pasting/submitting
+ * the same URL twice doesn't create a second row.
+ */
+export async function findJobByUrl(
+  url: string
+): Promise<{ id: number } | null> {
+  return prisma.job.findFirst({ where: { url }, select: { id: true } });
+}
+
+/**
  * Create a new job with parsed details, resume, and cover letter
  * Note: Job parsing, resume generation, and cover letter generation happen on client side
  */

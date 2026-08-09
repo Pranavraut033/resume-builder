@@ -29,7 +29,7 @@ graph TD
 
     DB["db.ts<br/>resolves DATABASE_URL, sets SQLite WAL<br/>MUST import first"]
 
-    SRV["server.ts — buildServer()<br/>7 tools, all business logic"]
+    SRV["server.ts — buildServer()<br/>8 tools, all business logic"]
 
     subgraph Support["src/mcp/ — support modules"]
         DRAFT["draft.ts<br/>in-memory add_job scratch state"]
@@ -63,19 +63,20 @@ graph TD
 
 ## 2. Tool surface
 
-7 tools, all registered in `buildServer()`. `readOnlyHint`/`idempotentHint`
+8 tools, all registered in `buildServer()`. `readOnlyHint`/`idempotentHint`
 annotations (native to `@modelcontextprotocol/sdk`) tell a host which calls
 are safe to retry or skip confirming.
 
-| Tool               | Read-only?      | Purpose                                                              |
-| ------------------ | --------------- | -------------------------------------------------------------------- |
-| `list_flows`       | ✅              | Static catalog of every flow and its purpose order                   |
-| `get_prompt`       | ✅              | Resolve a purpose's `systemPrompt`/`userPrompt`/`outputSchema`       |
-| `submit`           | ❌              | Validate → guard → persist a result; returns `nextPrompt` inline     |
-| `apply_resume_ops` | ❌ (idempotent) | Apply JSON-Patch-style ops to a job's resume                         |
-| `list_profiles`    | ✅              | Base profiles, for `generate_cover_letter`'s profile disambiguation  |
-| `list_jobs`        | ✅              | Jobs already tracked in the app                                      |
-| `get_job_state`    | ✅              | A job's details, resume path-lines, ATS score, cover-letter presence |
+| Tool               | Read-only?      | Purpose                                                                              |
+| ------------------ | --------------- | ------------------------------------------------------------------------------------ |
+| `list_flows`       | ✅              | Static catalog of every flow and its purpose order                                   |
+| `get_prompt`       | ✅              | Resolve a purpose's `systemPrompt`/`userPrompt`/`outputSchema`                       |
+| `submit`           | ❌              | Validate → guard → persist a result; returns `nextPrompt` inline                     |
+| `apply_resume_ops` | ❌ (idempotent) | Apply JSON-Patch-style ops to a job's resume                                         |
+| `list_profiles`    | ✅              | Base profiles, for `generate_cover_letter`'s/bookmark's profile disambiguation       |
+| `list_jobs`        | ✅              | Jobs already tracked in the app                                                      |
+| `fetch_url`        | ✅              | Fetch a job posting URL server-side (SSRF-guarded) when a host's own fetch is blocked |
+| `get_job_state`    | ✅              | A job's details, resume path-lines, ATS score, cover-letter presence                 |
 
 There is deliberately no `validate` tool — `submit` already runs the same
 schema check before persisting, so a failed `submit` doubles as the dry
@@ -233,12 +234,19 @@ flowchart LR
     S -->|"new or changed"| Inline["value →<br/>template inlines it in full,<br/>lastSent updated"]
 ```
 
-## 7. The other five flows
+## 7. The other six flows
 
-`add_job` is the only flow with no `jobId` at the start. Every other flow
-passes an existing job's `jobId`, so `hydrateContext` reads straight from
-the DB with no draft involved (`pick()`'s `draft === null` short-circuits
-to "always inline" — see §6).
+`add_job` and `bookmark` are the only flows with no `jobId` at the start.
+Every other flow passes an existing job's `jobId`, so `hydrateContext` reads
+straight from the DB with no draft involved (`pick()`'s `draft === null`
+short-circuits to "always inline" — see §6).
+
+`bookmark` is not a separate purpose or a `nextPurposeFor` branch — it's a
+persistence choice on `parse_job` itself (`input.bookmark: true`), handled
+entirely inside `submitTool`'s `case "parse_job"` before the normal
+draft-and-continue path. It returns `next: null` directly rather than
+routing through `nextPurposeFor`, and dedupes on `input.url` via
+`findJobByUrl` before creating anything.
 
 ```mermaid
 graph TD
@@ -265,6 +273,14 @@ graph TD
 
     subgraph cover_letter["cover_letter"]
         C1["get_prompt(generate_cover_letter, jobId)"] --> C2["submit(...)"]
+    end
+
+    subgraph bookmark["bookmark (no jobId — like add_job's first step,\nbut stops there)"]
+        B1["fetch_url(url)"] --> B2["get_prompt(parse_job)"]
+        B2 --> B3["submit(parse_job,<br/>input: { url, bookmark: true })"]
+        B3 --> B4{"findJobByUrl(url)<br/>already exists?"}
+        B4 -->|yes| B5["ok:true — existing jobId,<br/>duplicate:true, no write"]
+        B4 -->|no| B6["createJob({ ...jobDetails, url,<br/>status: BOOKMARKED })<br/>next: null"]
     end
 ```
 
@@ -314,6 +330,7 @@ classDiagram
         +getProfileById(id)
         +getAllProfiles()
         +createJob(input)
+        +findJobByUrl(url)
         +updateResume(jobId, resume, customizations, label)
         +saveAtsAnalysis(jobId, analysis)
         +updateCoverLetter(jobId, text, customizations)
@@ -338,6 +355,7 @@ classDiagram
         +GetPromptResult? nextPrompt
         +string[]? guardChanges
         +unknown? result
+        +boolean? duplicate
     }
 
     class SubmitFailure {
@@ -380,7 +398,7 @@ classDiagram
 
 | File             | Responsibility                                                                                                     |
 | ---------------- | ------------------------------------------------------------------------------------------------------------------ |
-| `server.ts`      | All 8→7 tool handlers, `McpDeps`, `hydrateContext`, `submitTool`, `buildServer()` — the bulk of the logic          |
+| `server.ts`      | All 8 tool handlers, `McpDeps`, `hydrateContext`, `submitTool`, `buildServer()` — the bulk of the logic           |
 | `draft.ts`       | In-memory `add_job` scratch state + the `lastSent` fingerprint dedup                                               |
 | `flows.ts`       | `FLOW_CATALOG` (data, mirrors §7's diagram) + `nextPurposeFor()`                                                   |
 | `guards.ts`      | Post-Zod safety checks (`guardTailoredResume`, `guardProofreadResult`) applied inside `submit`, before persistence |

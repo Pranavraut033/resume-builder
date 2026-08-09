@@ -27,6 +27,7 @@ import { getAllProfiles, getProfileById } from "@/actions/profile";
 import { fetchJobDescriptionFromUrl } from "@/actions/urlFetcher";
 import {
   createJob as dbCreateJob,
+  findJobByUrl as dbFindJobByUrl,
   getAllJob,
   getCoverLetterByJobId,
   getJob,
@@ -76,6 +77,7 @@ export interface McpDeps {
   getProfileById: typeof getProfileById;
   getAllProfiles: typeof getAllProfiles;
   createJob: typeof dbCreateJob;
+  findJobByUrl: typeof dbFindJobByUrl;
   updateResume: typeof dbUpdateResume;
   saveAtsAnalysis: typeof dbSaveAtsAnalysis;
   updateCoverLetter: typeof dbUpdateCoverLetter;
@@ -89,6 +91,7 @@ export const defaultDeps: McpDeps = {
   getProfileById,
   getAllProfiles,
   createJob: dbCreateJob,
+  findJobByUrl: dbFindJobByUrl,
   updateResume: dbUpdateResume,
   saveAtsAnalysis: dbSaveAtsAnalysis,
   updateCoverLetter: dbUpdateCoverLetter,
@@ -196,6 +199,11 @@ const McpInputSchema = z.object({
   styleGuide: z.string().optional(),
   profileId: z.number().int().positive().optional(),
   url: z.string().optional(),
+  // Persistence choice on parse_job's submit (bookmark flow, no jobId): when
+  // true, create a BOOKMARKED job from the parsed details immediately
+  // instead of carrying them forward in the draft toward add_job's later
+  // steps. Requires input.url.
+  bookmark: z.boolean().optional(),
   jobDetails: JobDetailsSchema.optional(),
   atsAnalysis: ATSAnalysisSchema.nullable().optional(),
   baseProfile: ResumeSchema.optional(),
@@ -428,6 +436,9 @@ export interface SubmitSuccess {
   nextPrompt?: GetPromptResult;
   guardChanges?: string[];
   result?: unknown;
+  // Set on the bookmark flow's submit when input.url already matched an
+  // existing job — jobId then points at that pre-existing row, not a new one.
+  duplicate?: boolean;
 }
 export interface SubmitFailure {
   ok: false;
@@ -460,6 +471,32 @@ async function withBusyRetry<T>(fn: () => Promise<T>): Promise<T> {
     }
   }
   throw lastError;
+}
+
+/**
+ * Jobs are only visible in the app's dashboard/bookmarks page when their
+ * profileId matches the currently-selected profile there — a job created
+ * with no profileId silently disappears from the UI even though it's really
+ * in the DB (this bit a real MCP-driven add_job run). Auto-pick when
+ * there's exactly one profile (the common case); otherwise the caller must
+ * disambiguate via list_profiles rather than us guessing whose job this is.
+ * Shared by generate_cover_letter's createJob and the bookmark branch below.
+ */
+async function resolveProfileId(
+  deps: McpDeps,
+  explicit: number | undefined
+): Promise<{ profileId?: number } | { errors: string[] }> {
+  if (explicit != null) return { profileId: explicit };
+  const profiles = await deps.getAllProfiles();
+  if (profiles.length === 1) return { profileId: profiles[0].id };
+  if (profiles.length > 1) {
+    return {
+      errors: [
+        `Multiple profiles exist (${profiles.map((p) => `${p.id}: ${p.label}`).join(", ")}) — call list_profiles and pass the right one as input.profileId, or the job will be created with no profile and won't show up in the app's dashboard.`,
+      ],
+    };
+  }
+  return {};
 }
 
 export async function submitTool(
@@ -552,6 +589,51 @@ export async function submitTool(
   try {
     switch (purpose) {
       case "parse_job": {
+        // Bookmark flow: persist immediately as a BOOKMARKED job and stop —
+        // no add_job chain, no draft to carry forward. See flows.ts's
+        // "bookmark" entry.
+        if (input.bookmark) {
+          const url = input.url ?? draft?.url;
+          if (!url) {
+            return {
+              ok: false,
+              errors: [
+                "input.bookmark requires input.url — the posting URL being saved.",
+              ],
+            };
+          }
+
+          const existing = await deps.findJobByUrl(url);
+          if (existing) {
+            if (draftId) deleteDraft(draftId);
+            return {
+              ok: true,
+              jobId: existing.id,
+              duplicate: true,
+              next: null,
+            };
+          }
+
+          const resolvedProfile = await resolveProfileId(
+            deps,
+            input.profileId ?? draft?.profileId
+          );
+          if ("errors" in resolvedProfile) {
+            return { ok: false, errors: resolvedProfile.errors };
+          }
+
+          const created = await withBusyRetry(() =>
+            deps.createJob({
+              jobDetails: parsed.data as JobDetailsJSON,
+              url,
+              profileId: resolvedProfile.profileId,
+              status: "BOOKMARKED",
+            })
+          );
+          if (draftId) deleteDraft(draftId);
+          return { ok: true, jobId: created.jobId, next: null };
+        }
+
         // No standalone write for jobDetails alone — see generate_cover_letter
         // below for where a brand-new job is actually created. The draft
         // carries this validated JobDetailsJSON forward automatically.
@@ -685,28 +767,12 @@ export async function submitTool(
           };
         }
 
-        let profileId = input.profileId ?? draft?.profileId;
-        if (profileId == null) {
-          // Jobs are only visible in the app's dashboard when their
-          // profileId matches the currently-selected profile there (see
-          // src/app/page.tsx's `getAllJob(selectedProfileId)`), so a job
-          // created with no profileId silently disappears from the UI even
-          // though it's really in the DB — this bit a real MCP-driven
-          // add_job run. Auto-pick when there's exactly one profile (the
-          // common case); otherwise the caller must disambiguate via
-          // list_profiles rather than us guessing which person's job list
-          // this belongs to.
-          const profiles = await deps.getAllProfiles();
-          if (profiles.length === 1) {
-            profileId = profiles[0].id;
-          } else if (profiles.length > 1) {
-            return {
-              ok: false,
-              errors: [
-                `Multiple profiles exist (${profiles.map((p) => `${p.id}: ${p.label}`).join(", ")}) — call list_profiles and pass the right one as input.profileId, or the job will be created with no profile and won't show up in the app's dashboard.`,
-              ],
-            };
-          }
+        const resolvedProfile = await resolveProfileId(
+          deps,
+          input.profileId ?? draft?.profileId
+        );
+        if ("errors" in resolvedProfile) {
+          return { ok: false, errors: resolvedProfile.errors };
         }
 
         const created = await withBusyRetry(() =>
@@ -716,7 +782,7 @@ export async function submitTool(
             coverLetterText: text,
             atsAnalysis: input.atsAnalysis ?? draft?.atsAnalysis ?? undefined,
             url: input.url ?? draft?.url,
-            profileId,
+            profileId: resolvedProfile.profileId,
           })
         );
         if (draftId) deleteDraft(draftId);
@@ -885,7 +951,7 @@ export function buildServer(deps: McpDeps = defaultDeps): McpServer {
     {
       title: "List flows",
       description:
-        "List every flow (add_job, edit, proofread, ats_fix, humanize, cover_letter) and the ordered purposes each one walks through get_prompt/submit.",
+        "List every flow (add_job, edit, proofread, ats_fix, humanize, cover_letter, bookmark) and the ordered purposes each one walks through get_prompt/submit.",
       annotations: readOnly,
     },
     async () => toToolResult(listFlowsTool())
@@ -913,7 +979,7 @@ export function buildServer(deps: McpDeps = defaultDeps): McpServer {
     {
       title: "Submit",
       description:
-        "Submit your JSON result for a purpose. Validated against its schema, guarded (e.g. rejects a gutted tailored resume), persisted when a jobId exists, and returns the next purpose's prompt inline as `nextPrompt` (or nothing when the flow ends in apply_resume_ops instead). Before a job exists, pass the returned `draftId` on every call instead of re-uploading jobDetails/atsAnalysis/the tailored resume yourself.",
+        "Submit your JSON result for a purpose. Validated against its schema, guarded (e.g. rejects a gutted tailored resume), persisted when a jobId exists, and returns the next purpose's prompt inline as `nextPrompt` (or nothing when the flow ends in apply_resume_ops instead). Before a job exists, pass the returned `draftId` on every call instead of re-uploading jobDetails/atsAnalysis/the tailored resume yourself. To just bookmark a job (no resume/cover letter), submit purpose: \"parse_job\" with input: { url, bookmark: true } — creates a BOOKMARKED job immediately and returns next: null; a URL that already has a job returns that job's id with duplicate: true instead of creating a second one.",
       inputSchema: {
         purpose: purposeSchema,
         jobId: z.number().int().positive().optional(),

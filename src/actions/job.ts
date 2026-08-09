@@ -251,6 +251,10 @@ export async function getAllJob(profileId?: number | null) {
   return dbJob.getAllJob(profileId);
 }
 
+export async function findJobByUrl(url: string) {
+  return dbJob.findJobByUrl(url);
+}
+
 export type DocumentRecord = {
   jobId: number;
   docType: "resume" | "coverLetter";

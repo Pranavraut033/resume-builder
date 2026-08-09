@@ -36,6 +36,13 @@ re-uploading `jobDetails`/the ATS analysis/the tailored resume yourself, and
 `submit`'s response includes the next step's prompt inline as `nextPrompt`
 so a full `add_job` run is 5 tool calls, not 8+.
 
+To just save a job posting URL for later without generating a resume (the
+`bookmark` flow — the MCP equivalent of pasting a URL into `/bookmarks`),
+submit `parse_job`'s result with `input: { url, bookmark: true }`: it creates
+a `BOOKMARKED` job immediately and stops (`next: null`), one LLM call per
+URL. Re-submitting a URL that's already bookmarked returns the existing job
+(`duplicate: true`) instead of creating a second one.
+
 ## Setup
 
 ### 1. Enable the server in this app

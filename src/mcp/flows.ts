@@ -61,6 +61,12 @@ export const FLOW_CATALOG: McpFlow[] = [
       "Regenerate the cover letter for an existing job (tone/style carried in `input.styleGuide`).",
     purposes: ["generate_cover_letter"],
   },
+  {
+    name: "bookmark",
+    description:
+      "Save a job posting URL for later without generating anything — fetch_url, parse it, then submit parse_job with input.bookmark: true to create a BOOKMARKED job. One LLM call per URL.",
+    purposes: ["parse_job"],
+  },
 ];
 
 /**

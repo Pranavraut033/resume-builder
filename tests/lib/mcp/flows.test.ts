@@ -47,7 +47,13 @@ describe("FLOW_CATALOG", () => {
       "ats_fix",
       "humanize",
       "cover_letter",
+      "bookmark",
     ]);
+  });
+
+  it("orders bookmark as a single parse_job step (no chain — persistence is a submit-time flag, not a next purpose)", () => {
+    const bookmark = FLOW_CATALOG.find((flow) => flow.name === "bookmark");
+    expect(bookmark?.purposes).toEqual(["parse_job"]);
   });
 
   it("orders add_job as parse_job -> analyze_ats -> generate_tailored_resume -> generate_cover_letter", () => {
