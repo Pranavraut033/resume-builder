@@ -137,8 +137,16 @@ export function JobPageProvider({
     resumeInitial ? deepClone(resumeInitial) : ({} as ResumeJSON)
   );
   const historyRef = useRef<ResumeHistory>(new ResumeHistory(resumeInitial));
+  // Last DB content this local state was known to match — lets the sync
+  // effects below tell "the query cache moved because someone else wrote to
+  // the DB (e.g. MCP)" apart from "the query cache moved because our own
+  // save just landed", without clobbering genuinely unsaved local edits.
+  const lastSyncedResumeRef = useRef<ResumeJSON>(resumeInitial);
 
   const [coverLetter, updateCoverLetterState] = useState<string>(
+    data?.coverLetter?.contentText || ""
+  );
+  const lastSyncedCoverLetterRef = useRef<string>(
     data?.coverLetter?.contentText || ""
   );
 
@@ -368,6 +376,38 @@ export function JobPageProvider({
       loadGoogleFont(customization.fontFamily);
     }
   }, [customization.fontFamily]);
+
+  // Adopt DB content that changed outside this tab (e.g. an MCP-driven edit)
+  // once the query refetches (TanStack's default refetchOnWindowFocus is
+  // what actually triggers that refetch). Skipped when local state has
+  // unsaved edits of its own, so an in-progress edit here never gets
+  // silently overwritten by an external write.
+  useEffect(() => {
+    const incoming = data?.resume?.contentJson;
+    if (!incoming || areJsonValuesEqual(incoming, lastSyncedResumeRef.current))
+      return;
+
+    setResumeState((prev) => {
+      const hasLocalEdits = !areJsonValuesEqual(
+        prev,
+        lastSyncedResumeRef.current
+      );
+      lastSyncedResumeRef.current = incoming;
+      return hasLocalEdits ? prev : deepClone(incoming);
+    });
+  }, [data?.resume?.contentJson]);
+
+  useEffect(() => {
+    const incoming = data?.coverLetter?.contentText;
+    if (incoming === undefined || incoming === lastSyncedCoverLetterRef.current)
+      return;
+
+    updateCoverLetterState((prev) => {
+      const hasLocalEdits = prev !== lastSyncedCoverLetterRef.current;
+      lastSyncedCoverLetterRef.current = incoming;
+      return hasLocalEdits ? prev : incoming;
+    });
+  }, [data?.coverLetter?.contentText]);
 
   const isDirtyCoverLetter = useMemo(() => {
     return data?.coverLetter?.contentText !== coverLetter;
