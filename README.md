@@ -17,7 +17,8 @@ More screenshots and demo clips (ATS analysis, chat editing, cover letters, cust
 ## Features
 
 - **Base profile**: maintain a single reusable professional profile (experience, skills, projects, education) stored locally in SQLite
-- **Job tracking**: manage multiple applications with status (Draft, Applied, Interview, Offer, Rejected)
+- **Bookmarks**: save a job URL for later without generating a resume yet — JD parsing runs in a background queue (up to 5 concurrent) so you can keep pasting URLs; promote a bookmark to a tracked job anytime from `/bookmarks`
+- **Job tracking**: manage multiple applications with status (Bookmarked, Draft, Applied, Interview, Offer, Rejected)
 - **AI job parsing**: paste a job description and extract structured requirements client-side via your chosen LLM
 - **AI resume & cover letter tailoring**: generate content tailored to each job from your base profile
 - **Inline WYSIWYG editor**: edit the generated resume directly on the rendered document, with zoom controls and version history (`/job/[jobId]`)
@@ -27,6 +28,7 @@ More screenshots and demo clips (ATS analysis, chat editing, cover letters, cust
 - **ATS analysis**: keyword/skill match scoring plus knockout-risk and title-alignment checks with rewrite coaching, including a chat action to fix all flagged issues at once
 - **EU/German CVs**: optional profile photo and hobbies section, DE/EU region prompt guidance, and an Anschreiben cover letter style
 - **Documents view**: browse all generated resumes and cover letters across jobs (`/documents`)
+- **Notifications**: a bell in the sidebar shows background task progress and results (e.g. bookmark parsing), with history and a clear-all action
 - **PDF & TXT export**: generate application-ready documents
 - **Multiple LLM providers**: OpenAI, Google Gemini, Anthropic (Claude), xAI Grok, Perplexity, local Ollama, or a managed pay-as-you-go gateway (no key required) — switch per job
 - **MCP server (optional)**: drive the same job-parsing/tailoring/ATS/proofreading/humanizing flows from Claude Desktop or another MCP host on your own chat subscription, no API key configured in this app required — opt-in toggle in **Settings**, off by default; see [docs/MCP.md](./docs/MCP.md)
@@ -79,7 +81,7 @@ The app is **self-signed** (not signed by a CA-trusted/registered publisher), so
 - **Desktop**: Tauri 2
 - **Database**: SQLite via Prisma ORM 7
 - **Styling**: Tailwind CSS v4
-- **State**: Zustand (LLM provider/model selection)
+- **State**: Zustand (LLM provider/model selection, notifications, background bookmark-parsing queue)
 - **LLM providers**: OpenAI, Google Gemini, Anthropic, Grok, Perplexity, Ollama, or the managed gateway (all client-side); provider base classes/prompt infra live in the `@pranavraut033/llm-core` package (`packages/llm-core/`), ATS scoring logic in `@pranavraut033/ats-checker` (`packages/ats-checker/`)
 - **PDF export**: `@react-pdf/renderer` / `pdf-lib`
 - **Drag & drop**: `@dnd-kit`
@@ -164,7 +166,7 @@ npm run tauri build  # produces .dmg / .exe / .AppImage
 1. Run `npm run dev` and open [http://localhost:3008](http://localhost:3008)
 2. Go to **Settings** (`/settings`) and add an API key for at least one provider (or select Ollama for a local model, or the managed provider for pay-as-you-go access)
 3. Go to **Profile** (`/profile`) and fill in your base profile
-4. Create a job (`/job/new`): paste a job description, pick a provider/model — the app parses the JD and generates a tailored resume and cover letter
+4. Create a job (`/job/new`): paste a job description, pick a provider/model — the app parses the JD and generates a tailored resume and cover letter. (Or save it as a bookmark first from `/bookmarks` — parsing happens in the background — then click **Start tracking** later to jump straight to tailoring.)
 5. Open the job (`/job/[jobId]`) and edit the result in the inline WYSIWYG editor — pick a template, tweak colors/fonts, or use the AI humanizer
 6. Export as PDF or TXT from the job page; browse past versions across jobs on the **Documents** page (`/documents`)
 
@@ -174,7 +176,8 @@ npm run tauri build  # produces .dmg / .exe / .AppImage
 udaan/
 ├── src/
 │   ├── app/                      # Next.js App Router pages
-│   │   ├── job/new/              # Create job + AI generation
+│   │   ├── bookmarks/             # Save job URLs, background JD parsing queue
+│   │   ├── job/new/              # Create job + AI generation (or promote a bookmark)
 │   │   ├── job/[jobId]/          # Job detail (Inline WYSIWYG editor)
 │   │   ├── documents/             # All generated resumes/cover letters + version history
 │   │   ├── profile/              # Base profile editor
@@ -207,7 +210,6 @@ udaan/
     ├── UI_COMPONENTS_GUIDE.md
     ├── DISTRIBUTION.md
     ├── SECURITY_AUDIT.md
-    ├── BRAND_VOICE.md             # Brand voice/copy guidelines for landing page + marketing content
     ├── MCP.md                     # MCP server setup, security, troubleshooting
     └── MCP_ARCHITECTURE.md        # MCP server internals: tool surface, request lifecycle, add_job draft state machine
 ```
