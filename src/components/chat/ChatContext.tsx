@@ -42,6 +42,8 @@ interface ChatContextType {
   setInput: (value: string) => void;
   handleSend: () => void;
   retryMessage: (id: string) => void;
+  confirmPending: (id: string) => void;
+  cancelPending: (id: string) => void;
   resetSession: () => void;
   setDefaultView: (view: ViewMode) => void;
   fixMissingKeywords: (keywords: string[]) => Promise<void>;
@@ -291,37 +293,54 @@ export function ChatContextProvider({
   );
 
   const sendMessage = useCallback(
-    async (userText: string) => {
+    async (userText: string, resumeMessageId?: string) => {
       if (!botRef.current || !activeModelPair || isLoading || !userText.trim())
         return;
 
+      const confirmed = resumeMessageId !== undefined;
       const [providerType, model] = activeModelPair;
       setIsLoading(true);
 
       const userId = makeId();
-      const assistantId = makeId();
+      const assistantId = resumeMessageId ?? makeId();
       // Tracks whichever message id currently represents this turn — starts as
       // the assistant placeholder, and becomes the tool-result message id once
       // a tool_result event replaces it (so "done" can attach usage to it).
       let currentId = assistantId;
 
-      setMessages((prev) => [
-        ...prev,
-        { id: userId, role: "user", content: userText, timestamp: now() },
-        {
-          id: assistantId,
-          role: "assistant",
-          content: "",
-          isStreaming: true,
-          timestamp: now(),
-        },
-      ]);
+      // A confirmed re-send reuses the pending bubble instead of re-appending
+      // the user's message (already shown) a second time.
+      if (confirmed) {
+        setMessages((prev) =>
+          prev.map((m) =>
+            m.id === assistantId
+              ? { ...m, needsConfirm: undefined, isStreaming: true, content: "" }
+              : m
+          )
+        );
+      } else {
+        setMessages((prev) => [
+          ...prev,
+          { id: userId, role: "user", content: userText, timestamp: now() },
+          {
+            id: assistantId,
+            role: "assistant",
+            content: "",
+            isStreaming: true,
+            timestamp: now(),
+          },
+        ]);
+      }
 
       try {
-        const stream = botRef.current.chat(userText, {
-          provider: providerType,
-          model,
-        });
+        const stream = botRef.current.chat(
+          userText,
+          {
+            provider: providerType,
+            model,
+          },
+          confirmed
+        );
 
         for await (const event of stream) {
           switch (event.type) {
@@ -329,6 +348,21 @@ export function ChatContextProvider({
               setMessages((prev) =>
                 prev.map((m) =>
                   m.id === currentId ? { ...m, intent: event.intent } : m
+                )
+              );
+              break;
+
+            case "confirm_required":
+              setMessages((prev) =>
+                prev.map((m) =>
+                  m.id === currentId
+                    ? {
+                        ...m,
+                        isStreaming: false,
+                        statusText: undefined,
+                        needsConfirm: { intent: event.intent, userText },
+                      }
+                    : m
                 )
               );
               break;
@@ -500,6 +534,29 @@ export function ChatContextProvider({
     [messages, sendMessage]
   );
 
+  const confirmPending = useCallback(
+    (id: string) => {
+      const message = messages.find((m) => m.id === id);
+      if (!message?.needsConfirm) return;
+      void sendMessage(message.needsConfirm.userText, id);
+    },
+    [messages, sendMessage]
+  );
+
+  const cancelPending = useCallback((id: string) => {
+    setMessages((prev) =>
+      prev.map((m) =>
+        m.id === id
+          ? {
+              ...m,
+              needsConfirm: undefined,
+              content: "Okay, cancelled — nothing was changed.",
+            }
+          : m
+      )
+    );
+  }, []);
+
   return (
     <ChatContext.Provider
       value={{
@@ -515,6 +572,8 @@ export function ChatContextProvider({
         setInput,
         handleSend,
         retryMessage,
+        confirmPending,
+        cancelPending,
         resetSession,
         setDefaultView,
         fixMissingKeywords,

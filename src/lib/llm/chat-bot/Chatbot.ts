@@ -80,6 +80,12 @@ const INTENT_STATUS_TEXT: Record<IntentLabel, string> = {
 export type ChatStreamEvent =
   | { type: "intent"; intent: IntentLabel }
   | { type: "status"; text: string }
+  // "tailor"/"regenerate" rewrite the whole resume — chat() stops here
+  // instead of running them until re-invoked with confirmed: true.
+  | {
+      type: "confirm_required";
+      intent: Extract<ToolIntent, "tailor" | "regenerate">;
+    }
   | { type: "chunk"; text: string } // interview / question text chunks
   | {
       type: "tool_result";
@@ -372,7 +378,14 @@ class ResumeChatBot {
         { role: "system", content: INTENT_CLASSIFIER_PROMPT },
         { role: "user", content: userInput },
       ],
-      this.callOptions(options, { maxTokens: 5, temperature: 0 })
+      this.callOptions(options, {
+        maxTokens: 5,
+        temperature: 0,
+        // INTENT_CLASSIFIER_PROMPT is a large, static system prompt re-sent
+        // on every turn — cache it (Anthropic; other providers ignore this
+        // option, and OpenAI caches >=1024-token prefixes automatically).
+        cacheControl: "system",
+      })
     ) as Promise<LLMResult<IntentLabel>>;
   }
 
@@ -423,7 +436,8 @@ class ResumeChatBot {
 
   async *chat(
     userInput: string,
-    options: ChatBotOptions
+    options: ChatBotOptions,
+    confirmed = false
   ): AsyncGenerator<ChatStreamEvent> {
     this.isSessionInitialized();
 
@@ -437,6 +451,17 @@ class ResumeChatBot {
 
       logger.info("ResumeChatBot", `Intent classified: ${intent}`);
       yield { type: "intent", intent };
+
+      // "tailor"/"regenerate" rewrite the whole resume — require an explicit
+      // confirm before running them, unlike a targeted "edit".
+      if (
+        !confirmed &&
+        (intent === IntentLabel.Tailor || intent === IntentLabel.Regenerate)
+      ) {
+        yield { type: "confirm_required", intent };
+        return;
+      }
+
       yield { type: "status", text: INTENT_STATUS_TEXT[intent] };
 
       const map = this.buildSystemPromptMap();

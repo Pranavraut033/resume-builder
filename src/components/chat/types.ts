@@ -24,6 +24,8 @@ export interface ChatMessage {
   isStreaming?: boolean;
   /** Ephemeral status narration shown while working — cleared once real content/tool result arrives. */
   statusText?: string;
+  /** Set when this turn is a whole-resume rewrite (tailor/regenerate) waiting on the user to confirm before it runs. */
+  needsConfirm?: { intent: "tailor" | "regenerate"; userText: string };
   /** Token usage for this turn, surfaced once the "done" event arrives. */
   usage?: LLMUsageInfo;
   timestamp: Date;

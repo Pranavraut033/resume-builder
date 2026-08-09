@@ -67,6 +67,42 @@ function RetryButton({ messageId }: { messageId: string }) {
   );
 }
 
+function ConfirmRewrite({
+  messageId,
+  intent,
+}: {
+  messageId: string;
+  intent: "tailor" | "regenerate";
+}) {
+  const { confirmPending, cancelPending } = useChatContext();
+  const description =
+    intent === "tailor"
+      ? "This will rewrite your whole resume to fit the job description."
+      : "This will rebuild your whole resume from your base profile, discarding current edits.";
+
+  return (
+    <div className="border-agent-outline-variant bg-agent-surface-high mt-1 max-w-[92%] rounded-lg border px-3 py-2 text-sm">
+      <p className="text-agent-on-surface-variant">{description}</p>
+      <div className="mt-2 flex items-center gap-2">
+        <button
+          type="button"
+          onClick={() => confirmPending(messageId)}
+          className="bg-agent-primary text-agent-on-primary rounded-md px-3 py-1 text-xs font-semibold"
+        >
+          Go ahead
+        </button>
+        <button
+          type="button"
+          onClick={() => cancelPending(messageId)}
+          className="text-agent-on-surface-variant hover:bg-agent-surface rounded-md px-3 py-1 text-xs font-semibold"
+        >
+          Cancel
+        </button>
+      </div>
+    </div>
+  );
+}
+
 function StatusLine({ statusText }: { statusText: string }) {
   // CSS-only fade: remount the text node on every status change (via `key`)
   // so `starting:opacity-0` (@starting-style) applies fresh on each mount,
@@ -208,6 +244,13 @@ export function ChatMessageItem({ message }: ChatMessageProps) {
             <p className="text-agent-error mt-1 text-xs">{message.error}</p>
             <RetryButton messageId={message.id} />
           </div>
+        )}
+
+        {message.needsConfirm && (
+          <ConfirmRewrite
+            messageId={message.id}
+            intent={message.needsConfirm.intent}
+          />
         )}
       </div>
 
