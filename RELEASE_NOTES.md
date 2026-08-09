@@ -1,3 +1,13 @@
+# v1.9.0 — 2026-08-09
+
+Bookmarks, gap analysis, and a notification center.
+
+- **Save a job for later.** Paste a job URL on the new Bookmarks page to save it without generating a resume yet — it parses in the background so pasting several at once doesn't block you. MCP users get the same flow via `submit`'s new bookmark mode.
+- **See exactly where your resume falls short.** A new gap-analysis flow compares your resume against a job description, available in chat and as an MCP tool.
+- **Never miss a background update.** A new notification bell in the sidebar keeps a running, unread-counted history alongside the existing toasts.
+- **Chat double-checks before a full rewrite.** Tailoring or regenerating your whole resume now asks for confirmation first instead of applying immediately.
+- **Fixed:** the job page now stays in sync after a resume or cover letter is written from outside the open page.
+
 # v1.8.0 — 2026-08-07
 
 Resume Builder is now **Udaan** — plus finer control over AI output and template layout.

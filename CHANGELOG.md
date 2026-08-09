@@ -2,6 +2,24 @@
 
 All notable changes to this project are documented in this file.
 
+## [1.9.0] - 2026-08-09
+
+### Added
+
+- Gap-analysis flow comparing a resume against a job description, available in chat and as an MCP tool ([96beb2d])
+- Bookmarks: paste a job URL to save it for later without generating a resume; pasted URLs parse in the background via a queue, and the MCP `submit` tool gained a matching `bookmark` mode ([f971036], [3e414e5], [919e32b])
+- Notification system: a persistent bell popover with unread count alongside the existing toasts, both reading from one headless store ([6ce37cf])
+- Chat now confirms before a whole-resume tailor/regenerate rewrite instead of applying it silently ([835640a])
+
+### Fixed
+
+- Resume/cover letter state on the job page now resyncs after an external database write instead of going stale ([b84331d])
+
+### Internal
+
+- Brand voice guide and drafted launch posts moved out of this public repo to the private marketing repo ([06eb2c9], [373dde3])
+- Drafted three launch blog posts ([a5a3d55])
+
 ## [1.8.0] - 2026-08-07
 
 ### Added
