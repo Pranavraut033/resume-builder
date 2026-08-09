@@ -1,6 +1,6 @@
 ---
 name: resume-mcp
-description: Drive this app's resume-building flows (tailoring, cover letters, ATS analysis, editing, proofreading, humanizing) through its local MCP server instead of hand-writing resume content. Use whenever the user pastes a job posting or URL and wants a tailored resume, or asks to edit, proofread, humanize, or fix ATS issues on a resume that already exists in the app. Requires the app's MCP server to be running and connected (see docs/MCP.md) — if tools like `list_flows` aren't available, tell the user to enable the MCP toggle in Settings first.
+description: Drive this app's resume-building flows (tailoring, cover letters, ATS analysis, gap analysis, editing, proofreading, humanizing) through its local MCP server instead of hand-writing resume content. Use whenever the user pastes a job posting or URL and wants a tailored resume, or asks to edit, proofread, humanize, fix ATS issues, or get an honest fit/gap assessment on a resume that already exists in the app. Requires the app's MCP server to be running and connected (see docs/MCP.md) — if tools like `list_flows` aren't available, tell the user to enable the MCP toggle in Settings first.
 ---
 
 # Resume MCP
@@ -70,6 +70,13 @@ the server hydrates prompts from the database automatically.
 - **humanize** — rewrite AI-sounding text: `get_prompt({ purpose: "humanize_content", input: { userInput } })` → `submit`. `userInput` must be the exact text to rewrite — a resume bullet, a whole cover letter, anything. The server has no DB fallback for it (unlike every other purpose) since it can't guess which content you mean; if you already have the text from earlier in the conversation (e.g. a cover letter you just generated), pass that. Omitting `input.userInput` is a hard error, not an empty-content no-op.
 - **cover_letter** — regenerate just the cover letter: `generate_cover_letter`
   → `submit`.
+- **gap_analysis** — honest, substantive fit assessment against the JD (not
+  a keyword/format score like `ats_fix`): `analyze_resume_gaps` → `submit`
+  (validate-only, nothing persisted) → `apply_resume_ops` for any gap that
+  carries a `resume_fix` (never present for `missing`/`seniority` gaps —
+  those need an offline action, not a text edit). Report the `verdict` and
+  gaps to the user plainly; don't soften a blocking or major gap into
+  something it isn't, and always relay the closing `strengths` too.
 - **bookmark** — save a job posting URL for later, no resume/cover letter
   generated: a single `parse_job` step, persisted immediately. When the user
   hands you one or more URLs to save/bookmark, for each one: `fetch_url` →

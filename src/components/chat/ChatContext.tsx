@@ -15,6 +15,7 @@ import { areJsonValuesEqual } from "@/lib";
 import ResumeChatBot from "@/lib/llm/chat-bot/Chatbot";
 import { trackTokenUsage } from "@/lib/llm/tokenTracker";
 import { useModelStore } from "@/store/modelStore";
+import { GapAnalysisJSON } from "@/types/gapAnalysis";
 import { ATSAnalysisJSON, ResumeSchema } from "@/types/resume";
 
 import { type ViewMode } from "./ChatPanel";
@@ -36,6 +37,7 @@ interface ChatContextType {
   providerError: string | null;
   retryProviderInit: () => void;
   atsAnalysis: ATSAnalysisJSON | null;
+  gapAnalysis: GapAnalysisJSON | null;
   defaultView: ViewMode;
   setInput: (value: string) => void;
   handleSend: () => void;
@@ -44,11 +46,21 @@ interface ChatContextType {
   setDefaultView: (view: ViewMode) => void;
   fixMissingKeywords: (keywords: string[]) => Promise<void>;
   fixAllAtsIssues: () => Promise<void>;
+  /** Opens the gap-analysis drawer with results already loaded — wired by
+   * InlineJobPageLayout (cluster 3), where the drawer's open/close state
+   * lives. Optional/no-op until that wiring lands. */
+  onOpenGapDrawer?: () => void;
 }
 
 const ChatContext = createContext<ChatContextType | null>(null);
 
-export function ChatContextProvider({ children }: { children: ReactNode }) {
+export function ChatContextProvider({
+  children,
+  onOpenGapDrawer,
+}: {
+  children: ReactNode;
+  onOpenGapDrawer?: () => void;
+}) {
   const {
     resume,
     profile,
@@ -73,6 +85,7 @@ export function ChatContextProvider({ children }: { children: ReactNode }) {
   const [atsAnalysis, setAtsAnalysis] = useState<ATSAnalysisJSON | null>(
     initialAtsAnalysis
   );
+  const [gapAnalysis, setGapAnalysis] = useState<GapAnalysisJSON | null>(null);
   const botRef = useRef<ResumeChatBot | null>(null);
   const hasOpenedOnce = useRef(false);
   const [defaultView, setDefaultView] = useState<ViewMode>(
@@ -366,7 +379,8 @@ export function ChatContextProvider({ children }: { children: ReactNode }) {
                       event.intent === "regenerate" ||
                       event.intent === "fix_ats"
                         ? (event.args.summary ?? "")
-                        : event.intent === "proofread"
+                        : event.intent === "proofread" ||
+                            event.intent === "gap_analysis"
                           ? event.args.note
                           : "",
                     toolResult: { intent: event.intent, args: event.args },
@@ -382,6 +396,14 @@ export function ChatContextProvider({ children }: { children: ReactNode }) {
                 case "ats":
                   setAtsAnalysis(event.args.atsAnalysis);
                   setDefaultView("ats");
+                  break;
+                case "gap_analysis":
+                  // Never mutates the resume — no updateResumeStates call.
+                  // Deliberately does NOT call onOpenGapDrawer here: the card
+                  // shows a one-line summary + an explicit "Open gap report"
+                  // button (ChatToolResult.tsx) that calls onOpenGapDrawer
+                  // itself — the drawer opens on click, not automatically.
+                  setGapAnalysis(event.args.analysis);
                   break;
                 case "edit":
                 case "tailor":
@@ -488,6 +510,7 @@ export function ChatContextProvider({ children }: { children: ReactNode }) {
         providerError,
         retryProviderInit,
         atsAnalysis,
+        gapAnalysis,
         defaultView,
         setInput,
         handleSend,
@@ -496,6 +519,7 @@ export function ChatContextProvider({ children }: { children: ReactNode }) {
         setDefaultView,
         fixMissingKeywords,
         fixAllAtsIssues,
+        onOpenGapDrawer,
       }}
     >
       {children}

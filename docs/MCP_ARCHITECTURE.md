@@ -67,16 +67,16 @@ graph TD
 annotations (native to `@modelcontextprotocol/sdk`) tell a host which calls
 are safe to retry or skip confirming.
 
-| Tool               | Read-only?      | Purpose                                                                              |
-| ------------------ | --------------- | ------------------------------------------------------------------------------------ |
-| `list_flows`       | ✅              | Static catalog of every flow and its purpose order                                   |
-| `get_prompt`       | ✅              | Resolve a purpose's `systemPrompt`/`userPrompt`/`outputSchema`                       |
-| `submit`           | ❌              | Validate → guard → persist a result; returns `nextPrompt` inline                     |
-| `apply_resume_ops` | ❌ (idempotent) | Apply JSON-Patch-style ops to a job's resume                                         |
-| `list_profiles`    | ✅              | Base profiles, for `generate_cover_letter`'s/bookmark's profile disambiguation       |
-| `list_jobs`        | ✅              | Jobs already tracked in the app                                                      |
+| Tool               | Read-only?      | Purpose                                                                               |
+| ------------------ | --------------- | ------------------------------------------------------------------------------------- |
+| `list_flows`       | ✅              | Static catalog of every flow and its purpose order                                    |
+| `get_prompt`       | ✅              | Resolve a purpose's `systemPrompt`/`userPrompt`/`outputSchema`                        |
+| `submit`           | ❌              | Validate → guard → persist a result; returns `nextPrompt` inline                      |
+| `apply_resume_ops` | ❌ (idempotent) | Apply JSON-Patch-style ops to a job's resume                                          |
+| `list_profiles`    | ✅              | Base profiles, for `generate_cover_letter`'s/bookmark's profile disambiguation        |
+| `list_jobs`        | ✅              | Jobs already tracked in the app                                                       |
 | `fetch_url`        | ✅              | Fetch a job posting URL server-side (SSRF-guarded) when a host's own fetch is blocked |
-| `get_job_state`    | ✅              | A job's details, resume path-lines, ATS score, cover-letter presence                 |
+| `get_job_state`    | ✅              | A job's details, resume path-lines, ATS score, cover-letter presence                  |
 
 There is deliberately no `validate` tool — `submit` already runs the same
 schema check before persisting, so a failed `submit` doubles as the dry
@@ -234,7 +234,7 @@ flowchart LR
     S -->|"new or changed"| Inline["value →<br/>template inlines it in full,<br/>lastSent updated"]
 ```
 
-## 7. The other six flows
+## 7. The other seven flows
 
 `add_job` and `bookmark` are the only flows with no `jobId` at the start.
 Every other flow passes an existing job's `jobId`, so `hydrateContext` reads
@@ -273,6 +273,11 @@ graph TD
 
     subgraph cover_letter["cover_letter"]
         C1["get_prompt(generate_cover_letter, jobId)"] --> C2["submit(...)"]
+    end
+
+    subgraph gap_analysis["gap_analysis"]
+        G1["get_prompt(analyze_resume_gaps, jobId)<br/>substantive fit vs the JD,<br/>not keyword/format scoring"] --> G2["submit(...)<br/>validate-only, nothing persisted"]
+        G2 --> G3["apply_resume_ops(jobId, ops)<br/>for gaps carrying a resume_fix<br/>(never for missing/seniority gaps)"]
     end
 
     subgraph bookmark["bookmark (no jobId — like add_job's first step,\nbut stops there)"]
@@ -398,7 +403,7 @@ classDiagram
 
 | File             | Responsibility                                                                                                     |
 | ---------------- | ------------------------------------------------------------------------------------------------------------------ |
-| `server.ts`      | All 8 tool handlers, `McpDeps`, `hydrateContext`, `submitTool`, `buildServer()` — the bulk of the logic           |
+| `server.ts`      | All 8 tool handlers, `McpDeps`, `hydrateContext`, `submitTool`, `buildServer()` — the bulk of the logic            |
 | `draft.ts`       | In-memory `add_job` scratch state + the `lastSent` fingerprint dedup                                               |
 | `flows.ts`       | `FLOW_CATALOG` (data, mirrors §7's diagram) + `nextPurposeFor()`                                                   |
 | `guards.ts`      | Post-Zod safety checks (`guardTailoredResume`, `guardProofreadResult`) applied inside `submit`, before persistence |

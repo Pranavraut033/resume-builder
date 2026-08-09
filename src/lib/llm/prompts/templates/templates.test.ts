@@ -204,6 +204,7 @@ const TEMPLATE_BACKED_PURPOSES: PromptPurpose[] = [
   "extract_fields_to_edit",
   "fix_ats_issues",
   "proofread_resume",
+  "analyze_resume_gaps",
 ];
 
 describe("prompt templates resolve cleanly", () => {

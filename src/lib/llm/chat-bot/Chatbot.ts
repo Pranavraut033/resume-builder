@@ -6,6 +6,7 @@ import logger from "@/lib/logger";
 import { applyProofreadFixes } from "@/lib/proofread/applyFixes";
 import { applyResumeOps, ResumeOp } from "@/lib/resume/editor";
 import { useModelStore } from "@/store/modelStore";
+import { GapAnalysisJSON } from "@/types/gapAnalysis";
 import { HumanizerJSON } from "@/types/humanizer";
 import {
   ProviderType,
@@ -65,6 +66,7 @@ const INTENT_STATUS_TEXT: Record<IntentLabel, string> = {
   [IntentLabel.Tailor]: "Tailoring to the job…",
   [IntentLabel.Ats]: "Analyzing ATS compatibility…",
   [IntentLabel.FixAts]: "Applying ATS fixes…",
+  [IntentLabel.GapAnalysis]: "Analyzing your fit for this role…",
   [IntentLabel.Proofread]: "Proofreading your resume…",
   [IntentLabel.Interview]: "Preparing interview prep…",
   [IntentLabel.Question]: "Answering…",
@@ -83,6 +85,13 @@ export type ChatStreamEvent =
       type: "tool_result";
       intent: IntentLabel.Ats;
       args: { atsAnalysis: ATSAnalysisJSON; usage: LLMUsageInfo };
+    }
+  | {
+      type: "tool_result";
+      // Never mutates the resume — kept out of the shared
+      // "regenerate" | "tailor" | "edit" | "fix_ats" branch above on purpose.
+      intent: IntentLabel.GapAnalysis;
+      args: { analysis: GapAnalysisJSON; usage: LLMUsageInfo; note: string };
     }
   | {
       type: "tool_result";
@@ -173,6 +182,7 @@ class ResumeChatBot {
     chat: [],
   };
   private atsAnalysis: ATSAnalysisJSON | null = null;
+  private gapAnalysis: GapAnalysisJSON | null = null;
 
   constructor(
     providerType: ProviderType,
@@ -609,6 +619,47 @@ class ResumeChatBot {
           type: "tool_result",
           intent: intent,
           args: { atsAnalysis: result, usage },
+        };
+        yield { type: "done", usage };
+        return;
+      }
+      case "gap_analysis": {
+        logger.info(
+          "ResumeChatBot",
+          `Analyzing resume-vs-JD gaps — intent: ${intent}`
+        );
+
+        yield { type: "status", text: "Analyzing your fit for this role…" };
+
+        const { result, usage } = await domainOps.analyzeResumeGaps(
+          this.provider,
+          {
+            resume: this.resume,
+            jobDetails: this.jobDetails,
+          },
+          this.callOptions(options)
+        );
+
+        this.gapAnalysis = result;
+
+        this.pushToHistory("chat", userMessage, {
+          role: "assistant",
+          content: `[${intent} applied]`,
+        });
+
+        logger.info(
+          "ResumeChatBot",
+          `Gap analysis complete — ${result.gaps.length} gap(s), usage: ${JSON.stringify(usage)}`
+        );
+
+        yield {
+          type: "tool_result",
+          intent: IntentLabel.GapAnalysis,
+          args: {
+            analysis: result,
+            usage,
+            note: result.verdict,
+          },
         };
         yield { type: "done", usage };
         return;

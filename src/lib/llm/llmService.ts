@@ -21,6 +21,7 @@ import { ProviderFactory } from "@/lib/llm/providers/factory";
 import { generateRequestId, trackTokenUsage } from "@/lib/llm/tokenTracker";
 import { createLogger } from "@/lib/logger";
 import { useModelStore } from "@/store/modelStore";
+import { GapAnalysisJSON } from "@/types/gapAnalysis";
 import { HumanizerJSON } from "@/types/humanizer";
 import {
   ProviderType,
@@ -111,6 +112,7 @@ type RequiredKeysByPurpose = {
   extract_fields_to_edit: never;
   fix_ats_issues: "resume" | "jobDetails" | "userInput";
   proofread_resume: "resumeFull";
+  analyze_resume_gaps: "resume" | "jobDetails";
 };
 
 // Helper type to enforce required context fields based on purpose, error here means RequiredKeysByPurpose is not properly defined to match PromptContext keys - this is a compile-time check to ensure our RequiredKeysByPurpose mapping is correct
@@ -263,6 +265,17 @@ class LLMService {
               resumeFull: context.resumeFull!,
               jobDetails: context.jobDetails ?? null,
               baseProfile: context.baseProfile ?? null,
+            },
+            options
+          ));
+          break;
+        }
+        case "analyze_resume_gaps": {
+          ({ result, usage } = await domainOps.analyzeResumeGaps(
+            provider,
+            {
+              resume: context.resume!,
+              jobDetails: context.jobDetails!,
             },
             options
           ));
@@ -443,6 +456,18 @@ class LLMService {
         jobDetails: context.jobDetails ?? null,
         baseProfile: context.baseProfile ?? null,
       },
+      options
+    );
+  }
+
+  static async analyzeResumeGaps(
+    resume: ResumeJSON,
+    jobDetails: JobDetailsJSON,
+    options: LLMServiceOptions
+  ): Promise<LLMResult<GapAnalysisJSON>> {
+    return this.executeCall(
+      "analyze_resume_gaps",
+      { resume, jobDetails },
       options
     );
   }

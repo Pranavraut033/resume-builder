@@ -55,6 +55,7 @@ export const PROMPT_PURPOSES = [
   "extract_fields_to_edit",
   "fix_ats_issues",
   "proofread_resume",
+  "analyze_resume_gaps",
 ] as const;
 
 export type PromptPurpose = (typeof PROMPT_PURPOSES)[number];

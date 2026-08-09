@@ -631,6 +631,121 @@ describe("submitTool — bookmark flow", () => {
   });
 });
 
+describe("submitTool — analyze_resume_gaps", () => {
+  const validGapAnalysis = {
+    fit_level: "stretch",
+    verdict:
+      "Solid backend fundamentals, but no evidence of the Kafka-scale streaming work this role needs. Close the gap with concrete numbers or don't apply at Staff level.",
+    gaps: [
+      {
+        requirement: "5+ years operating Kafka at scale",
+        severity: "major" as const,
+        gap_type: "understated" as const,
+        evidence_in_resume: "Owns the checkout and payments platform.",
+        solution: "Quantify the Kafka throughput/scale you actually owned.",
+        resume_fix: {
+          op: "replace" as const,
+          path: "/experience/0/description",
+          value:
+            "Owns the checkout and payments platform, processing 2M+ Kafka events/day.",
+        },
+      },
+    ],
+    strengths: [
+      {
+        requirement: "Backend ownership",
+        evidence: "Owns the checkout and payments platform.",
+      },
+    ],
+  };
+
+  it("returns { ok: true, next: null } for a schema-valid result, with nothing persisted", async () => {
+    const deps = makeDeps();
+
+    const result = await submitTool(deps, {
+      purpose: "analyze_resume_gaps",
+      result: validGapAnalysis,
+    });
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) throw new Error("unreachable");
+    expect(result.next).toBeNull();
+    expect(deps.updateResume).not.toHaveBeenCalled();
+    expect(deps.saveAtsAnalysis).not.toHaveBeenCalled();
+  });
+
+  it("returns { ok: false, errors } when strengths is empty (violates .min(1))", async () => {
+    const deps = makeDeps();
+
+    const result = await submitTool(deps, {
+      purpose: "analyze_resume_gaps",
+      result: { ...validGapAnalysis, strengths: [] },
+    });
+
+    expect(result.ok).toBe(false);
+    if (result.ok) throw new Error("unreachable");
+    expect(result.errors.length).toBeGreaterThan(0);
+  });
+
+  it("returns { ok: false } when a 'missing' gap carries a non-null resume_fix (superRefine)", async () => {
+    const deps = makeDeps();
+
+    const invalid = {
+      ...validGapAnalysis,
+      gaps: [
+        {
+          requirement: "5+ years operating Kafka at scale",
+          severity: "major" as const,
+          gap_type: "missing" as const,
+          evidence_in_resume: null,
+          solution: "Get hands-on Kafka experience before applying.",
+          resume_fix: {
+            op: "replace" as const,
+            path: "/experience/0/description",
+            value: "Ran Kafka clusters at massive scale.",
+          },
+        },
+      ],
+    };
+
+    const result = await submitTool(deps, {
+      purpose: "analyze_resume_gaps",
+      result: invalid,
+    });
+
+    expect(result.ok).toBe(false);
+  });
+
+  it("returns { ok: false } when a 'seniority' gap carries a non-null resume_fix (superRefine)", async () => {
+    const deps = makeDeps();
+
+    const invalid = {
+      ...validGapAnalysis,
+      gaps: [
+        {
+          requirement: "Staff-level cross-team architecture ownership",
+          severity: "blocking" as const,
+          gap_type: "seniority" as const,
+          evidence_in_resume: "Owns the checkout and payments platform.",
+          solution: "This is a seniority gap, not fixable by rewording.",
+          resume_fix: {
+            op: "replace" as const,
+            path: "/header/headline",
+            value: "Staff Backend Engineer",
+          },
+        },
+      ],
+    };
+
+    const result = await submitTool(deps, {
+      purpose: "analyze_resume_gaps",
+      result: invalid,
+    });
+
+    expect(result.ok).toBe(false);
+  });
+});
+
 describe("submitTool — nextPrompt", () => {
   it("includes nextPrompt only when next is non-null", async () => {
     const deps = makeDeps();

@@ -1,5 +1,8 @@
 import { Icon } from "@/components/ui/Icon";
+import { IntentLabel } from "@/lib/llm/chat-bot/prompts/intentClassifier";
+import { GapAnalysisJSON } from "@/types/gapAnalysis";
 
+import { useChatContext } from "./ChatContext";
 import { getToolResultMeta, ToolIntent } from "./types";
 
 interface ChatToolResultProps {
@@ -10,6 +13,9 @@ interface ChatToolResultProps {
 
 export function ChatToolResult({ intent, args, content }: ChatToolResultProps) {
   const { heading, icon } = getToolResultMeta(intent, args);
+  // Silent — this component also renders outside a provider-backed tree in
+  // some previews; onOpenGapDrawer is simply unavailable there.
+  const chatContext = useChatContext(true);
 
   return (
     <div className="space-y-3">
@@ -33,9 +39,46 @@ export function ChatToolResult({ intent, args, content }: ChatToolResultProps) {
                 {content}
               </p>
             )}
+            {intent === IntentLabel.GapAnalysis && (
+              <GapAnalysisSummary
+                analysis={args.analysis as GapAnalysisJSON}
+                onOpenGapDrawer={chatContext?.onOpenGapDrawer}
+              />
+            )}
           </div>
         </div>
       </div>
+    </div>
+  );
+}
+
+// One-line fit summary + a button that opens the full gap report — the
+// drawer (cluster 3's GapDrawer.tsx) owns the full gap list, evidence, and
+// apply flow, so this stays deliberately thin: no inline gap list, no apply
+// button here.
+function GapAnalysisSummary({
+  analysis,
+  onOpenGapDrawer,
+}: {
+  analysis: GapAnalysisJSON;
+  onOpenGapDrawer?: () => void;
+}) {
+  if (!analysis) return null;
+
+  return (
+    <div className="mt-2 flex flex-wrap items-center gap-2">
+      <span className="bg-agent-tertiary-container text-agent-on-tertiary-container rounded-full px-2 py-0.5 text-[11px] font-semibold tracking-wide capitalize">
+        {analysis.fit_level}
+      </span>
+      {onOpenGapDrawer && (
+        <button
+          type="button"
+          onClick={onOpenGapDrawer}
+          className="text-agent-primary hover:text-agent-primary/80 text-xs font-medium underline-offset-2 hover:underline"
+        >
+          Open gap report
+        </button>
+      )}
     </div>
   );
 }

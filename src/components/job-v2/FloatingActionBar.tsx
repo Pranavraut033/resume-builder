@@ -1,10 +1,37 @@
 "use client";
 
+import { useEffect, useRef, useState } from "react";
+
 import { Icon } from "@/components/ui/Icon";
 import { useJobPageContext } from "@/contexts/JobPageContext";
+import { useEscapeKey } from "@/hooks/useEscapeKey";
 import cn from "@/lib/cn";
 
 import { TemplatePicker } from "./TemplatePicker";
+
+/** The seven mutually-exclusive canvas-overlay drawers. `null` means none open. */
+export type DrawerName =
+  | "ats"
+  | "humanizer"
+  | "proofread"
+  | "gaps"
+  | "history"
+  | "outline"
+  | "customization"
+  | null;
+
+interface OverflowItem {
+  name: Exclude<DrawerName, null>;
+  label: string;
+  icon: string;
+}
+
+const OVERFLOW_ITEMS: OverflowItem[] = [
+  { name: "outline", label: "Sections", icon: "panelLeftClose" },
+  { name: "history", label: "History", icon: "history" },
+  { name: "proofread", label: "Proofread", icon: "spellCheck" },
+  { name: "gaps", label: "Gap analysis", icon: "target" },
+];
 
 interface FloatingActionBarProps {
   hidden: boolean;
@@ -14,20 +41,15 @@ interface FloatingActionBarProps {
     redoLabel: string | null;
     undoLabel: string | null;
   };
-  isCustomizationOpen: boolean;
-  onToggleCustomization: () => void;
-  isAtsOpen: boolean;
-  onToggleAts: () => void;
+  /** Which of the seven canvas drawers is currently open, if any. */
+  activeDrawer: DrawerName;
+  /** Opens `name`, or closes everything when passed `null` (e.g. from the
+   * overflow menu's own outside-click). Toggling an already-open drawer is
+   * the caller's job — every inline/overflow button here always calls this
+   * with the drawer it represents. */
+  onOpenDrawer: (name: DrawerName) => void;
   isChatOpen: boolean;
   onToggleChat: () => void;
-  isOutlineOpen: boolean;
-  onToggleOutline: () => void;
-  isHistoryOpen: boolean;
-  onToggleHistory: () => void;
-  isHumanizerOpen: boolean;
-  onToggleHumanizer: () => void;
-  isProofreadOpen: boolean;
-  onToggleProofread: () => void;
 }
 
 /**
@@ -35,30 +57,20 @@ interface FloatingActionBarProps {
  * the V2 WYSIWYG canvas. Hides on scroll down and reappears on scroll up
  * (see `hidden` prop, driven by useHideOnScroll in the parent).
  *
- * Layout: Export PDF | Download JSON | Undo | Redo | Customize ▾ | Template ▾ | ATS | Humanize | Proofread | Chat 💬
+ * Inline (high-value, resume-only items hidden while editing the cover
+ * letter): Export PDF | Undo | Redo | Customize ▾ | Template ▾ | ATS |
+ * Humanize | Chat.
  *
- * Customize / ATS / Chat are controlled toggles (overlays managed by the parent).
- * Template is a self-contained popover (TemplatePicker).
- * Undo/Redo/History/Sections/ATS/Humanize/Proofread only apply to the resume,
- * so they're hidden while editing the cover letter.
+ * Overflow `⋯` menu (lower-frequency actions): Sections | History |
+ * Proofread | Gap analysis | Download JSON.
  */
 export function FloatingActionBar({
   hidden,
   historyState,
-  isCustomizationOpen,
-  onToggleCustomization,
-  isAtsOpen,
-  onToggleAts,
+  activeDrawer,
+  onOpenDrawer,
   isChatOpen,
   onToggleChat,
-  isOutlineOpen,
-  onToggleOutline,
-  isHistoryOpen,
-  onToggleHistory,
-  isHumanizerOpen,
-  onToggleHumanizer,
-  isProofreadOpen,
-  onToggleProofread,
 }: FloatingActionBarProps) {
   const {
     contentType,
@@ -69,6 +81,29 @@ export function FloatingActionBar({
     undoResume,
   } = useJobPageContext();
   const isResume = contentType === "resume";
+
+  const [isOverflowOpen, setIsOverflowOpen] = useState(false);
+  const overflowRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!isOverflowOpen) return;
+    const handler = (e: MouseEvent) => {
+      if (
+        overflowRef.current &&
+        !overflowRef.current.contains(e.target as Node)
+      ) {
+        setIsOverflowOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [isOverflowOpen]);
+
+  useEscapeKey(isOverflowOpen, () => setIsOverflowOpen(false));
+
+  const isOverflowItemActive = OVERFLOW_ITEMS.some(
+    ({ name }) => name === activeDrawer
+  );
 
   return (
     <div
@@ -92,16 +127,6 @@ export function FloatingActionBar({
           <span className="hidden sm:inline">PDF</span>
         </button>
 
-        {/* Download JSON */}
-        <button
-          onClick={onJSONExport}
-          className="text-agent-on-surface-variant hover:bg-agent-surface-container hover:text-agent-on-surface flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition-all"
-          title="Download resume JSON"
-        >
-          <Icon name="braces" className="h-3.5 w-3.5" />
-          <span className="hidden sm:inline">JSON</span>
-        </button>
-
         {isResume && (
           <>
             <span className="bg-agent-outline-variant mx-0.5 h-5 w-px" />
@@ -123,20 +148,6 @@ export function FloatingActionBar({
             >
               <Icon name="redo" className="h-3.5 w-3.5" />
             </button>
-
-            {/* History */}
-            <button
-              onClick={onToggleHistory}
-              className={cn(
-                "flex h-7 w-7 items-center justify-center rounded-full transition-all",
-                isHistoryOpen
-                  ? "bg-agent-primary text-agent-on-primary"
-                  : "text-agent-on-surface-variant hover:bg-agent-surface-container hover:text-agent-on-surface"
-              )}
-              title="Version history"
-            >
-              <Icon name="history" className="h-3.5 w-3.5" />
-            </button>
           </>
         )}
 
@@ -144,10 +155,14 @@ export function FloatingActionBar({
 
         {/* Customize */}
         <button
-          onClick={onToggleCustomization}
+          onClick={() =>
+            onOpenDrawer(
+              activeDrawer === "customization" ? null : "customization"
+            )
+          }
           className={cn(
             "flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition-all",
-            isCustomizationOpen
+            activeDrawer === "customization"
               ? "bg-agent-primary text-agent-on-primary"
               : "text-agent-on-surface-variant hover:bg-agent-surface-container hover:text-agent-on-surface"
           )}
@@ -162,27 +177,14 @@ export function FloatingActionBar({
 
         {isResume && (
           <>
-            {/* Sections outline */}
-            <button
-              onClick={onToggleOutline}
-              className={cn(
-                "flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition-all",
-                isOutlineOpen
-                  ? "bg-agent-primary text-agent-on-primary"
-                  : "text-agent-on-surface-variant hover:bg-agent-surface-container hover:text-agent-on-surface"
-              )}
-              title="Reorder, hide, or add sections"
-            >
-              <Icon name="panelLeftClose" className="h-3.5 w-3.5" />
-              <span className="hidden md:inline">Sections</span>
-            </button>
-
             {/* ATS */}
             <button
-              onClick={onToggleAts}
+              onClick={() =>
+                onOpenDrawer(activeDrawer === "ats" ? null : "ats")
+              }
               className={cn(
                 "flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition-all",
-                isAtsOpen
+                activeDrawer === "ats"
                   ? "bg-agent-primary text-agent-on-primary"
                   : "text-agent-on-surface-variant hover:bg-agent-surface-container hover:text-agent-on-surface"
               )}
@@ -194,10 +196,12 @@ export function FloatingActionBar({
 
             {/* Humanize */}
             <button
-              onClick={onToggleHumanizer}
+              onClick={() =>
+                onOpenDrawer(activeDrawer === "humanizer" ? null : "humanizer")
+              }
               className={cn(
                 "flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition-all",
-                isHumanizerOpen
+                activeDrawer === "humanizer"
                   ? "bg-agent-primary text-agent-on-primary"
                   : "text-agent-on-surface-variant hover:bg-agent-surface-container hover:text-agent-on-surface"
               )}
@@ -205,21 +209,6 @@ export function FloatingActionBar({
             >
               <Icon name="wand" className="h-3.5 w-3.5" />
               <span className="hidden md:inline">Humanize</span>
-            </button>
-
-            {/* Proofread */}
-            <button
-              onClick={onToggleProofread}
-              className={cn(
-                "flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition-all",
-                isProofreadOpen
-                  ? "bg-agent-primary text-agent-on-primary"
-                  : "text-agent-on-surface-variant hover:bg-agent-surface-container hover:text-agent-on-surface"
-              )}
-              title="Proofread"
-            >
-              <Icon name="spellCheck" className="h-3.5 w-3.5" />
-              <span className="hidden md:inline">Proofread</span>
             </button>
           </>
         )}
@@ -238,6 +227,77 @@ export function FloatingActionBar({
           <Icon name="messageSquare" className="h-3.5 w-3.5" />
           <span className="hidden md:inline">Chat</span>
         </button>
+
+        {isResume && (
+          <>
+            <span className="bg-agent-outline-variant mx-0.5 h-5 w-px" />
+
+            {/* Overflow — Sections, History, Proofread, Gap analysis, Download JSON */}
+            <div ref={overflowRef} className="relative">
+              <button
+                onClick={() => setIsOverflowOpen((o) => !o)}
+                className={cn(
+                  "flex h-7 w-7 items-center justify-center rounded-full transition-all",
+                  isOverflowOpen || isOverflowItemActive
+                    ? "bg-agent-primary text-agent-on-primary"
+                    : "text-agent-on-surface-variant hover:bg-agent-surface-container hover:text-agent-on-surface"
+                )}
+                title="More actions"
+                aria-label="More actions"
+                aria-expanded={isOverflowOpen}
+              >
+                <Icon name="moreHorizontal" className="h-3.5 w-3.5" />
+              </button>
+
+              {isOverflowOpen && (
+                <div
+                  className={cn(
+                    "absolute top-full right-0 z-50 mt-1.5 w-52",
+                    "border-agent-outline-variant bg-agent-surface-lowest shadow-agent-modal rounded-xl border",
+                    "animate-in fade-in slide-in-from-top-1 duration-150"
+                  )}
+                >
+                  <div className="flex flex-col gap-0.5 p-1.5">
+                    {OVERFLOW_ITEMS.map(({ name, label, icon }) => {
+                      const isActive = activeDrawer === name;
+                      return (
+                        <button
+                          key={name}
+                          onClick={() => {
+                            onOpenDrawer(isActive ? null : name);
+                            setIsOverflowOpen(false);
+                          }}
+                          className={cn(
+                            "flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left text-xs font-medium transition-all",
+                            isActive
+                              ? "bg-agent-primary-container text-agent-on-primary-container"
+                              : "hover:bg-agent-surface-container text-agent-on-surface-variant hover:text-agent-on-surface"
+                          )}
+                        >
+                          <Icon name={icon} className="h-3.5 w-3.5 shrink-0" />
+                          {label}
+                        </button>
+                      );
+                    })}
+
+                    <span className="bg-agent-outline-variant my-0.5 h-px" />
+
+                    <button
+                      onClick={() => {
+                        onJSONExport();
+                        setIsOverflowOpen(false);
+                      }}
+                      className="hover:bg-agent-surface-container text-agent-on-surface-variant hover:text-agent-on-surface flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left text-xs font-medium transition-all"
+                    >
+                      <Icon name="braces" className="h-3.5 w-3.5 shrink-0" />
+                      Download JSON
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          </>
+        )}
       </div>
     </div>
   );

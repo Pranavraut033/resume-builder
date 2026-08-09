@@ -80,6 +80,11 @@ export const INTENT_META: Record<IntentLabel, IntentMeta> = {
     color: "bg-agent-primary",
     onColor: "text-agent-on-primary",
   },
+  gap_analysis: {
+    label: "gap analysis",
+    color: "bg-agent-secondary-container",
+    onColor: "text-agent-on-secondary-container",
+  },
   proofread: {
     label: "proofreading resume",
     color: "bg-agent-secondary-container",
@@ -130,6 +135,21 @@ export function getToolResultMeta(
       return { heading: "ATS advice", icon: "cpu" };
     case IntentLabel.FixAts:
       return { heading: "ATS issues fixed", icon: "cpu" };
+    case IntentLabel.GapAnalysis: {
+      const analysis = args.analysis as
+        | { gaps?: { severity?: string }[] }
+        | undefined;
+      const gaps = Array.isArray(analysis?.gaps) ? analysis.gaps : [];
+      const blocking = gaps.filter((g) => g.severity === "blocking").length;
+      const major = gaps.filter((g) => g.severity === "major").length;
+
+      const heading =
+        gaps.length === 0
+          ? "No fit gaps found"
+          : `${gaps.length} gap(s) found — ${blocking} blocking, ${major} major`;
+
+      return { heading, icon: "gauge" };
+    }
     case IntentLabel.Proofread: {
       const issues = Array.isArray(args.issues)
         ? (args.issues as { severity?: string }[])

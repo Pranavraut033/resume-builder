@@ -1,7 +1,8 @@
 # MCP server
 
 This app can expose its resume-building flows — job parsing, tailoring, ATS
-analysis, cover letter generation, editing, proofreading, humanizing — as
+analysis, gap analysis, cover letter generation, editing, proofreading,
+humanizing — as
 [Model Context Protocol](https://modelcontextprotocol.io) tools, so you can
 drive them from Claude Desktop (or any other MCP-capable host) instead of the
 in-app chat. The server hands out this app's own prompts and validates/
@@ -42,6 +43,14 @@ submit `parse_job`'s result with `input: { url, bookmark: true }`: it creates
 a `BOOKMARKED` job immediately and stops (`next: null`), one LLM call per
 URL. Re-submitting a URL that's already bookmarked returns the existing job
 (`duplicate: true`) instead of creating a second one.
+
+The `gap_analysis` flow (`analyze_resume_gaps`) is deliberately not a
+keyword/format scorer like `ats_fix` — it reads an existing job's tailored
+resume against the JD the way a hiring manager would: missing experience,
+seniority shortfalls, domain mismatch, each with a concrete solution and
+always closing with evidence-based strengths. Nothing is persisted
+server-side; apply any gap that carries a `resume_fix` with
+`apply_resume_ops` yourself.
 
 ## Setup
 

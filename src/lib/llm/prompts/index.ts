@@ -38,6 +38,7 @@ import "./templates/resume-tailoring";
 import "./templates/cover-letter";
 import "./templates/humanizer";
 import "./templates/proofread";
+import "./templates/gap-analysis";
 
 // Re-export registry instance
 export { templateRegistry } from "./registry";
@@ -150,6 +151,7 @@ export class PromptSystem {
     extract_fields_to_edit: "Extract Fields to Edit",
     fix_ats_issues: "ATS Fix Mapping",
     proofread_resume: "Proofread Resume",
+    analyze_resume_gaps: "Gap Analysis",
   };
 
   /**

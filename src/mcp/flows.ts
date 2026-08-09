@@ -67,6 +67,12 @@ export const FLOW_CATALOG: McpFlow[] = [
       "Save a job posting URL for later without generating anything — fetch_url, parse it, then submit parse_job with input.bookmark: true to create a BOOKMARKED job. One LLM call per URL.",
     purposes: ["parse_job"],
   },
+  {
+    name: "gap_analysis",
+    description:
+      "Blunt, substantive resume-vs-JD fit assessment for an existing job's tailored resume — missing experience, seniority, and domain gaps a keyword scorer can't see, each with a concrete solution, always closing with evidence-based strengths. Apply any gaps that carry a resume_fix with apply_resume_ops.",
+    purposes: ["analyze_resume_gaps"],
+  },
 ];
 
 /**
@@ -94,6 +100,7 @@ export function nextPurposeFor(
     case "proofread_resume":
     case "fix_ats_issues":
     case "humanize_content":
+    case "analyze_resume_gaps":
       return null;
     // Base-profile builder purposes and generate_text are never exposed via
     // MCP (see server.ts's MCP_PURPOSES allowlist) — no flow reaches them.

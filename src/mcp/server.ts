@@ -40,6 +40,7 @@ import { EditFieldOutputSchema } from "@/lib/llm/chat-bot/prompts/extractFieldsT
 import { AtsFixMappingSchema } from "@/lib/llm/chat-bot/prompts/keywordMappingPrompt";
 import { PromptContext, PromptPurpose, PromptSystem } from "@/lib/llm/prompts";
 import { applyResumeOps, resumePathLines, ResumeOp } from "@/lib/resume/editor";
+import { GapAnalysisSchema } from "@/types/gapAnalysis";
 import { HumanizerSchema } from "@/types/humanizer";
 import { ProofreadJSON, ProofreadSchema } from "@/types/proofread";
 import {
@@ -109,6 +110,7 @@ export const MCP_PURPOSES = [
   "extract_fields_to_edit",
   "fix_ats_issues",
   "proofread_resume",
+  "analyze_resume_gaps",
 ] as const;
 
 export type McpPurpose = (typeof MCP_PURPOSES)[number];
@@ -127,6 +129,7 @@ const RESULT_SCHEMAS: Record<
   extract_fields_to_edit: EditFieldOutputSchema,
   fix_ats_issues: AtsFixMappingSchema,
   proofread_resume: ProofreadSchema,
+  analyze_resume_gaps: GapAnalysisSchema,
 };
 
 function schemaFor(purpose: McpPurpose): z.ZodTypeAny {
@@ -369,6 +372,15 @@ async function hydrateContext(
         resumeRow,
       };
     }
+
+    case "analyze_resume_gaps":
+      return {
+        context: {
+          resume: input.resume ?? resumeRow?.contentJson ?? null,
+          jobDetails: input.jobDetails ?? job?.details ?? null,
+        },
+        resumeRow,
+      };
   }
 }
 
@@ -796,9 +808,11 @@ export async function submitTool(
       case "extract_fields_to_edit":
       case "fix_ats_issues":
       case "humanize_content":
+      case "analyze_resume_gaps":
         // Validate-only — the caller applies the result itself via
-        // apply_resume_ops (edit ops / ATS fix ops) or a follow-up submit
-        // (humanized cover-letter text), never a direct DB write here.
+        // apply_resume_ops (edit ops / ATS fix ops / gap resume_fix ops) or a
+        // follow-up submit (humanized cover-letter text), never a direct DB
+        // write here.
         return withNextPrompt({ ok: true, jobId: jobId ?? null, next: next() });
 
       case "proofread_resume": {
@@ -951,7 +965,7 @@ export function buildServer(deps: McpDeps = defaultDeps): McpServer {
     {
       title: "List flows",
       description:
-        "List every flow (add_job, edit, proofread, ats_fix, humanize, cover_letter, bookmark) and the ordered purposes each one walks through get_prompt/submit.",
+        "List every flow (add_job, edit, proofread, ats_fix, humanize, cover_letter, bookmark, gap_analysis) and the ordered purposes each one walks through get_prompt/submit.",
       annotations: readOnly,
     },
     async () => toToolResult(listFlowsTool())

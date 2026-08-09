@@ -12,6 +12,11 @@ import { LLMProvider } from "@pranavraut033/llm-core";
 
 import { PromptSystem, ResolvedPrompt } from "@/lib/llm/prompts";
 import { lintResume } from "@/lib/proofread/lint";
+import {
+  GapAnalysisJSON,
+  GapAnalysisPromptInput,
+  GapAnalysisSchema,
+} from "@/types/gapAnalysis";
 import { HumanizerSchema } from "@/types/humanizer";
 import {
   ResumePromptInput,
@@ -117,6 +122,21 @@ export function analyzeATS(
     options,
     ATSAnalysisSchema,
     "ATSAnalysisSchema"
+  );
+}
+
+export function analyzeResumeGaps(
+  provider: LLMProvider,
+  input: GapAnalysisPromptInput,
+  options: LLMGenerationOptions
+): Promise<LLMResult<GapAnalysisJSON>> {
+  const prompt = PromptSystem.generatePrompt("analyze_resume_gaps", input);
+
+  return provider.runStructuredLLM(
+    prompt,
+    options,
+    GapAnalysisSchema,
+    "GapAnalysisSchema"
   );
 }
 

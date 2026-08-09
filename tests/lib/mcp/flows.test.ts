@@ -35,6 +35,10 @@ describe("nextPurposeFor", () => {
     expect(nextPurposeFor("fix_ats_issues")).toBeNull();
     expect(nextPurposeFor("humanize_content")).toBeNull();
   });
+
+  it("terminates analyze_resume_gaps (apply is a separate apply_resume_ops call)", () => {
+    expect(nextPurposeFor("analyze_resume_gaps")).toBeNull();
+  });
 });
 
 describe("FLOW_CATALOG", () => {
@@ -48,6 +52,7 @@ describe("FLOW_CATALOG", () => {
       "humanize",
       "cover_letter",
       "bookmark",
+      "gap_analysis",
     ]);
   });
 
