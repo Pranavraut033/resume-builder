@@ -88,9 +88,15 @@ Section content (order, visibility, custom sections) is resolved once via `build
 
 `src/app/job/[jobId]/` + `src/components/job-v2/` — the Inline Editor: WYSIWYG inline editing directly on the rendered document (`InlineJobPageLayout.tsx`, `DocumentCanvas.tsx` with zoom controls, `resume/InlineField.tsx`, `InlineEditContext.tsx`, `ChatOverlay.tsx`, `CustomizationDrawer.tsx`, `TemplatePicker.tsx`, `HistoryDrawer.tsx` for resume version history, `HumanizerModal.tsx` for AI humanizing, `ProofreadDrawer.tsx` for reviewing/applying LLM-judged proofread issues (deterministic lint fixes are auto-applied), `CoverLetterActionBar.tsx` for cover-letter regeneration with selectable tone/style presets from `src/lib/llm/prompts/coverLetterStyles.ts`). The chat assistant (`src/lib/llm/chat-bot/`) supports intents including resume tailoring, cover letter generation, humanize, proofread, fix-all-ATS-issues, and undo. This is now the only job detail page implementation — the earlier drag-and-drop editor and its standalone `/inline` route were removed. `src/app/documents/` lists all generated resumes/cover letters with version history across jobs.
 
+### Bookmarks & notifications
+
+- `/bookmarks` (`src/app/bookmarks/page.tsx`) — save a job URL for later without generating a resume yet. Pasted URLs are parsed in the background via `src/store/bookmarkQueueStore.ts`, a Zustand queue capped at 5 concurrent parses (`fetchJobDescriptionFromUrl()` → `LLMService.parseJob()` → `createJob({ status: "BOOKMARKED" })`) so pasting several URLs doesn't block the UI; a failed item stays queryable with a retry action instead of stalling the rest. A bookmark is just a `Job` row with `status: "BOOKMARKED"` (`src/types/job.ts`'s `JOB_STATUSES`) — no separate table. "Start tracking" routes to `/job/new?bookmark=<id>`.
+- `/job/new` (`src/app/job/new/page.tsx`) in bookmark mode skips the parse step (job details are already persisted) and finishes by calling `attachGeneratedMaterials()` (`src/lib/db/job.ts`/`src/actions/job.ts`) instead of `createJob()`, attaching the tailored resume/cover letter/ATS analysis to the existing row and flipping its status to `"DRAFT"`.
+- Background task progress surfaces through `src/store/notificationStore.ts`, a headless Zustand store (`notify`/`update`/`dismiss`/`remove`/`markRead`/`clear`) with two independent views reading from it: `src/components/ui/ToastProvider.tsx` (transient toasts; `useToast()`/`pushToast()` API unchanged) and `src/components/notifications/NotificationBell.tsx` (persistent history popover in the sidebar, with unread count and "Clear all").
+
 ### MCP server
 
-`src/mcp/` exposes this app's resume flows (job parsing, tailoring, ATS analysis, cover letter generation, editing, proofreading, humanizing) as [Model Context Protocol](https://modelcontextprotocol.io) tools, so an external chat host (Claude Desktop, etc.) can drive them on the user's own subscription instead of a configured provider API key. It's purely additive and opt-in (off by default, toggled in Settings) — `Chatbot.ts` and the in-app chat are untouched. The server only reads/writes the same local SQLite database the app already uses and reuses the app's own prompt registry/validation/persistence layer; it never calls an LLM itself and never touches API keys. See `docs/MCP.md` for setup/security details, `docs/MCP_ARCHITECTURE.md` for how the server itself is built (diagrams of the tool surface, request lifecycle, and the `add_job` draft state machine), and `skills/resume-mcp/SKILL.md` for the tool-driving runbook.
+`src/mcp/` exposes this app's resume flows (job parsing, tailoring, ATS analysis, cover letter generation, editing, proofreading, humanizing) as [Model Context Protocol](https://modelcontextprotocol.io) tools, so an external chat host (Claude Desktop, etc.) can drive them on the user's own subscription instead of a configured provider API key. It's purely additive and opt-in (off by default, toggled in Settings) — `Chatbot.ts` and the in-app chat are untouched. The server only reads/writes the same local SQLite database the app already uses and reuses the app's own prompt registry/validation/persistence layer; it never calls an LLM itself and never touches API keys. See `docs/MCP.md` for setup/security details, `docs/MCP_ARCHITECTURE.md` for how the server itself is built (diagrams of the tool surface, request lifecycle, and the `add_job` draft state machine), and `skills/resume-mcp/SKILL.md` for the tool-driving runbook. A `bookmark` flow mirrors the in-app `/bookmarks` page: `submit`'s `parse_job` step takes `input.bookmark: true` (with `input.url`) to persist a `BOOKMARKED` job immediately instead of continuing the `add_job` chain, deduping on URL via `findJobByUrl`.
 
 ### External links
 
@@ -104,6 +110,7 @@ Section content (order, visibility, custom sections) is resolved once via `build
 
 - `src/contexts/` — React context (`JobPageContext`, `ThemeContext`).
 - `src/store/modelStore.ts` — Zustand store for selected LLM model/provider, plus per-model reasoning-effort/temperature/top-p preferences.
+- `src/store/notificationStore.ts` / `src/store/bookmarkQueueStore.ts` — Zustand stores for the notification system and background bookmark-parsing queue (see "Bookmarks & notifications" above).
 - TanStack Query (`QueryClientProvider` in `src/components/AppShell.tsx`) wraps Server Action calls — `useQuery`/`useMutation` for data fetching/mutation (e.g. `useProfileQuery.ts`, `useJobPageDataQuery.ts`, `JobPageContext.tsx`), `useReactTable` (`@tanstack/react-table`) for the job/table list views (`ui/Table.tsx`, `JobTableClient.tsx`).
 
 ### Styling
@@ -128,4 +135,11 @@ On every launch, `sync_database_schema` (`src-tauri/src/lib.rs`) runs `migrate-a
 - `tailwind-ui-designer` (`.claude/skills/tailwind-ui-designer/SKILL.md`) — invoke whenever the user asks to build, restyle, or improve UI. Enforces the Tailwind v4 styling constraints above and follows the `frontend-design` skill.
 - `resume-mcp` (`skills/resume-mcp/SKILL.md`) — for an MCP-connected host (not Claude Code itself) driving this app's resume flows via `src/mcp/`; the step-by-step tool-chain runbook referenced from `docs/MCP.md`.
 
-<!-- last-sync-docs: b369e98d81b131710e72abb2e915379cf7edece5 -->
+## Marketing content
+
+Brand voice, drafted launch copy, and launch planning live outside this public repo, in
+the private sibling repo `../udaan-marketing` (`github.com/Pranavraut033/udaan-marketing`).
+Check there for the voice/tone guide and any social/launch copy work — it's not
+duplicated here.
+
+<!-- last-sync-docs: f971036734349b918eafbe5b174eaf35127772ec -->
