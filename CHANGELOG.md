@@ -2,6 +2,16 @@
 
 All notable changes to this project are documented in this file.
 
+## [1.10.0] - 2026-08-10
+
+### Added
+
+- MCP server gained `get_profile`, `preview_profile_edit`, and `apply_profile_edit` tools so a connected host can read and edit the base Profile; edits preview a diff first and only persist once confirmed ([715853b])
+
+### Fixed
+
+- Corrected formatting in the "ATS screening" and "local-first app" blog articles ([77e633b])
+
 ## [1.9.0] - 2026-08-09
 
 ### Added

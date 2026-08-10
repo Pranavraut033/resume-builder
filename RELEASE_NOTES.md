@@ -1,3 +1,9 @@
+# v1.10.0 — 2026-08-10
+
+MCP-connected chat clients can now read and edit your base profile.
+
+- **Edit your base profile from Claude Desktop (or any MCP-compatible chat client).** New `get_profile`, `preview_profile_edit`, and `apply_profile_edit` tools let a connected host update your profile — always previewing the change first and only saving once you confirm.
+
 # v1.9.0 — 2026-08-09
 
 Bookmarks, gap analysis, and a notification center.
