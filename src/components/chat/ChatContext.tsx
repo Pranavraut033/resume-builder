@@ -314,7 +314,12 @@ export function ChatContextProvider({
         setMessages((prev) =>
           prev.map((m) =>
             m.id === assistantId
-              ? { ...m, needsConfirm: undefined, isStreaming: true, content: "" }
+              ? {
+                  ...m,
+                  needsConfirm: undefined,
+                  isStreaming: true,
+                  content: "",
+                }
               : m
           )
         );

@@ -81,7 +81,7 @@ the server hydrates prompts from the database automatically.
   generated: a single `parse_job` step, persisted immediately. When the user
   hands you one or more URLs to save/bookmark, for each one: `fetch_url` →
   `get_prompt({ purpose: "parse_job" })` → reason → `submit({ purpose:
-  "parse_job", result, input: { url, bookmark: true, profileId? } })`. This
+"parse_job", result, input: { url, bookmark: true, profileId? } })`. This
   submit does **not** return a `nextPrompt` — `next` is `null` on purpose,
   don't chain into `analyze_ats`. Call `list_profiles()` once up front if
   more than one profile exists and reuse that `profileId` for every URL
