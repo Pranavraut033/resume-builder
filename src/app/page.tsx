@@ -9,6 +9,7 @@ import BoltIcon from "@/components/icons/BoltIcon";
 import CalendarIcon from "@/components/icons/CalendarIcon";
 import SendIcon from "@/components/icons/SendIcon";
 import TrendingUpIcon from "@/components/icons/TrendingUpIcon";
+import { Icon } from "@/components/ui/Icon";
 import { useProfileSelection } from "@/hooks/useProfileSelection";
 
 import JobTableClient from "../components/home/JobTableClient";
@@ -59,6 +60,18 @@ export default function Home() {
             <UploadIcon width="15" height="15" />
             Export Report
           </button> */}
+          <Link
+            href="/practice"
+            className="flex items-center gap-2 rounded-xl border px-4 py-2 text-sm font-medium transition-colors hover:opacity-80"
+            style={{
+              borderColor: "var(--color-agent-outline-variant)",
+              color: "var(--color-agent-on-surface-variant)",
+              background: "var(--color-agent-surface-lowest)",
+            }}
+          >
+            <Icon name="mic" className="h-4 w-4" />
+            Practice Interview
+          </Link>
           <Link
             href="/job/new"
             className="flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold transition-opacity hover:opacity-90"

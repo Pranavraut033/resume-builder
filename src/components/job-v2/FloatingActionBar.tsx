@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 
 import { Icon } from "@/components/ui/Icon";
@@ -75,6 +76,7 @@ export function FloatingActionBar({
   const {
     contentType,
     isExportingPdf,
+    job,
     onJSONExport,
     onPDFExport,
     redoResume,
@@ -227,6 +229,16 @@ export function FloatingActionBar({
           <Icon name="messageSquare" className="h-3.5 w-3.5" />
           <span className="hidden md:inline">Chat</span>
         </button>
+
+        {/* Practice mock interview */}
+        <Link
+          href={`/practice?jobId=${job.id}`}
+          className="text-agent-on-surface-variant hover:bg-agent-surface-container hover:text-agent-on-surface flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition-all"
+          title="Practice a mock interview for this job"
+        >
+          <Icon name="mic" className="h-3.5 w-3.5" />
+          <span className="hidden md:inline">Practice</span>
+        </Link>
 
         {isResume && (
           <>

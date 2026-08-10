@@ -119,6 +119,8 @@ model Job {
   profileId Int?     @map("profile_id")
   profile   Profile? @relation(fields: [profileId], references: [id])
 
+  interviewSessions InterviewSession[]
+
   @@map("jobs")
 }
 
@@ -233,4 +235,24 @@ model ATSAnalysis {
 
   jobs   Job?
   resume Resume?
+}
+
+model InterviewSession {
+  id        Int      @id @default(autoincrement())
+  createdAt DateTime @default(now()) @map("created_at")
+
+  transcriptJson String @map("transcript_json") // JSON string containing InterviewTranscriptJSON structure
+  feedbackJson   String @map("feedback_json") // JSON string containing InterviewFeedbackJSON structure
+
+  provider           String
+  model              String
+  voice              String
+  tonePreset         String  @map("tone_preset")
+  customInstructions String? @map("custom_instructions")
+
+  jobId Int @map("job_id")
+  job   Job @relation(fields: [jobId], references: [id], onDelete: Cascade)
+
+  @@index([jobId])
+  @@map("interview_sessions")
 }

@@ -44,7 +44,9 @@ export default function AppShell({ children }: AppShellProps) {
 function AppShellContent({ children }: AppShellProps) {
   const pathname = usePathname();
   const isFullScreenRoute =
-    pathname.startsWith("/job/") || pathname.startsWith("/find-jobs");
+    pathname.startsWith("/job/") ||
+    pathname.startsWith("/find-jobs") ||
+    pathname.startsWith("/practice");
 
   if (isFullScreenRoute) {
     return (
