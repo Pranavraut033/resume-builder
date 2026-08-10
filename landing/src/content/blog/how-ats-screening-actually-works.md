@@ -1,6 +1,6 @@
 ---
 title: "How ATS resume screening actually works — and what it means for your resume"
-description: "How applicant tracking systems actually parse, store, and surface resumes — why \"the ATS rejected me\" usually isn't what happened, and what to do instead."
+description: 'How applicant tracking systems actually parse, store, and surface resumes — why "the ATS rejected me" usually isn''t what happened, and what to do instead.'
 pubDate: 2026-08-11
 tags: ["ats", "guide"]
 draft: true
@@ -62,7 +62,7 @@ mid-sized company, that pile might be a few hundred deep. Nobody reads a few hun
 resumes top to bottom. Instead, a recruiter opens the system and searches — by keyword, by
 title, by school, by years of experience, by whatever filters the tool exposes.
 
-You are not being scored. You are being *searched for*. That's a completely different
+You are not being scored. You are being _searched for_. That's a completely different
 game, and it has one clear implication: the way to win is to be findable using the words
 the person searching would actually type.
 
