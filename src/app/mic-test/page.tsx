@@ -5,7 +5,7 @@
 // mock-interview `/practice` feature uses (see src/lib/voice/, src/components/voice/)
 // so this page and the real feature never diverge.
 
-import { useEffect, useState } from "react";
+import { useState, useSyncExternalStore } from "react";
 
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
@@ -21,6 +21,33 @@ const READ_ALOUD_PROMPT = "I am ready for my interview today.";
 const DEFAULT_KOKORO_VOICE = "af_sky";
 
 type Support = { tts: boolean; stt: boolean; mic: boolean };
+
+/**
+ * Browser capability probe. Read via `useSyncExternalStore` rather than a
+ * mount effect: the values only exist on the client, and setting them from an
+ * effect body triggers a cascading re-render (and trips
+ * `react-hooks/set-state-in-effect`). The snapshot is memoized because
+ * `getSnapshot` must return a referentially stable value.
+ */
+let cachedSupport: Support | null = null;
+
+function getSupportSnapshot(): Support {
+  if (!cachedSupport) {
+    const w = window as unknown as {
+      SpeechRecognition?: unknown;
+      webkitSpeechRecognition?: unknown;
+    };
+    cachedSupport = {
+      tts: "speechSynthesis" in window,
+      stt: !!(w.SpeechRecognition || w.webkitSpeechRecognition),
+      mic: !!navigator.mediaDevices?.getUserMedia,
+    };
+  }
+  return cachedSupport;
+}
+
+/** Capabilities never change over the page's lifetime — nothing to subscribe to. */
+const subscribeToNothing = () => () => {};
 
 function SupportBadge({
   label,
@@ -38,24 +65,16 @@ function SupportBadge({
 }
 
 export default function MicTestPage() {
-  const [support, setSupport] = useState<Support | null>(null);
+  const support = useSyncExternalStore(
+    subscribeToNothing,
+    getSupportSnapshot,
+    () => null
+  );
   const [speaking, setSpeaking] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const kokoro = useKokoroTTS();
   const stt = useSpeechRecognition();
-
-  useEffect(() => {
-    const w = window as unknown as {
-      SpeechRecognition?: unknown;
-      webkitSpeechRecognition?: unknown;
-    };
-    setSupport({
-      tts: "speechSynthesis" in window,
-      stt: !!(w.SpeechRecognition || w.webkitSpeechRecognition),
-      mic: !!navigator.mediaDevices?.getUserMedia,
-    });
-  }, []);
 
   function playSample() {
     setError(null);

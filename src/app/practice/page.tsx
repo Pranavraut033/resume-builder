@@ -3,19 +3,47 @@
 import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useCallback, useState } from "react";
+import { ReactNode, useCallback, useState } from "react";
 
 import { getAllJob } from "@/actions/job";
 import { InterviewDebrief } from "@/components/practice/InterviewDebrief";
 import { InterviewSession } from "@/components/practice/InterviewSession";
 import { InterviewSetup } from "@/components/practice/InterviewSetup";
 import { InterviewSetupChoices } from "@/components/practice/types";
-import { Card, PageHeader } from "@/components/ui";
+import { BackButton, Card, PageHeader } from "@/components/ui";
 import { useJobPageDataQuery } from "@/hooks/useJobPageDataQuery";
 import { useProfileSelection } from "@/hooks/useProfileSelection";
 import { InterviewTranscriptJSON } from "@/types/interview";
 
 type PracticePhase = "setup" | "session" | "debrief";
+
+/**
+ * AppShell treats `/practice` as a full-screen route (no sidebar, no shared
+ * scroll container — see AppShell.tsx's `isFullScreenRoute`), so this page
+ * has to supply its own scrolling and its own back affordance, same as
+ * `/job/new` does.
+ */
+/** Scroll container shared by every phase; `showBack` is off during an active
+ * interview session, where "End interview" (not browser-back) is the
+ * intended way to leave so the transcript gets saved. */
+function PracticeShell({
+  children,
+  showBack = true,
+}: {
+  children: ReactNode;
+  showBack?: boolean;
+}) {
+  return (
+    <div className="flex h-full flex-col overflow-y-auto">
+      {showBack && (
+        <div className="px-8 pt-6">
+          <BackButton />
+        </div>
+      )}
+      {children}
+    </div>
+  );
+}
 
 export default function PracticePage() {
   const searchParams = useSearchParams();
@@ -32,7 +60,11 @@ export default function PracticePage() {
   );
 
   if (!jobId || !Number.isFinite(jobId)) {
-    return <JobPicker onSelect={handleSelectJob} />;
+    return (
+      <PracticeShell>
+        <JobPicker onSelect={handleSelectJob} />
+      </PracticeShell>
+    );
   }
 
   return <PracticeFlow jobId={jobId} />;
@@ -113,34 +145,40 @@ function PracticeFlow({ jobId }: { jobId: number }) {
   // forever.
   if (isError) {
     return (
-      <div className="mx-auto max-w-2xl p-8">
-        <Card
-          padding="lg"
-          className="border-agent-error bg-agent-error-container/20 space-y-2"
-        >
-          <p className="text-agent-error text-sm">
-            {error instanceof Error
-              ? error.message
-              : "Couldn't load this job — it may not have a generated resume yet. Head to the job page first."}
-          </p>
-          <Link
-            href={`/job/${jobId}`}
-            className="text-agent-primary text-sm font-medium underline"
+      <PracticeShell>
+        <div className="mx-auto max-w-2xl p-8">
+          <Card
+            padding="lg"
+            className="border-agent-error bg-agent-error-container/20 space-y-2"
           >
-            Go to job page
-          </Link>
-        </Card>
-      </div>
+            <p className="text-agent-error text-sm">
+              {error instanceof Error
+                ? error.message
+                : "Couldn't load this job — it may not have a generated resume yet. Head to the job page first."}
+            </p>
+            <Link
+              href={`/job/${jobId}`}
+              className="text-agent-primary text-sm font-medium underline"
+            >
+              Go to job page
+            </Link>
+          </Card>
+        </div>
+      </PracticeShell>
     );
   }
 
   if (isLoading || !data) {
     return (
-      <div className="mx-auto max-w-2xl p-8">
-        <Card padding="lg">
-          <p className="text-agent-on-surface-variant text-sm">Loading job…</p>
-        </Card>
-      </div>
+      <PracticeShell>
+        <div className="mx-auto max-w-2xl p-8">
+          <Card padding="lg">
+            <p className="text-agent-on-surface-variant text-sm">
+              Loading job…
+            </p>
+          </Card>
+        </div>
+      </PracticeShell>
     );
   }
 
@@ -148,45 +186,51 @@ function PracticeFlow({ jobId }: { jobId: number }) {
 
   if (phase === "setup") {
     return (
-      <InterviewSetup
-        jobTitle={job.role}
-        companyName={job.company?.name}
-        onStart={(choices) => {
-          setSetupChoices(choices);
-          setTranscript([]);
-          setPhase("session");
-        }}
-      />
+      <PracticeShell>
+        <InterviewSetup
+          jobTitle={job.role}
+          companyName={job.company?.name}
+          onStart={(choices) => {
+            setSetupChoices(choices);
+            setTranscript([]);
+            setPhase("session");
+          }}
+        />
+      </PracticeShell>
     );
   }
 
   if (phase === "session" && setupChoices) {
     return (
-      <InterviewSession
-        jobDetails={job.details}
-        resume={resume.contentJson}
-        setup={setupChoices}
-        onEnd={(finalTranscript) => {
-          setTranscript(finalTranscript);
-          setPhase("debrief");
-        }}
-      />
+      <PracticeShell showBack={false}>
+        <InterviewSession
+          jobDetails={job.details}
+          resume={resume.contentJson}
+          setup={setupChoices}
+          onEnd={(finalTranscript) => {
+            setTranscript(finalTranscript);
+            setPhase("debrief");
+          }}
+        />
+      </PracticeShell>
     );
   }
 
   if (phase === "debrief" && setupChoices) {
     return (
-      <InterviewDebrief
-        jobId={jobId}
-        jobDetails={job.details}
-        resume={resume.contentJson}
-        transcript={transcript}
-        setup={setupChoices}
-        onRestart={() => {
-          setTranscript([]);
-          setPhase("setup");
-        }}
-      />
+      <PracticeShell>
+        <InterviewDebrief
+          jobId={jobId}
+          jobDetails={job.details}
+          resume={resume.contentJson}
+          transcript={transcript}
+          setup={setupChoices}
+          onRestart={() => {
+            setTranscript([]);
+            setPhase("setup");
+          }}
+        />
+      </PracticeShell>
     );
   }
 

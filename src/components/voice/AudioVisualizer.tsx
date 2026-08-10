@@ -31,7 +31,15 @@ export function AudioVisualizer({
   useEffect(() => {
     const canvas = canvasRef.current;
     const ctx = canvas?.getContext("2d");
-    if (!analyser || !canvas || !ctx) return;
+    if (!canvas || !ctx) return;
+
+    // Idle: wipe the last drawn frame rather than leaving it frozen on screen
+    // (visible on the mic-test page, where the canvas stays mounted after
+    // playback or listening stops).
+    if (!analyser) {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      return;
+    }
 
     const data = new Uint8Array(analyser.frequencyBinCount);
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 export type SpeechRecognitionStatus = "idle" | "listening" | "error";
 
@@ -60,13 +60,21 @@ export function useSpeechRecognition() {
     recognitionRef.current = null;
     streamRef.current?.getTracks().forEach((track) => track.stop());
     streamRef.current = null;
-    audioCtxRef.current?.close();
+    audioCtxRef.current?.close().catch(() => {
+      // Already-closed contexts reject; nothing to recover from here.
+    });
     audioCtxRef.current = null;
     setAnalyser(null);
     setStatus((current) => (current === "error" ? current : "idle"));
   }, []);
 
-  const start = useCallback(async (): Promise<void> => {
+  /**
+   * Begins listening. Returns `false` (rather than throwing) when the mic or
+   * recognizer couldn't be started — callers that drive a turn-taking flow
+   * must check this, since a silent failure would otherwise leave them
+   * "listening" on a dead microphone. `error` carries the reason.
+   */
+  const start = useCallback(async (): Promise<boolean> => {
     setError(null);
     setTranscript("");
 
@@ -74,7 +82,7 @@ export function useSpeechRecognition() {
     if (!SpeechRecognitionCtor) {
       setStatus("error");
       setError("SpeechRecognition is not available in this webview.");
-      return;
+      return false;
     }
 
     try {
@@ -92,7 +100,7 @@ export function useSpeechRecognition() {
     } catch (e) {
       setStatus("error");
       setError(`getUserMedia error: ${(e as Error).message}`);
-      return;
+      return false;
     }
 
     const recognition = new SpeechRecognitionCtor();
@@ -111,8 +119,29 @@ export function useSpeechRecognition() {
     };
     recognition.onend = () => stop();
     recognitionRef.current = recognition;
-    recognition.start();
+
+    try {
+      recognition.start();
+    } catch (e) {
+      // e.g. InvalidStateError when a recognizer is already running — release
+      // the mic stream we just opened rather than leaking it.
+      stop();
+      setStatus("error");
+      setError(`STT error: ${(e as Error).message}`);
+      return false;
+    }
+
     setStatus("listening");
+    return true;
+  }, [stop]);
+
+  // Release the mic stream and audio context if the consumer unmounts while
+  // still listening — without this, navigating away leaves the microphone
+  // open (and its recording indicator lit).
+  useEffect(() => {
+    return () => {
+      stop();
+    };
   }, [stop]);
 
   return { status, transcript, error, start, stop, analyser };

@@ -30,7 +30,7 @@
         "connect-src": "'self' http://127.0.0.1:3008 http://localhost:3008 http://127.0.0.1:3009 https:",
         "img-src": "'self' data: blob:",
         "style-src": "'self' 'unsafe-inline'",
-        "script-src": "'self'",
+        "script-src": "'self' 'wasm-unsafe-eval'",
         "font-src": "'self' data:"
       }
     }
@@ -46,9 +46,7 @@
       "icons/icon.icns",
       "icons/icon.ico"
     ],
-    "resources": [
-      "resources/next/**/*"
-    ],
+    "resources": ["resources/next/**/*"],
     "category": "Productivity",
     "shortDescription": "Local-first, AI-powered resume builder",
     "longDescription": "A privacy-focused desktop application for creating tailored resumes and cover letters using AI. All data stays local.",

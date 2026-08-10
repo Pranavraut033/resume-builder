@@ -4,6 +4,7 @@
 // that logic is private to the chatbot class, so it's replicated here rather
 // than imported, per this cluster's plan.
 
+import { trackTokenUsage } from "@/lib/llm/tokenTracker";
 import { useModelStore } from "@/store/modelStore";
 import { LLMGenerationOptions, ProviderType } from "@/types/llm";
 
@@ -19,6 +20,10 @@ export function resolveInterviewLLMOptions(
 
   return {
     model,
+    // Report streamed-call tokens to the same analytics sink every other LLM
+    // feature in the app uses; without this the whole interview flow would be
+    // missing from the token usage page.
+    onUsage: (usage) => void trackTokenUsage(usage),
     ...(reasoningEffort ? { reasoningEffort } : {}),
     ...(temperature !== undefined ? { temperature } : {}),
     ...(topP !== undefined ? { topP } : {}),

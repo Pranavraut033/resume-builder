@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { ModelSelector } from "@/components/ModelSelector";
 import { Badge, Button, Card, PageHeader } from "@/components/ui";
@@ -14,9 +14,12 @@ import { useKokoroTTS } from "@/lib/voice/useKokoroTTS";
 import { useModelStore } from "@/store/modelStore";
 
 import { InterviewSetupChoices } from "./types";
+import { VoicePodium } from "./VoicePodium";
 
 const FIELD_CLASSES =
   "border-agent-outline-variant placeholder:text-agent-on-surface-variant focus:border-agent-primary focus:ring-agent-primary w-full rounded-xl border bg-(--color-agent-surface-lowest) px-4 py-2.5 text-sm text-(--color-agent-on-surface) focus:ring-1 focus:outline-none disabled:cursor-not-allowed disabled:opacity-60";
+
+const VOICE_SAMPLE_LINE = "Hi, I'm your interviewer today. Shall we get started?";
 
 interface InterviewSetupProps {
   jobTitle: string;
@@ -39,6 +42,7 @@ export function InterviewSetup({
   const { activeModelPair } = useModelStore();
 
   const [voice, setVoice] = useState("");
+  const [previewing, setPreviewing] = useState<string | null>(null);
   const [styleId, setStyleId] = useState<InterviewStyleId>(
     DEFAULT_INTERVIEW_STYLE
   );
@@ -58,6 +62,39 @@ export function InterviewSetup({
   }, [kokoro.voices, voice]);
 
   const canStart = Boolean(activeModelPair && voice);
+
+  // Kokoro's `generate()` can't be cancelled mid-flight, so clicking through
+  // several cards while one is still generating would otherwise queue up a
+  // full generate+decode+play cycle per click, all playing back-to-back.
+  // Instead: only one preview runs at a time, and a click during playback
+  // just replaces "what plays next" rather than adding to the queue.
+  const nextVoiceRef = useRef<string | null>(null);
+  const isPreviewingRef = useRef(false);
+
+  async function runPreview(id: string) {
+    isPreviewingRef.current = true;
+    setPreviewing(id);
+    try {
+      await kokoro.speak(VOICE_SAMPLE_LINE, id);
+    } catch {
+      // kokoro.error already surfaces the message; nothing else to do here.
+    }
+    isPreviewingRef.current = false;
+    setPreviewing(null);
+
+    const next = nextVoiceRef.current;
+    nextVoiceRef.current = null;
+    if (next && next !== id) runPreview(next);
+  }
+
+  function handleVoiceSelect(id: string) {
+    setVoice(id);
+    if (isPreviewingRef.current) {
+      nextVoiceRef.current = id;
+      return;
+    }
+    runPreview(id);
+  }
 
   function handleStart() {
     if (!activeModelPair) return;
@@ -96,22 +133,13 @@ export function InterviewSetup({
             <Badge variant="info">Loading voices…</Badge>
           )}
         </div>
-        <select
+        <VoicePodium
+          voices={kokoro.voices}
           value={voice}
-          onChange={(e) => setVoice(e.target.value)}
-          disabled={kokoro.voices.length === 0}
-          className={FIELD_CLASSES}
-        >
-          {kokoro.voices.length === 0 ? (
-            <option value="">Loading voices…</option>
-          ) : (
-            kokoro.voices.map((v) => (
-              <option key={v.id} value={v.id}>
-                {v.name} ({v.language}, {v.gender})
-              </option>
-            ))
-          )}
-        </select>
+          onChange={handleVoiceSelect}
+          speakingId={previewing}
+          loading={kokoro.voices.length === 0}
+        />
       </Card>
 
       <Card padding="md" className="space-y-3">

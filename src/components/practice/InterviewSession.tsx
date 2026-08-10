@@ -13,13 +13,12 @@ import { ProviderFactory } from "@/lib/llm/providers";
 import { useKokoroTTS } from "@/lib/voice/useKokoroTTS";
 import { useSpeechRecognition } from "@/lib/voice/useSpeechRecognition";
 import { InterviewTranscriptJSON, InterviewTurn } from "@/types/interview";
-import { PromptMessage } from "@/types/llm";
 import { JobDetailsJSON, ResumeJSON } from "@/types/resume";
 
 import { resolveInterviewLLMOptions } from "./resolveInterviewLLMOptions";
 import { InterviewSetupChoices } from "./types";
 
-import type { LLMProvider } from "@pranavraut033/llm-core";
+import type { LLMProvider, PromptMessage } from "@pranavraut033/llm-core";
 
 type SessionPhase =
   | "initializing"
@@ -77,6 +76,9 @@ export function InterviewSession({
   const providerRef = useRef<LLMProvider | null>(null);
   const hasStartedRef = useRef(false);
   const endedRef = useRef(false);
+  /** Transcript as it stood at the start of the current attempt — the history
+   * a Retry should resume from. */
+  const attemptHistoryRef = useRef<InterviewTranscriptJSON>([]);
   // Latest hook instances, kept in refs so the cleanup effect and callbacks
   // below always tear down/read the current audio graph instead of a stale
   // closure over the render that defined them.
@@ -99,6 +101,11 @@ export function InterviewSession({
   const askNextQuestion = useCallback(
     async (history: InterviewTranscriptJSON) => {
       if (endedRef.current) return;
+      // Remember what the transcript looked like going into this attempt, so
+      // a Retry can roll back to it. Without this, retrying after a failure
+      // that happened *after* the interviewer turn was appended (a TTS or mic
+      // error) would append a second question on top of the orphaned first.
+      attemptHistoryRef.current = history;
       setPhase("interviewer_thinking");
       setLiveQuestion("");
       setTurnError(null);
@@ -149,7 +156,16 @@ export function InterviewSession({
         if (endedRef.current) return;
 
         setPhase("candidate_listening");
-        await sttRef.current.start();
+        const listening = await sttRef.current.start();
+        if (!listening) {
+          // `start()` reports mic/recognizer failures by returning false, not
+          // by throwing. Surfacing it as a turn error is what makes the Retry
+          // affordance appear — otherwise the session would sit in
+          // "Listening for your answer…" on a microphone that never opened.
+          throw new Error(
+            "Couldn't start the microphone — check permissions and retry."
+          );
+        }
       } catch (err) {
         if (endedRef.current) return;
         setTurnError(
@@ -170,8 +186,13 @@ export function InterviewSession({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Tear down any in-flight audio/mic on unmount.
+  // Tear down any in-flight audio/mic on unmount. `endedRef` is reset on
+  // (re)mount rather than only initialized at declaration: StrictMode runs
+  // this effect's cleanup once in dev before re-running it, which would
+  // otherwise leave `endedRef` stuck true — the first turn's LLM call then
+  // returns silently and the session hangs on "Thinking…" forever.
   useEffect(() => {
+    endedRef.current = false;
     return () => {
       endedRef.current = true;
       ttsRef.current.stop();
@@ -246,7 +267,7 @@ export function InterviewSession({
             <Button
               size="sm"
               variant="secondary"
-              onClick={() => void askNextQuestion(transcript)}
+              onClick={() => void askNextQuestion(attemptHistoryRef.current)}
             >
               Retry
             </Button>
