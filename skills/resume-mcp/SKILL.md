@@ -1,6 +1,6 @@
 ---
 name: resume-mcp
-description: Drive this app's resume-building flows (tailoring, cover letters, ATS analysis, gap analysis, editing, proofreading, humanizing) through its local MCP server instead of hand-writing resume content. Use whenever the user pastes a job posting or URL and wants a tailored resume, or asks to edit, proofread, humanize, fix ATS issues, or get an honest fit/gap assessment on a resume that already exists in the app. Requires the app's MCP server to be running and connected (see docs/MCP.md) — if tools like `list_flows` aren't available, tell the user to enable the MCP toggle in Settings first.
+description: Drive this app's resume-building flows (tailoring, cover letters, ATS analysis, gap analysis, editing, proofreading, humanizing) and base-profile editing through its local MCP server instead of hand-writing resume content. Use whenever the user pastes a job posting or URL and wants a tailored resume, asks to edit, proofread, humanize, fix ATS issues, or get an honest fit/gap assessment on a resume that already exists in the app, or asks to view/edit their base profile directly. Requires the app's MCP server to be running and connected (see docs/MCP.md) — if tools like `list_flows` aren't available, tell the user to enable the MCP toggle in Settings first.
 ---
 
 # Resume MCP
@@ -81,7 +81,7 @@ the server hydrates prompts from the database automatically.
   generated: a single `parse_job` step, persisted immediately. When the user
   hands you one or more URLs to save/bookmark, for each one: `fetch_url` →
   `get_prompt({ purpose: "parse_job" })` → reason → `submit({ purpose:
-  "parse_job", result, input: { url, bookmark: true, profileId? } })`. This
+"parse_job", result, input: { url, bookmark: true, profileId? } })`. This
   submit does **not** return a `nextPrompt` — `next` is `null` on purpose,
   don't chain into `analyze_ats`. Call `list_profiles()` once up front if
   more than one profile exists and reuse that `profileId` for every URL
@@ -90,6 +90,31 @@ the server hydrates prompts from the database automatically.
   it. If one URL in a batch fails (bad fetch, parse error), report it and
   keep going with the rest rather than aborting the whole batch; summarize
   saved/duplicate/failed at the end.
+
+## Base-profile editing (not a `get_prompt`/`submit` flow)
+
+`get_profile` / `preview_profile_edit` / `apply_profile_edit` let you fetch
+and edit the user's base profile directly — not part of `list_flows`'s
+catalog, since there's no LLM prompt to resolve for it (you already have
+the full profile content). Never skip straight to `apply_profile_edit`:
+
+1. `get_profile({ profileId? })` — full profile content plus `pathLines`
+   (same JSON-Pointer format `apply_resume_ops` uses) so you can construct
+   ops without guessing field paths. Omit `profileId` to get the first/only
+   profile; call `list_profiles()` first if you need to disambiguate.
+2. Reason about the user's requested edit and build RFC-6902 ops
+   (`replace`/`add`/`remove`) against those paths.
+3. `preview_profile_edit({ profileId, ops })` — dry-run, writes nothing,
+   returns `applied`/`rejected` plus the before/after profile. Show the user
+   the diff.
+4. Before calling `apply_profile_edit`, tell the user to back up their data
+   first via this app's Settings page → "Backup & Restore" (full-database
+   JSON export) — a profile edit through this tool has no undo. Get their
+   go-ahead.
+5. `apply_profile_edit({ profileId, ops, confirm: true })` — only this call,
+   with `confirm: true` on the same call, actually persists. Omitting
+   `confirm` (or passing `false`) returns an error and writes nothing, even
+   if the ops themselves are valid.
 
 ## Handling rejections and uncertainty
 
@@ -104,6 +129,9 @@ the server hydrates prompts from the database automatically.
 ## Non-goals
 
 - Base-profile builder purposes (summary/experience/skills/projects/education
-  generation) aren't exposed here — only job-scoped flows.
+  _generation_ — i.e. writing a profile from scratch) aren't exposed here,
+  only job-scoped flows. Editing an _existing_ profile's fields is exposed,
+  via `get_profile`/`preview_profile_edit`/`apply_profile_edit` above — that
+  is not a generation purpose, just a targeted-ops write.
 - This skill never calls an LLM API itself outside your own reasoning — the
   server never calls an LLM and never touches API keys.

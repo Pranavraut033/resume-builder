@@ -24,9 +24,10 @@ model should follow once it's talking to this server, and
 built (module map, request lifecycle, the `add_job` draft state machine,
 guard/validation flow) — this doc covers setup and security, not internals.
 
-The server exposes 8 tools: `list_flows`, `get_prompt`, `submit`,
+The server exposes 11 tools: `list_flows`, `get_prompt`, `submit`,
 `apply_resume_ops`, `list_profiles`, `list_jobs`, `fetch_url`,
-`get_job_state`. `fetch_url` fetches a job posting URL server-side and
+`get_job_state`, `get_profile`, `preview_profile_edit`, `apply_profile_edit`.
+`fetch_url` fetches a job posting URL server-side and
 returns its extracted text when a host's own fetch is blocked (e.g.
 LinkedIn). There is no standalone `validate` tool — `submit` already runs
 the same schema check
@@ -51,6 +52,17 @@ seniority shortfalls, domain mismatch, each with a concrete solution and
 always closing with evidence-based strengths. Nothing is persisted
 server-side; apply any gap that carries a `resume_fix` with
 `apply_resume_ops` yourself.
+
+Base-profile editing (`get_profile` / `preview_profile_edit` /
+`apply_profile_edit`) is MCP-only — the in-app chat already has its own
+Profile page for this, so there's no equivalent chat intent. Fetch the
+profile with `get_profile`, dry-run your proposed edit ops with
+`preview_profile_edit` (writes nothing, returns a before/after diff), then
+call `apply_profile_edit` with `confirm: true` to actually persist it —
+without `confirm: true` on that same call, nothing is written. Before
+confirming, the connected host should tell you to back up your data first
+via this app's Settings page → "Backup & Restore" (full-database JSON
+export) — a profile edit through this tool has no undo.
 
 ## Setup
 

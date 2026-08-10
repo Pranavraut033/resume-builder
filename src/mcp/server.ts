@@ -1,5 +1,5 @@
 /**
- * MCP server definition — 8 tools that let an external LLM (Claude Desktop,
+ * MCP server definition — 11 tools that let an external LLM (Claude Desktop,
  * etc.) drive this app's resume flows using its OWN reasoning. This module
  * never calls an LLM and never touches an API key: it only serves prompts
  * already built by this app's existing prompt system, and validates/
@@ -23,7 +23,11 @@ import { z } from "zod";
 import "@/lib/llm/chat-bot/prompts/extractFieldsToEdit";
 import "@/lib/llm/chat-bot/prompts/keywordMappingPrompt";
 
-import { getAllProfiles, getProfileById } from "@/actions/profile";
+import {
+  getAllProfiles,
+  getProfileById,
+  updateProfile as dbUpdateProfile,
+} from "@/actions/profile";
 import { fetchJobDescriptionFromUrl } from "@/actions/urlFetcher";
 import {
   createJob as dbCreateJob,
@@ -82,6 +86,7 @@ export interface McpDeps {
   updateResume: typeof dbUpdateResume;
   saveAtsAnalysis: typeof dbSaveAtsAnalysis;
   updateCoverLetter: typeof dbUpdateCoverLetter;
+  updateProfile: typeof dbUpdateProfile;
 }
 
 export const defaultDeps: McpDeps = {
@@ -96,6 +101,7 @@ export const defaultDeps: McpDeps = {
   updateResume: dbUpdateResume,
   saveAtsAnalysis: dbSaveAtsAnalysis,
   updateCoverLetter: dbUpdateCoverLetter,
+  updateProfile: dbUpdateProfile,
 };
 
 // ── Purpose surface (Non-goal: no base-profile-builder purposes, no
@@ -875,6 +881,151 @@ export async function applyResumeOpsTool(
   return { applied, rejected };
 }
 
+// ── get_profile / preview_profile_edit / apply_profile_edit ────────────────
+//
+// MCP-only — the in-app chat already has its own profile-editing UI
+// (`/profile` page), so there is no matching `IntentLabel`/chat handler for
+// this; only an external MCP host needs a tool-driven path to the base
+// profile. See the index's "Known intentional asymmetry" section.
+//
+// Reuses the same deterministic `applyResumeOps()` resume mutator the
+// resume-editing flow uses (a `Profile` row's content is a `ResumeJSON` too
+// — see `profileDataToResumeJson`/`resumeJsonToProfileData` in
+// `src/actions/profile.ts`) instead of inventing a parallel ops format.
+// Mirrors the propose-then-confirm shape of `submit`/`apply_resume_ops`:
+// `preview_profile_edit` never writes, `apply_profile_edit` is the only tool
+// that does, and it refuses to write at all unless the caller passes
+// `confirm: true` on that same call — no tool call can both compute and
+// silently persist an edit.
+
+const PROFILE_BACKUP_WARNING =
+  'This permanently overwrites the base profile in the local database and cannot be undone from here. Before calling apply_profile_edit, tell the user to take a full-database backup first: this app\'s Settings page → "Backup & Restore" → export (JSON). Do not proceed with the write until the user has confirmed they have a backup or are OK proceeding without one.';
+
+/** `getProfileById`'s ResumeJSON return carries a non-schema `label` field —
+ * strip it before handing the value to `applyResumeOps` (which re-validates
+ * against `ResumeSchema` and would otherwise reject every op, since the
+ * unrecognized `label` key makes the parsed/patched documents diverge). */
+function splitProfileLabel(profile: ResumeJSON & { label: string }): {
+  label: string;
+  resume: ResumeJSON;
+} {
+  const { label, ...resume } = profile;
+  return { label, resume: resume as ResumeJSON };
+}
+
+export async function getProfileTool(
+  deps: McpDeps,
+  args: { profileId?: number } = {}
+) {
+  let profileId = args.profileId;
+  if (profileId == null) {
+    const profiles = await deps.getAllProfiles();
+    if (profiles.length === 0) {
+      return {
+        ok: false as const,
+        error: "No base profile exists yet — create one in the app first.",
+      };
+    }
+    profileId = profiles[0].id;
+  }
+
+  const profile = await deps.getProfileById(profileId);
+  if (!profile) {
+    return {
+      ok: false as const,
+      error: `No profile found with id ${profileId}.`,
+    };
+  }
+
+  const { label, resume } = splitProfileLabel(profile);
+  return {
+    ok: true as const,
+    profileId,
+    label,
+    profile: resume,
+    pathLines: resumePathLines(resume),
+  };
+}
+
+interface ProfileEditPreview {
+  ok: true;
+  profileId: number;
+  label: string;
+  applied: ResumeOp[];
+  rejected: { op: ResumeOp; reason: string }[];
+  before: ResumeJSON;
+  after: ResumeJSON;
+}
+interface ProfileEditError {
+  ok: false;
+  error: string;
+}
+
+export async function previewProfileEditTool(
+  deps: McpDeps,
+  args: { profileId: number; ops: ResumeOp[] }
+): Promise<ProfileEditPreview | ProfileEditError> {
+  const profile = await deps.getProfileById(args.profileId);
+  if (!profile) {
+    return { ok: false, error: `No profile found with id ${args.profileId}.` };
+  }
+
+  const { label, resume: before } = splitProfileLabel(profile);
+  const { resume: after, applied, rejected } = applyResumeOps(before, args.ops);
+
+  return {
+    ok: true,
+    profileId: args.profileId,
+    label,
+    applied,
+    rejected,
+    before,
+    after,
+  };
+}
+
+interface ProfileEditResult {
+  ok: true;
+  profileId: number;
+  applied: ResumeOp[];
+  rejected: { op: ResumeOp; reason: string }[];
+  persisted: boolean;
+  backupWarning: string;
+}
+
+export async function applyProfileEditTool(
+  deps: McpDeps,
+  args: { profileId: number; ops: ResumeOp[]; confirm: boolean }
+): Promise<ProfileEditResult | ProfileEditError> {
+  if (!args.confirm) {
+    return {
+      ok: false,
+      error: `Not applied — pass confirm: true on this same call to actually write these changes (call preview_profile_edit first and show the user the diff). ${PROFILE_BACKUP_WARNING}`,
+    };
+  }
+
+  const profile = await deps.getProfileById(args.profileId);
+  if (!profile) {
+    return { ok: false, error: `No profile found with id ${args.profileId}.` };
+  }
+
+  const { label, resume: before } = splitProfileLabel(profile);
+  const { resume: after, applied, rejected } = applyResumeOps(before, args.ops);
+
+  if (applied.length > 0) {
+    await withBusyRetry(() => deps.updateProfile(args.profileId, after, label));
+  }
+
+  return {
+    ok: true,
+    profileId: args.profileId,
+    applied,
+    rejected,
+    persisted: applied.length > 0,
+    backupWarning: PROFILE_BACKUP_WARNING,
+  };
+}
+
 // ── list_profiles / list_jobs / get_job_state ───────────────────────────
 
 /**
@@ -965,7 +1116,7 @@ export function buildServer(deps: McpDeps = defaultDeps): McpServer {
     {
       title: "List flows",
       description:
-        "List every flow (add_job, edit, proofread, ats_fix, humanize, cover_letter, bookmark, gap_analysis) and the ordered purposes each one walks through get_prompt/submit.",
+        "List every flow (add_job, edit, proofread, ats_fix, humanize, cover_letter, bookmark, gap_analysis) and the ordered purposes each one walks through get_prompt/submit. Base-profile editing (get_profile / preview_profile_edit / apply_profile_edit) is NOT in this catalog — it needs no LLM prompt from this server (you already have the full profile from get_profile), so it's a standalone propose-then-confirm tool trio instead of a get_prompt/submit purpose sequence.",
       annotations: readOnly,
     },
     async () => toToolResult(listFlowsTool())
@@ -1023,6 +1174,63 @@ export function buildServer(deps: McpDeps = defaultDeps): McpServer {
         await applyResumeOpsTool(
           deps,
           args as { jobId: number; ops: ResumeOp[] }
+        )
+      )
+  );
+
+  server.registerTool(
+    "get_profile",
+    {
+      title: "Get profile",
+      description:
+        "Fetch the full base profile (id defaults to the first profile if omitted) — every field plus pathLines (JSON-Pointer path per leaf, same format apply_resume_ops expects) so you can construct edit ops without guessing the shape. MCP-only: there is no equivalent in-app chat intent, since the app's own Profile page already covers this for a human user.",
+      inputSchema: {
+        profileId: z.number().int().positive().optional(),
+      },
+      annotations: readOnly,
+    },
+    async (args) => toToolResult(await getProfileTool(deps, args))
+  );
+
+  server.registerTool(
+    "preview_profile_edit",
+    {
+      title: "Preview profile edit",
+      description:
+        "Dry-run RFC-6902 JSON Patch-style ops (replace/add/remove, path from get_profile's pathLines) against the base profile WITHOUT writing anything — returns applied/rejected plus the before/after profile so you can show the user a diff. Call this before apply_profile_edit, never skip straight to applying.",
+      inputSchema: {
+        profileId: z.number().int().positive(),
+        ops: z.array(ResumeOpSchema),
+      },
+      annotations: readOnly,
+    },
+    async (args) =>
+      toToolResult(
+        await previewProfileEditTool(
+          deps,
+          args as { profileId: number; ops: ResumeOp[] }
+        )
+      )
+  );
+
+  server.registerTool(
+    "apply_profile_edit",
+    {
+      title: "Apply profile edit",
+      description:
+        'Persist RFC-6902 JSON Patch-style ops to the base profile — permanent, no undo. Requires confirm: true on this exact call or nothing is written (returns an error instead); use preview_profile_edit first and have the user review the diff. IMPORTANT: before calling this with confirm: true, tell the user to back up their data first via this app\'s Settings page → "Backup & Restore" (full-database JSON export) — this tool does not create one for them.',
+      inputSchema: {
+        profileId: z.number().int().positive(),
+        ops: z.array(ResumeOpSchema),
+        confirm: z.boolean(),
+      },
+      annotations: { readOnlyHint: false, idempotentHint: false },
+    },
+    async (args) =>
+      toToolResult(
+        await applyProfileEditTool(
+          deps,
+          args as { profileId: number; ops: ResumeOp[]; confirm: boolean }
         )
       )
   );
