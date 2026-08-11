@@ -222,6 +222,8 @@ This happens when quarantine attributes are set. Run:
 xattr -d com.apple.quarantine /Applications/Udaan.app
 ```
 
+As of v1.11.0, the app clears `com.apple.quarantine` off its own bundle at launch and again right after `downloadAndInstall()` finishes (`clear_quarantine` in `src-tauri/src/lib.rs`), since the ad-hoc-signed build otherwise inherits and repropagates quarantine to the freshly-extracted update bundle every time. Users on v1.10 or earlier still need one manual reinstall to pick this up; after that, autoupdate is self-healing.
+
 ### App launches but shows a blank page / cannot connect
 
 The packaged app starts a local Next server at `127.0.0.1:3009` (distinct from the `3008` used by `npm run dev`), using a Node runtime bundled into the app by `scripts/prepareTauriServer.mjs` — the end user does not need Node.js installed. Check `$APPDATA/logs/server.log` for the actual startup error (see the project's `CLAUDE.md` for the exact path per OS).
