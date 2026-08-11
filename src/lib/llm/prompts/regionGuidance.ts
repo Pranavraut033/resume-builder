@@ -1,102 +1,103 @@
 /**
- * DE/EU region guidance fragment.
- * Condensed from the resume-toolkit skill's `germany-eu.md` reference —
- * US resume/cover-letter conventions partly conflict with German/EU
- * expectations, so this fragment is only surfaced when the target job
- * looks EU-based, and it explicitly flags where it overrides a US default
- * (1-page rule, cutting hobbies) rather than silently picking one.
+ * Market-convention fragment folded into resume/ATS/cover-letter prompts.
+ *
+ * Germany is the DEFAULT market for this app, so the fragment is returned
+ * unless the job looks clearly non-EU (US/UK/CA/AU/IN/…). German conventions
+ * conflict with US defaults on length, photo, hobbies, language levels and
+ * gapless chronology, so the fragment states where it overrides rather than
+ * leaving the model to pick silently.
+ *
+ * Content is condensed from ../../../../../interview-kb/playbooks/resume-playbook.md
+ * (Part II — the German Lebenslauf). Firsthand hiring-manager claims are kept;
+ * vendor-only and undated disagreements (photo, date of birth, signature block,
+ * profile summary) are deliberately left out — the job ad decides those, and the
+ * playbook's own reconciliation says the ad beats every default.
  */
 
 import { JobDetailsJSON } from "@/types/resume";
 
-// Country strings/codes that plausibly indicate an EU/DE target. Deliberately
-// small and literal.
-const EU_COUNTRY_SIGNALS = [
-  "germany",
-  "deutschland",
-  "de",
-  "austria",
-  "österreich",
-  "at",
-  "switzerland",
-  "schweiz",
-  "ch",
-  "france",
-  "netherlands",
-  "belgium",
-  "spain",
-  "italy",
-  "poland",
-  "sweden",
-  "denmark",
-  "finland",
-  "ireland",
-  "portugal",
-  "eu",
-  "european union",
+// Countries where the German conventions below are actively wrong. Everything
+// else — including an unknown/unstated location — falls through to the German
+// default, because that's what this app's users are applying into.
+const NON_EU_COUNTRY_SIGNALS = [
+  "united states",
+  "united states of america",
+  "usa",
+  "us",
+  "u.s.",
+  "u.s.a.",
+  "canada",
+  "ca",
+  "united kingdom",
+  "uk",
+  "great britain",
+  "england",
+  "scotland",
+  "australia",
+  "au",
+  "new zealand",
+  "nz",
+  "india",
+  "in",
+  "singapore",
+  "sg",
+  "united arab emirates",
+  "uae",
+  "japan",
+  "jp",
+  "china",
+  "cn",
+  "brazil",
+  "br",
+  "israel",
+  "il",
+  "south africa",
+  "za",
+  "mexico",
+  "mx",
 ];
 
-// German-language words/characters unlikely to appear in an English JD by
-// accident — a light-touch signal, not a real language detector.
-const GERMAN_LANGUAGE_SIGNALS = [
-  /\bwir suchen\b/i,
-  /\bihre aufgaben\b/i,
-  /\bihr profil\b/i,
-  /\bbewerbung\b/i,
-  /\bstellenangebot\b/i,
-  /\bmitarbeiter(in)?\b/i,
-  /[äöüß]/i,
-];
-
-function isEuCountry(value: string | null | undefined): boolean {
+function isNonEuCountry(value: string | null | undefined): boolean {
   if (!value) return false;
-  const normalized = value.trim().toLowerCase();
-  return EU_COUNTRY_SIGNALS.includes(normalized);
-}
-
-function hasGermanLanguageSignal(
-  rawDescription: string | null | undefined
-): boolean {
-  if (!rawDescription) return false;
-  return GERMAN_LANGUAGE_SIGNALS.some((pattern) =>
-    pattern.test(rawDescription)
-  );
+  return NON_EU_COUNTRY_SIGNALS.includes(value.trim().toLowerCase());
 }
 
 const REGION_GUIDANCE_FRAGMENT = `\
-DE/EU REGION GUIDANCE — apply on top of the analysis above; where it conflicts \
-with a US default this prompt otherwise applies, say so explicitly rather than \
-silently picking one:
-- Language proficiency: use CEFR levels ("German — B2", never vague "fluent"). If the JD asks for German and the resume is silent, flag it — silence reads as "none". In-progress language should show trajectory (e.g. "B1 (B2-Kurs in progress)"), not just a bare level.
-- Work authorization is the most common real knockout for non-EU candidates — advise stating status plainly and early (e.g. EU Blue Card, Chancenkarte, or "requires sponsorship") rather than leaving it silent.
-- Expect gapless chronology: German recruiters read the CV as a complete timeline, so unexplained gaps of roughly 2+ months need a one-line account.
-- 2 pages is normal and expected in Germany even mid-career — this overrides any 1-page US compression advice elsewhere in this prompt.
-- If the JD is in German, the application (and cover letter) should be in German too — flag an English application to a German-language JD as a likely silent rejection, and warn that visibly machine-translated German reads worse than a clean English application.
-- If the degree/institution isn't well known in Germany, suggest a one-line equivalence note (e.g. "recognized as equivalent to a German Bachelor's").
-- Don't recommend Europass unless the target is an EU institution or public body — most companies find it clunky.
-- Keep an Interessen/hobbies line rather than advising it be cut (this overrides the usual "cut hobbies" US default) — make it specific and integration-flavored rather than generic.`;
+GERMAN / EU MARKET CONVENTIONS (this app's default market — apply on top of \
+everything above; an explicit instruction in the job ad beats every default \
+here, and where this conflicts with a US convention stated elsewhere in this \
+prompt, this wins):
+- Format is a gate before content: a crowded or inconsistent CV is rejected before a single bullet is read. Two spacious pages are normal and expected even mid-career — never compress to one page.
+- Reading order is work experience first, then personal details, education last (education is a bonus, not a filter). Keep the strongest, most recent evidence at the top of the experience section.
+- Telegraphic style: no first-person pronouns, no full sentences — "Design of the billing service", "Reduced latency 40% by …". 3–7 bullets per role, identical layout for every role.
+- List multiple roles at the same employer as separate dated entries rather than nesting them under one company block — it shows growth.
+- Dates carry month and year in one consistent format everywhere (MM/YYYY); an ongoing role reads "since MM/YYYY".
+- Gapless chronology: German readers read the CV as a complete timeline, so a gap of roughly 2+ months wants a one-line account — use training, study, or a current activity already present in the profile; never invent one.
+- Language proficiency as CEFR levels ("German — B2"), never a vague "fluent". In-progress language shows trajectory ("B1, B2 course until 03/2026"). No skill bars, dots, percentages or star ratings for any proficiency — words only.
+- Work authorization is the most common real knockout for non-EU candidates: when the profile states nationality or status (EU Blue Card, Chancenkarte, sponsorship required), keep it plainly and early rather than dropping it.
+- A degree unknown in Germany reads as unverifiable — keep an equivalence note (e.g. anabin recognition) when the profile already has one. State a grade explicitly labelled ("Final grade: 2.1") when the profile gives one.
+- Keep a short, specific Interessen/hobbies line when the profile has one — this overrides the usual US "cut hobbies" advice. Specific beats generic: "nature photography", not "photography".
+- No icons, logos, or graphics: name tools, software and programming languages in words, since the first reader may not be from your field.
+- If the job ad is written in German, the application is expected in German too.
+- The cover letter (Motivationsschreiben) is read after the CV and is expected to complement it and show culture fit, never to repeat it. It is one part of a Bewerbung — a bundle that also carries diplomas with grades and employer certificates — so it doesn't have to carry the whole application on its own.`;
 
 /**
- * Detect whether a job target looks EU/DE-based and, if so, return the
- * condensed region-guidance fragment to fold into ATS/cover-letter prompts.
- * Returns `undefined` when nothing EU-like is detected so templates can
- * gate on it with `{{#if regionGuidance}}`.
+ * Return the market-convention fragment for a job. Germany is the default, so
+ * this returns the fragment unless the job's country is clearly outside the
+ * EU — then `undefined`, and templates gate on `{{#if regionGuidance}}`.
  *
- * // ponytail: this is a literal country-string/keyword check, not real
- * // geo/language detection — it will miss less common country spellings,
- * // ISO variants, or JDs that mention Germany only in prose (e.g. "remote,
- * // reports to our Berlin office"). The upgrade path is a user-set region
- * // field on Job, not a smarter heuristic.
+ * // ponytail: literal country-string matching, not geo detection. A US job
+ * // whose country field is empty gets German guidance; that's the deliberate
+ * // trade for defaulting to the market these users actually apply into. The
+ * // upgrade path is a user-set region field on Job, not a smarter heuristic.
  */
 export function resolveRegionGuidance(
   job: JobDetailsJSON | null | undefined
 ): string | undefined {
   if (!job) return undefined;
 
-  const isEuTarget =
-    isEuCountry(job.location?.country) ||
-    isEuCountry(job.company?.company_location_country) ||
-    hasGermanLanguageSignal(job.raw_description);
+  const country =
+    job.location?.country ?? job.company?.company_location_country ?? null;
 
-  return isEuTarget ? REGION_GUIDANCE_FRAGMENT : undefined;
+  return isNonEuCountry(country) ? undefined : REGION_GUIDANCE_FRAGMENT;
 }
