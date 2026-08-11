@@ -1,3 +1,9 @@
+# v1.11.2 — 2026-08-11
+
+A bug fix for MCP profile edits.
+
+- **Fixed: MCP profile edits no longer get rejected outright.** Every edit made through the `preview_profile_edit`/`apply_profile_edit` MCP tools (and the same underlying editor used by chat edits, proofread, humanizer, and tailoring) was being falsely rejected as "not part of the resume schema" due to an internal key-ordering bug — valid edits now apply correctly.
+
 # v1.11.1 — 2026-08-11
 
 A dedicated field for work authorization status.

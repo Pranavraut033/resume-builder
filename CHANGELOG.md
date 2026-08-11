@@ -2,6 +2,16 @@
 
 All notable changes to this project are documented in this file.
 
+## [1.11.2] - 2026-08-11
+
+### Fixed
+
+- `applyResumeOps` (used by chat edits, proofread, humanizer, tailor, and the MCP profile-edit tools) falsely rejected every op against the base profile — the schema-validity check compared JSON key order, and the profile's `header` object has a different key order than the schema declares ([e4a925d])
+
+### Changed
+
+- `dist-mcp` now rebuilds as part of `prebuild`, alongside the `llm-core`/`ats-checker` submodule builds, so it can't go stale outside the Tauri desktop packaging flow ([9dafa49])
+
 ## [1.11.1] - 2026-08-11
 
 ### Added
