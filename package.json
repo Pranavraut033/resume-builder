@@ -16,7 +16,7 @@
     "desktop:build:mac:universal": "tauri build --target universal-apple-darwin",
     "desktop:build:windows": "tauri build --target x86_64-pc-windows-msvc",
     "desktop:build:linux": "tauri build --target x86_64-unknown-linux-gnu",
-    "prebuild": "npm run build --prefix packages/llm-core && npm run build --prefix packages/ats-checker",
+    "prebuild": "npm run build --prefix packages/llm-core && npm run build --prefix packages/ats-checker && npm run build:mcp",
     "build": "next build",
     "prepare:tauri-server": "node scripts/prepareTauriServer.mjs",
     "start": "next start",
