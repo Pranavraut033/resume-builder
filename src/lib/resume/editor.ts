@@ -39,6 +39,21 @@ function errorMessage(err: unknown): string {
   return err.message.split("\n")[0];
 }
 
+/** JSON.stringify with object keys sorted, so two structurally-identical
+ * documents compare equal regardless of key insertion order. */
+function stableStringify(value: unknown): string {
+  return JSON.stringify(value, (_key, val) =>
+    val && typeof val === "object" && !Array.isArray(val)
+      ? Object.keys(val)
+          .sort()
+          .reduce((sorted: Record<string, unknown>, k) => {
+            sorted[k] = (val as Record<string, unknown>)[k];
+            return sorted;
+          }, {})
+      : val
+  );
+}
+
 /**
  * Apply `ops` one at a time against `resume`. Each op is:
  *  1. Applied via `fast-json-patch#applyPatch` with validation on — this is
@@ -77,8 +92,11 @@ export function applyResumeOps(
       // to a path that isn't part of the schema (e.g. /header/title instead
       // of /header/headline) would otherwise silently no-op while still
       // reporting as applied. Compare against the patched document to catch
-      // that and reject it like any other invalid op.
-      if (JSON.stringify(parsed.data) !== JSON.stringify(newDocument)) {
+      // that and reject it like any other invalid op. Key order must be
+      // ignored here — zod rebuilds objects in schema-declaration order,
+      // which can differ from the source document's insertion order (e.g.
+      // the base Profile's header) with no actual content change.
+      if (stableStringify(parsed.data) !== stableStringify(newDocument)) {
         rejected.push({
           op,
           reason: `path is not part of the resume schema: ${"path" in op ? op.path : ""}`,
