@@ -111,8 +111,8 @@ const AXIS_KEYS = [
 ] as const;
 
 describe("template config distinctness", () => {
-  it("covers all 9 templates", () => {
-    expect(TEMPLATE_IDS).toHaveLength(9);
+  it("covers all 10 templates", () => {
+    expect(TEMPLATE_IDS).toHaveLength(10);
   });
 
   it("every pair of templates differs on at least 3 visual axes", () => {

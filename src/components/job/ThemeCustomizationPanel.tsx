@@ -1,7 +1,10 @@
+import { useMemo } from "react";
+
 import { useJobPageContext } from "@/contexts/JobPageContext";
 import BackgroundSvg from "@/lib/backgrounds/BackgroundSvg";
 import { AVAILABLE_BACKGROUNDS, BackgroundId } from "@/lib/backgrounds/types";
 import { DateFormat, formatMonthYear, VALID_DATE_FORMATS } from "@/lib/date";
+import { debounce } from "@/lib/debounce";
 import { getPageDimensions } from "@/lib/pageDimensions";
 import {
   TemplateType,
@@ -14,6 +17,19 @@ import {
 } from "@/types/customization";
 
 const DATE_FORMAT_EXAMPLE = "2020-01";
+
+/** Derives a full ThemeColors tuple from a single user-picked hex — secondary/accent
+ * are darkened shades of the same hue so the picked color still reads as one theme. */
+function buildCustomColors(hex: string): ThemeColors {
+  const shade = (factor: number) => {
+    const n = parseInt(hex.slice(1), 16);
+    const r = Math.round(((n >> 16) & 255) * factor);
+    const g = Math.round(((n >> 8) & 255) * factor);
+    const b = Math.round((n & 255) * factor);
+    return `#${[r, g, b].map((c) => c.toString(16).padStart(2, "0")).join("")}`;
+  };
+  return [hex, shade(0.75), shade(0.55), "#1f2937", "#ffffff"];
+}
 
 import { Card } from "../ui";
 import FontSelector from "./FontSelector";
@@ -33,6 +49,18 @@ const ThemeCustomizationPanel: React.FC<Props> = ({}) => {
 
   const colorsTuple = customization.colors.split(",") as ThemeColors;
   const pageBackgroundColor = colorsTuple[4] || "#ffffff";
+
+  // Native color inputs fire "input" continuously while dragging — debounce
+  // so we don't push a state update (and re-render the whole preview) per pixel.
+  const handleCustomColorChange = useMemo(
+    () =>
+      debounce(
+        (hex: string) =>
+          updateCustomization({ colors: buildCustomColors(hex).join(",") }),
+        150
+      ),
+    [updateCustomization]
+  );
   const { widthPx: pageWidthPx, heightPx: pageHeightPx } = getPageDimensions(
     customization.pageFormat,
     customization.marginSize
@@ -230,7 +258,7 @@ const ThemeCustomizationPanel: React.FC<Props> = ({}) => {
           >
             Color Accent
           </p>
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             {COLOR_PRESETS.map((preset) => (
               <button
                 key={preset.name}
@@ -242,12 +270,32 @@ const ThemeCustomizationPanel: React.FC<Props> = ({}) => {
                 style={{
                   background: preset.hex,
                   borderColor:
-                    customization.colors[1] === preset.colors[1]
+                    colorsTuple[1] === preset.colors[1]
                       ? "var(--color-agent-on-surface)"
                       : "transparent",
                 }}
               />
             ))}
+            {/* Custom color: native picker drives primaryColor, secondary/accent derived */}
+            <label
+              title="Custom color"
+              className="relative h-7 w-7 cursor-pointer overflow-hidden rounded-full border-2 transition-transform hover:scale-110"
+              style={{
+                background: `conic-gradient(from 0deg, red, yellow, lime, cyan, blue, magenta, red)`,
+                borderColor: !COLOR_PRESETS.some(
+                  (p) => p.colors[1] === colorsTuple[1]
+                )
+                  ? "var(--color-agent-on-surface)"
+                  : "transparent",
+              }}
+            >
+              <input
+                type="color"
+                defaultValue={colorsTuple[0]}
+                onChange={(e) => handleCustomColorChange(e.target.value)}
+                className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
+              />
+            </label>
           </div>
         </div>
 

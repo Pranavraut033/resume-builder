@@ -49,6 +49,10 @@ export const CoverLetterRenderer: React.FC<CoverLetterRendererProps> = ({
     "compact-modern": CompactModernCoverLetter,
     "two-tone": TwoToneCoverLetter,
     "academic-serif": AcademicSerifCoverLetter,
+    // No dedicated cover-letter component yet for "euro-sidebar" — reuse its
+    // nearest structural sibling (also a full-height solid sidebar) rather
+    // than leaving it unmapped. See report: needs a purpose-built component.
+    "euro-sidebar": TechSidebarCoverLetter,
   };
 
   // Fallback to a default template if not found
