@@ -2,6 +2,21 @@
 
 All notable changes to this project are documented in this file.
 
+## [1.11.0] - 2026-08-11
+
+### Added
+
+- Euro Sidebar resume template — full-height solid sidebar, banded name header, circular photo, stacked skills/languages list, for European/German-style CVs ([91d671d])
+- 8 new color presets (Crimson, Amber, Emerald, Cyan, Indigo, Fuchsia, Slate, Brown) ([91d671d])
+
+### Changed
+
+- German/EU resume, cover-letter, and ATS prompt guidance is now the default region fragment (Germany is this app's default market) instead of only surfacing when the job description looked EU-based; conventions expanded to cover format, reading order, telegraphic bullet style, and degree-equivalence notes ([996dc93])
+
+### Fixed
+
+- macOS autoupdate no longer requires a manual reinstall — the app now clears the `com.apple.quarantine` flag on its own bundle at launch and after an update installs, since the ad-hoc-signed build otherwise inherits and repropagates quarantine on every update ([9e54b9c])
+
 ## [1.10.0] - 2026-08-10
 
 ### Added

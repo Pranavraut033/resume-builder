@@ -1,3 +1,12 @@
+# v1.11.0 — 2026-08-11
+
+A macOS autoupdate fix, a new European CV template, and German conventions on by default.
+
+- **Fixed: macOS autoupdate no longer breaks itself.** Previously, updating could leave the app "damaged" and force a manual reinstall — the app now clears the quarantine flag on its own bundle after every update, so autoupdate stays self-healing going forward. (If you're updating *from* 1.10 or earlier, this one update still needs a manual reinstall — after that you're set.)
+- **New: Euro Sidebar template.** A full-height solid sidebar with a banded name header, circular photo, and stacked skills/languages list — built for European/German-style CVs.
+- **8 new color presets** for template customization: Crimson, Amber, Emerald, Cyan, Indigo, Fuchsia, Slate, and Brown.
+- **German/EU conventions are now the default** for resume, cover letter, and ATS guidance — format, reading order, telegraphic bullet style, gapless chronology, and degree-equivalence notes — reflecting that Germany is this app's primary market. An explicit instruction in the job ad still wins.
+
 # v1.10.0 — 2026-08-10
 
 MCP-connected chat clients can now read and edit your base profile.
