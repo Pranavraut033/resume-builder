@@ -1,3 +1,9 @@
+# v1.11.1 — 2026-08-11
+
+A dedicated field for work authorization status.
+
+- **State your work authorization once, use it everywhere.** A new "Work Authorization" field on your profile (e.g. "EU Blue Card", "Requires sponsorship") shows up on your resume header and in ATS knockout-risk analysis, so a job requiring EU work authorization no longer gets flagged as a silent gap once you've filled it in.
+
 # v1.11.0 — 2026-08-11
 
 A macOS autoupdate fix, a new European CV template, and German conventions on by default.

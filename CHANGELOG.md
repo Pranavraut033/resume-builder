@@ -2,6 +2,12 @@
 
 All notable changes to this project are documented in this file.
 
+## [1.11.1] - 2026-08-11
+
+### Added
+
+- Work Authorization header field on the base profile (e.g. "EU Blue Card", "Requires sponsorship") — surfaces on the profile form, resume header (DOM/PDF/TXT), and prompt context; ATS knockout-risk analysis now treats a filled-in value as authoritative status evidence instead of always flagging it as a silent gap ([8d0f942])
+
 ## [1.11.0] - 2026-08-11
 
 ### Added
