@@ -16,6 +16,7 @@ const baseResume: ResumeJSON = {
     linkedin: null,
     github: null,
     website: null,
+    workAuthorization: null,
     photoDataUrl: null,
   },
   summary: "Leveraged synergies to spearhead innovative solutions.",

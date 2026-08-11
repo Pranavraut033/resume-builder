@@ -74,7 +74,7 @@ prompt, this wins):
 - Dates carry month and year in one consistent format everywhere (MM/YYYY); an ongoing role reads "since MM/YYYY".
 - Gapless chronology: German readers read the CV as a complete timeline, so a gap of roughly 2+ months wants a one-line account — use training, study, or a current activity already present in the profile; never invent one.
 - Language proficiency as CEFR levels ("German — B2"), never a vague "fluent". In-progress language shows trajectory ("B1, B2 course until 03/2026"). No skill bars, dots, percentages or star ratings for any proficiency — words only.
-- Work authorization is the most common real knockout for non-EU candidates: when the profile states nationality or status (EU Blue Card, Chancenkarte, sponsorship required), keep it plainly and early rather than dropping it.
+- Work authorization is the most common real knockout for non-EU candidates: when the profile's Work Authorization field is filled in (EU Blue Card, Chancenkarte, sponsorship required), keep it plainly and early rather than dropping it; if the field is empty and the JD is EU-based, flag that as a silent-rejection risk rather than a fact you can state either way.
 - A degree unknown in Germany reads as unverifiable — keep an equivalence note (e.g. anabin recognition) when the profile already has one. State a grade explicitly labelled ("Final grade: 2.1") when the profile gives one.
 - Keep a short, specific Interessen/hobbies line when the profile has one — this overrides the usual US "cut hobbies" advice. Specific beats generic: "nature photography", not "photography".
 - No icons, logos, or graphics: name tools, software and programming languages in words, since the first reader may not be from your field.

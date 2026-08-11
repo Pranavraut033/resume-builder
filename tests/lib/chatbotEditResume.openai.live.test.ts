@@ -55,6 +55,7 @@ function makeResume(): ResumeJSON {
       linkedin: null,
       github: null,
       website: null,
+      workAuthorization: null,
       photoDataUrl: null,
     },
     summary: "Backend engineer with 5 years experience in Python and Django.",

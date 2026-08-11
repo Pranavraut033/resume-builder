@@ -16,6 +16,7 @@ function makeResume(overrides: Partial<ResumeJSON> = {}): ResumeJSON {
       linkedin: null,
       github: null,
       website: null,
+      workAuthorization: null,
       photoDataUrl: null,
     },
     summary: "Senior backend engineer with 6 years building payment systems.",
@@ -74,6 +75,7 @@ describe("lintResume — corpus defects", () => {
       linkedin: null,
       github: "github.com/pranavraut033-",
       website: null,
+      workAuthorization: null,
       photoDataUrl: null,
     },
     summary:

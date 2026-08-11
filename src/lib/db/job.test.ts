@@ -149,6 +149,7 @@ function makeResume(overrides: Partial<ResumeJSON> = {}): ResumeJSON {
       linkedin: null,
       github: null,
       website: null,
+      workAuthorization: null,
       photoDataUrl: null,
     },
     summary: "Backend engineer with 6 years building payment infrastructure.",

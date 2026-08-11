@@ -63,6 +63,7 @@ export default function ProfilePage() {
       linkedin: null,
       github: null,
       website: null,
+      workAuthorization: null,
       photoDataUrl: null,
     },
     summary: "",

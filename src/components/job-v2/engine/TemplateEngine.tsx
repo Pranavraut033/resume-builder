@@ -12,7 +12,15 @@ import {
   SortableContext,
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
-import { Github, Globe, Linkedin, Mail, MapPin, Phone } from "lucide-react";
+import {
+  Github,
+  Globe,
+  IdCard,
+  Linkedin,
+  Mail,
+  MapPin,
+  Phone,
+} from "lucide-react";
 import React, { useEffect, useRef, useState } from "react";
 
 import MeasurementContainer from "@/components/job/templates/shared/MeasurementContainer";
@@ -493,6 +501,19 @@ export const TemplateEngine: React.FC<TemplateEngineProps> = ({
               value={resume.header.location || ""}
               onCommit={(v) => edit.updateHeader({ location: v })}
               placeholder="Location"
+            />
+          </span>
+        )}
+        {(resume.header.workAuthorization || edit.editable) && (
+          <span className="inline-flex items-center gap-1.5">
+            <IdCard
+              className={contactIconClass}
+              style={{ color: headerContactColor }}
+            />
+            <EditableText
+              value={resume.header.workAuthorization || ""}
+              onCommit={(v) => edit.updateHeader({ workAuthorization: v })}
+              placeholder="Work authorization"
             />
           </span>
         )}

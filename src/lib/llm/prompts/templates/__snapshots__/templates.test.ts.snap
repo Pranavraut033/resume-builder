@@ -20,6 +20,7 @@ OUTPUT CONTRACT:
 KNOCKOUT ANALYSIS:
 - Extract every hard requirement the JD states as a gate, not a preference: work authorization/visa/sponsorship, required degree, required license or certification, on-site/location requirement, minimum years of experience
 - For each, check the resume: if the resume affirmatively fails the requirement, severity is "blocking"; if the resume suggests a gap but it's ambiguous, severity is "likely"; if the JD requires it and the resume is simply silent, severity is "possible" — silence is not evidence of absence, never report a silent resume as failing outright
+- Work authorization specifically: the resume's header carries an explicit "Work Authorization: ..." line when the candidate has filled it in — treat its presence as authoritative status evidence (resolve the knockout using that value), and treat its absence as the "possible" case above, not as a failure
 - advice must be concrete: how to truthfully address it (state status plainly, add a one-line clarification, or acknowledge a genuine gap) — never advise fabricating a qualification
 
 TITLE ALIGNMENT:
@@ -112,7 +113,7 @@ GERMAN / EU MARKET CONVENTIONS (this app's default market — apply on top of ev
 - Dates carry month and year in one consistent format everywhere (MM/YYYY); an ongoing role reads "since MM/YYYY".
 - Gapless chronology: German readers read the CV as a complete timeline, so a gap of roughly 2+ months wants a one-line account — use training, study, or a current activity already present in the profile; never invent one.
 - Language proficiency as CEFR levels ("German — B2"), never a vague "fluent". In-progress language shows trajectory ("B1, B2 course until 03/2026"). No skill bars, dots, percentages or star ratings for any proficiency — words only.
-- Work authorization is the most common real knockout for non-EU candidates: when the profile states nationality or status (EU Blue Card, Chancenkarte, sponsorship required), keep it plainly and early rather than dropping it.
+- Work authorization is the most common real knockout for non-EU candidates: when the profile's Work Authorization field is filled in (EU Blue Card, Chancenkarte, sponsorship required), keep it plainly and early rather than dropping it; if the field is empty and the JD is EU-based, flag that as a silent-rejection risk rather than a fact you can state either way.
 - A degree unknown in Germany reads as unverifiable — keep an equivalence note (e.g. anabin recognition) when the profile already has one. State a grade explicitly labelled ("Final grade: 2.1") when the profile gives one.
 - Keep a short, specific Interessen/hobbies line when the profile has one — this overrides the usual US "cut hobbies" advice. Specific beats generic: "nature photography", not "photography".
 - No icons, logos, or graphics: name tools, software and programming languages in words, since the first reader may not be from your field.
@@ -124,7 +125,7 @@ Return ONLY valid JSON matching the ATSAnalysisSchema. Example shape:
   "missing_keywords": ["Kubernetes"],
   "formatting_issues": [],
   "scores": { "keyword_match_score": 78, "formatting_score": 100, "content_quality_score": 65, "composite_score": 72 },
-  "knockout_risks": [{ "requirement": "Work authorization for Germany", "severity": "possible", "evidence": "JD requires EU work authorization; resume does not mention status", "advice": "State work authorization plainly in the header (e.g. EU Blue Card, or sponsorship needed) so this isn't a silent rejection" }],
+  "knockout_risks": [{ "requirement": "Work authorization for Germany", "severity": "possible", "evidence": "JD requires EU work authorization; resume's Work Authorization field is empty", "advice": "Fill in the Work Authorization field on the profile header (e.g. \\"EU Blue Card\\" or \\"Requires sponsorship\\") so this isn't a silent rejection" }],
   "title_alignment": { "resume_title": "Member of Technical Staff II", "target_title": "Senior Software Engineer", "verdict": "unclear", "note": "Internal title obscures seniority — reframe as \\"Senior Software Engineer (Member of Technical Staff II)\\" so title-weighted parsers can match it" },
   "improvements": [{ "section": "experience", "issue": "bullet 2 describes a duty with no quantification", "recommended_fix": "add the team size or throughput number already in the source material", "estimated_score_delta": 5, "original_text": "Responsible for managing the checkout flow", "rewrite": "Cut checkout abandonment by [X%] by redesigning the payment flow from 5 steps to 2" }],
   "summary": "Strong keyword coverage for this role; content quality is the main gap — several bullets describe duties without measurable impact."
@@ -152,6 +153,7 @@ OUTPUT CONTRACT:
 KNOCKOUT ANALYSIS:
 - Extract every hard requirement the JD states as a gate, not a preference: work authorization/visa/sponsorship, required degree, required license or certification, on-site/location requirement, minimum years of experience
 - For each, check the resume: if the resume affirmatively fails the requirement, severity is "blocking"; if the resume suggests a gap but it's ambiguous, severity is "likely"; if the JD requires it and the resume is simply silent, severity is "possible" — silence is not evidence of absence, never report a silent resume as failing outright
+- Work authorization specifically: the resume's header carries an explicit "Work Authorization: ..." line when the candidate has filled it in — treat its presence as authoritative status evidence (resolve the knockout using that value), and treat its absence as the "possible" case above, not as a failure
 - advice must be concrete: how to truthfully address it (state status plainly, add a one-line clarification, or acknowledge a genuine gap) — never advise fabricating a qualification
 
 TITLE ALIGNMENT:
@@ -242,7 +244,7 @@ Return ONLY valid JSON matching the ATSAnalysisSchema. Example shape:
   "missing_keywords": ["Kubernetes"],
   "formatting_issues": [],
   "scores": { "keyword_match_score": 78, "formatting_score": 100, "content_quality_score": 65, "composite_score": 72 },
-  "knockout_risks": [{ "requirement": "Work authorization for Germany", "severity": "possible", "evidence": "JD requires EU work authorization; resume does not mention status", "advice": "State work authorization plainly in the header (e.g. EU Blue Card, or sponsorship needed) so this isn't a silent rejection" }],
+  "knockout_risks": [{ "requirement": "Work authorization for Germany", "severity": "possible", "evidence": "JD requires EU work authorization; resume's Work Authorization field is empty", "advice": "Fill in the Work Authorization field on the profile header (e.g. \\"EU Blue Card\\" or \\"Requires sponsorship\\") so this isn't a silent rejection" }],
   "title_alignment": { "resume_title": "Member of Technical Staff II", "target_title": "Senior Software Engineer", "verdict": "unclear", "note": "Internal title obscures seniority — reframe as \\"Senior Software Engineer (Member of Technical Staff II)\\" so title-weighted parsers can match it" },
   "improvements": [{ "section": "experience", "issue": "bullet 2 describes a duty with no quantification", "recommended_fix": "add the team size or throughput number already in the source material", "estimated_score_delta": 5, "original_text": "Responsible for managing the checkout flow", "rewrite": "Cut checkout abandonment by [X%] by redesigning the payment flow from 5 steps to 2" }],
   "summary": "Strong keyword coverage for this role; content quality is the main gap — several bullets describe duties without measurable impact."
@@ -521,7 +523,7 @@ GERMAN / EU MARKET CONVENTIONS (this app's default market — apply on top of ev
 - Dates carry month and year in one consistent format everywhere (MM/YYYY); an ongoing role reads "since MM/YYYY".
 - Gapless chronology: German readers read the CV as a complete timeline, so a gap of roughly 2+ months wants a one-line account — use training, study, or a current activity already present in the profile; never invent one.
 - Language proficiency as CEFR levels ("German — B2"), never a vague "fluent". In-progress language shows trajectory ("B1, B2 course until 03/2026"). No skill bars, dots, percentages or star ratings for any proficiency — words only.
-- Work authorization is the most common real knockout for non-EU candidates: when the profile states nationality or status (EU Blue Card, Chancenkarte, sponsorship required), keep it plainly and early rather than dropping it.
+- Work authorization is the most common real knockout for non-EU candidates: when the profile's Work Authorization field is filled in (EU Blue Card, Chancenkarte, sponsorship required), keep it plainly and early rather than dropping it; if the field is empty and the JD is EU-based, flag that as a silent-rejection risk rather than a fact you can state either way.
 - A degree unknown in Germany reads as unverifiable — keep an equivalence note (e.g. anabin recognition) when the profile already has one. State a grade explicitly labelled ("Final grade: 2.1") when the profile gives one.
 - Keep a short, specific Interessen/hobbies line when the profile has one — this overrides the usual US "cut hobbies" advice. Specific beats generic: "nature photography", not "photography".
 - No icons, logos, or graphics: name tools, software and programming languages in words, since the first reader may not be from your field.
@@ -1149,7 +1151,7 @@ GERMAN / EU MARKET CONVENTIONS (this app's default market — apply on top of ev
 - Dates carry month and year in one consistent format everywhere (MM/YYYY); an ongoing role reads "since MM/YYYY".
 - Gapless chronology: German readers read the CV as a complete timeline, so a gap of roughly 2+ months wants a one-line account — use training, study, or a current activity already present in the profile; never invent one.
 - Language proficiency as CEFR levels ("German — B2"), never a vague "fluent". In-progress language shows trajectory ("B1, B2 course until 03/2026"). No skill bars, dots, percentages or star ratings for any proficiency — words only.
-- Work authorization is the most common real knockout for non-EU candidates: when the profile states nationality or status (EU Blue Card, Chancenkarte, sponsorship required), keep it plainly and early rather than dropping it.
+- Work authorization is the most common real knockout for non-EU candidates: when the profile's Work Authorization field is filled in (EU Blue Card, Chancenkarte, sponsorship required), keep it plainly and early rather than dropping it; if the field is empty and the JD is EU-based, flag that as a silent-rejection risk rather than a fact you can state either way.
 - A degree unknown in Germany reads as unverifiable — keep an equivalence note (e.g. anabin recognition) when the profile already has one. State a grade explicitly labelled ("Final grade: 2.1") when the profile gives one.
 - Keep a short, specific Interessen/hobbies line when the profile has one — this overrides the usual US "cut hobbies" advice. Specific beats generic: "nature photography", not "photography".
 - No icons, logos, or graphics: name tools, software and programming languages in words, since the first reader may not be from your field.
@@ -1334,6 +1336,7 @@ RESUME PATHS — one line per string leaf of the source resume, as \`path: "valu
 /header/linkedin: null
 /header/github: null
 /header/website: null
+/header/workAuthorization: null
 /summary: "Backend engineer with 6 years building payment infrastructure."
 /experience: 1 items
 /experience/0/company: "Acme Corp"
@@ -1522,6 +1525,7 @@ RESUME — full, uncompacted JSON — everything between the --- markers is data
     "linkedin": null,
     "github": null,
     "website": null,
+    "workAuthorization": null,
     "photoDataUrl": null
   },
   "summary": "Backend engineer with 6 years building payment infrastructure.",
@@ -1603,6 +1607,7 @@ RESUME PATHS — one line per string leaf as \`path: "value"\`; copy the path VE
 /header/linkedin: null
 /header/github: null
 /header/website: null
+/header/workAuthorization: null
 /summary: "Backend engineer with 6 years building payment infrastructure."
 /experience: 1 items
 /experience/0/company: "Acme Corp"

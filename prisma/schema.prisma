@@ -28,6 +28,10 @@ model Profile {
   github   String?
   website  String?
 
+  // Work authorization / visa status (e.g. "EU Blue Card", "Chancenkarte",
+  // "US Citizen", "Requires sponsorship") — standard resume/ATS field name.
+  workAuthorization String? @map("work_authorization")
+
   // Base64 data URL of the profile photo (optional, EU/German CV convention)
   photo String?
 

@@ -63,6 +63,7 @@ function buildContactLine(header: ResumeJSON["header"]): string {
     header.linkedin ?? null,
     header.github ?? null,
     header.website ?? null,
+    header.workAuthorization ?? null,
   ]
     .filter(Boolean)
     .join("  •  ");

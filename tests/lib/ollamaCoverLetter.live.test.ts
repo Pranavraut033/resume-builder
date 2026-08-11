@@ -128,6 +128,7 @@ function loadRealBaseProfile(): ResumeJSON {
       linkedin: row.linkedin,
       github: row.github,
       website: row.website,
+      workAuthorization: null,
       photoDataUrl: null,
     },
     summary: row.summary || "",

@@ -11,7 +11,17 @@ const TXT_LAYOUT_CONFIG = {
 };
 
 export function generateResumeTXT(resume: ResumeJSON): string {
-  const header = `${resume.header.name}\n${resume.header.email}\n\n`;
+  const h = resume.header;
+  const contacts = [
+    h.email,
+    h.phone,
+    h.location,
+    h.linkedin && `LinkedIn: ${h.linkedin}`,
+    h.github && `GitHub: ${h.github}`,
+    h.website && `Website: ${h.website}`,
+    h.workAuthorization && `Work Authorization: ${h.workAuthorization}`,
+  ].filter(Boolean);
+  const header = `${h.name}\n${h.headline ? `${h.headline}\n` : ""}${contacts.join("  |  ")}\n\n`;
 
   const body = buildSections(resume, TXT_LAYOUT_CONFIG)
     .map((instance) => {

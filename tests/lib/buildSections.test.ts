@@ -19,6 +19,7 @@ const baseResume: ResumeJSON = {
     linkedin: null,
     github: null,
     website: null,
+    workAuthorization: null,
     photoDataUrl: null,
   },
   summary: "A summary",

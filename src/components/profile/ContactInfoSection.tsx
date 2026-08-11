@@ -64,6 +64,13 @@ export function ContactInfoSection({
             onChange={(v) => onChange({ ...header, website: v })}
             placeholder="johndoe.com"
           />
+
+          <FormField
+            label="Work Authorization"
+            value={header.workAuthorization || ""}
+            onChange={(v) => onChange({ ...header, workAuthorization: v })}
+            placeholder="e.g. EU Blue Card, US Citizen, Requires sponsorship"
+          />
         </div>
       </SurfacePanel>
     </PageSection>
