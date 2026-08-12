@@ -11,7 +11,6 @@ import useResolveCustomization from "@/hooks/useResolveCustomization";
 import cn from "@/lib/cn";
 import { getPageDimensions } from "@/lib/pageDimensions";
 
-import { CoverLetterActionBar } from "./CoverLetterActionBar";
 import { InlineEditProvider } from "./resume/InlineEditContext";
 
 const MIN_ZOOM = 0.25;
@@ -32,15 +31,7 @@ function clampZoom(z: number) {
  * InlineJobPageLayout), not as an overlay here. For cover letter it renders
  * CoverLetterRenderer with a click-to-edit overlay.
  */
-interface DocumentCanvasProps {
-  isHumanizerOpen: boolean;
-  onToggleHumanizer: () => void;
-}
-
-export function DocumentCanvas({
-  isHumanizerOpen,
-  onToggleHumanizer,
-}: DocumentCanvasProps) {
+export function DocumentCanvas() {
   const {
     resume,
     coverLetter,
@@ -98,13 +89,7 @@ export function DocumentCanvas({
 
   if (contentType === "coverLetter") {
     return (
-      <div className="flex min-h-0 flex-1 flex-col overflow-y-auto px-6 py-4">
-        {/* Floating action bar */}
-        <CoverLetterActionBar
-          isHumanizerOpen={isHumanizerOpen}
-          onToggleHumanizer={onToggleHumanizer}
-        />
-
+      <div className="flex min-h-0 flex-1 flex-col overflow-y-auto px-6 py-20">
         {/* Cover letter document canvas */}
         <div
           ref={clContainerRef}

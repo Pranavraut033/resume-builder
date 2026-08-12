@@ -7,6 +7,7 @@ import { useJobPageContext } from "@/contexts/JobPageContext";
 import { useEscapeKey } from "@/hooks/useEscapeKey";
 import cn from "@/lib/cn";
 
+import { GenerateCoverLetterModal } from "./GenerateCoverLetterModal";
 import { TemplatePicker } from "./TemplatePicker";
 
 /** The seven mutually-exclusive canvas-overlay drawers. `null` means none open. */
@@ -57,9 +58,8 @@ interface FloatingActionBarProps {
  * the V2 WYSIWYG canvas. Hides on scroll down and reappears on scroll up
  * (see `hidden` prop, driven by useHideOnScroll in the parent).
  *
- * Inline (high-value, resume-only items hidden while editing the cover
- * letter): Export PDF | Undo | Redo | Customize ▾ | Template ▾ | ATS |
- * Humanize | Chat.
+ * Inline: Export PDF | Undo | Redo (resume-only) | Customize ▾ | Template ▾ |
+ * ATS (resume-only) | Generate (cover-letter-only) | Humanize | Chat.
  *
  * Overflow `⋯` menu (lower-frequency actions): Sections | History |
  * Proofread | Gap analysis | Download JSON.
@@ -74,6 +74,7 @@ export function FloatingActionBar({
 }: FloatingActionBarProps) {
   const {
     contentType,
+    coverLetter,
     isExportingPdf,
     onJSONExport,
     onPDFExport,
@@ -83,6 +84,7 @@ export function FloatingActionBar({
   const isResume = contentType === "resume";
 
   const [isOverflowOpen, setIsOverflowOpen] = useState(false);
+  const [isGenerateOpen, setIsGenerateOpen] = useState(false);
   const overflowRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -193,25 +195,44 @@ export function FloatingActionBar({
               <Icon name="barChart" className="h-3.5 w-3.5" />
               <span className="hidden md:inline">ATS</span>
             </button>
-
-            {/* Humanize */}
-            <button
-              onClick={() =>
-                onOpenDrawer(activeDrawer === "humanizer" ? null : "humanizer")
-              }
-              className={cn(
-                "flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition-all",
-                activeDrawer === "humanizer"
-                  ? "bg-agent-primary text-agent-on-primary"
-                  : "text-agent-on-surface-variant hover:bg-agent-surface-container hover:text-agent-on-surface"
-              )}
-              title="Humanize"
-            >
-              <Icon name="wand" className="h-3.5 w-3.5" />
-              <span className="hidden md:inline">Humanize</span>
-            </button>
           </>
         )}
+
+        {!isResume && (
+          <>
+            {/* Generate — opens the model/style/instructions modal */}
+            <button
+              onClick={() => setIsGenerateOpen(true)}
+              className="text-agent-on-surface-variant hover:bg-agent-surface-container hover:text-agent-on-surface flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition-all"
+              title="Generate cover letter"
+            >
+              <Icon name="zap" className="h-3.5 w-3.5" />
+              <span className="hidden md:inline">Generate</span>
+            </button>
+            <GenerateCoverLetterModal
+              open={isGenerateOpen}
+              onClose={() => setIsGenerateOpen(false)}
+            />
+          </>
+        )}
+
+        {/* Humanize */}
+        <button
+          onClick={() =>
+            onOpenDrawer(activeDrawer === "humanizer" ? null : "humanizer")
+          }
+          disabled={!isResume && !coverLetter.trim()}
+          className={cn(
+            "flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition-all disabled:cursor-not-allowed disabled:opacity-30",
+            activeDrawer === "humanizer"
+              ? "bg-agent-primary text-agent-on-primary"
+              : "text-agent-on-surface-variant hover:bg-agent-surface-container hover:text-agent-on-surface"
+          )}
+          title="Humanize"
+        >
+          <Icon name="wand" className="h-3.5 w-3.5" />
+          <span className="hidden md:inline">Humanize</span>
+        </button>
 
         {/* Chat */}
         <button

@@ -436,10 +436,7 @@ export function InlineJobPageLayout() {
                   ref={canvasColumnRef}
                   className="relative flex min-h-0 flex-1 flex-col overflow-hidden"
                 >
-                  <DocumentCanvas
-                    isHumanizerOpen={isHumanizerOpen}
-                    onToggleHumanizer={() => toggleDrawer("humanizer")}
-                  />
+                  <DocumentCanvas />
                   {/* Floating action bar — resume-only actions hide themselves
                       internally when contentType is "coverLetter". Hides on
                       scroll down, reappears on scroll up. */}
