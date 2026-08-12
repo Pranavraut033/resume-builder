@@ -64,6 +64,27 @@ export function ContactInfoSection({
             onChange={(v) => onChange({ ...header, website: v })}
             placeholder="johndoe.com"
           />
+
+          <FormField
+            label="Work Authorization"
+            value={header.workAuthorization || ""}
+            onChange={(v) => onChange({ ...header, workAuthorization: v })}
+            placeholder="e.g. EU Blue Card, US Citizen, Requires sponsorship"
+          />
+
+          <FormField
+            label="Nationality"
+            value={header.nationality || ""}
+            onChange={(v) => onChange({ ...header, nationality: v })}
+            placeholder="e.g. German, Indian"
+          />
+
+          <FormField
+            label="Date of Birth"
+            value={header.dateOfBirth || ""}
+            onChange={(v) => onChange({ ...header, dateOfBirth: v })}
+            placeholder="e.g. 15.03.1990"
+          />
         </div>
       </SurfacePanel>
     </PageSection>

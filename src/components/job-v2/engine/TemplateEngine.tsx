@@ -12,7 +12,17 @@ import {
   SortableContext,
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
-import { Github, Globe, Linkedin, Mail, MapPin, Phone } from "lucide-react";
+import {
+  CalendarDays,
+  Flag,
+  Github,
+  Globe,
+  IdCard,
+  Linkedin,
+  Mail,
+  MapPin,
+  Phone,
+} from "lucide-react";
 import React, { useEffect, useRef, useState } from "react";
 
 import MeasurementContainer from "@/components/job/templates/shared/MeasurementContainer";
@@ -112,8 +122,8 @@ export const TemplateEngine: React.FC<TemplateEngineProps> = ({
   const col0Instances = instances.filter((s) => s.column === 0);
   const col1Instances = instances.filter((s) => s.column === 1);
 
-  // Per-section style overrides (color/heading) — see CustomizationDrawer's
-  // SectionThemeOverrides. Layered on top of the scalar-resolved `theme`
+  // Per-section heading-style overrides — see ThemeCustomizationPanel's
+  // "Heading Style" control. Layered on top of the scalar-resolved `theme`
   // above rather than rearchitecting theme resolution onto ThemeConfig.
   const perSectionTheme = legacyToTheme(customization).perSection;
 
@@ -349,6 +359,7 @@ export const TemplateEngine: React.FC<TemplateEngineProps> = ({
       !isPlain &&
       !isBoxed &&
       !isSplit &&
+      !isMinimal &&
       "border-b-2",
   ]
     .filter(Boolean)
@@ -493,6 +504,45 @@ export const TemplateEngine: React.FC<TemplateEngineProps> = ({
               value={resume.header.location || ""}
               onCommit={(v) => edit.updateHeader({ location: v })}
               placeholder="Location"
+            />
+          </span>
+        )}
+        {(resume.header.workAuthorization || edit.editable) && (
+          <span className="inline-flex items-center gap-1.5">
+            <IdCard
+              className={contactIconClass}
+              style={{ color: headerContactColor }}
+            />
+            <EditableText
+              value={resume.header.workAuthorization || ""}
+              onCommit={(v) => edit.updateHeader({ workAuthorization: v })}
+              placeholder="Work authorization"
+            />
+          </span>
+        )}
+        {(resume.header.nationality || edit.editable) && (
+          <span className="inline-flex items-center gap-1.5">
+            <Flag
+              className={contactIconClass}
+              style={{ color: headerContactColor }}
+            />
+            <EditableText
+              value={resume.header.nationality || ""}
+              onCommit={(v) => edit.updateHeader({ nationality: v })}
+              placeholder="Nationality"
+            />
+          </span>
+        )}
+        {(resume.header.dateOfBirth || edit.editable) && (
+          <span className="inline-flex items-center gap-1.5">
+            <CalendarDays
+              className={contactIconClass}
+              style={{ color: headerContactColor }}
+            />
+            <EditableText
+              value={resume.header.dateOfBirth || ""}
+              onCommit={(v) => edit.updateHeader({ dateOfBirth: v })}
+              placeholder="Date of birth"
             />
           </span>
         )}

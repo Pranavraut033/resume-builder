@@ -29,7 +29,7 @@ graph TD
 
     DB["db.ts<br/>resolves DATABASE_URL, sets SQLite WAL<br/>MUST import first"]
 
-    SRV["server.ts — buildServer()<br/>8 tools, all business logic"]
+    SRV["server.ts — buildServer()<br/>11 tools, all business logic"]
 
     subgraph Support["src/mcp/ — support modules"]
         DRAFT["draft.ts<br/>in-memory add_job scratch state"]
@@ -63,20 +63,23 @@ graph TD
 
 ## 2. Tool surface
 
-8 tools, all registered in `buildServer()`. `readOnlyHint`/`idempotentHint`
+11 tools, all registered in `buildServer()`. `readOnlyHint`/`idempotentHint`
 annotations (native to `@modelcontextprotocol/sdk`) tell a host which calls
 are safe to retry or skip confirming.
 
-| Tool               | Read-only?      | Purpose                                                                               |
-| ------------------ | --------------- | ------------------------------------------------------------------------------------- |
-| `list_flows`       | ✅              | Static catalog of every flow and its purpose order                                    |
-| `get_prompt`       | ✅              | Resolve a purpose's `systemPrompt`/`userPrompt`/`outputSchema`                        |
-| `submit`           | ❌              | Validate → guard → persist a result; returns `nextPrompt` inline                      |
-| `apply_resume_ops` | ❌ (idempotent) | Apply JSON-Patch-style ops to a job's resume                                          |
-| `list_profiles`    | ✅              | Base profiles, for `generate_cover_letter`'s/bookmark's profile disambiguation        |
-| `list_jobs`        | ✅              | Jobs already tracked in the app                                                       |
-| `fetch_url`        | ✅              | Fetch a job posting URL server-side (SSRF-guarded) when a host's own fetch is blocked |
-| `get_job_state`    | ✅              | A job's details, resume path-lines, ATS score, cover-letter presence                  |
+| Tool                   | Read-only?      | Purpose                                                                                |
+| ---------------------- | --------------- | -------------------------------------------------------------------------------------- |
+| `list_flows`           | ✅              | Static catalog of every flow and its purpose order                                     |
+| `get_prompt`           | ✅              | Resolve a purpose's `systemPrompt`/`userPrompt`/`outputSchema`                         |
+| `submit`               | ❌              | Validate → guard → persist a result; returns `nextPrompt` inline                       |
+| `apply_resume_ops`     | ❌ (idempotent) | Apply JSON-Patch-style ops to a job's resume                                           |
+| `list_profiles`        | ✅              | Base profiles, for `generate_cover_letter`'s/bookmark's profile disambiguation         |
+| `list_jobs`            | ✅              | Jobs already tracked in the app                                                        |
+| `fetch_url`            | ✅              | Fetch a job posting URL server-side (SSRF-guarded) when a host's own fetch is blocked  |
+| `get_job_state`        | ✅              | A job's details, resume path-lines, ATS score, cover-letter presence                   |
+| `get_profile`          | ✅              | Full base-profile content + pathLines (MCP-only, see §5)                               |
+| `preview_profile_edit` | ✅              | Dry-run profile edit ops, returns a before/after diff, writes nothing (MCP-only)       |
+| `apply_profile_edit`   | ❌              | Persist profile edit ops — requires `confirm: true`, warns to back up first (MCP-only) |
 
 There is deliberately no `validate` tool — `submit` already runs the same
 schema check before persisting, so a failed `submit` doubles as the dry
@@ -289,7 +292,35 @@ graph TD
     end
 ```
 
-## 8. Validation, guards, and error surfacing
+## 8. Base-profile editing (MCP-only, standalone)
+
+`get_profile` / `preview_profile_edit` / `apply_profile_edit` are not a
+`FLOW_CATALOG` entry — they need no LLM prompt from this server (the host
+already has the full profile from `get_profile`, including `pathLines` in
+the same format `apply_resume_ops` expects), so there's no `get_prompt`/
+`submit` step to model. It's a standalone three-tool propose-then-confirm
+sequence instead, reusing `applyResumeOps()` against a `Profile` row's
+content (a `ResumeJSON` under a non-schema `label` field — see
+`profileDataToResumeJson`/`resumeJsonToProfileData` in
+`src/actions/profile.ts`) exactly the same way `apply_resume_ops` does
+against a `Resume` row's.
+
+This is MCP-only by design — the in-app chat has its own Profile page UI,
+so there's no matching `IntentLabel`. `apply_profile_edit` refuses to write
+unless the SAME call passes `confirm: true`; its description and response
+both tell the calling host to have the user back up first via Settings →
+"Backup & Restore" (the existing full-database JSON export) before
+confirming, since a profile edit has no undo from this server.
+
+```mermaid
+graph TD
+    S1["get_profile(profileId?)<br/>full ResumeJSON + pathLines"] --> S2["preview_profile_edit(profileId, ops)<br/>dry-run, returns before/after diff,<br/>writes nothing"]
+    S2 --> S3{"user reviewed the diff<br/>and has a backup?"}
+    S3 -->|no| S2
+    S3 -->|yes| S4["apply_profile_edit(profileId, ops,<br/>confirm: true)<br/>persists via updateProfile()"]
+```
+
+## 9. Validation, guards, and error surfacing
 
 `submit` runs three layers before anything touches the database. Each is
 designed so a failure is reported back structured (`{ ok: false, errors }`)
@@ -322,7 +353,7 @@ flowchart TD
     ResolveNext --> Done(["ok:true — { jobId, next, nextPrompt?, guardChanges? }"])
 ```
 
-## 9. Key types
+## 10. Key types
 
 ```mermaid
 classDiagram
@@ -399,18 +430,18 @@ classDiagram
     Draft ..> DraftField : keys lastSent by
 ```
 
-## 10. File reference
+## 11. File reference
 
-| File             | Responsibility                                                                                                     |
-| ---------------- | ------------------------------------------------------------------------------------------------------------------ |
-| `server.ts`      | All 8 tool handlers, `McpDeps`, `hydrateContext`, `submitTool`, `buildServer()` — the bulk of the logic            |
-| `draft.ts`       | In-memory `add_job` scratch state + the `lastSent` fingerprint dedup                                               |
-| `flows.ts`       | `FLOW_CATALOG` (data, mirrors §7's diagram) + `nextPurposeFor()`                                                   |
-| `guards.ts`      | Post-Zod safety checks (`guardTailoredResume`, `guardProofreadResult`) applied inside `submit`, before persistence |
-| `db.ts`          | Bootstrap: resolves `DATABASE_URL`, flips SQLite to WAL — must be imported before `server.ts`                      |
-| `stdio.ts`       | Process entry point for Claude Desktop/Code (spawns this directly)                                                 |
-| `http.ts`        | Process entry point for URL-based hosts (`127.0.0.1` only, Origin-checked)                                         |
-| `tests/lib/mcp/` | `flows.test.ts`, `guards.test.ts`, `applyResumeOpsTool.test.ts`, `submitTool.test.ts`                              |
+| File             | Responsibility                                                                                                                                                             |
+| ---------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `server.ts`      | All 11 tool handlers, `McpDeps`, `hydrateContext`, `submitTool`, `getProfileTool`/`previewProfileEditTool`/`applyProfileEditTool`, `buildServer()` — the bulk of the logic |
+| `draft.ts`       | In-memory `add_job` scratch state + the `lastSent` fingerprint dedup                                                                                                       |
+| `flows.ts`       | `FLOW_CATALOG` (data, mirrors §7's diagram) + `nextPurposeFor()` — does not include base-profile editing, see §8                                                           |
+| `guards.ts`      | Post-Zod safety checks (`guardTailoredResume`, `guardProofreadResult`) applied inside `submit`, before persistence                                                         |
+| `db.ts`          | Bootstrap: resolves `DATABASE_URL`, flips SQLite to WAL — must be imported before `server.ts`                                                                              |
+| `stdio.ts`       | Process entry point for Claude Desktop/Code (spawns this directly)                                                                                                         |
+| `http.ts`        | Process entry point for URL-based hosts (`127.0.0.1` only, Origin-checked)                                                                                                 |
+| `tests/lib/mcp/` | `flows.test.ts`, `guards.test.ts`, `applyResumeOpsTool.test.ts`, `submitTool.test.ts`, `profileEditTools.test.ts`                                                          |
 
 Reused (not MCP-specific): `src/lib/db/job.ts` (Prisma reads/writes with no
 `next/cache` import, so the MCP bundle never needs Next resolvable at

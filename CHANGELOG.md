@@ -2,6 +2,66 @@
 
 All notable changes to this project are documented in this file.
 
+## [1.12.0] - 2026-08-12
+
+### Added
+
+- Nationality and Date of Birth header fields on the base profile (German/EU CV convention) — surface on the profile form, resume header (DOM/PDF/TXT), and prompt context ([43049fc])
+- `RichTextEditor` gained an opt-in `autoFocus` prop; the cover letter body editor now focuses automatically when opened ([23df0d9])
+
+### Changed
+
+- Font selection now uses a shared font registry (`src/lib/fonts/registry.ts`) — the font picker shows real per-row specimen previews instead of a static list, and only the weights actually needed are loaded ([09d8014])
+- Per-section theme color/heading overrides removed in favor of a single global "Heading Style" control in the customization panel, applied to every section at once ([c8fdd4f])
+
+### Fixed
+
+- PDF export now matches the DOM editor more closely: skill category labels styled as headings, missing experience/project descriptions restored, solid-sidebar heading borders no longer invisible, and a multi-column date-alignment bug ([bee5dcb])
+- Desktop app (Tauri/WKWebView): a stale layout on client-side navigation that briefly shifted content left is now masked and corrected automatically ([4347c25])
+- Desktop app no longer briefly flashes white on launch ([0d5a254])
+- Local Ollama connections and `https:` images were blocked by the content security policy ([d126281])
+
+## [1.11.2] - 2026-08-11
+
+### Fixed
+
+- `applyResumeOps` (used by chat edits, proofread, humanizer, tailor, and the MCP profile-edit tools) falsely rejected every op against the base profile — the schema-validity check compared JSON key order, and the profile's `header` object has a different key order than the schema declares ([e4a925d])
+
+### Changed
+
+- `dist-mcp` now rebuilds as part of `prebuild`, alongside the `llm-core`/`ats-checker` submodule builds, so it can't go stale outside the Tauri desktop packaging flow ([9dafa49])
+
+## [1.11.1] - 2026-08-11
+
+### Added
+
+- Work Authorization header field on the base profile (e.g. "EU Blue Card", "Requires sponsorship") — surfaces on the profile form, resume header (DOM/PDF/TXT), and prompt context; ATS knockout-risk analysis now treats a filled-in value as authoritative status evidence instead of always flagging it as a silent gap ([8d0f942])
+
+## [1.11.0] - 2026-08-11
+
+### Added
+
+- Euro Sidebar resume template — full-height solid sidebar, banded name header, circular photo, stacked skills/languages list, for European/German-style CVs ([91d671d])
+- 8 new color presets (Crimson, Amber, Emerald, Cyan, Indigo, Fuchsia, Slate, Brown) ([91d671d])
+
+### Changed
+
+- German/EU resume, cover-letter, and ATS prompt guidance is now the default region fragment (Germany is this app's default market) instead of only surfacing when the job description looked EU-based; conventions expanded to cover format, reading order, telegraphic bullet style, and degree-equivalence notes ([996dc93])
+
+### Fixed
+
+- macOS autoupdate no longer requires a manual reinstall — the app now clears the `com.apple.quarantine` flag on its own bundle at launch and after an update installs, since the ad-hoc-signed build otherwise inherits and repropagates quarantine on every update ([9e54b9c])
+
+## [1.10.0] - 2026-08-10
+
+### Added
+
+- MCP server gained `get_profile`, `preview_profile_edit`, and `apply_profile_edit` tools so a connected host can read and edit the base Profile; edits preview a diff first and only persist once confirmed ([715853b])
+
+### Fixed
+
+- Corrected formatting in the "ATS screening" and "local-first app" blog articles ([77e633b])
+
 ## [1.9.0] - 2026-08-09
 
 ### Added

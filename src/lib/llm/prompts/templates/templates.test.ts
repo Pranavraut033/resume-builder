@@ -17,6 +17,9 @@ const sampleResume: ResumeJSON = {
     linkedin: null,
     github: null,
     website: null,
+    workAuthorization: null,
+    nationality: null,
+    dateOfBirth: null,
     photoDataUrl: null,
   },
   summary: "Backend engineer with 6 years building payment infrastructure.",
@@ -275,7 +278,7 @@ describe("prompt templates resolve cleanly", () => {
 
   it("generate_cover_letter falls back to the standard structure without a styleGuide", () => {
     const resolved = getPromptByPurpose("generate_cover_letter", baseContext);
-    expect(resolved.systemPrompt).toContain("Para 3 — Company signal");
+    expect(resolved.systemPrompt).toContain("Para 3 — Fit");
   });
 
   it.each(
@@ -294,7 +297,7 @@ describe("prompt templates resolve cleanly", () => {
       expect(resolved.systemPrompt).toContain(
         style.promptFragment!.split("\n")[0]
       );
-      expect(resolved.systemPrompt).not.toContain("Para 3 — Company signal");
+      expect(resolved.systemPrompt).not.toContain("Para 3 — Fit");
     }
   );
 
@@ -306,6 +309,29 @@ describe("prompt templates resolve cleanly", () => {
   });
 });
 
+// Same job, relocated to Germany. `baseContext` above is a US job, which is
+// the only branch where resolveRegionGuidance() returns undefined — so without
+// this fixture the German conventions fragment (the default for every other
+// location) never appears in a resolved-prompt snapshot.
+const germanContext: PromptContext = {
+  ...baseContext,
+  jobDetails: {
+    ...sampleJobDetails,
+    location: {
+      ...sampleJobDetails.location,
+      country: "Germany",
+      city: "Berlin",
+    },
+  },
+};
+
+// The purposes whose templates gate on `{{#if regionGuidance}}`.
+const REGION_AWARE_PURPOSES: PromptPurpose[] = [
+  "generate_tailored_resume",
+  "generate_cover_letter",
+  "analyze_ats",
+];
+
 describe("prompt template snapshots", () => {
   it.each(TEMPLATE_BACKED_PURPOSES)(
     "%s resolved prompt matches snapshot",
@@ -315,6 +341,29 @@ describe("prompt template snapshots", () => {
         systemPrompt: resolved.systemPrompt,
         userPrompt: resolved.userPrompt,
       }).toMatchSnapshot();
+    }
+  );
+
+  it.each(REGION_AWARE_PURPOSES)(
+    "%s resolved prompt for a German job matches snapshot",
+    (purpose) => {
+      const resolved = getPromptByPurpose(purpose, germanContext);
+      expect({
+        systemPrompt: resolved.systemPrompt,
+        userPrompt: resolved.userPrompt,
+      }).toMatchSnapshot();
+    }
+  );
+
+  it.each(REGION_AWARE_PURPOSES)(
+    "%s carries the German conventions fragment only for a non-US job",
+    (purpose) => {
+      const marker = "GERMAN / EU MARKET CONVENTIONS";
+      const german = getPromptByPurpose(purpose, germanContext);
+      const us = getPromptByPurpose(purpose, baseContext);
+
+      expect(`${german.systemPrompt}${german.userPrompt}`).toContain(marker);
+      expect(`${us.systemPrompt}${us.userPrompt}`).not.toContain(marker);
     }
   );
 });

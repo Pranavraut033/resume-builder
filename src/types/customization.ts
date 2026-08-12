@@ -2,6 +2,7 @@ import { Customization } from "@prisma/client";
 
 import { BackgroundId, VALID_BACKGROUND_IDS } from "@/lib/backgrounds/types";
 import { DateFormat, VALID_DATE_FORMATS } from "@/lib/date";
+import { ALL_FONT_NAMES } from "@/lib/fonts/registry";
 
 export type { DateFormat } from "@/lib/date";
 
@@ -19,7 +20,8 @@ export type TemplateType =
   | "bjet-professional"
   | "compact-modern"
   | "two-tone"
-  | "academic-serif";
+  | "academic-serif"
+  | "euro-sidebar";
 
 export type PageFormat = "letter" | "a4";
 export type FontSize = "small" | "medium" | "large";
@@ -159,30 +161,23 @@ export const AVAILABLE_TEMPLATES: Array<Template> = [
     features: ["Compact entries", "Space-efficient", "ATS-friendly"],
     bestFor: "Experienced candidates with lots to fit, ATS submissions",
   },
+  {
+    id: "euro-sidebar",
+    name: "Euro Sidebar",
+    description:
+      "Full-height solid sidebar with a banded name header, circular photo, and a stacked skills/languages list — European CV format",
+    fontFamily: "Inter",
+    features: [
+      "Full-height solid sidebar",
+      "Banded name header",
+      "Stacked skills & languages",
+    ],
+    bestFor:
+      "European/German-style CVs, roles expecting a photo, multilingual candidates",
+  },
 ];
 
-export const AVAILABLE_FONTS = [
-  "Inter",
-  "Georgia",
-  "Poppins",
-  "Lora",
-  "Montserrat",
-  "Playfair Display",
-  "Roboto",
-  "Open Sans",
-  "Arial",
-  "Times New Roman",
-  "Helvetica",
-  "Verdana",
-  "Trebuchet MS",
-  "Garamond",
-  "Courier New",
-  "Source Sans Pro",
-  "Merriweather",
-  "Raleway",
-  "Ubuntu",
-  "Nunito",
-];
+export const AVAILABLE_FONTS = ALL_FONT_NAMES;
 
 const VALID_TEMPLATE_IDS = new Set(
   AVAILABLE_TEMPLATES.map((template) => template.id)
@@ -320,6 +315,46 @@ export const COLOR_PRESETS: Array<{
     name: "Charcoal",
     hex: "#374151",
     colors: ["#374151", "#4b5563", "#6b7280", "#1f2937", "#ffffff"],
+  },
+  {
+    name: "Crimson",
+    hex: "#dc2626",
+    colors: ["#dc2626", "#991b1b", "#7f1d1d", "#1f2937", "#ffffff"],
+  },
+  {
+    name: "Amber",
+    hex: "#d97706",
+    colors: ["#d97706", "#b45309", "#92400e", "#1f2937", "#ffffff"],
+  },
+  {
+    name: "Emerald",
+    hex: "#059669",
+    colors: ["#059669", "#047857", "#065f46", "#1f2937", "#ffffff"],
+  },
+  {
+    name: "Cyan",
+    hex: "#0891b2",
+    colors: ["#0891b2", "#0e7490", "#155e75", "#1f2937", "#ffffff"],
+  },
+  {
+    name: "Indigo",
+    hex: "#4f46e5",
+    colors: ["#4f46e5", "#4338ca", "#3730a3", "#1f2937", "#ffffff"],
+  },
+  {
+    name: "Fuchsia",
+    hex: "#c026d3",
+    colors: ["#c026d3", "#a21caf", "#86198f", "#1f2937", "#ffffff"],
+  },
+  {
+    name: "Slate",
+    hex: "#475569",
+    colors: ["#475569", "#334155", "#1e293b", "#1f2937", "#ffffff"],
+  },
+  {
+    name: "Brown",
+    hex: "#78350f",
+    colors: ["#78350f", "#5c2a0c", "#451a03", "#1f2937", "#ffffff"],
   },
 ];
 

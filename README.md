@@ -26,12 +26,12 @@ More screenshots and demo clips (ATS analysis, chat editing, cover letters, cust
 - **AI humanizer**: rewrite resume/cover letter content to read less like AI output, with reviewable before/after changes
 - **AI proofreading**: deterministic lint checks plus an LLM pass surface grammar, consistency, and unquantified-claim issues in a review drawer; lint-sourced fixes auto-apply
 - **ATS analysis**: keyword/skill match scoring plus knockout-risk and title-alignment checks with rewrite coaching, including a chat action to fix all flagged issues at once
-- **EU/German CVs**: optional profile photo and hobbies section, DE/EU region prompt guidance, and an Anschreiben cover letter style
+- **EU/German CVs**: optional profile photo, nationality, date of birth, and hobbies section, DE/EU region prompt guidance, and an Anschreiben cover letter style
 - **Documents view**: browse all generated resumes and cover letters across jobs (`/documents`)
 - **Notifications**: a bell in the sidebar shows background task progress and results (e.g. bookmark parsing), with history and a clear-all action
 - **PDF & TXT export**: generate application-ready documents
 - **Multiple LLM providers**: OpenAI, Google Gemini, Anthropic (Claude), xAI Grok, Perplexity, local Ollama, or a managed pay-as-you-go gateway (no key required) — switch per job
-- **MCP server (optional)**: drive the same job-parsing/tailoring/ATS/proofreading/humanizing flows from Claude Desktop or another MCP host on your own chat subscription, no API key configured in this app required — opt-in toggle in **Settings**, off by default; see [docs/MCP.md](./docs/MCP.md)
+- **MCP server (optional)**: drive the same job-parsing/tailoring/ATS/proofreading/humanizing flows, plus reading and editing your base profile (with a diff preview before anything saves), from Claude Desktop or another MCP host on your own chat subscription, no API key configured in this app required — opt-in toggle in **Settings**, off by default; see [docs/MCP.md](./docs/MCP.md)
 - **Secure key storage**: API keys are AES-256-GCM encrypted on disk (desktop), keyed off a per-install master key held in the OS keychain, or `localStorage` (web) — never on the server
 - **Backup & restore**: export the entire local database to a JSON file and restore it later, from **Settings**
 - **Local-first**: all data in a local SQLite database; no mandatory cloud dependency
@@ -56,6 +56,7 @@ The app is **self-signed** (not signed by a CA-trusted/registered publisher), so
    ```bash
    xattr -d com.apple.quarantine /Applications/Udaan.app
    ```
+   This manual step is only needed once, on your first install (or if you're updating from v1.10 or earlier) — from v1.11.0 onward, the app clears its own quarantine flag automatically after every in-app update.
 
 ### Windows
 

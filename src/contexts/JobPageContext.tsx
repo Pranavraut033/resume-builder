@@ -373,7 +373,9 @@ export function JobPageProvider({
 
   useEffect(() => {
     if (customization.fontFamily) {
-      loadGoogleFont(customization.fontFamily);
+      // full: true — the applied resume font needs every weight it ships
+      // (bold headings etc.), not just the single preview weight.
+      loadGoogleFont(customization.fontFamily, { full: true });
     }
   }, [customization.fontFamily]);
 

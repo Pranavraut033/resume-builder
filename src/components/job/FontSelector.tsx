@@ -1,19 +1,15 @@
 /**
  * Font Selector Component
- * Interactive font selector with:
- * - Live font preview showing selected font
- * - Search functionality to filter fonts (Headless UI Combobox)
- * - Font category grouping (Google Fonts vs System Fonts)
- * - Smooth scrolling dropdown with proper overflow handling
- * - Visual indication of selected font
  *
- * Built with Headless UI Combobox for accessibility and proper focus management.
+ * Searchable, grouped font picker with real specimen previews — every row
+ * renders in its own typeface, backed by src/lib/fontLoader.ts (fetches the
+ * actual font bytes and registers them via the Font Loading API, since the
+ * app's CSP blocks a runtime <link> to fonts.googleapis.com). A sticky
+ * footer previews whichever font is currently hovered/focused so browsing
+ * doesn't require committing a selection.
  *
- * Usage:
- * <FontSelector
- *   value="Inter"
- *   onChange={(font) => setFont(font)}
- * />
+ * Built with Headless UI Combobox for accessibility and proper focus
+ * management.
  */
 
 "use client";
@@ -24,173 +20,195 @@ import {
   ComboboxOptions,
   Transition,
 } from "@headlessui/react";
-import { Fragment, useState, useMemo } from "react";
+import { Fragment, useEffect, useMemo, useState } from "react";
 
 import { Icon } from "@/components/ui/Icon";
 import { loadGoogleFont } from "@/lib/fontLoader";
+import { fontCategory, isSystemFont } from "@/lib/fonts/registry";
 import { AVAILABLE_FONTS } from "@/types/customization";
 
 interface FontSelectorProps {
   value: string;
   onChange: (font: string) => void;
-  onFontLoad?: () => void;
 }
 
-// Google Fonts that support preview
-const GOOGLE_FONTS = [
-  "Inter",
-  "Poppins",
-  "Roboto",
-  "Montserrat",
-  "Lora",
-  "Open Sans",
-  "Source Sans Pro",
-  "Merriweather",
-  "Raleway",
-  "Ubuntu",
-  "Nunito",
-  "Georgia",
-  "Playfair Display",
-];
+const CATEGORY_LABEL: Record<string, string> = {
+  sans: "Sans Serif",
+  serif: "Serif",
+  mono: "Monospace",
+};
 
-// System fonts
-const SYSTEM_FONTS = [
-  "Arial",
-  "Times New Roman",
-  "Helvetica",
-  "Verdana",
-  "Trebuchet MS",
-  "Garamond",
-  "Courier New",
-];
+const CATEGORY_ORDER = ["sans", "serif", "mono"];
 
-// Group fonts by category for better UX
+function FontOptionRow({
+  font,
+  selected,
+  active,
+  onActivePreview,
+}: {
+  font: string;
+  selected: boolean;
+  active: boolean;
+  onActivePreview: (font: string) => void;
+}) {
+  useEffect(() => {
+    if (active) onActivePreview(font);
+  }, [active, font, onActivePreview]);
+
+  return (
+    <div className="flex items-center gap-3">
+      <span
+        className="text-agent-on-surface w-9 shrink-0 text-2xl leading-none"
+        style={{ fontFamily: font }}
+      >
+        Ag
+      </span>
+      <div className="min-w-0 flex-1">
+        <div className="flex items-center gap-1.5">
+          <span
+            className={`text-agent-on-surface truncate text-sm ${
+              selected ? "font-semibold" : "font-medium"
+            }`}
+          >
+            {font}
+          </span>
+          {isSystemFont(font) && (
+            <span className="bg-agent-surface-highest text-agent-on-surface-variant shrink-0 rounded px-1.5 py-0.5 text-[10px] font-medium">
+              System
+            </span>
+          )}
+        </div>
+        <div
+          className="text-agent-on-surface-variant truncate text-xs"
+          style={{ fontFamily: font }}
+        >
+          The quick brown fox jumps
+        </div>
+      </div>
+      {selected && (
+        <Icon name="check" className="text-agent-primary h-4 w-4 shrink-0" />
+      )}
+    </div>
+  );
+}
+
 interface FontGroup {
   category: string;
   fonts: string[];
 }
 
-const getFontGroups = (query: string): FontGroup[] => {
+function getFontGroups(query: string): FontGroup[] {
   const filtered = AVAILABLE_FONTS.filter((font) =>
     font.toLowerCase().includes(query.toLowerCase())
   );
 
-  const groups: FontGroup[] = [];
+  return CATEGORY_ORDER.map((category) => ({
+    category,
+    fonts: filtered.filter((f) => fontCategory(f) === category),
+  })).filter((g) => g.fonts.length > 0);
+}
 
-  const googleFiltered = filtered.filter((f) => GOOGLE_FONTS.includes(f));
-  if (googleFiltered.length > 0) {
-    groups.push({ category: "Google Fonts", fonts: googleFiltered });
-  }
-
-  const systemFiltered = filtered.filter((f) => SYSTEM_FONTS.includes(f));
-  if (systemFiltered.length > 0) {
-    groups.push({ category: "System Fonts", fonts: systemFiltered });
-  }
-
-  return groups;
-};
-
-export default function FontSelector({
-  value,
-  onChange,
-  onFontLoad,
-}: FontSelectorProps) {
+export default function FontSelector({ value, onChange }: FontSelectorProps) {
   const [query, setQuery] = useState("");
+  const [previewFont, setPreviewFont] = useState<string | null>(null);
 
   const fontGroups = useMemo(() => getFontGroups(query), [query]);
   const allFilteredFonts = fontGroups.flatMap((g) => g.fonts);
 
+  const selected = value || "Inter";
+  const activeFont = previewFont ?? selected;
+
+  // Prime every visible row with its base weight so the dropdown shows real
+  // previews, not the fallback face — cheap (one small file per font,
+  // cached after first open).
+  const primeGroups = () => allFilteredFonts.forEach((f) => loadGoogleFont(f));
+
   const handleFontChange = (font: string) => {
     onChange(font);
-    if (GOOGLE_FONTS.includes(font)) {
-      loadGoogleFont(font);
-    }
-    onFontLoad?.();
+    // Selection needs every weight the family ships (bold headings etc.);
+    // the dropdown only prefetched a single preview weight.
+    loadGoogleFont(font, { full: true });
     setQuery("");
   };
 
   return (
     <div className="relative w-full">
       <Combobox
-        value={value || "Inter"}
+        value={selected}
         onChange={(val) => val && handleFontChange(val)}
       >
         <div className="relative">
-          {/* Trigger Button with Preview and Search Input */}
-          <div className="relative flex w-full items-center">
+          <div className="relative">
             <Combobox.Input
-              className={`border-agent-outline bg-agent-surface-lowest text-agent-on-surface shadow-agent-card w-full rounded-l-lg border px-3 py-2 text-sm placeholder-gray-400 transition-all focus:ring-2 focus:outline-none`}
+              className="border-agent-outline bg-agent-surface-lowest text-agent-on-surface shadow-agent-card w-full rounded-lg border py-2 pr-9 pl-3 text-sm placeholder-gray-400 transition-all focus:ring-2 focus:outline-none"
               displayValue={(font: string) => font}
               onChange={(event) => setQuery(event.target.value)}
-              placeholder="Search fonts..."
+              onFocus={(event) => {
+                primeGroups();
+                event.target.select();
+              }}
+              placeholder="Search fonts…"
               style={{ fontFamily: value }}
             />
-            <Combobox.Button className="pointer-events-auto absolute inset-y-0 right-0 flex cursor-pointer items-center pr-3 transition-colors">
-              <div className="text-agent-primary rounded-r-lg px-2 py-1">
-                <Icon name="chevronDown" className="h-4 w-4" />
-              </div>
+            <Combobox.Button
+              onClick={primeGroups}
+              className="text-agent-on-surface-variant absolute inset-y-0 right-0 flex cursor-pointer items-center pr-3"
+            >
+              <Icon name="chevronDown" className="h-4 w-4" />
             </Combobox.Button>
           </div>
 
-          {/* Dropdown Menu with Proper Scrolling */}
           <Transition
             as={Fragment}
             leave="transition ease-in duration-100"
             leaveFrom="opacity-100"
             leaveTo="opacity-0"
-            afterLeave={() => setQuery("")}
+            afterLeave={() => {
+              setQuery("");
+              setPreviewFont(null);
+            }}
           >
             <ComboboxOptions className="border-agent-outline-variant bg-agent-surface shadow-agent-modal absolute top-full right-0 left-0 z-50 mt-2 overflow-hidden rounded-lg border focus:outline-none">
-              {/* Search Results Info */}
               {query && (
-                <div className="border-agent-outline-variant bg-agent-surface-high text-agent-on-surface-variant border-b px-3 py-2 text-xs font-semibold">
+                <div className="border-agent-outline-variant bg-agent-surface-high text-agent-on-surface-variant border-b px-3 py-1.5 text-xs font-semibold">
                   {allFilteredFonts.length} result
                   {allFilteredFonts.length !== 1 ? "s" : ""} for "{query}"
                 </div>
               )}
 
-              {/* Font List with Proper Scrolling */}
-              <div className="max-h-64 divide-y divide-gray-100 overflow-y-auto overscroll-contain dark:divide-gray-600">
+              <div className="divide-agent-outline-variant max-h-[22rem] divide-y overflow-y-auto overscroll-contain">
                 {fontGroups.length > 0 ? (
                   fontGroups.map((group) => (
                     <div key={group.category}>
-                      {/* Category Header - Sticky */}
-                      <div className="bg-agent-surface-high text-agent-on-surface-variant sticky top-0 px-3 py-2 text-xs font-semibold">
-                        {group.category}
+                      <div className="bg-agent-surface-high text-agent-on-surface-variant sticky top-0 px-3 py-1.5 text-xs font-semibold">
+                        {CATEGORY_LABEL[group.category]}
                       </div>
 
-                      {/* Fonts in Category */}
                       {group.fonts.map((font) => (
                         <ComboboxOption
                           key={font}
                           value={font}
+                          onMouseEnter={() => setPreviewFont(font)}
+                          onMouseLeave={() =>
+                            setPreviewFont((cur) => (cur === font ? null : cur))
+                          }
                           className={({ active }) =>
-                            `relative cursor-pointer py-2 pr-3 pl-8 transition-colors select-none ${
-                              active
-                                ? "bg-agent-primary-container text-agent-on-primary"
-                                : "text-agent-on-surface"
-                            } ${value === font ? "bg-agent-primary-container" : ""}`
+                            `relative cursor-pointer px-3 py-2 transition-colors select-none ${
+                              active ? "bg-agent-surface-high" : ""
+                            } ${
+                              selected === font
+                                ? "bg-agent-primary-container"
+                                : ""
+                            }`
                           }
                         >
-                          {({ selected }) => (
-                            <div className="flex items-center justify-between gap-2">
-                              <span
-                                className={`block truncate text-sm ${
-                                  selected || value === font
-                                    ? "text-agent-on-primary font-semibold"
-                                    : "font-normal"
-                                }`}
-                                style={{ fontFamily: font }}
-                              >
-                                {font}
-                              </span>
-                              {(selected || value === font) && (
-                                <Icon
-                                  name="check"
-                                  className="text-agent-tertiary h-4 w-4 shrink-0"
-                                />
-                              )}
-                            </div>
+                          {({ active }) => (
+                            <FontOptionRow
+                              font={font}
+                              selected={selected === font}
+                              active={active}
+                              onActivePreview={setPreviewFont}
+                            />
                           )}
                         </ComboboxOption>
                       ))}
@@ -203,17 +221,21 @@ export default function FontSelector({
                 )}
               </div>
 
-              {/* Preview Section - Sticky Bottom */}
               {allFilteredFonts.length > 0 && (
-                <div className="border-agent-outline-variant sticky bottom-0 rounded-t-md border-t bg-(--color-agent-surface-lowest) p-3">
-                  <p className="text-agent-on-surface-variant mb-2 text-xs">
-                    Preview
+                <div className="border-agent-outline-variant bg-agent-surface-lowest sticky bottom-0 border-t p-3">
+                  <p className="text-agent-on-surface-variant mb-1.5 text-xs">
+                    Preview — {activeFont}
                   </p>
                   <div
-                    className={`border-agent-outline-variant bg-agent-surface-highest text-agent-on-surface shadow-shadow-agent-card rounded border p-2 text-sm`}
-                    style={{ fontFamily: value }}
+                    className="border-agent-outline-variant bg-agent-surface-highest text-agent-on-surface rounded-md border px-3 py-2"
+                    style={{ fontFamily: activeFont }}
                   >
-                    The quick brown fox jumps
+                    <div className="truncate text-base font-semibold">
+                      Jordan Alvarez
+                    </div>
+                    <div className="text-agent-on-surface-variant truncate text-sm">
+                      Senior Product Designer — The quick brown fox jumps
+                    </div>
                   </div>
                 </div>
               )}

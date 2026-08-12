@@ -1,3 +1,41 @@
+# v1.12.0 — 2026-08-12
+
+More European CV fields, a friendlier font picker, and PDF/editor fixes.
+
+- **New: Nationality and Date of Birth fields.** Two more optional fields for German/EU-style CVs, alongside the existing Work Authorization and photo — fill them in once on your profile and they show up on the resume header and in exports.
+- **A better font picker.** Fonts now preview with a real specimen of themselves right in the dropdown, so you can see exactly what you're picking.
+- **Simpler theme customization.** Per-section color/heading overrides are gone in favor of one global "Heading Style" control that applies everywhere at once.
+- **Fixed: PDF export now matches the on-screen editor more closely** — skill category labels, section descriptions, and sidebar heading borders that were missing or misaligned in exported PDFs are fixed.
+- **Fixed: a brief layout glitch and white flash on desktop app launch/navigation.**
+- **Fixed: local Ollama connections were being blocked** by the app's security policy.
+
+# v1.11.2 — 2026-08-11
+
+A bug fix for MCP profile edits.
+
+- **Fixed: MCP profile edits no longer get rejected outright.** Every edit made through the `preview_profile_edit`/`apply_profile_edit` MCP tools (and the same underlying editor used by chat edits, proofread, humanizer, and tailoring) was being falsely rejected as "not part of the resume schema" due to an internal key-ordering bug — valid edits now apply correctly.
+
+# v1.11.1 — 2026-08-11
+
+A dedicated field for work authorization status.
+
+- **State your work authorization once, use it everywhere.** A new "Work Authorization" field on your profile (e.g. "EU Blue Card", "Requires sponsorship") shows up on your resume header and in ATS knockout-risk analysis, so a job requiring EU work authorization no longer gets flagged as a silent gap once you've filled it in.
+
+# v1.11.0 — 2026-08-11
+
+A macOS autoupdate fix, a new European CV template, and German conventions on by default.
+
+- **Fixed: macOS autoupdate no longer breaks itself.** Previously, updating could leave the app "damaged" and force a manual reinstall — the app now clears the quarantine flag on its own bundle after every update, so autoupdate stays self-healing going forward. (If you're updating _from_ 1.10 or earlier, this one update still needs a manual reinstall — after that you're set.)
+- **New: Euro Sidebar template.** A full-height solid sidebar with a banded name header, circular photo, and stacked skills/languages list — built for European/German-style CVs.
+- **8 new color presets** for template customization: Crimson, Amber, Emerald, Cyan, Indigo, Fuchsia, Slate, and Brown.
+- **German/EU conventions are now the default** for resume, cover letter, and ATS guidance — format, reading order, telegraphic bullet style, gapless chronology, and degree-equivalence notes — reflecting that Germany is this app's primary market. An explicit instruction in the job ad still wins.
+
+# v1.10.0 — 2026-08-10
+
+MCP-connected chat clients can now read and edit your base profile.
+
+- **Edit your base profile from Claude Desktop (or any MCP-compatible chat client).** New `get_profile`, `preview_profile_edit`, and `apply_profile_edit` tools let a connected host update your profile — always previewing the change first and only saving once you confirm.
+
 # v1.9.0 — 2026-08-09
 
 Bookmarks, gap analysis, and a notification center.

@@ -1,5 +1,6 @@
 "use client";
 
+import { invoke } from "@tauri-apps/api/core";
 import { check, type Update } from "@tauri-apps/plugin-updater";
 import { useCallback, useEffect, useState } from "react";
 
@@ -58,6 +59,11 @@ export function useAppUpdater() {
             break;
         }
       });
+
+      // The extracted bundle inherits com.apple.quarantine from this process,
+      // and its ad-hoc signature has no Gatekeeper approval — without this the
+      // updated app launches as "damaged" and has to be reinstalled by hand.
+      await invoke("clear_quarantine").catch(() => {});
     } catch (err) {
       const message =
         err instanceof Error ? err.message : "Failed to install update";

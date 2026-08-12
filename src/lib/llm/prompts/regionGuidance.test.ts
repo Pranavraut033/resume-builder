@@ -92,36 +92,37 @@ describe("resolveRegionGuidance", () => {
     expect(resolveRegionGuidance(undefined)).toBeUndefined();
   });
 
-  it("returns undefined for a US job", () => {
-    const job = buildJob({ country: "United States" });
-    expect(resolveRegionGuidance(job)).toBeUndefined();
+  it("returns undefined for a clearly non-EU job", () => {
+    expect(
+      resolveRegionGuidance(buildJob({ country: "United States" }))
+    ).toBeUndefined();
+    expect(resolveRegionGuidance(buildJob({ country: "UK" }))).toBeUndefined();
+    expect(
+      resolveRegionGuidance(buildJob({ country: "India" }))
+    ).toBeUndefined();
   });
 
-  it("returns defined German-specific guidance for a job located in Germany", () => {
-    const job = buildJob({ country: "Germany" });
-    const guidance = resolveRegionGuidance(job);
+  it("returns German-specific guidance for a job located in Germany", () => {
+    const guidance = resolveRegionGuidance(buildJob({ country: "Germany" }));
     expect(guidance).toBeDefined();
     expect(guidance).toContain("CEFR");
     expect(guidance).toContain("Blue Card");
   });
 
-  it("detects a DE country code on location.country", () => {
-    const job = buildJob({ country: "DE" });
-    expect(resolveRegionGuidance(job)).toBeDefined();
+  it("defaults to German guidance when no country is stated", () => {
+    expect(
+      resolveRegionGuidance(buildJob({ country: null, companyCountry: null }))
+    ).toBeDefined();
   });
 
-  it("detects an EU-like company location country when job.location.country is unset", () => {
-    const job = buildJob({ country: null, companyCountry: "Austria" });
-    expect(resolveRegionGuidance(job)).toBeDefined();
-  });
-
-  it("detects a German-language signal in the raw job description", () => {
-    const job = buildJob({
-      country: null,
-      companyCountry: null,
-      rawDescription:
-        "Wir suchen eine erfahrene Softwareentwicklerin (m/w/d) für unser Team in München. Ihre Aufgaben: Entwicklung von Backend-Services.",
-    });
-    expect(resolveRegionGuidance(job)).toBeDefined();
+  it("falls back to the company country when job.location.country is unset", () => {
+    expect(
+      resolveRegionGuidance(
+        buildJob({ country: null, companyCountry: "United States" })
+      )
+    ).toBeUndefined();
+    expect(
+      resolveRegionGuidance(buildJob({ country: null, companyCountry: "DE" }))
+    ).toBeDefined();
   });
 });

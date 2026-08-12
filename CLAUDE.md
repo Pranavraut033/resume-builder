@@ -72,11 +72,11 @@ Local-first desktop resume/cover-letter builder: Next.js 16 (App Router) + Tauri
 
 ### Data model (`prisma/schema.prisma`)
 
-SQLite via Prisma. Core models: `Profile` (base profile, with skills/experience/projects/education/etc. stored as JSON string columns, plus `photo` and `hobbiesJson` for EU/German CV convention), `Company`, `Contact`, `Job`, `Resume`, `CoverLetter`, `Customization`. JSON columns map to typed shapes in `src/types/resume.ts` (`ResumeJSON`, `JobDetailsJSON`, `ATSAnalysisJSON`) — parse/stringify at the action boundary.
+SQLite via Prisma. Core models: `Profile` (base profile, with skills/experience/projects/education/etc. stored as JSON string columns, plus `photo`, `hobbiesJson`, `nationality`, and `dateOfBirth` for EU/German CV convention), `Company`, `Contact`, `Job`, `Resume`, `CoverLetter`, `Customization`. JSON columns map to typed shapes in `src/types/resume.ts` (`ResumeJSON`, `JobDetailsJSON`, `ATSAnalysisJSON`) — parse/stringify at the action boundary.
 
 ### Resume rendering / templates
 
-Section content (order, visibility, custom sections) is resolved once via `buildSections()` (`src/components/job-v2/engine/buildSections.ts`) and rendered by three engines from the same `TemplateConfig`/section registry — DOM, PDF, and TXT stay in sync by construction. Each of the 9 templates is a `TemplateConfig` — columns, header/heading variant, `entryStyle` (standard/timeline/marker/compact/table), `skillStyle` (inline/chips/list/table/grid/columns), `dateStyle`, `bulletStyle`, `sidebarTint`, `justifyText`, etc. — resolved once via `resolveTemplateConfig()` (`engine/templates.ts`) so both engines apply the same defaults; `tests/lib/templateDistinctness.test.ts` asserts every pair of templates differs on ≥3 axes and exposes identical editable fields (config-driven templates share the same inline-editable surface, so a new `entryStyle`/`skillStyle` branch must re-wrap the same `EditableText`/`EditableDateRange` fields as the standard branch, not replace them with plain text):
+Section content (order, visibility, custom sections) is resolved once via `buildSections()` (`src/components/job-v2/engine/buildSections.ts`) and rendered by three engines from the same `TemplateConfig`/section registry — DOM, PDF, and TXT stay in sync by construction. Each of the 10 templates is a `TemplateConfig` — columns, header/heading variant, `entryStyle` (standard/timeline/marker/compact/table), `skillStyle` (inline/chips/list/table/grid/columns), `dateStyle`, `bulletStyle`, `sidebarTint`, `justifyText`, etc. — resolved once via `resolveTemplateConfig()` (`engine/templates.ts`) so both engines apply the same defaults; `tests/lib/templateDistinctness.test.ts` asserts every pair of templates differs on ≥3 axes and exposes identical editable fields (config-driven templates share the same inline-editable surface, so a new `entryStyle`/`skillStyle` branch must re-wrap the same `EditableText`/`EditableDateRange` fields as the standard branch, not replace them with plain text):
 
 - `src/components/job-v2/engine/` — `TemplateEngine.tsx` (DOM/WYSIWYG rendering), `sections.tsx` (section registry), `templates.ts` (all resume templates — `modern-minimal`, `tech-sidebar`, `creative-modern`, `two-tone`, etc. — as layout/style config objects, not components), `types.ts`, `bulletGlyph.ts`/`photoFrame.ts` (shared DOM+PDF style primitives).
 - `src/components/job/templates/TemplateRenderer.tsx` dispatches `customization.template` to `TemplateEngine` via `engine/templates.ts`, falling back to the `modern-minimal` config for a legacy/unrecognized `template` value (originally adapted from the Resumify project, see `LICENSE-THIRD-PARTY.md`).
@@ -130,6 +130,8 @@ On every launch, `sync_database_schema` (`src-tauri/src/lib.rs`) runs `migrate-a
 
 `$APPDATA` resolves per-OS to (bundle id `com.resumebuilder.dev`): macOS `~/Library/Application Support/com.resumebuilder.dev`, Windows `%APPDATA%\com.resumebuilder.dev`, Linux `~/.config/com.resumebuilder.dev`. When asked to debug an installed-app-only issue, read both log files before speculating.
 
+Because the macOS build is only ad-hoc signed (`signingIdentity: "-"`), `com.apple.quarantine` propagates from the running app to any file it writes — including the bundle the updater extracts on `downloadAndInstall()` — which otherwise makes the updated app launch as "damaged" and forces a manual reinstall. `clear_quarantine` (`src-tauri/src/lib.rs`) runs `xattr -dr com.apple.quarantine` on the app's own `.app` bundle, called once at launch and again from `useAppUpdater.ts` right after an update installs. No-op on non-macOS.
+
 ## Skills
 
 - `tailwind-ui-designer` (`.claude/skills/tailwind-ui-designer/SKILL.md`) — invoke whenever the user asks to build, restyle, or improve UI. Enforces the Tailwind v4 styling constraints above and follows the `frontend-design` skill.
@@ -142,4 +144,4 @@ the private sibling repo `../udaan-marketing` (`github.com/Pranavraut033/udaan-m
 Check there for the voice/tone guide and any social/launch copy work — it's not
 duplicated here.
 
-<!-- last-sync-docs: f971036734349b918eafbe5b174eaf35127772ec -->
+<!-- last-sync-docs: d12628189e33388c64099ba5e5243834e033b80e -->

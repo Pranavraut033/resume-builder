@@ -17,6 +17,7 @@ import {
   TxtSectionBuilder,
 } from "./types";
 
+import type { HeadingStyle } from "@/types/customization";
 import type { Skill } from "@/types/resume";
 import type { ReactNode } from "react";
 
@@ -41,6 +42,15 @@ function TableRow({
   borderColor: string;
   last?: boolean;
 }) {
+  // No label (e.g. an uncategorized skills group) — skip the label column
+  // entirely instead of reserving its width for a blank cell.
+  if (!label) {
+    return (
+      <div className={last ? "" : "border-b"} style={{ borderColor }}>
+        <div className="p-2 text-xs">{children}</div>
+      </div>
+    );
+  }
   return (
     <div
       className={`grid grid-cols-[110px_1fr] ${last ? "" : "border-b"}`}
@@ -704,11 +714,13 @@ const projects: DomSectionBuilder = ({ resume, theme, edit, config }) =>
             {urlLinkField}
           </h3>
           {dateRangeField && (
-            <div
-              className={`${theme.textSize}`}
-              style={{ color: theme.secondaryColor }}
-            >
-              {dateRangeField}
+            <div>
+              {dateNode({
+                dates: dateRangeField,
+                theme,
+                dateStyle: config.dateStyle,
+                textSize: theme.textSize,
+              })}
             </div>
           )}
           <div className={`${theme.textSize} ${theme.lineHeight} mb-1`}>
@@ -735,11 +747,13 @@ function groupSkills(skills: Skill[]): SkillGroup[] {
   const byCategory = new Map<string, SkillGroup>();
   let uncategorized: SkillGroup | null = null;
   for (const skill of skills) {
-    if (skill.category) {
-      let group = byCategory.get(skill.category);
+    const category = skill.category?.trim();
+    if (category) {
+      const key = category.toLowerCase();
+      let group = byCategory.get(key);
       if (!group) {
-        group = { category: skill.category, skills: [] };
-        byCategory.set(skill.category, group);
+        group = { category, skills: [] };
+        byCategory.set(key, group);
         groups.push(group);
       }
       group.skills.push(skill);
@@ -805,12 +819,61 @@ const SINGLE_BLOCK_SKILL_STYLES: ReadonlySet<
  * a single block (see `serializeSkillsForEdit`/`parseSkillsFromEdit` — the
  * edit surface itself stays the single textarea over the whole string, only
  * the *display* is sliced/grouped). */
+function skillsHeadingStyle(config: ResolvedTemplateConfig): HeadingStyle {
+  const inSidebar = config.columns > 1 && config.sectionColumn?.skills === 0;
+  return inSidebar ? config.headingSidebar : config.heading;
+}
+
+function skillLabelClassFor(headingStyle: HeadingStyle): string {
+  switch (headingStyle) {
+    case "uppercase":
+      return "uppercase tracking-wide";
+    case "serif":
+      return "font-serif italic";
+    default:
+      return "";
+  }
+}
+
+/** A skill category label styled as a scaled-down section heading — bold,
+ * matching the template's heading typography, with the skill list meant to
+ * sit directly underneath (tight margin, no side-by-side column). Templates
+ * whose heading is "accent-rule" get a short 20%-width underline instead of
+ * the section heading's full-width rule. */
+function SkillLabel({
+  category,
+  headingStyle,
+  color,
+}: {
+  category: string;
+  headingStyle: HeadingStyle;
+  color: string;
+}) {
+  return (
+    <div className="mb-0.5">
+      <div
+        className={cn("text-xs font-bold", skillLabelClassFor(headingStyle))}
+        style={{ color }}
+      >
+        {category}
+      </div>
+      {headingStyle === "accent-rule" && (
+        <div
+          className="mt-0.5"
+          style={{ width: "20%", borderBottomWidth: 2, borderColor: color }}
+        />
+      )}
+    </div>
+  );
+}
+
 function skillsGroupDisplay(
   raw: string,
   groupIndex: number,
   theme: ResolvedTheme,
-  skillStyle: ResolvedTemplateConfig["skillStyle"]
+  config: ResolvedTemplateConfig
 ) {
+  const skillStyle = config.skillStyle;
   const allGroups = groupSkills(parseSkillsFromEdit(raw));
   const groups =
     allGroups.length === 0
@@ -818,32 +881,34 @@ function skillsGroupDisplay(
       : SINGLE_BLOCK_SKILL_STYLES.has(skillStyle)
         ? allGroups
         : [allGroups[groupIndex]];
+  const headingStyle = skillsHeadingStyle(config);
 
   if (skillStyle === "chips") {
     return (
-      <div className="flex flex-col gap-1">
+      <div className="flex flex-col gap-2">
         {groups.map((group, gi) => (
-          <div key={gi} className="flex flex-wrap gap-1.5">
+          <div key={gi}>
             {group.category && (
-              <span
-                className="text-xs font-bold"
-                style={{ color: theme.secondaryColor }}
-              >
-                {group.category}
-              </span>
+              <SkillLabel
+                category={group.category}
+                headingStyle={headingStyle}
+                color={theme.primaryColor}
+              />
             )}
-            {group.skills.map((s, si) => (
-              <span
-                key={si}
-                className="rounded-full px-1 py-0.5 text-xs font-medium"
-                style={{
-                  backgroundColor: theme.accentColor + "1a",
-                  color: theme.accentColor,
-                }}
-              >
-                {s.name}
-              </span>
-            ))}
+            <div className="flex flex-wrap gap-1.5">
+              {group.skills.map((s, si) => (
+                <span
+                  key={si}
+                  className="rounded-full px-1 py-0.5 text-xs font-medium"
+                  style={{
+                    backgroundColor: theme.accentColor + "1a",
+                    color: theme.accentColor,
+                  }}
+                >
+                  {s.name}
+                </span>
+              ))}
+            </div>
           </div>
         ))}
       </div>
@@ -852,103 +917,17 @@ function skillsGroupDisplay(
 
   if (skillStyle === "list") {
     return (
-      <div className="space-y-0.5">
-        {/* Category and skills share one line (not category-then-content
-            stacked) so a group never burns a line on the label alone —
-            same space-saving arrangement as the "chips" branch. */}
+      <div className="space-y-2">
         {groups.map((group, gi) => (
-          <div key={gi} className="text-xs">
+          <div key={gi}>
             {group.category && (
-              <span
-                className="font-medium"
-                style={{ color: theme.secondaryColor }}
-              >
-                {group.category}:{" "}
-              </span>
+              <SkillLabel
+                category={group.category}
+                headingStyle={headingStyle}
+                color={theme.primaryColor}
+              />
             )}
-            {group.skills.map((s, si) => (
-              <span key={si}>
-                {si > 0 && ", "}
-                {s.tier === "primary" ? <strong>{s.name}</strong> : s.name}
-              </span>
-            ))}
-          </div>
-        ))}
-      </div>
-    );
-  }
-
-  if (skillStyle === "table") {
-    const borderColor = theme.secondaryColor + "40";
-    return (
-      <TableEntry borderColor={borderColor}>
-        {groups.length > 0 ? (
-          groups.map((group, gi) => (
-            <TableRow
-              key={gi}
-              label={group.category ?? "Skills"}
-              accentColor={theme.accentColor + "20"}
-              borderColor={borderColor}
-              last={gi === groups.length - 1}
-            >
-              {group.skills.map((s) => s.name).join(", ")}
-            </TableRow>
-          ))
-        ) : (
-          <TableRow
-            label="Skills"
-            accentColor={theme.accentColor + "20"}
-            borderColor={borderColor}
-            last
-          >
-            —
-          </TableRow>
-        )}
-      </TableEntry>
-    );
-  }
-
-  if (skillStyle === "grid") {
-    return (
-      <div className="grid grid-cols-2 gap-x-4 gap-y-2">
-        {groups.map((group, gi) => (
-          <div
-            key={gi}
-            className="border-l-2 pl-2 text-xs"
-            style={{ borderColor: theme.accentColor }}
-          >
-            {group.category && (
-              <span
-                className="font-medium"
-                style={{ color: theme.secondaryColor }}
-              >
-                {group.category}:{" "}
-              </span>
-            )}
-            {group.skills.map((s, si) => (
-              <span key={si}>
-                {si > 0 && ", "}
-                {s.tier === "primary" ? <strong>{s.name}</strong> : s.name}
-              </span>
-            ))}
-          </div>
-        ))}
-      </div>
-    );
-  }
-
-  if (skillStyle === "columns") {
-    return (
-      <div className="flex flex-col gap-1">
-        {groups.map((group, gi) => (
-          <div key={gi} className="grid grid-cols-[110px_1fr]">
-            <div
-              className="pr-2 text-xs font-medium"
-              style={{ color: theme.secondaryColor }}
-            >
-              {group.category ?? "Skills"}
-            </div>
-            <div className="text-xs">
+            <div className={`text-xs ${theme.lineHeight}`}>
               {group.skills.map((s, si) => (
                 <span key={si}>
                   {si > 0 && ", "}
@@ -962,25 +941,102 @@ function skillsGroupDisplay(
     );
   }
 
-  // "inline" — one flowing paragraph, groups joined by a middot separator
-  // (single block: all groups render together, see SINGLE_BLOCK_SKILL_STYLES).
+  if (skillStyle === "table") {
+    // bjet-professional: two ROWS per category (a coloured label bar, then
+    // the skills underneath) instead of the label|content two-COLUMN layout
+    // `TableRow` uses for every other "table" entryStyle field — deliberately
+    // bespoke, not `TableRow`, so Company/Role/Duration/Details elsewhere
+    // keep their own side-by-side layout untouched.
+    const borderColor = theme.secondaryColor + "40";
+    return (
+      <div
+        className="overflow-hidden rounded-md border"
+        style={{ borderColor }}
+      >
+        {groups.length > 0 ? (
+          groups.map((group, gi) => (
+            <div
+              key={gi}
+              className={gi === groups.length - 1 ? "" : "border-b"}
+              style={{ borderColor }}
+            >
+              {group.category && (
+                <div
+                  className={cn(
+                    "px-2 py-1 text-xs font-bold",
+                    skillLabelClassFor(headingStyle)
+                  )}
+                  style={{
+                    backgroundColor: theme.accentColor + "20",
+                    color: theme.primaryColor,
+                  }}
+                >
+                  {group.category}
+                </div>
+              )}
+              <div className={`px-2 py-1.5 text-xs ${theme.lineHeight}`}>
+                {group.skills.map((s) => s.name).join(", ")}
+              </div>
+            </div>
+          ))
+        ) : (
+          <div className="px-2 py-1.5 text-xs">—</div>
+        )}
+      </div>
+    );
+  }
+
+  if (skillStyle === "grid") {
+    return (
+      <div className="flex flex-col gap-2">
+        {groups.map((group, gi) => (
+          <div key={gi}>
+            {group.category && (
+              <SkillLabel
+                category={group.category}
+                headingStyle={headingStyle}
+                color={theme.primaryColor}
+              />
+            )}
+            <div className={`text-xs ${theme.lineHeight}`}>
+              {group.skills.map((s, si) => (
+                <span key={si}>
+                  {si > 0 && ", "}
+                  {s.tier === "primary" ? <strong>{s.name}</strong> : s.name}
+                </span>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  // "columns" and "inline" now share the same label-above-content shape as
+  // list/grid — the side-by-side label column and the inline-paragraph
+  // flow both got replaced by the subheading treatment (see SkillLabel).
   return (
-    <>
+    <div className="flex flex-col gap-2">
       {groups.map((group, gi) => (
-        <span key={gi}>
-          {gi > 0 && " • "}
+        <div key={gi}>
           {group.category && (
-            <span className="font-medium">{group.category}: </span>
+            <SkillLabel
+              category={group.category}
+              headingStyle={headingStyle}
+              color={theme.primaryColor}
+            />
           )}
-          {group.skills.map((s, si) => (
-            <span key={si}>
-              {si > 0 && ", "}
-              {s.tier === "primary" ? <strong>{s.name}</strong> : s.name}
-            </span>
-          ))}
-        </span>
+          <div className={`text-xs ${theme.lineHeight}`}>
+            {group.skills.map((s, si) => (
+              <span key={si}>
+                {si > 0 && ", "}
+                {s.tier === "primary" ? <strong>{s.name}</strong> : s.name}
+              </span>
+            ))}
+          </div>
+        </div>
       ))}
-    </>
+    </div>
   );
 }
 
@@ -1013,11 +1069,11 @@ const skills: DomSectionBuilder = ({ resume, theme, edit, config }) => {
               fieldType="textarea"
               placeholder="Languages: *TypeScript, JavaScript | Frameworks: React…"
               renderDisplay={(v) =>
-                skillsGroupDisplay(v, groupIndex, theme, config.skillStyle)
+                skillsGroupDisplay(v, groupIndex, theme, config)
               }
             />
           ) : (
-            skillsGroupDisplay(serialized, groupIndex, theme, config.skillStyle)
+            skillsGroupDisplay(serialized, groupIndex, theme, config)
           )}
         </div>
       ),
@@ -1255,12 +1311,12 @@ const education: DomSectionBuilder = ({ resume, theme, edit, config }) =>
                 {institutionField}
               </p>
             </div>
-            <span
-              className={`${theme.textSize} shrink-0`}
-              style={{ color: theme.secondaryColor }}
-            >
-              {dates}
-            </span>
+            {dateNode({
+              dates,
+              theme,
+              dateStyle: config.dateStyle,
+              textSize: theme.textSize,
+            })}
           </div>
           {gpaField && (
             <p
@@ -1660,12 +1716,12 @@ const volunteer: DomSectionBuilder = ({ resume, theme, edit, config }) =>
                 {organizationField}
               </p>
             </div>
-            <span
-              className={`${theme.textSize} shrink-0`}
-              style={{ color: theme.secondaryColor }}
-            >
-              {dates}
-            </span>
+            {dateNode({
+              dates,
+              theme,
+              dateStyle: config.dateStyle,
+              textSize: theme.textSize,
+            })}
           </div>
           {descriptionField && (
             <div className={`${theme.textSize} ${theme.lineHeight}`}>
@@ -1727,7 +1783,7 @@ const awards: DomSectionBuilder = ({ resume, theme, edit }) =>
 // ponytail: custom sections render bullets/text only (matches
 // CustomSectionSchema.type in src/types/resume.ts). Add a richer renderer
 // when a user actually needs dated/timeline entries.
-const custom: DomSectionBuilder = ({ resume, instance, config }) => {
+const custom: DomSectionBuilder = ({ resume, instance, theme, config }) => {
   const section = (resume.sectionLayout?.custom ?? []).find(
     (c) => c.id === instance.id
   );
@@ -1737,12 +1793,16 @@ const custom: DomSectionBuilder = ({ resume, instance, config }) => {
       sectionKey: instance.id,
       node:
         section.type === "text" ? (
-          <p>{section.items.join(" ")}</p>
+          <p className={`${theme.textSize} ${theme.lineHeight}`}>
+            {section.items.join(" ")}
+          </p>
         ) : (
-          <ul className="list-none space-y-1">
+          <ul
+            className={`${theme.textSize} ${theme.lineHeight} list-none space-y-1`}
+          >
             {section.items.map((item, i) => (
               <li key={i}>
-                <span className="mr-1.5">
+                <span className="mr-1.5" style={{ color: theme.accentColor }}>
                   {bulletGlyph(config.bulletStyle)}
                 </span>
                 {item}

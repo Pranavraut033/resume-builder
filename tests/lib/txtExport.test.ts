@@ -31,6 +31,29 @@ describe("generateResumeTXT", () => {
     );
   });
 
+  it("includes headline and the rest of the contact block when present", () => {
+    const fullResume = {
+      header: {
+        name: "Jane Doe",
+        headline: "Senior Backend Engineer",
+        email: "jane@example.com",
+        phone: "555-0100",
+        location: "Berlin, Germany",
+        linkedin: "linkedin.com/in/janedoe",
+        github: "github.com/janedoe",
+        website: "janedoe.com",
+        workAuthorization: "EU Blue Card",
+      },
+    } as unknown as ResumeJSON;
+    vi.mocked(buildSections).mockReturnValue([]);
+
+    expect(generateResumeTXT(fullResume)).toBe(
+      "Jane Doe\n" +
+        "Senior Backend Engineer\n" +
+        "jane@example.com  |  555-0100  |  Berlin, Germany  |  LinkedIn: linkedin.com/in/janedoe  |  GitHub: github.com/janedoe  |  Website: janedoe.com  |  Work Authorization: EU Blue Card\n\n"
+    );
+  });
+
   it("skips a section type missing from SECTION_REGISTRY", () => {
     vi.mocked(buildSections).mockReturnValue([
       { id: "s1", type: "unknown-type" } as never,

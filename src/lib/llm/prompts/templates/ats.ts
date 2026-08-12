@@ -40,6 +40,7 @@ OUTPUT CONTRACT:
 KNOCKOUT ANALYSIS:
 - Extract every hard requirement the JD states as a gate, not a preference: work authorization/visa/sponsorship, required degree, required license or certification, on-site/location requirement, minimum years of experience
 - For each, check the resume: if the resume affirmatively fails the requirement, severity is "blocking"; if the resume suggests a gap but it's ambiguous, severity is "likely"; if the JD requires it and the resume is simply silent, severity is "possible" — silence is not evidence of absence, never report a silent resume as failing outright
+- Work authorization specifically: the resume's header carries an explicit "Work Authorization: ..." line when the candidate has filled it in — treat its presence as authoritative status evidence (resolve the knockout using that value), and treat its absence as the "possible" case above, not as a failure
 - advice must be concrete: how to truthfully address it (state status plainly, add a one-line clarification, or acknowledge a genuine gap) — never advise fabricating a qualification
 
 TITLE ALIGNMENT:
@@ -118,7 +119,7 @@ Return ONLY valid JSON matching the ATSAnalysisSchema. Example shape:
   "missing_keywords": ["Kubernetes"],
   "formatting_issues": [],
   "scores": { "keyword_match_score": 78, "formatting_score": 100, "content_quality_score": 65, "composite_score": 72 },
-  "knockout_risks": [{ "requirement": "Work authorization for Germany", "severity": "possible", "evidence": "JD requires EU work authorization; resume does not mention status", "advice": "State work authorization plainly in the header (e.g. EU Blue Card, or sponsorship needed) so this isn't a silent rejection" }],
+  "knockout_risks": [{ "requirement": "Work authorization for Germany", "severity": "possible", "evidence": "JD requires EU work authorization; resume's Work Authorization field is empty", "advice": "Fill in the Work Authorization field on the profile header (e.g. \\"EU Blue Card\\" or \\"Requires sponsorship\\") so this isn't a silent rejection" }],
   "title_alignment": { "resume_title": "Member of Technical Staff II", "target_title": "Senior Software Engineer", "verdict": "unclear", "note": "Internal title obscures seniority — reframe as \\"Senior Software Engineer (Member of Technical Staff II)\\" so title-weighted parsers can match it" },
   "improvements": [{ "section": "experience", "issue": "bullet 2 describes a duty with no quantification", "recommended_fix": "add the team size or throughput number already in the source material", "estimated_score_delta": 5, "original_text": "Responsible for managing the checkout flow", "rewrite": "Cut checkout abandonment by [X%] by redesigning the payment flow from 5 steps to 2" }],
   "summary": "Strong keyword coverage for this role; content quality is the main gap — several bullets describe duties without measurable impact."

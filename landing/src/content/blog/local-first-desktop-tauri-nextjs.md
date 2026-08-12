@@ -114,7 +114,7 @@ never lets the driver create the file itself.
 ### Problem: schema changes for people who already installed
 
 Related, and worse. If the database lives outside the bundle so updates can't touch it,
-then updates *can't touch it* — including when the schema changed and the new code expects
+then updates _can't touch it_ — including when the schema changed and the new code expects
 a column the user's file doesn't have.
 
 Every launch runs a migration script against the existing `app.db`, ALTERing it onto the
@@ -159,7 +159,11 @@ doesn't echo the resume back. It names a JSON Pointer path and the new value for
 path:
 
 ```json
-{ "op": "replace", "path": "/experience/1/bullets/0", "value": "Cut deploy time from 40 minutes to 6" }
+{
+  "op": "replace",
+  "path": "/experience/1/bullets/0",
+  "value": "Cut deploy time from 40 minutes to 6"
+}
 ```
 
 Every op is re-validated against the resume schema before it applies, and a bad op is

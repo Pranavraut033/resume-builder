@@ -5,6 +5,7 @@ import { bulletGlyph } from "@/components/job-v2/engine/bulletGlyph";
 import { ResolvedTemplateConfig } from "@/components/job-v2/engine/types";
 import { formatDateRange } from "@/lib/date";
 import { htmlToPlainText, isHtml } from "@/lib/htmlUtils";
+import { HeadingStyle } from "@/types/customization";
 import { ResumeJSON, Skill } from "@/types/resume";
 
 import { borderTint, ResolvedPDFStyles, withAlpha } from "./resolveStyles";
@@ -13,6 +14,32 @@ const plain = (text: string | null | undefined): string => {
   if (!text) return "";
   return isHtml(text) ? htmlToPlainText(text) : text;
 };
+
+/** Resolves which heading style a skill category label should mirror —
+ * `headingSidebar` when Skills renders in a 2-column template's sidebar
+ * column, else the template's main `heading`. Mirrors the DOM helper of the
+ * same name in engine/sections.tsx. */
+function skillsHeadingStyle(config: ResolvedTemplateConfig): HeadingStyle {
+  const inSidebar = config.columns > 1 && config.sectionColumn?.skills === 0;
+  return inSidebar ? config.headingSidebar : config.heading;
+}
+
+/** react-pdf Text style giving a skill category label the same typographic
+ * character as the template's section headings, scaled down to subheading
+ * size — bold always (set by the caller), plus a per-style accent. No serif
+ * italic here: the label Text is already bold, and this app's registered
+ * fonts don't ship a bold+italic variant (react-pdf then fails to resolve
+ * the font entirely) — a full font-family swap to the serif heading font
+ * would need importing from PDFTemplateEngine.tsx, which imports this file,
+ * so plain bold is the simplification that avoids both problems. */
+function pdfSkillLabelStyle(headingStyle: HeadingStyle) {
+  switch (headingStyle) {
+    case "uppercase":
+      return { textTransform: "uppercase" as const, letterSpacing: 0.5 };
+    default:
+      return {};
+  }
+}
 
 /** A run of skills sharing the same (optional) category, in first-seen order. */
 export interface SkillGroup {
@@ -29,11 +56,13 @@ export function groupSkills(skills: Skill[]): SkillGroup[] {
   const byCategory = new Map<string, SkillGroup>();
   let uncategorized: SkillGroup | null = null;
   for (const skill of skills) {
-    if (skill.category) {
-      let group = byCategory.get(skill.category);
+    const category = skill.category?.trim();
+    if (category) {
+      const key = category.toLowerCase();
+      let group = byCategory.get(key);
       if (!group) {
-        group = { category: skill.category, skills: [] };
-        byCategory.set(skill.category, group);
+        group = { category, skills: [] };
+        byCategory.set(key, group);
         groups.push(group);
       }
       group.skills.push(skill);
@@ -81,14 +110,22 @@ function PdfTableRow({
   fontSize?: number;
   sp?: (n: number) => number;
 }) {
+  const rowStyle = {
+    flexDirection: "row" as const,
+    borderBottomWidth: isLast ? 0 : 1,
+    borderBottomColor: borderColor,
+  };
+  // No label (e.g. an uncategorized skills group) — skip the label column
+  // entirely instead of reserving its width for a blank cell.
+  if (!label) {
+    return (
+      <View style={rowStyle}>
+        <View style={{ flex: 1, padding: sp(4) }}>{children}</View>
+      </View>
+    );
+  }
   return (
-    <View
-      style={{
-        flexDirection: "row",
-        borderBottomWidth: isLast ? 0 : 1,
-        borderBottomColor: borderColor,
-      }}
-    >
+    <View style={rowStyle}>
       <View
         style={{
           width: sp(80),
@@ -208,6 +245,17 @@ const pdfExperience: PDFSectionBuilder = ({ resume, styles: s, config }) => {
                 {formatDateRange(exp.startDate, exp.endDate, dateFormat)}
               </Text>
             </Text>
+            {exp.description ? (
+              <Text
+                style={{
+                  fontSize: smallFontSize,
+                  lineHeight,
+                  color: s.textColor,
+                }}
+              >
+                {plain(exp.description)}
+              </Text>
+            ) : null}
             {exp.achievements.map((a, j) => (
               <Text
                 key={j}
@@ -393,7 +441,13 @@ const pdfExperience: PDFSectionBuilder = ({ resume, styles: s, config }) => {
               marginBottom: 2,
             }}
           >
-            <View style={{ flex: 1 }}>
+            {/* `flex: 1` only makes sense in row mode, to push the date to
+                the right edge. In column mode (isMultiColumn) it sets
+                flexBasis: 0 on a column-direction child with no explicit
+                height, which react-pdf's Yoga layout collapses to zero
+                height — the date node then renders at the same y as this
+                block instead of below it. */}
+            <View style={isMultiColumn ? undefined : { flex: 1 }}>
               <Text style={{ fontSize, fontWeight: 700, color: accentColor }}>
                 {exp.role}
               </Text>
@@ -467,6 +521,17 @@ const pdfProjects: PDFSectionBuilder = ({ resume, styles: s, config }) => {
               {proj.technologies.length > 0 &&
                 `  ·  ${proj.technologies.join(", ")}`}
             </Text>
+            {proj.description ? (
+              <Text
+                style={{
+                  fontSize: smallFontSize,
+                  lineHeight,
+                  color: s.textColor,
+                }}
+              >
+                {plain(proj.description)}
+              </Text>
+            ) : null}
           </View>
         ))}
       </>
@@ -679,41 +744,58 @@ const pdfProjects: PDFSectionBuilder = ({ resume, styles: s, config }) => {
 const pdfSkills: PDFSectionBuilder = ({ resume, styles: s, config }) => {
   if (resume.skills.length === 0) return null;
   const groups = groupSkills(resume.skills);
+  const headingStyle = skillsHeadingStyle(config);
+
+  const skillLabel = (category: string) => (
+    <View style={{ marginBottom: s.sp(2) }}>
+      <Text
+        style={{
+          fontSize: s.smallFontSize,
+          fontWeight: 700,
+          color: s.primaryColor,
+          ...pdfSkillLabelStyle(headingStyle),
+        }}
+      >
+        {category}
+      </Text>
+      {headingStyle === "accent-rule" && (
+        <View
+          style={{
+            marginTop: s.sp(2),
+            width: "20%",
+            borderBottomWidth: 2,
+            borderBottomColor: s.primaryColor,
+          }}
+        />
+      )}
+    </View>
+  );
 
   if (config.skillStyle === "chips") {
     return (
       <View style={{ flexDirection: "column", gap: s.sp(6) }}>
         {groups.map((group, gi) => (
-          <View
-            key={gi}
-            style={{ flexDirection: "row", flexWrap: "wrap", gap: s.sp(6) }}
-          >
-            {group.category ? (
-              <Text
-                style={{
-                  fontSize: s.smallFontSize,
-                  fontWeight: 700,
-                  color: s.secondaryColor,
-                }}
-              >
-                {group.category}
-              </Text>
-            ) : null}
-            {group.skills.map((skill, si) => (
-              <Text
-                key={si}
-                style={{
-                  fontSize: s.smallFontSize,
-                  color: s.accentColor,
-                  backgroundColor: withAlpha(s.accentColor, "1a"),
-                  borderRadius: 8,
-                  paddingVertical: s.sp(2),
-                  paddingHorizontal: s.sp(3),
-                }}
-              >
-                {skill.name}
-              </Text>
-            ))}
+          <View key={gi}>
+            {group.category ? skillLabel(group.category) : null}
+            <View
+              style={{ flexDirection: "row", flexWrap: "wrap", gap: s.sp(6) }}
+            >
+              {group.skills.map((skill, si) => (
+                <Text
+                  key={si}
+                  style={{
+                    fontSize: s.smallFontSize,
+                    color: s.accentColor,
+                    backgroundColor: withAlpha(s.accentColor, "1a"),
+                    borderRadius: 8,
+                    paddingVertical: s.sp(2),
+                    paddingHorizontal: s.sp(3),
+                  }}
+                >
+                  {skill.name}
+                </Text>
+              ))}
+            </View>
           </View>
         ))}
       </View>
@@ -721,18 +803,16 @@ const pdfSkills: PDFSectionBuilder = ({ resume, styles: s, config }) => {
   }
 
   if (config.skillStyle === "list") {
-    // Category and skills share one Text (not category-then-content
-    // stacked) so a group never burns a line on the label alone — same
-    // space-saving arrangement as the "chips" branch. Matches the DOM
-    // "list" branch in engine/sections.tsx.
     return groups.map((group, gi) => (
-      <View key={gi} wrap={false} style={{ marginBottom: s.sp(3) }}>
-        <Text style={{ fontSize: s.smallFontSize, color: s.textColor }}>
-          {group.category ? (
-            <Text style={{ fontWeight: 600, color: s.secondaryColor }}>
-              {group.category}:{" "}
-            </Text>
-          ) : null}
+      <View key={gi} wrap={false} style={{ marginBottom: s.sp(6) }}>
+        {group.category ? skillLabel(group.category) : null}
+        <Text
+          style={{
+            fontSize: s.smallFontSize,
+            lineHeight: s.lineHeight,
+            color: s.textColor,
+          }}
+        >
           {group.skills.map((skill, si) => (
             <Text key={si}>
               {si > 0 ? ", " : ""}
@@ -750,56 +830,14 @@ const pdfSkills: PDFSectionBuilder = ({ resume, styles: s, config }) => {
 
   if (config.skillStyle === "grid") {
     return groups.map((group, gi) => (
-      <View
-        key={gi}
-        wrap={false}
-        style={{
-          marginBottom: s.sp(6),
-          borderLeftWidth: s.sp(2),
-          borderLeftColor: s.accentColor,
-          paddingLeft: s.sp(8),
-        }}
-      >
-        <Text style={{ fontSize: s.smallFontSize, color: s.textColor }}>
-          {group.category ? (
-            <Text style={{ fontWeight: 600, color: s.secondaryColor }}>
-              {group.category}:{" "}
-            </Text>
-          ) : null}
-          {group.skills.map((skill, si) => (
-            <Text key={si}>
-              {si > 0 ? ", " : ""}
-              {skill.tier === "primary" ? (
-                <Text style={{ fontWeight: 700 }}>{skill.name}</Text>
-              ) : (
-                skill.name
-              )}
-            </Text>
-          ))}
-        </Text>
-      </View>
-    ));
-  }
-
-  if (config.skillStyle === "columns") {
-    return groups.map((group, gi) => (
-      <View
-        key={gi}
-        wrap={false}
-        style={{ flexDirection: "row", marginBottom: s.sp(4) }}
-      >
+      <View key={gi} wrap={false} style={{ marginBottom: s.sp(6) }}>
+        {group.category ? skillLabel(group.category) : null}
         <Text
           style={{
-            width: s.sp(80),
             fontSize: s.smallFontSize,
-            fontWeight: 600,
-            color: s.secondaryColor,
+            lineHeight: s.lineHeight,
+            color: s.textColor,
           }}
-        >
-          {group.category ?? "Skills"}
-        </Text>
-        <Text
-          style={{ flex: 1, fontSize: s.smallFontSize, color: s.textColor }}
         >
           {group.skills.map((skill, si) => (
             <Text key={si}>
@@ -816,60 +854,20 @@ const pdfSkills: PDFSectionBuilder = ({ resume, styles: s, config }) => {
     ));
   }
 
-  if (config.skillStyle === "table") {
-    const borderColor = borderTint(s.secondaryColor, "40");
-    const tint = withAlpha(s.accentColor, "20");
-    return (
-      <PdfTableEntry borderColor={borderColor} sp={s.sp}>
-        {groups.length > 0 ? (
-          groups.map((group, gi) => (
-            <PdfTableRow
-              key={gi}
-              label={group.category ?? "Skills"}
-              accentColor={tint}
-              borderColor={borderColor}
-              isLast={gi === groups.length - 1}
-              fontSize={s.smallFontSize}
-              sp={s.sp}
-            >
-              <Text style={{ fontSize: s.smallFontSize }}>
-                {group.skills.map((skill) => skill.name).join(", ")}
-              </Text>
-            </PdfTableRow>
-          ))
-        ) : (
-          <PdfTableRow
-            label="Skills"
-            accentColor={tint}
-            borderColor={borderColor}
-            isLast
-            fontSize={s.smallFontSize}
-            sp={s.sp}
-          >
-            <Text style={{ fontSize: s.smallFontSize }}>—</Text>
-          </PdfTableRow>
-        )}
-      </PdfTableEntry>
-    );
-  }
-
-  // "inline" — one flowing paragraph, groups joined by a middot separator.
-  return (
-    <Text
-      style={{
-        fontSize: s.fontSize,
-        lineHeight: s.lineHeight,
-        color: s.textColor,
-      }}
-    >
-      {groups.map((group, gi) => (
-        <Text key={gi}>
-          {gi > 0 ? "  •  " : ""}
-          {group.category ? (
-            <Text style={{ fontWeight: 600 }}>{`${group.category}: `}</Text>
-          ) : (
-            ""
-          )}
+  // "columns" and "inline" now share the same label-above-content shape as
+  // list/grid — the side-by-side label column and the inline-paragraph flow
+  // both got replaced by the subheading treatment.
+  if (config.skillStyle === "columns" || config.skillStyle === "inline") {
+    return groups.map((group, gi) => (
+      <View key={gi} wrap={false} style={{ marginBottom: s.sp(6) }}>
+        {group.category ? skillLabel(group.category) : null}
+        <Text
+          style={{
+            fontSize: s.smallFontSize,
+            lineHeight: s.lineHeight,
+            color: s.textColor,
+          }}
+        >
           {group.skills.map((skill, si) => (
             <Text key={si}>
               {si > 0 ? ", " : ""}
@@ -881,8 +879,58 @@ const pdfSkills: PDFSectionBuilder = ({ resume, styles: s, config }) => {
             </Text>
           ))}
         </Text>
-      ))}
-    </Text>
+      </View>
+    ));
+  }
+
+  // config.skillStyle === "table" (bjet-professional): two ROWS per
+  // category — a coloured label bar, then the skills underneath — instead
+  // of the label|content two-COLUMN layout `PdfTableRow` uses for every
+  // other "table" entryStyle field. Deliberately bespoke, not `PdfTableRow`,
+  // so Company/Role/Duration/Details elsewhere keep their side-by-side
+  // layout untouched.
+  const borderColor = borderTint(s.secondaryColor, "40");
+  const tint = withAlpha(s.accentColor, "20");
+  return (
+    <View wrap={false} style={{ borderWidth: 1, borderColor, borderRadius: 3 }}>
+      {groups.length > 0 ? (
+        groups.map((group, gi) => (
+          <View
+            key={gi}
+            style={{
+              borderBottomWidth: gi === groups.length - 1 ? 0 : 1,
+              borderBottomColor: borderColor,
+            }}
+          >
+            {group.category ? (
+              <View style={{ backgroundColor: tint, padding: s.sp(4) }}>
+                <Text
+                  style={{
+                    fontSize: s.smallFontSize,
+                    fontWeight: 700,
+                    color: s.primaryColor,
+                    ...pdfSkillLabelStyle(headingStyle),
+                  }}
+                >
+                  {group.category}
+                </Text>
+              </View>
+            ) : null}
+            <Text
+              style={{
+                fontSize: s.smallFontSize,
+                lineHeight: s.lineHeight,
+                padding: s.sp(4),
+              }}
+            >
+              {group.skills.map((skill) => skill.name).join(", ")}
+            </Text>
+          </View>
+        ))
+      ) : (
+        <Text style={{ fontSize: s.smallFontSize, padding: s.sp(4) }}>—</Text>
+      )}
+    </View>
   );
 };
 
@@ -1048,7 +1096,9 @@ const pdfEducation: PDFSectionBuilder = ({ resume, styles: s, config }) => {
               gap: isMultiColumn ? s.sp(2) : undefined,
             }}
           >
-            <View style={{ flex: 1 }}>
+            {/* See pdfExperience's identical comment above — `flex: 1` only
+                belongs in row mode. */}
+            <View style={isMultiColumn ? undefined : { flex: 1 }}>
               <Text style={{ fontSize, fontWeight: 700, color: accentColor }}>
                 {edu.degree}
                 {edu.field ? ` in ${edu.field}` : ""}
@@ -1321,7 +1371,9 @@ const pdfVolunteer: PDFSectionBuilder = ({ resume, styles: s, config }) => {
               gap: isMultiColumn ? s.sp(2) : undefined,
             }}
           >
-            <View style={{ flex: 1 }}>
+            {/* See pdfExperience's identical comment above — `flex: 1` only
+                belongs in row mode. */}
+            <View style={isMultiColumn ? undefined : { flex: 1 }}>
               <Text style={{ fontSize, fontWeight: 700, color: accentColor }}>
                 {v.role}
               </Text>
@@ -1397,7 +1449,12 @@ const pdfHobbies: PDFSectionBuilder = ({ resume, styles: s }) => {
   );
 };
 
-const pdfCustom: PDFSectionBuilder = ({ resume, instance, config }) => {
+const pdfCustom: PDFSectionBuilder = ({
+  resume,
+  instance,
+  styles: s,
+  config,
+}) => {
   const section = (resume.sectionLayout?.custom ?? []).find(
     (c) => c.id === instance.id
   );
@@ -1405,11 +1462,26 @@ const pdfCustom: PDFSectionBuilder = ({ resume, instance, config }) => {
   const glyph = bulletGlyph(config.bulletStyle);
 
   return section.type === "text" ? (
-    <Text>{section.items.join(" ")}</Text>
+    <Text
+      style={{
+        fontSize: s.fontSize,
+        lineHeight: s.lineHeight,
+        color: s.textColor,
+      }}
+    >
+      {section.items.join(" ")}
+    </Text>
   ) : (
     <>
       {section.items.map((item, i) => (
-        <Text key={i}>
+        <Text
+          key={i}
+          style={{
+            fontSize: s.fontSize,
+            lineHeight: s.lineHeight,
+            color: s.textColor,
+          }}
+        >
           {glyph} {item}
         </Text>
       ))}

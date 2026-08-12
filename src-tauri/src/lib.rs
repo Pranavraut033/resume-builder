@@ -179,6 +179,43 @@ fn sync_database_schema(resource_dir: &Path, db_path: &Path) -> Result<(), Strin
     Ok(())
 }
 
+/// Strip `com.apple.quarantine` off our own .app bundle.
+///
+/// The app is only ad-hoc signed (no Developer ID / notarization), so Gatekeeper
+/// approval is per-cdhash and every update produces a new one. Worse, macOS
+/// propagates the quarantine xattr from the running (quarantined) process to
+/// every file it writes — so the updater's freshly extracted bundle inherits it
+/// and launches as "damaged", forcing a manual reinstall. Clearing the xattr on
+/// launch stops the propagation; clearing it again after an update install heals
+/// the bundle the updater just wrote.
+///
+/// ponytail: this is the free workaround. The real fix is a $99/yr Developer ID
+/// cert + notarytool in release.yml — do that and this can be deleted.
+#[tauri::command]
+fn clear_quarantine() -> Result<(), String> {
+    #[cfg(target_os = "macos")]
+    {
+        let exe = std::env::current_exe().map_err(|e| e.to_string())?;
+        // .../Udaan.app/Contents/MacOS/app -> .../Udaan.app
+        let bundle = exe
+            .ancestors()
+            .nth(3)
+            .filter(|p| p.extension().is_some_and(|e| e == "app"))
+            .ok_or("not running from an .app bundle")?;
+
+        let status = Command::new("/usr/bin/xattr")
+            .args(["-dr", "com.apple.quarantine"])
+            .arg(bundle)
+            .status()
+            .map_err(|e| format!("failed to run xattr: {e}"))?;
+
+        if !status.success() {
+            return Err(format!("xattr exited with {status}"));
+        }
+    }
+    Ok(())
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     let app = tauri::Builder::default()
@@ -191,6 +228,10 @@ pub fn run() {
             let mut next_server_child = None;
 
             if !cfg!(debug_assertions) {
+                if let Err(e) = clear_quarantine() {
+                    eprintln!("could not clear quarantine on own bundle: {e}");
+                }
+
                 let resource_dir = app.path().resource_dir().map_err(|_| {
                     io::Error::new(
                         io::ErrorKind::NotFound,
@@ -266,6 +307,7 @@ pub fn run() {
             browser::browser_extract_content,
             browser::browser_set_bounds,
             browser::browser_destroy_all,
+            clear_quarantine,
             keychain::get_or_create_master_key,
             mcp_server::mcp_server_start,
             mcp_server::mcp_server_stop,

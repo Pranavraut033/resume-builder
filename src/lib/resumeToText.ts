@@ -54,6 +54,9 @@ export function resumeToText(resume: ResumeJSON): string {
     h.linkedin && `LinkedIn: ${h.linkedin}`,
     h.github && `GitHub: ${h.github}`,
     h.website && `Website: ${h.website}`,
+    h.workAuthorization && `Work Authorization: ${h.workAuthorization}`,
+    h.nationality && `Nationality: ${h.nationality}`,
+    h.dateOfBirth && `Date of Birth: ${h.dateOfBirth}`,
   ].filter(Boolean);
   lines.push(contacts.join("  |  "));
 

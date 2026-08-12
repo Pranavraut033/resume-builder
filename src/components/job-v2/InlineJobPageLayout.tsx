@@ -1,6 +1,14 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState, useTransition } from "react";
+import { isTauri } from "@tauri-apps/api/core";
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+  useTransition,
+} from "react";
 
 import { updateJobStatus, JobRecord } from "@/actions/job";
 import {
@@ -143,6 +151,7 @@ export function InlineJobPageLayout() {
 
   const canvasColumnRef = useRef<HTMLDivElement>(null);
   const isActionBarHidden = useHideOnScroll(canvasColumnRef, contentType);
+  const pageRootRef = useRef<HTMLDivElement>(null);
 
   const [historyState, setHistoryState] = useState<{
     canUndo: boolean;
@@ -185,6 +194,71 @@ export function InlineJobPageLayout() {
     return () => history.removeHistoryChangeListener(listener);
   }, [historyRef]);
 
+  // ponytail: WKWebView (Tauri's macOS webview) sometimes commits a stale
+  // flex layout when this page mounts via client-side navigation (not on a
+  // full reload), shifting content left until it settles on its own a
+  // moment later. Toggling the page root's `overflow-hidden` off/on is what
+  // actually nudges WKWebView into recomputing it correctly (confirmed by
+  // hand — dropping `overflow-hidden` entirely also "fixes" it, because it
+  // stops the stale state from ever being clipped/visible, not because the
+  // layout itself is right). `isMaskingLayoutShift` covers the page with an
+  // opaque screen for that brief window so the toggling itself is never
+  // visible. Drop all of this once Tauri/WKWebView fixes the underlying
+  // repaint bug.
+  //
+  // Starts false (matching SSR, where `isTauri()` is always false — there's
+  // no window) and flips in a layout effect instead of the useState
+  // initializer: reading `isTauri()` synchronously during render would
+  // make the first client render disagree with the server-rendered HTML
+  // and trip a hydration-mismatch error on every direct load in Tauri.
+  const [isMaskingLayoutShift, setIsMaskingLayoutShift] = useState(false);
+  // Kept mounted slightly past `isMaskingLayoutShift` going false so the
+  // opacity transition below can play instead of the mask popping away —
+  // the "black flash" that showed up going from opaque straight to gone.
+  const [isMaskMounted, setIsMaskMounted] = useState(false);
+  useLayoutEffect(() => {
+    // One-time client-only flag synced from the Tauri runtime, not a data
+    // sync loop, so a direct setState here is intentional.
+    /* eslint-disable react-hooks/set-state-in-effect */
+    if (isTauri()) {
+      setIsMaskingLayoutShift(true);
+      setIsMaskMounted(true);
+    }
+    /* eslint-enable react-hooks/set-state-in-effect */
+  }, []);
+  useEffect(() => {
+    if (isMaskingLayoutShift || !isMaskMounted) return;
+    const timeout = setTimeout(() => setIsMaskMounted(false), 150);
+    return () => clearTimeout(timeout);
+  }, [isMaskingLayoutShift, isMaskMounted]);
+  useEffect(() => {
+    if (!isMaskingLayoutShift) return;
+    // Remove/re-add on the same frame gives WKWebView nothing to actually
+    // repaint in between — a real gap (one full frame) between the two is
+    // what gives it a chance to settle, hence the two separate rAFs below
+    // instead of a single synchronous toggle.
+    const timeouts: ReturnType<typeof setTimeout>[] = [];
+    let cycleRaf = 0;
+    const cycle = () => {
+      const el = pageRootRef.current;
+      if (!el) return;
+      el.classList.remove("overflow-hidden");
+      cycleRaf = requestAnimationFrame(() => {
+        cycleRaf = requestAnimationFrame(() => {
+          el.classList.add("overflow-hidden");
+          timeouts.push(setTimeout(cycle, 40));
+        });
+      });
+    };
+    cycle();
+    const maskTimeout = setTimeout(() => setIsMaskingLayoutShift(false), 320);
+    return () => {
+      cancelAnimationFrame(cycleRaf);
+      clearTimeout(maskTimeout);
+      timeouts.forEach(clearTimeout);
+    };
+  }, [isMaskingLayoutShift]);
+
   // Global undo/redo keybindings — skip when editing text fields so native
   // text undo wins inside InlineField inputs.
   useEffect(() => {
@@ -212,7 +286,24 @@ export function InlineJobPageLayout() {
 
   return (
     <ChatContextProvider onOpenGapDrawer={() => setActiveDrawer("gaps")}>
-      <div className="bg-agent-bg text-agent-on-bg relative h-full overflow-hidden pt-16">
+      {/* ponytail: masks the forced-reflow layout correction above — see the
+          isMaskingLayoutShift effect. Opaque, no spinner (the correction is
+          a single frame, too fast for one to read); fades out instead of
+          popping away once the reflow settles. */}
+      {isMaskMounted && (
+        <div
+          className={cn(
+            "bg-agent-bg fixed inset-0 z-[60] transition-opacity duration-150 ease-out",
+            isMaskingLayoutShift
+              ? "opacity-100"
+              : "pointer-events-none opacity-0"
+          )}
+        />
+      )}
+      <div
+        ref={pageRootRef}
+        className="bg-agent-bg text-agent-on-bg relative h-full overflow-hidden pt-16"
+      >
         {/* Ambient orbs — matching V1 aesthetic */}
         <div className="bg-agent-primary-fixed-dim pointer-events-none absolute -top-36 -left-28 h-80 w-80 rounded-full opacity-35 blur-3xl" />
         <div className="bg-agent-tertiary-fixed-dim pointer-events-none absolute -right-20 -bottom-20 h-72 w-72 rounded-full opacity-40 blur-3xl" />

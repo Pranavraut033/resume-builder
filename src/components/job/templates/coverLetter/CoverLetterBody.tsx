@@ -38,6 +38,7 @@ export function CoverLetterBody({
       onChange={onChange!}
       className={`${className} w-full`}
       contentClassName="p-0!"
+      autoFocus
     />
   );
 }
