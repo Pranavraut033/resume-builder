@@ -45,6 +45,8 @@ function buildContactLine(header: ResumeJSON["header"]): string {
     header.github ?? null,
     header.website ?? null,
     header.workAuthorization ?? null,
+    header.nationality ?? null,
+    header.dateOfBirth ?? null,
   ]
     .filter(Boolean)
     .join("  •  ");
@@ -57,22 +59,34 @@ const SectionHeading = memo(function SectionHeading({
   s,
   headingStyle,
   isSidebar,
+  isSolidSidebar,
   smallCaps,
 }: {
   title: string;
   s: ResolvedPDFStyles;
   headingStyle: HeadingStyle;
   isSidebar?: boolean;
+  isSolidSidebar?: boolean;
   smallCaps?: boolean;
 }) {
   const {
     primaryColor,
     secondaryColor,
     accentColor,
+    backgroundColor,
     fontFamily,
     headingFontSize,
     fontSize,
   } = s;
+
+  // A `sidebarFill: "solid"` sidebar remaps primary/secondary/accent to
+  // `backgroundColor` (light-on-dark text) — a heading border in that same
+  // flat color is invisible against the text, so it needs a translucent
+  // variant instead. Mirrors DOM's `theme.backgroundColor + "60"` override
+  // for `isSolidSidebarColumn` (TemplateEngine.tsx:173-174), which applies
+  // regardless of heading style, not just "accent-rule".
+  const sidebarBorderColor =
+    isSidebar && isSolidSidebar ? withAlpha(backgroundColor, "60") : undefined;
 
   const isUppercase = headingStyle === "uppercase";
   const isBar = headingStyle === "bar";
@@ -90,7 +104,7 @@ const SectionHeading = memo(function SectionHeading({
           marginBottom: s.sp(5),
           marginTop: s.sp(10),
           borderBottomWidth: 1,
-          borderBottomColor: primaryColor,
+          borderBottomColor: sidebarBorderColor ?? primaryColor,
           paddingBottom: s.sp(2),
         }}
       >
@@ -115,7 +129,7 @@ const SectionHeading = memo(function SectionHeading({
           marginBottom: s.sp(5),
           marginTop: s.sp(10),
           borderLeftWidth: s.sp(4),
-          borderLeftColor: primaryColor,
+          borderLeftColor: sidebarBorderColor ?? primaryColor,
           paddingLeft: s.sp(8),
         }}
       >
@@ -140,7 +154,7 @@ const SectionHeading = memo(function SectionHeading({
           marginBottom: s.sp(5),
           marginTop: s.sp(10),
           borderBottomWidth: 1,
-          borderBottomColor: secondaryColor,
+          borderBottomColor: sidebarBorderColor ?? secondaryColor,
           paddingBottom: s.sp(2),
         }}
       >
@@ -167,7 +181,7 @@ const SectionHeading = memo(function SectionHeading({
           marginBottom: s.sp(5),
           marginTop: s.sp(10),
           borderBottomWidth: 2,
-          borderBottomColor: accentColor,
+          borderBottomColor: sidebarBorderColor ?? accentColor,
           paddingBottom: s.sp(2),
         }}
       >
@@ -207,7 +221,7 @@ const SectionHeading = memo(function SectionHeading({
     <View
       style={{
         borderBottomWidth: 1,
-        borderBottomColor: secondaryColor,
+        borderBottomColor: sidebarBorderColor ?? secondaryColor,
         paddingBottom: s.sp(2),
         marginTop: s.sp(10),
         marginBottom: s.sp(5),
@@ -479,7 +493,18 @@ export const PDFTemplateEngine: React.FC<PDFTemplateEngineProps> = ({
       {photoImage}
     </View>
   ) : headerStyle === "centered" ? (
-    <View style={{ marginBottom: s.sp(14), alignItems: "center" }}>
+    // academic-serif — DOM's `border-b-2` rule (TemplateEngine.tsx:348-364)
+    // isn't excluded for "centered", so it gets the same bottom rule as the
+    // default/underline fallback below; PDF was missing it.
+    <View
+      style={{
+        marginBottom: s.sp(14),
+        paddingBottom: s.sp(10),
+        borderBottomWidth: 2,
+        borderBottomColor: s.primaryColor,
+        alignItems: "center",
+      }}
+    >
       {photoImage ? (
         <View style={{ marginBottom: s.sp(6) }}>{photoImage}</View>
       ) : null}
@@ -647,9 +672,16 @@ export const PDFTemplateEngine: React.FC<PDFTemplateEngineProps> = ({
       </View>
     </View>
   ) : (
+    // Default/"underline" fallback (business-professional) — DOM's
+    // `headerWrapperClassName` (TemplateEngine.tsx:348-363) adds `border-b-2`
+    // to every header variant except filled/left-accent/plain/boxed/split,
+    // so this fallback needs the same bottom rule the PDF was missing.
     <View
       style={{
         marginBottom: s.sp(14),
+        paddingBottom: s.sp(10),
+        borderBottomWidth: 2,
+        borderBottomColor: s.primaryColor,
         flexDirection: "row",
         alignItems: "center",
         gap: s.sp(10),
@@ -718,6 +750,7 @@ export const PDFTemplateEngine: React.FC<PDFTemplateEngineProps> = ({
         s={sectionStyles}
         headingStyle={headingStyleForColumn}
         isSidebar={isSidebar}
+        isSolidSidebar={isSolidSidebar}
         smallCaps={config.headingSmallCaps}
       />
     );
@@ -850,8 +883,25 @@ export const PDFTemplateEngine: React.FC<PDFTemplateEngineProps> = ({
           </View>
         )}
 
-        {/* Two-column body */}
-        <View style={{ flexDirection: "row", alignItems: "stretch" }}>
+        {/* Two-column body. `alignItems: "stretch"` only applies for a solid
+            sidebar fill (tech-sidebar, euro-sidebar) — it's what makes the
+            sidebar's background match the taller column's height. For
+            "tint"/"none" fills nothing needs that height-matching, and
+            forcing it anyway fights react-pdf's per-page pagination on
+            multi-page resumes (each `wrap={false}` entry paginates
+            independently; asking the row to also stretch equal heights
+            across that can misplace content on the page break). Dropping it
+            here for those templates removes one contributor to that overlap.
+            // ponytail: solid-fill templates still stretch across pages —
+            // real fix is painting the sidebar as a per-page background
+            // instead of via flex height-matching; upgrade if tech-sidebar/
+            // euro-sidebar still overlap on multi-page resumes after this. */}
+        <View
+          style={{
+            flexDirection: "row",
+            alignItems: config.sidebarFill === "solid" ? "stretch" : undefined,
+          }}
+        >
           {sidebarRight ? [mainView, sidebarView] : [sidebarView, mainView]}
         </View>
       </Page>
