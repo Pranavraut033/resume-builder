@@ -2,6 +2,7 @@ import { Customization } from "@prisma/client";
 
 import { BackgroundId, VALID_BACKGROUND_IDS } from "@/lib/backgrounds/types";
 import { DateFormat, VALID_DATE_FORMATS } from "@/lib/date";
+import { ALL_FONT_NAMES } from "@/lib/fonts/registry";
 
 export type { DateFormat } from "@/lib/date";
 
@@ -176,28 +177,7 @@ export const AVAILABLE_TEMPLATES: Array<Template> = [
   },
 ];
 
-export const AVAILABLE_FONTS = [
-  "Inter",
-  "Georgia",
-  "Poppins",
-  "Lora",
-  "Montserrat",
-  "Playfair Display",
-  "Roboto",
-  "Open Sans",
-  "Arial",
-  "Times New Roman",
-  "Helvetica",
-  "Verdana",
-  "Trebuchet MS",
-  "Garamond",
-  "Courier New",
-  "Source Sans Pro",
-  "Merriweather",
-  "Raleway",
-  "Ubuntu",
-  "Nunito",
-];
+export const AVAILABLE_FONTS = ALL_FONT_NAMES;
 
 const VALID_TEMPLATE_IDS = new Set(
   AVAILABLE_TEMPLATES.map((template) => template.id)

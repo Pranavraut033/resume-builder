@@ -1,5 +1,7 @@
 import { Font } from "@react-pdf/renderer";
 
+import { GOOGLE_FONT_SPECS } from "@/lib/fonts/registry";
+
 // System font → react-pdf built-in font aliases (no registration required)
 export const SYSTEM_FONT_MAP: Record<string, string> = {
   Arial: "Helvetica",
@@ -20,76 +22,9 @@ export const SYSTEM_FONT_MAP: Record<string, string> = {
 const CDN = "https://cdn.jsdelivr.net/npm/@fontsource";
 const FONTSOURCE_V4 = "@4";
 
-type FontSpec = {
-  pkg: string;
-  name: string;
-  weights: number[];
-  italicWeights?: number[];
-};
-
-const GOOGLE_FONTS: Record<string, FontSpec> = {
-  Inter: {
-    pkg: "inter",
-    name: "inter",
-    weights: [300, 400, 600, 700],
-  },
-  Poppins: {
-    pkg: "poppins",
-    name: "poppins",
-    weights: [300, 400, 600, 700],
-  },
-  Roboto: {
-    pkg: "roboto",
-    name: "roboto",
-    weights: [300, 400, 700],
-  },
-  Montserrat: {
-    pkg: "montserrat",
-    name: "montserrat",
-    weights: [300, 400, 600, 700],
-  },
-  Lora: {
-    pkg: "lora",
-    name: "lora",
-    weights: [400, 600, 700],
-  },
-  "Open Sans": {
-    pkg: "open-sans",
-    name: "open-sans",
-    weights: [300, 400, 600, 700],
-  },
-  "Source Sans Pro": {
-    pkg: "source-sans-pro",
-    name: "source-sans-pro",
-    weights: [300, 400, 600, 700],
-  },
-  Merriweather: {
-    pkg: "merriweather",
-    name: "merriweather",
-    weights: [300, 400, 700],
-    italicWeights: [400, 700],
-  },
-  Raleway: {
-    pkg: "raleway",
-    name: "raleway",
-    weights: [300, 400, 600, 700],
-  },
-  Ubuntu: {
-    pkg: "ubuntu",
-    name: "ubuntu",
-    weights: [300, 400, 700],
-  },
-  Nunito: {
-    pkg: "nunito",
-    name: "nunito",
-    weights: [300, 400, 600, 700],
-  },
-  "Playfair Display": {
-    pkg: "playfair-display",
-    name: "playfair-display",
-    weights: [400, 600, 700],
-  },
-};
+// Google-hosted fonts share one spec (pkg/weights) with the DOM font loader
+// (src/lib/fontLoader.ts) via src/lib/fonts/registry.ts.
+const GOOGLE_FONTS = GOOGLE_FONT_SPECS;
 
 const registered = new Set<string>();
 

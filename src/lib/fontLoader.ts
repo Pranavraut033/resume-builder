@@ -1,167 +1,86 @@
 /**
- * Font Loader Utility
- * Dynamically loads Google Fonts and generates CSS font-family declarations.
- * Supports all fonts in AVAILABLE_FONTS list from resume types.
+ * Loads Google fonts into the document via the Font Loading API
+ * (`document.fonts.add`) instead of injecting a `<link>`/`@font-face`
+ * stylesheet pointed at fonts.googleapis.com.
  *
- * USAGE:
- * - In components: import { loadGoogleFont } from '@/lib/fontLoader'
- * - When font changes: useEffect(() => { loadGoogleFont(fontName) }, [fontName])
- * - For PDF generation: Use generateFontStyleBlock() to include fonts in exported documents
- * - System fonts (Arial, etc.) require no loading and work out of the box
- * - Google Fonts are loaded dynamically via @import URL to document head
+ * Why: the app's CSP (src/proxy.ts) is `style-src 'self' 'unsafe-inline'` and
+ * `font-src 'self' data:` — a stylesheet link to Google Fonts is blocked
+ * outright, so every "Google font" silently fell back to the browser
+ * default. Fetching the font bytes ourselves only needs `connect-src`,
+ * which already allows `https:`, and handing the bytes straight to
+ * `FontFace` never triggers a font-src/style-src check at all since no
+ * further network request or stylesheet is involved.
  *
- * FONT AVAILABILITY:
- * - Google Fonts: Inter, Poppins, Roboto, Montserrat, Lora, Open Sans, etc.
- * - System Fonts: Arial, Helvetica, Times New Roman, Georgia, Courier New, etc.
- *
- * PERFORMANCE:
- * - Fonts are cached after first load to avoid duplicate requests
- * - Only fonts actually used are loaded (lazy loading)
- * - Google Fonts uses display=swap for optimal performance
+ * Font metadata (which package/weights) lives in src/lib/fonts/registry.ts,
+ * shared with the PDF export font loader (src/lib/pdf/fonts.ts).
  */
+import { FontSpec, GOOGLE_FONT_SPECS } from "@/lib/fonts/registry";
 
-// Map of font names to Google Fonts weight variants
-const GOOGLE_FONTS_MAP: Record<string, { name: string; weights: number[] }> = {
-  Inter: { name: "Inter", weights: [300, 400, 500, 600, 700] },
-  Georgia: { name: "Georgia", weights: [400, 700] },
-  Poppins: { name: "Poppins", weights: [300, 400, 500, 600, 700] },
-  Lora: { name: "Lora", weights: [400, 500, 600, 700] },
-  Montserrat: { name: "Montserrat", weights: [300, 400, 500, 600, 700] },
-  "Playfair Display": {
-    name: "Playfair+Display",
-    weights: [400, 500, 600, 700],
-  },
-  Roboto: { name: "Roboto", weights: [300, 400, 500, 700] },
-  "Open Sans": { name: "Open+Sans", weights: [300, 400, 500, 600, 700] },
-  "Source Sans Pro": { name: "Source+Sans+Pro", weights: [300, 400, 600, 700] },
-  Merriweather: { name: "Merriweather", weights: [300, 400, 700] },
-  Raleway: { name: "Raleway", weights: [300, 400, 500, 600, 700] },
-  Ubuntu: { name: "Ubuntu", weights: [300, 400, 500, 700] },
-  Nunito: { name: "Nunito", weights: [300, 400, 600, 700] },
-};
+// Pinned to v4 of the fontsource packages — same CDN/version PDF export
+// uses, so a font that works in the picker also works in the exported PDF.
+const CDN = "https://cdn.jsdelivr.net/npm/@fontsource";
+const FONTSOURCE_V4 = "@4";
 
-// System fonts that don't need loading
-const SYSTEM_FONTS: Record<string, string> = {
-  Arial: "Arial, sans-serif",
-  "Times New Roman": '"Times New Roman", serif',
-  Helvetica: "Helvetica, sans-serif",
-  Verdana: "Verdana, sans-serif",
-  "Trebuchet MS": '"Trebuchet MS", sans-serif',
-  Garamond: "Garamond, serif",
-  "Courier New": '"Courier New", monospace',
-};
+const loadedWeights = new Set<string>();
+const pending = new Map<string, Promise<void>>();
 
-// Cache of loaded fonts to avoid duplicate loading
-const loadedFonts = new Set<string>();
+async function loadWeight(
+  name: string,
+  spec: FontSpec,
+  weight: number
+): Promise<void> {
+  const key = `${name}:${weight}`;
+  if (loadedWeights.has(key)) return;
 
-/**
- * Get the CSS font-family declaration for a given font name.
- * If it's a Google Font, the font name will be wrapped in appropriate quotes.
- * If it's a system font, the fallback chain is provided.
- */
-export function getFontFamily(fontName: string): string {
-  // Check if it's a system font
-  if (SYSTEM_FONTS[fontName]) {
-    return SYSTEM_FONTS[fontName];
-  }
+  const existing = pending.get(key);
+  if (existing) return existing;
 
-  // Check if it's a Google Font
-  if (GOOGLE_FONTS_MAP[fontName]) {
-    return `"${fontName}", sans-serif`;
-  }
+  const promise = (async () => {
+    const url = `${CDN}/${spec.pkg}${FONTSOURCE_V4}/files/${spec.name}-latin-${weight}-normal.woff`;
+    const res = await fetch(url);
+    if (!res.ok) throw new Error(`Font fetch failed (${res.status}): ${url}`);
+    const bytes = await res.arrayBuffer();
+    const face = new FontFace(name, bytes, { weight: String(weight) });
+    await face.load();
+    document.fonts.add(face);
+    loadedWeights.add(key);
+  })()
+    .catch((err) => {
+      console.warn(`Failed to load font "${name}" @ ${weight}`, err);
+    })
+    .finally(() => {
+      pending.delete(key);
+    });
 
-  // Fallback for unknown fonts
-  return `"${fontName}", sans-serif`;
+  pending.set(key, promise);
+  return promise;
 }
 
 /**
- * Load a font from Google Fonts dynamically.
- * This function checks if the font is already loaded to avoid duplicate requests.
+ * Load a Google font. By default only fetches a single representative
+ * weight (cheap, good enough for a preview); pass `full: true` to fetch
+ * every weight the family ships, needed once a font is actually applied to
+ * a resume that may use bold headings etc.
+ * No-op for system fonts or unrecognized names.
  */
-export function loadGoogleFont(fontName: string): void {
-  // If it's a system font, no need to load
-  if (SYSTEM_FONTS[fontName]) {
-    return;
-  }
+export function loadGoogleFont(
+  name: string,
+  { full = false }: { full?: boolean } = {}
+): Promise<void> {
+  if (typeof document === "undefined") return Promise.resolve();
 
-  // If font is already loaded, skip
-  if (loadedFonts.has(fontName)) {
-    return;
-  }
+  const spec = GOOGLE_FONT_SPECS[name];
+  if (!spec) return Promise.resolve();
 
-  // If it's not in our Google Fonts map, skip loading
-  if (!GOOGLE_FONTS_MAP[fontName]) {
-    console.warn(`Font "${fontName}" not found in available fonts`);
-    return;
-  }
+  const weights = full
+    ? spec.weights
+    : [spec.weights.includes(400) ? 400 : spec.weights[0]];
 
-  const fontConfig = GOOGLE_FONTS_MAP[fontName];
-  const weights = fontConfig.weights.join(";");
-  const familyName = fontConfig.name;
-
-  // Construct Google Fonts URL
-  // Format: https://fonts.googleapis.com/css2?family=Font+Name:wght@weight1;weight2&display=swap
-  const url = `https://fonts.googleapis.com/css2?family=${familyName}:wght@${weights}&display=swap`;
-
-  // Create and append link element
-  const link = document.createElement("link");
-  link.href = url;
-  link.rel = "stylesheet";
-  document.head.appendChild(link);
-
-  // Mark font as loaded
-  loadedFonts.add(fontName);
+  return Promise.all(weights.map((w) => loadWeight(name, spec, w))).then(
+    () => undefined
+  );
 }
 
-/**
- * Load multiple fonts at once.
- * Useful for pre-loading fonts needed for templates or exports.
- */
-export function loadGoogleFonts(fontNames: string[]): void {
-  fontNames.forEach((fontName) => loadGoogleFont(fontName));
-}
-
-/**
- * Generate a CSS style block for fonts used in the resume.
- * Useful for inserting into iframes or document for PDF generation.
- */
-export function generateFontStyleBlock(fontName: string): string {
-  // If it's a system font, no additional CSS needed
-  if (SYSTEM_FONTS[fontName]) {
-    return "";
-  }
-
-  // If it's not in our Google Fonts map, return empty
-  if (!GOOGLE_FONTS_MAP[fontName]) {
-    return "";
-  }
-
-  const fontConfig = GOOGLE_FONTS_MAP[fontName];
-  const weights = fontConfig.weights.join(";");
-  const familyName = fontConfig.name;
-
-  // Generate @import statement for fonts
-  const url = `https://fonts.googleapis.com/css2?family=${familyName}:wght@${weights}&display=swap`;
-  return `@import url('${url}');`;
-}
-
-/**
- * Check if a font is a Google Font.
- */
-export function isGoogleFont(fontName: string): boolean {
-  return GOOGLE_FONTS_MAP[fontName] !== undefined;
-}
-
-/**
- * Check if a font is a system font.
- */
-export function isSystemFont(fontName: string): boolean {
-  return SYSTEM_FONTS[fontName] !== undefined;
-}
-
-/**
- * Get all available font names.
- */
-export function getAvailableFonts(): string[] {
-  return Object.keys(GOOGLE_FONTS_MAP).concat(Object.keys(SYSTEM_FONTS));
+export function loadGoogleFonts(names: string[]): void {
+  names.forEach((name) => loadGoogleFont(name));
 }

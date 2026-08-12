@@ -1,5 +1,6 @@
 import { BackgroundId, isBackgroundId } from "@/lib/backgrounds/types";
 import { DateFormat, VALID_DATE_FORMATS } from "@/lib/date";
+import { fontFamilyCss } from "@/lib/fonts/registry";
 import {
   FontSize,
   Leading,
@@ -83,7 +84,7 @@ export default function useResolveCustomization(
     colorsTuple,
     background,
     textSize,
-    fontFamily,
+    fontFamily: fontFamilyCss(fontFamily),
     today,
     lineHeight: lineHeightMap[lineHeight as Leading] || lineHeightMap.medium,
     marginClass,
