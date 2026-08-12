@@ -132,6 +132,16 @@ export const ContactInfoSchema = z.object({
   // Standard resume/ATS field name — see the German-market region guidance,
   // which treats a silent value here as the most common real knockout.
   workAuthorization: z.string().nullable(),
+  // Nationality, e.g. "German", "Indian, EU Blue Card holder" — the German
+  // CV convention calls this out explicitly so the reader can tell whether a
+  // visa is needed. Ad-dependent like workAuthorization: some postings ask
+  // it be omitted, so it must stay a plain optional field, never forced.
+  nationality: z.string().nullable(),
+  // Date of birth, free-text (e.g. "15.03.1990") so the user's locale/format
+  // choice passes through unchanged. Disputed across German-market sources
+  // (expected / recommended / optional / read-the-ad) — never auto-filled,
+  // omittable per job like workAuthorization/nationality.
+  dateOfBirth: z.string().nullable(),
   // Base64 data URL (e.g. "data:image/png;base64,..."). Stored inline like
   // every other resume field — never interpolated into an LLM prompt (see
   // resumeJsonToCompactPositional below).
@@ -488,6 +498,8 @@ export function resumeJsonToCompactPositional(resume: ResumeJSON): string {
     // isn't read as a grade, "Final grade: 2.1" is) — see regionGuidance.ts.
     resume.header.workAuthorization &&
       `Work Authorization: ${resume.header.workAuthorization}`,
+    resume.header.nationality && `Nationality: ${resume.header.nationality}`,
+    resume.header.dateOfBirth && `Date of Birth: ${resume.header.dateOfBirth}`,
   ]
     .filter(Boolean)
     .join("|")}

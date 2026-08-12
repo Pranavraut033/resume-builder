@@ -37,6 +37,8 @@ const fixtureResume: ResumeJSON = {
     github: "https://github.com/janedoe",
     website: "https://janedoe.dev",
     workAuthorization: null,
+    nationality: null,
+    dateOfBirth: null,
     photoDataUrl: null,
   },
   summary: "Builds distinctive resume templates for a living.",

@@ -129,6 +129,8 @@ function loadRealBaseProfile(): ResumeJSON {
       github: row.github,
       website: row.website,
       workAuthorization: null,
+      nationality: null,
+      dateOfBirth: null,
       photoDataUrl: null,
     },
     summary: row.summary || "",

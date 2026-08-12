@@ -163,6 +163,8 @@ export function resumePathLines(resume: ResumeJSON): string {
   leaf("/header/github", resume.header.github);
   leaf("/header/website", resume.header.website);
   leaf("/header/workAuthorization", resume.header.workAuthorization);
+  leaf("/header/nationality", resume.header.nationality);
+  leaf("/header/dateOfBirth", resume.header.dateOfBirth);
 
   // ── summary ─────────────────────────────────────────────────────────────
   leaf("/summary", resume.summary);

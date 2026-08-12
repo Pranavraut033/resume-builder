@@ -18,6 +18,8 @@ const sampleResume: ResumeJSON = {
     github: null,
     website: null,
     workAuthorization: null,
+    nationality: null,
+    dateOfBirth: null,
     photoDataUrl: null,
   },
   summary: "Backend engineer with 6 years building payment infrastructure.",

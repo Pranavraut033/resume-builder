@@ -20,6 +20,8 @@ export function generateResumeTXT(resume: ResumeJSON): string {
     h.github && `GitHub: ${h.github}`,
     h.website && `Website: ${h.website}`,
     h.workAuthorization && `Work Authorization: ${h.workAuthorization}`,
+    h.nationality && `Nationality: ${h.nationality}`,
+    h.dateOfBirth && `Date of Birth: ${h.dateOfBirth}`,
   ].filter(Boolean);
   const header = `${h.name}\n${h.headline ? `${h.headline}\n` : ""}${contacts.join("  |  ")}\n\n`;
 

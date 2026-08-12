@@ -50,6 +50,8 @@ function makeResume(overrides: Partial<ResumeJSON> = {}): ResumeJSON {
       github: null,
       website: null,
       workAuthorization: null,
+      nationality: null,
+      dateOfBirth: null,
       photoDataUrl: null,
     },
     summary: "Senior backend engineer.",

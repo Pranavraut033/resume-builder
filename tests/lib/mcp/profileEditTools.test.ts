@@ -25,6 +25,8 @@ function makeProfile(
       github: null,
       website: null,
       workAuthorization: null,
+      nationality: null,
+      dateOfBirth: null,
       photoDataUrl: null,
     },
     summary: "Senior backend engineer.",
