@@ -26,7 +26,7 @@ More screenshots and demo clips (ATS analysis, chat editing, cover letters, cust
 - **AI humanizer**: rewrite resume/cover letter content to read less like AI output, with reviewable before/after changes
 - **AI proofreading**: deterministic lint checks plus an LLM pass surface grammar, consistency, and unquantified-claim issues in a review drawer; lint-sourced fixes auto-apply
 - **ATS analysis**: keyword/skill match scoring plus knockout-risk and title-alignment checks with rewrite coaching, including a chat action to fix all flagged issues at once
-- **EU/German CVs**: optional profile photo and hobbies section, DE/EU region prompt guidance, and an Anschreiben cover letter style
+- **EU/German CVs**: optional profile photo, nationality, date of birth, and hobbies section, DE/EU region prompt guidance, and an Anschreiben cover letter style
 - **Documents view**: browse all generated resumes and cover letters across jobs (`/documents`)
 - **Notifications**: a bell in the sidebar shows background task progress and results (e.g. bookmark parsing), with history and a clear-all action
 - **PDF & TXT export**: generate application-ready documents

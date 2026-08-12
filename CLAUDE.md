@@ -72,7 +72,7 @@ Local-first desktop resume/cover-letter builder: Next.js 16 (App Router) + Tauri
 
 ### Data model (`prisma/schema.prisma`)
 
-SQLite via Prisma. Core models: `Profile` (base profile, with skills/experience/projects/education/etc. stored as JSON string columns, plus `photo` and `hobbiesJson` for EU/German CV convention), `Company`, `Contact`, `Job`, `Resume`, `CoverLetter`, `Customization`. JSON columns map to typed shapes in `src/types/resume.ts` (`ResumeJSON`, `JobDetailsJSON`, `ATSAnalysisJSON`) — parse/stringify at the action boundary.
+SQLite via Prisma. Core models: `Profile` (base profile, with skills/experience/projects/education/etc. stored as JSON string columns, plus `photo`, `hobbiesJson`, `nationality`, and `dateOfBirth` for EU/German CV convention), `Company`, `Contact`, `Job`, `Resume`, `CoverLetter`, `Customization`. JSON columns map to typed shapes in `src/types/resume.ts` (`ResumeJSON`, `JobDetailsJSON`, `ATSAnalysisJSON`) — parse/stringify at the action boundary.
 
 ### Resume rendering / templates
 
@@ -144,4 +144,4 @@ the private sibling repo `../udaan-marketing` (`github.com/Pranavraut033/udaan-m
 Check there for the voice/tone guide and any social/launch copy work — it's not
 duplicated here.
 
-<!-- last-sync-docs: 0cdac5b4503638e6116d8ade8c82e74d6619bd9d -->
+<!-- last-sync-docs: d12628189e33388c64099ba5e5243834e033b80e -->
