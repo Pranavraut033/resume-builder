@@ -23,6 +23,14 @@ interface RichTextEditorProps {
    * selection, hiding the list/alignment pill.
    */
   toolbarMode?: "full" | "block-only" | "bubble-only";
+  /**
+   * Focus the editor (cursor at end) as soon as it mounts. Only appropriate
+   * for a single editor entered via an explicit click-to-edit action (e.g.
+   * cover letter body) — leave false when many instances of this component
+   * can be mounted at once (e.g. one per resume bullet/description), since
+   * each would otherwise steal focus and scroll itself into view on mount.
+   */
+  autoFocus?: boolean;
 }
 
 export default function RichTextEditor({
@@ -32,6 +40,7 @@ export default function RichTextEditor({
   className,
   contentClassName,
   toolbarMode = "full",
+  autoFocus = false,
 }: RichTextEditorProps) {
   const editor = useEditor({
     extensions: [
@@ -50,7 +59,7 @@ export default function RichTextEditor({
       }),
     ],
     content: value,
-    autofocus: "end",
+    autofocus: autoFocus ? "end" : false,
     immediatelyRender: false,
     onUpdate({ editor }) {
       onChange(editor.getHTML());
