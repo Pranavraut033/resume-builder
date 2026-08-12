@@ -1,3 +1,14 @@
+# v1.12.0 — 2026-08-12
+
+More European CV fields, a friendlier font picker, and PDF/editor fixes.
+
+- **New: Nationality and Date of Birth fields.** Two more optional fields for German/EU-style CVs, alongside the existing Work Authorization and photo — fill them in once on your profile and they show up on the resume header and in exports.
+- **A better font picker.** Fonts now preview with a real specimen of themselves right in the dropdown, so you can see exactly what you're picking.
+- **Simpler theme customization.** Per-section color/heading overrides are gone in favor of one global "Heading Style" control that applies everywhere at once.
+- **Fixed: PDF export now matches the on-screen editor more closely** — skill category labels, section descriptions, and sidebar heading borders that were missing or misaligned in exported PDFs are fixed.
+- **Fixed: a brief layout glitch and white flash on desktop app launch/navigation.**
+- **Fixed: local Ollama connections were being blocked** by the app's security policy.
+
 # v1.11.2 — 2026-08-11
 
 A bug fix for MCP profile edits.

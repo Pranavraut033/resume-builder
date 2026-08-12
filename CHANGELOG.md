@@ -2,6 +2,25 @@
 
 All notable changes to this project are documented in this file.
 
+## [1.12.0] - 2026-08-12
+
+### Added
+
+- Nationality and Date of Birth header fields on the base profile (German/EU CV convention) — surface on the profile form, resume header (DOM/PDF/TXT), and prompt context ([43049fc])
+- `RichTextEditor` gained an opt-in `autoFocus` prop; the cover letter body editor now focuses automatically when opened ([23df0d9])
+
+### Changed
+
+- Font selection now uses a shared font registry (`src/lib/fonts/registry.ts`) — the font picker shows real per-row specimen previews instead of a static list, and only the weights actually needed are loaded ([09d8014])
+- Per-section theme color/heading overrides removed in favor of a single global "Heading Style" control in the customization panel, applied to every section at once ([c8fdd4f])
+
+### Fixed
+
+- PDF export now matches the DOM editor more closely: skill category labels styled as headings, missing experience/project descriptions restored, solid-sidebar heading borders no longer invisible, and a multi-column date-alignment bug ([bee5dcb])
+- Desktop app (Tauri/WKWebView): a stale layout on client-side navigation that briefly shifted content left is now masked and corrected automatically ([4347c25])
+- Desktop app no longer briefly flashes white on launch ([0d5a254])
+- Local Ollama connections and `https:` images were blocked by the content security policy ([d126281])
+
 ## [1.11.2] - 2026-08-11
 
 ### Fixed
