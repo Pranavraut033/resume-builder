@@ -6,8 +6,6 @@ import { Icon } from "@/components/ui/Icon";
 import { useEscapeKey } from "@/hooks/useEscapeKey";
 import cn from "@/lib/cn";
 
-import { SectionThemeOverrides } from "./SectionThemeOverrides";
-
 interface CustomizationDrawerProps {
   open: boolean;
   onClose: () => void;
@@ -52,7 +50,6 @@ export function CustomizationDrawer({
         {/* Scrollable content */}
         <div className="flex-1 overflow-y-auto">
           <ThemeCustomizationPanel />
-          <SectionThemeOverrides />
         </div>
 
         {/* Export footer */}

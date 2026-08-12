@@ -6,17 +6,28 @@ import { AVAILABLE_BACKGROUNDS, BackgroundId } from "@/lib/backgrounds/types";
 import { DateFormat, formatMonthYear, VALID_DATE_FORMATS } from "@/lib/date";
 import { debounce } from "@/lib/debounce";
 import { getPageDimensions } from "@/lib/pageDimensions";
+import { legacyToTheme } from "@/lib/theme/legacyToTheme";
 import {
   TemplateType,
   COLOR_PRESETS,
+  HeadingStyle,
+  PerSectionOverride,
   Template,
   ThemeColors,
   VALID_FONT_SIZES,
   VALID_MARGIN_SIZES,
   VALID_LETTER_SPACINGS,
 } from "@/types/customization";
+import { getSectionLayout } from "@/types/resume";
 
 const DATE_FORMAT_EXAMPLE = "2020-01";
+
+const HEADING_STYLE_OPTIONS: { value: HeadingStyle; label: string }[] = [
+  { value: "underline", label: "Underline" },
+  { value: "uppercase", label: "Uppercase" },
+  { value: "bar", label: "Side bar" },
+  { value: "serif", label: "Serif italic" },
+];
 
 /** Derives a full ThemeColors tuple from a single user-picked hex — secondary/accent
  * are darkened shades of the same hue so the picked color still reads as one theme. */
@@ -44,11 +55,50 @@ type Props = {
 };
 
 const ThemeCustomizationPanel: React.FC<Props> = ({}) => {
-  const { customization, updateCustomizationState: updateCustomization } =
-    useJobPageContext();
+  const {
+    resume,
+    customization,
+    updateCustomizationState: updateCustomization,
+  } = useJobPageContext();
 
   const colorsTuple = customization.colors.split(",") as ThemeColors;
   const pageBackgroundColor = colorsTuple[4] || "#ffffff";
+
+  const sectionLayout = getSectionLayout(resume);
+  const theme = legacyToTheme(customization);
+  // A single global control that fans out to every section's `perSection`
+  // override (the storage/resolution TemplateEngine already reads) — so
+  // "Default" means no sections have an override, and picking a value
+  // applies it to all of them at once rather than one section at a time.
+  const globalOverrideValue = <K extends keyof PerSectionOverride>(
+    key: K
+  ): PerSectionOverride[K] | undefined => {
+    const values = sectionLayout.order.map(
+      (id) => theme.perSection?.[id]?.[key]
+    );
+    const [first] = values;
+    return first !== undefined && values.every((v) => v === first)
+      ? first
+      : undefined;
+  };
+  const setGlobalOverride = (patch: Partial<PerSectionOverride>) => {
+    const nextPerSection = { ...theme.perSection };
+    for (const id of sectionLayout.order) {
+      const merged = { ...nextPerSection[id], ...patch };
+      // Drop the key entirely once it's back to "no override" so themeJson
+      // doesn't accumulate empty entries.
+      if (Object.values(merged).every((v) => v === undefined || v === "")) {
+        delete nextPerSection[id];
+      } else {
+        nextPerSection[id] = merged;
+      }
+    }
+    updateCustomization({
+      themeJson: JSON.stringify({ ...theme, perSection: nextPerSection }),
+    });
+  };
+  const globalHeadingStyle = globalOverrideValue("headingStyle");
+  const globalHeadingColor = globalOverrideValue("color");
 
   // Native color inputs fire "input" continuously while dragging — debounce
   // so we don't push a state update (and re-render the whole preview) per pixel.
@@ -349,6 +399,48 @@ const ThemeCustomizationPanel: React.FC<Props> = ({}) => {
               updateCustomization({ fontFamily: font })
             }
           />
+        </div>
+
+        {/* Global heading style override — applies to every section's
+            `perSection` entry at once (see setGlobalOverride above). */}
+        <div>
+          <p
+            className="mb-2 text-xs font-medium"
+            style={{ color: "var(--color-agent-on-surface-variant)" }}
+          >
+            Heading Style
+          </p>
+          <div className="flex items-center gap-2">
+            <input
+              type="color"
+              value={globalHeadingColor ?? colorsTuple[0]}
+              onChange={(e) => setGlobalOverride({ color: e.target.value })}
+              className="h-7 w-7 cursor-pointer rounded border-none bg-transparent p-0"
+              title="Heading color"
+            />
+            <select
+              value={globalHeadingStyle ?? ""}
+              onChange={(e) =>
+                setGlobalOverride({
+                  headingStyle: (e.target.value || undefined) as
+                    | HeadingStyle
+                    | undefined,
+                })
+              }
+              className="flex-1 rounded border-none px-1.5 py-1.5 text-xs"
+              style={{
+                color: "var(--color-agent-on-surface)",
+                background: "var(--color-agent-surface-container)",
+              }}
+            >
+              <option value="">Default</option>
+              {HEADING_STYLE_OPTIONS.map((opt) => (
+                <option key={opt.value} value={opt.value}>
+                  {opt.label}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
       </Card>
     </div>
