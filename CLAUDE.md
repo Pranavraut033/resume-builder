@@ -144,4 +144,12 @@ the private sibling repo `../udaan-marketing` (`github.com/Pranavraut033/udaan-m
 Check there for the voice/tone guide and any social/launch copy work — it's not
 duplicated here.
 
+## Interview knowledge base
+
+The mock-interview feature's (`/practice`, `src/lib/llm/interview/interviewSession.ts`) grounding
+material — the interview playbook (stages, per-stage guidance, sourced/attributed claims) — is
+drafted outside this repo at `/Users/pranavraut/Documents/Workspace/interview-kb/interview-playbook.md`.
+It's not wired into the system prompt yet; check there for the current state of the KB before
+building retrieval on top of it.
+
 <!-- last-sync-docs: d12628189e33388c64099ba5e5243834e033b80e -->
