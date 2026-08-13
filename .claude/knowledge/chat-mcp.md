@@ -1,6 +1,68 @@
-# Chat/MCP surface file index
+# Chat assistant & MCP server — one surface, two front doors
 
-Maintained by the `chat-mcp-sync` agent. One row per file on the chat/MCP capability surface — update this whenever a file on this surface is added, removed, or its purpose changes. Not a design doc; keep rows to one line.
+Read this for: adding/updating/removing a chat intent or MCP tool, a new prompt template driving either,
+"what tool handles X", or a report that the two sides have drifted.
+
+Not for resume template/rendering work ([rendering.md](rendering.md)) or unrelated app code.
+
+## The core invariant
+
+The in-app chat assistant (a human typing into `ChatOverlay.tsx`) and the MCP server (an external host like
+Claude Desktop driving `src/mcp/`) are **one capability surface with two front doors**. Every resume-domain
+capability — tailor, ATS analyze/fix, proofread, humanize, cover letter, edit-by-instruction, gap analysis,
+undo, bookmark — should be reachable from both, because both are just different callers of the same
+prompt/apply-ops machinery underneath.
+
+A purpose left in `MCP_PURPOSES` with no chat equivalent (or vice versa) is drift. Where one-sided support is
+genuinely correct, it is documented under "Known intentional asymmetry" at the bottom — add to that list
+rather than leaving a surface silently lopsided.
+
+**Never:**
+
+- Call an LLM from `src/mcp/*` — the server only serves/validates prompts, per the client-only-LLM hard rule.
+- Add a REST endpoint or server-side `fetch` for chat/MCP glue.
+- Duplicate prompt-building or resume-mutation logic instead of reusing `templateRegistry` / `applyResumeOps()`.
+
+## Evaluating a new-tool request
+
+Before writing any code:
+
+1. **Overlap check** — does an existing `IntentLabel` (chat) or `MCP_PURPOSES`/`FLOW_CATALOG` entry (MCP)
+   already cover this under a different name? Read `intentClassifier.ts`'s checklist and `src/mcp/flows.ts`
+   in full before concluding it's new.
+2. **Usefulness check** — a resume-domain capability a real user invokes repeatedly, or a speculative one-off?
+3. **Scope check** — a prompt template + one intent/purpose is in scope. A new UI surface, DB model, or
+   external API integration is not: flag and stop.
+
+## Adding a capability (both sides)
+
+1. **Prompt template** — new module under `src/lib/llm/prompts/` (or `chat-bot/prompts/` if chat-shaped, e.g.
+   needs `IntentLabel` context) registering a new `PromptPurpose` with `templateRegistry`.
+   `keywordMappingPrompt.ts` is the model to copy: system/user prompt builder + Zod output schema + a pure
+   mapper to `ResumeOp[]`.
+2. **Chat side** — add the `IntentLabel` + classifier checklist entry in `intentClassifier.ts` (**order
+   matters**: insert where an earlier check can't shadow it), `INTENT_STATUS_TEXT` narration in `Chatbot.ts`,
+   and wire the handler (a `domainOps`/`llmService` branch, or a new `ToolDefinition` in `chat-bot/tools/`).
+3. **MCP side** — add the purpose to `MCP_PURPOSES` and its Zod schema to `RESULT_SCHEMAS` in `server.ts`; add
+   or extend a `FLOW_CATALOG` entry in `flows.ts`. If it needs DB access beyond `McpDeps`, extend
+   `McpDeps` + `defaultDeps` — never call a DB function directly, the DI seam is what tests fake.
+4. **Docs** — `docs/MCP_ARCHITECTURE.md` if the tool surface or `add_job` state machine changed, `docs/MCP.md`
+   if setup/security-relevant, `skills/resume-mcp/SKILL.md` if a flow's step sequence changed.
+5. **Tests** — mirror `tests/lib/mcp/` for the MCP side, the chat-bot pipeline tests for the chat side.
+6. **Update the tables below** — an index that drifts actively misdirects the next lookup.
+
+Structural model to copy: `ats_fix` (analyze → structured findings → optional `apply_resume_ops`).
+
+## Updating / deprecating
+
+Updating touches the same file set, usually only one or two of them. Update the tables below only if a file's
+_purpose_ changed, not for a wording tweak.
+
+To deprecate: confirm nothing in `FLOW_CATALOG`/`nextPurposeFor` or the intent checklist depends on it
+(`codegraph_callers`/`codegraph_impact` on the purpose/intent symbol), remove from **both sides in the same
+change**, delete dead templates/tools/schemas/tests together — no re-exports or `// removed` comments.
+
+---
 
 ## Chat side (`src/lib/llm/chat-bot/`)
 
