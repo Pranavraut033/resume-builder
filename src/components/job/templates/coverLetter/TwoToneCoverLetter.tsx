@@ -8,6 +8,7 @@ import React from "react";
 
 import useResolveCustomization from "@/hooks/useResolveCustomization";
 import BackgroundSvg from "@/lib/backgrounds/BackgroundSvg";
+import { formatCoverLetterDate } from "@/lib/coverLetterDate";
 import { getPageDimensions } from "@/lib/pageDimensions";
 
 import { CoverLetterBody } from "./CoverLetterBody";
@@ -18,6 +19,7 @@ export const TwoToneCoverLetter: React.FC<CoverLetterRendererProps> = ({
   coverLetter,
   resume,
   customization,
+  jobDetails,
   editable,
   onChange,
 }) => {
@@ -29,12 +31,13 @@ export const TwoToneCoverLetter: React.FC<CoverLetterRendererProps> = ({
     backgroundColor,
     textSize,
     fontFamily,
-    today,
+    dateFormat,
     lineHeight,
     marginClass,
     background,
     colorsTuple,
   } = useResolveCustomization(customization);
+  const today = formatCoverLetterDate(jobDetails, dateFormat);
   const { widthPx, heightPx } = getPageDimensions(
     customization.pageFormat,
     customization.marginSize
@@ -59,9 +62,13 @@ export const TwoToneCoverLetter: React.FC<CoverLetterRendererProps> = ({
       {/* Bold two-tone header band */}
       <div className="relative z-1 flex items-stretch">
         <div className="flex-1 p-8" style={{ backgroundColor: primaryColor }}>
+          {/* Inverted text on the band, matching the PDF export — a
+              reversed-out "plate" (backgroundColor on the text itself)
+              doesn't render reliably in the PDF, so both sides use the
+              same inverted-color approach here. */}
           <h1
-            className="mb-2 inline-block px-3 py-1 text-3xl font-bold"
-            style={{ backgroundColor: backgroundColor, color: primaryColor }}
+            className="mb-2 text-3xl font-bold"
+            style={{ color: backgroundColor }}
           >
             {resume?.header?.name || "[Your Name]"}
           </h1>

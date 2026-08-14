@@ -8,8 +8,9 @@ import { Document, Page, Text, View } from "@react-pdf/renderer";
 import React from "react";
 
 import BackgroundPdf from "@/lib/backgrounds/BackgroundPdf";
+import { formatCoverLetterDate } from "@/lib/coverLetterDate";
 import { withAlpha } from "@/lib/pdf/resolveStyles";
-import { ResumeJSON } from "@/types/resume";
+import { JobDetailsJSON, ResumeJSON } from "@/types/resume";
 
 import { htmlToPdfNodes } from "../htmlToPdf";
 import { ResolvedPDFStyles } from "../resolveStyles";
@@ -17,20 +18,18 @@ import { ResolvedPDFStyles } from "../resolveStyles";
 export interface CoverLetterPDFProps {
   coverLetter: string;
   resume: ResumeJSON;
+  jobDetails?: JobDetailsJSON | null;
   styles: ResolvedPDFStyles;
 }
 
 export const TwoToneCoverLetterPDF: React.FC<CoverLetterPDFProps> = ({
   coverLetter,
   resume,
+  jobDetails,
   styles: s,
 }) => {
   const h = resume.header;
-  const today = new Date().toLocaleDateString("en-US", {
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-  });
+  const today = formatCoverLetterDate(jobDetails, s.dateFormat);
 
   const contactParts = [h.email, h.phone, h.location].filter(Boolean);
   const linkParts = [h.linkedin, h.github, h.website].filter(Boolean);
@@ -61,11 +60,12 @@ export const TwoToneCoverLetterPDF: React.FC<CoverLetterPDFProps> = ({
               style={{
                 fontSize: s.nameFontSize,
                 fontWeight: 700,
-                color: s.primaryColor,
-                backgroundColor: s.backgroundColor,
-                alignSelf: "flex-start",
-                paddingHorizontal: 8,
-                paddingVertical: 3,
+                // Inverted text straight on the band, not a plate — react-pdf
+                // v4 doesn't reliably paint `backgroundColor` on a `<Text>`
+                // node, which previously left primaryColor text on a
+                // primaryColor band (invisible). Same pattern as the two-tone
+                // resume PDF's `bandContent` (PDFTemplateEngine.tsx).
+                color: s.backgroundColor,
                 marginBottom: 6,
               }}
             >
@@ -75,7 +75,7 @@ export const TwoToneCoverLetterPDF: React.FC<CoverLetterPDFProps> = ({
               <Text
                 style={{
                   fontSize: s.smallFontSize,
-                  color: withAlpha("#ffffff", "bb"),
+                  color: withAlpha(s.backgroundColor, "bb"),
                 }}
               >
                 {contactParts.join("  •  ")}
@@ -85,7 +85,7 @@ export const TwoToneCoverLetterPDF: React.FC<CoverLetterPDFProps> = ({
               <Text
                 style={{
                   fontSize: s.smallFontSize,
-                  color: withAlpha("#ffffff", "bb"),
+                  color: withAlpha(s.backgroundColor, "bb"),
                   marginTop: 2,
                 }}
               >
@@ -101,7 +101,11 @@ export const TwoToneCoverLetterPDF: React.FC<CoverLetterPDFProps> = ({
         <View style={{ padding: s.marginPt }}>
           {/* Date */}
           <Text
-            style={{ fontSize: s.fontSize, color: "#6b7280", marginBottom: 14 }}
+            style={{
+              fontSize: s.fontSize,
+              color: s.secondaryColor,
+              marginBottom: 14,
+            }}
           >
             {today}
           </Text>

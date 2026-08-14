@@ -32,6 +32,10 @@ import {
 } from "./prompts";
 import * as domainOps from "../domainOps";
 import { PromptSystem } from "../prompts";
+import {
+  resolveCoverLetterStyleGuide,
+  resolveDefaultCoverLetterStyle,
+} from "../prompts/coverLetterStyles";
 import { mergeLLMUsageInfo } from "../tokenTracker";
 import {
   PipelineStageEvent,
@@ -792,13 +796,21 @@ class ResumeChatBot {
 
         yield { type: "status", text: "Rewriting your cover letter…" };
 
+        // The style picked in the generate modal is never persisted (it's a
+        // one-shot generation param, not stored on the job), so a chat
+        // rewrite can't recover the user's original choice. Re-derive the
+        // region-appropriate default instead of silently reverting a German
+        // anschreiben letter to the standard English structure — see
+        // resolveDefaultCoverLetterStyle.
         const { result, usage } = await domainOps.generateCoverLetter(
           this.provider,
           {
             jobDetails: this.jobDetails,
             resume: this.resume,
             customInstructions: userMessage.content,
-            styleGuide: undefined,
+            styleGuide: resolveCoverLetterStyleGuide(
+              resolveDefaultCoverLetterStyle(this.jobDetails)
+            ),
           },
           this.callOptions(options)
         );

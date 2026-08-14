@@ -8,6 +8,7 @@ import React from "react";
 
 import useResolveCustomization from "@/hooks/useResolveCustomization";
 import BackgroundSvg from "@/lib/backgrounds/BackgroundSvg";
+import { formatCoverLetterDate } from "@/lib/coverLetterDate";
 import { getPageDimensions } from "@/lib/pageDimensions";
 
 import { CoverLetterBody } from "./CoverLetterBody";
@@ -17,6 +18,7 @@ export const AcademicSerifCoverLetter: React.FC<CoverLetterRendererProps> = ({
   coverLetter,
   resume,
   customization,
+  jobDetails,
   editable,
   onChange,
 }) => {
@@ -28,16 +30,22 @@ export const AcademicSerifCoverLetter: React.FC<CoverLetterRendererProps> = ({
     backgroundColor,
     textSize,
     fontFamily,
-    today,
+    dateFormat,
     marginClass,
     lineHeight,
     background,
     colorsTuple,
   } = useResolveCustomization(customization);
+  const today = formatCoverLetterDate(jobDetails, dateFormat);
   const { widthPx, heightPx } = getPageDimensions(
     customization.pageFormat,
     customization.marginSize
   );
+  const linkParts = [
+    resume?.header?.linkedin,
+    resume?.header?.github,
+    resume?.header?.website,
+  ].filter(Boolean);
 
   return (
     <div
@@ -76,8 +84,10 @@ export const AcademicSerifCoverLetter: React.FC<CoverLetterRendererProps> = ({
               {resume?.header?.location && (
                 <span>{resume.header.location}</span>
               )}
-              {resume?.header?.linkedin && <span>•</span>}
-              {resume?.header?.linkedin && <span>LinkedIn</span>}
+              {resume?.header?.location && linkParts.length > 0 && (
+                <span>•</span>
+              )}
+              {linkParts.length > 0 && <span>{linkParts.join("  •  ")}</span>}
             </div>
           </div>
           <div className="mt-4 space-y-0.5">

@@ -8,7 +8,8 @@ import { Document, Page, Text, View } from "@react-pdf/renderer";
 import React from "react";
 
 import BackgroundPdf from "@/lib/backgrounds/BackgroundPdf";
-import { ResumeJSON } from "@/types/resume";
+import { formatCoverLetterDate } from "@/lib/coverLetterDate";
+import { JobDetailsJSON, ResumeJSON } from "@/types/resume";
 
 import { htmlToPdfNodes } from "../htmlToPdf";
 import { ResolvedPDFStyles } from "../resolveStyles";
@@ -16,29 +17,23 @@ import { ResolvedPDFStyles } from "../resolveStyles";
 export interface CoverLetterPDFProps {
   coverLetter: string;
   resume: ResumeJSON;
+  jobDetails?: JobDetailsJSON | null;
   styles: ResolvedPDFStyles;
 }
 
 export const BJetProfessionalCoverLetterPDF: React.FC<CoverLetterPDFProps> = ({
   coverLetter,
   resume,
+  jobDetails,
   styles: s,
 }) => {
   const h = resume.header;
-  const today = new Date().toLocaleDateString("en-US", {
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-  });
+  const today = formatCoverLetterDate(jobDetails, s.dateFormat);
 
   const contactParts = [h.email, h.phone, h.location]
     .filter(Boolean)
     .join("  •  ");
-  const linkParts = [
-    h.linkedin ? "LinkedIn" : null,
-    h.github ? "GitHub" : null,
-    h.website ? "Portfolio" : null,
-  ]
+  const linkParts = [h.linkedin, h.github, h.website]
     .filter(Boolean)
     .join("  •  ");
 

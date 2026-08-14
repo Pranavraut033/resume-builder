@@ -37,6 +37,7 @@ export function DocumentCanvas() {
     coverLetter,
     customization,
     contentType,
+    job,
     updateCoverLetterState,
     updateResumeState,
   } = useJobPageContext();
@@ -112,6 +113,7 @@ export function DocumentCanvas() {
             coverLetter={coverLetter}
             resume={resume}
             customization={customization}
+            jobDetails={job.details}
             editable={isCoverLetterEditing}
             onChange={updateCoverLetterState}
           />

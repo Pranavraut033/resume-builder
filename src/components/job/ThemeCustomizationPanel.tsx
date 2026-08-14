@@ -57,14 +57,18 @@ type Props = {
 const ThemeCustomizationPanel: React.FC<Props> = ({}) => {
   const {
     resume,
+    contentType,
     customization,
     updateCustomizationState: updateCustomization,
   } = useJobPageContext();
+  const isResume = contentType === "resume";
 
   const colorsTuple = customization.colors.split(",") as ThemeColors;
   const pageBackgroundColor = colorsTuple[4] || "#ffffff";
 
-  const sectionLayout = getSectionLayout(resume);
+  // Heading Style is a resume-only control (it fans out over resume section
+  // ids below) — skip computing it on the cover-letter path.
+  const sectionLayout = isResume ? getSectionLayout(resume) : null;
   const theme = legacyToTheme(customization);
   // A single global control that fans out to every section's `perSection`
   // override (the storage/resolution TemplateEngine already reads) — so
@@ -73,6 +77,7 @@ const ThemeCustomizationPanel: React.FC<Props> = ({}) => {
   const globalOverrideValue = <K extends keyof PerSectionOverride>(
     key: K
   ): PerSectionOverride[K] | undefined => {
+    if (!sectionLayout) return undefined;
     const values = sectionLayout.order.map(
       (id) => theme.perSection?.[id]?.[key]
     );
@@ -82,6 +87,7 @@ const ThemeCustomizationPanel: React.FC<Props> = ({}) => {
       : undefined;
   };
   const setGlobalOverride = (patch: Partial<PerSectionOverride>) => {
+    if (!sectionLayout) return;
     const nextPerSection = { ...theme.perSection };
     for (const id of sectionLayout.order) {
       const merged = { ...nextPerSection[id], ...patch };
@@ -170,39 +176,41 @@ const ThemeCustomizationPanel: React.FC<Props> = ({}) => {
           </div>
         </div>
 
-        <div>
-          <p
-            className="mb-2 text-xs font-medium"
-            style={{ color: "var(--color-agent-on-surface-variant)" }}
-          >
-            Fit to One Page
-          </p>
-          <div
-            className="flex rounded-lg p-0.5"
-            style={{ background: "var(--color-agent-surface-container)" }}
-          >
-            {[
-              { value: false, label: "Off" },
-              { value: true, label: "On" },
-            ].map(({ value, label }) => (
-              <button
-                key={label}
-                onClick={() => updateCustomization({ fitToPage: value })}
-                className="flex-1 rounded-md py-1.5 text-xs font-medium transition-all"
-                style={
-                  Boolean(customization.fitToPage) === value
-                    ? {
-                        background: "var(--color-agent-primary-container)",
-                        color: "var(--color-agent-on-primary-container)",
-                      }
-                    : { color: "var(--color-agent-on-surface-variant)" }
-                }
-              >
-                {label}
-              </button>
-            ))}
+        {isResume && (
+          <div>
+            <p
+              className="mb-2 text-xs font-medium"
+              style={{ color: "var(--color-agent-on-surface-variant)" }}
+            >
+              Fit to One Page
+            </p>
+            <div
+              className="flex rounded-lg p-0.5"
+              style={{ background: "var(--color-agent-surface-container)" }}
+            >
+              {[
+                { value: false, label: "Off" },
+                { value: true, label: "On" },
+              ].map(({ value, label }) => (
+                <button
+                  key={label}
+                  onClick={() => updateCustomization({ fitToPage: value })}
+                  className="flex-1 rounded-md py-1.5 text-xs font-medium transition-all"
+                  style={
+                    Boolean(customization.fitToPage) === value
+                      ? {
+                          background: "var(--color-agent-primary-container)",
+                          color: "var(--color-agent-on-primary-container)",
+                        }
+                      : { color: "var(--color-agent-on-surface-variant)" }
+                  }
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
           </div>
-        </div>
+        )}
 
         <div>
           <p
@@ -402,46 +410,50 @@ const ThemeCustomizationPanel: React.FC<Props> = ({}) => {
         </div>
 
         {/* Global heading style override — applies to every section's
-            `perSection` entry at once (see setGlobalOverride above). */}
-        <div>
-          <p
-            className="mb-2 text-xs font-medium"
-            style={{ color: "var(--color-agent-on-surface-variant)" }}
-          >
-            Heading Style
-          </p>
-          <div className="flex items-center gap-2">
-            <input
-              type="color"
-              value={globalHeadingColor ?? colorsTuple[0]}
-              onChange={(e) => setGlobalOverride({ color: e.target.value })}
-              className="h-7 w-7 cursor-pointer rounded border-none bg-transparent p-0"
-              title="Heading color"
-            />
-            <select
-              value={globalHeadingStyle ?? ""}
-              onChange={(e) =>
-                setGlobalOverride({
-                  headingStyle: (e.target.value || undefined) as
-                    | HeadingStyle
-                    | undefined,
-                })
-              }
-              className="flex-1 rounded border-none px-1.5 py-1.5 text-xs"
-              style={{
-                color: "var(--color-agent-on-surface)",
-                background: "var(--color-agent-surface-container)",
-              }}
+            `perSection` entry at once (see setGlobalOverride above).
+            Resume-only: it fans out over resume section ids, which a cover
+            letter (one freeform body) doesn't have. */}
+        {isResume && (
+          <div>
+            <p
+              className="mb-2 text-xs font-medium"
+              style={{ color: "var(--color-agent-on-surface-variant)" }}
             >
-              <option value="">Default</option>
-              {HEADING_STYLE_OPTIONS.map((opt) => (
-                <option key={opt.value} value={opt.value}>
-                  {opt.label}
-                </option>
-              ))}
-            </select>
+              Heading Style
+            </p>
+            <div className="flex items-center gap-2">
+              <input
+                type="color"
+                value={globalHeadingColor ?? colorsTuple[0]}
+                onChange={(e) => setGlobalOverride({ color: e.target.value })}
+                className="h-7 w-7 cursor-pointer rounded border-none bg-transparent p-0"
+                title="Heading color"
+              />
+              <select
+                value={globalHeadingStyle ?? ""}
+                onChange={(e) =>
+                  setGlobalOverride({
+                    headingStyle: (e.target.value || undefined) as
+                      | HeadingStyle
+                      | undefined,
+                  })
+                }
+                className="flex-1 rounded border-none px-1.5 py-1.5 text-xs"
+                style={{
+                  color: "var(--color-agent-on-surface)",
+                  background: "var(--color-agent-surface-container)",
+                }}
+              >
+                <option value="">Default</option>
+                {HEADING_STYLE_OPTIONS.map((opt) => (
+                  <option key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
-        </div>
+        )}
       </Card>
     </div>
   );

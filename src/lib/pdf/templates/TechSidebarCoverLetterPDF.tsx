@@ -8,30 +8,30 @@ import { Document, Page, Text, View } from "@react-pdf/renderer";
 import React from "react";
 
 import BackgroundPdf from "@/lib/backgrounds/BackgroundPdf";
-import { ResumeJSON } from "@/types/resume";
+import { formatCoverLetterDate } from "@/lib/coverLetterDate";
+import { JobDetailsJSON, ResumeJSON } from "@/types/resume";
 
 import { htmlToPdfNodes } from "../htmlToPdf";
-import { ResolvedPDFStyles, withAlpha } from "../resolveStyles";
+import { getPagePt, ResolvedPDFStyles, withAlpha } from "../resolveStyles";
 
 export interface CoverLetterPDFProps {
   coverLetter: string;
   resume: ResumeJSON;
+  jobDetails?: JobDetailsJSON | null;
   styles: ResolvedPDFStyles;
 }
 
 export const TechSidebarCoverLetterPDF: React.FC<CoverLetterPDFProps> = ({
   coverLetter,
   resume,
+  jobDetails,
   styles: s,
 }) => {
   const h = resume.header;
-  const today = new Date().toLocaleDateString("en-US", {
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-  });
+  const today = formatCoverLetterDate(jobDetails, s.dateFormat);
 
   const sidebarBg = withAlpha(s.secondaryColor, "1a"); // ~10% opacity
+  const { w: pagePtW, h: pagePtH } = getPagePt(s.pageFormat);
 
   const contactItems = [
     h.email && { label: "Email", value: h.email },
@@ -55,6 +55,22 @@ export const TechSidebarCoverLetterPDF: React.FC<CoverLetterPDFProps> = ({
         }}
       >
         <BackgroundPdf styles={s} />
+        {/* Sidebar fill, painted full page height as a fixed layer instead
+            of relying on `flex: 1` — the previous flex fill stopped short on
+            a page whose content is shorter than the sidebar, and never
+            repeated on a page 2. Same pattern as `BackgroundPdf` /
+            `PDFTemplateEngine`'s `sidebarFillView`. */}
+        <View
+          fixed
+          style={{
+            position: "absolute",
+            top: 0,
+            left: 0,
+            width: pagePtW * 0.35,
+            height: pagePtH,
+            backgroundColor: sidebarBg,
+          }}
+        />
         {/* ── Coloured header bar ───────────────────────────── */}
         <View
           style={{
@@ -88,7 +104,6 @@ export const TechSidebarCoverLetterPDF: React.FC<CoverLetterPDFProps> = ({
           <View
             style={{
               width: "35%",
-              backgroundColor: sidebarBg,
               padding: s.marginPt * 0.6,
             }}
           >

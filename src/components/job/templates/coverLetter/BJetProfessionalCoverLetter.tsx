@@ -7,6 +7,7 @@ import React from "react";
 
 import useResolveCustomization from "@/hooks/useResolveCustomization";
 import BackgroundSvg from "@/lib/backgrounds/BackgroundSvg";
+import { formatCoverLetterDate } from "@/lib/coverLetterDate";
 import { getPageDimensions } from "@/lib/pageDimensions";
 
 import { CoverLetterBody } from "./CoverLetterBody";
@@ -14,7 +15,14 @@ import { CoverLetterRendererProps } from "./CoverLetterRenderer";
 
 export const BJetProfessionalCoverLetter: React.FC<
   CoverLetterRendererProps
-> = ({ coverLetter, resume, customization, editable, onChange }) => {
+> = ({
+  coverLetter,
+  resume,
+  customization,
+  jobDetails,
+  editable,
+  onChange,
+}) => {
   const {
     primaryColor,
     secondaryColor,
@@ -23,12 +31,13 @@ export const BJetProfessionalCoverLetter: React.FC<
     backgroundColor,
     textSize,
     fontFamily,
-    today,
+    dateFormat,
     marginClass,
     lineHeight,
     background,
     colorsTuple,
   } = useResolveCustomization(customization);
+  const today = formatCoverLetterDate(jobDetails, dateFormat);
   const { widthPx, heightPx } = getPageDimensions(
     customization.pageFormat,
     customization.marginSize
@@ -69,13 +78,19 @@ export const BJetProfessionalCoverLetter: React.FC<
           </div>
           <div className="mt-2 flex flex-wrap gap-4 text-xs text-white opacity-90">
             {resume?.header?.linkedin && (
-              <span className="hover:opacity-100">🔗 LinkedIn</span>
+              <span className="hover:opacity-100">
+                🔗 {resume.header.linkedin}
+              </span>
             )}
             {resume?.header?.github && (
-              <span className="hover:opacity-100">💻 GitHub</span>
+              <span className="hover:opacity-100">
+                💻 {resume.header.github}
+              </span>
             )}
             {resume?.header?.website && (
-              <span className="hover:opacity-100">🌐 Website</span>
+              <span className="hover:opacity-100">
+                🌐 {resume.header.website}
+              </span>
             )}
           </div>
         </header>

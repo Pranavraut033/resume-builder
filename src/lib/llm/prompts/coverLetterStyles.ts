@@ -6,6 +6,9 @@
  * structure", so the prompt template needs no entry for it.
  */
 
+import { isGermanEuJob } from "@/lib/llm/prompts/regionGuidance";
+import { JobDetailsJSON } from "@/types/resume";
+
 export interface CoverLetterStyle {
   label: string;
   description: string;
@@ -65,13 +68,45 @@ export const COVER_LETTER_STYLES = {
 - Para 2 — Evidence: 1–2 concrete achievements from the resume mapped to the role's core requirements, quantified using only existing data
 - Para 3 — Availability and fit: state availability (Eintrittstermin) if the job details mention a start date; only mention salary expectation (Gehaltsvorstellung) if the job description explicitly asks for it
 - Close with "Mit freundlichen Grüßen" followed by the candidate's name
-- ~1 page (roughly 3–4 paragraphs plus Betreff and closing), formal register throughout — no casual idioms`,
+- ~1 page (3 paragraphs plus Betreff and closing), formal register throughout — no casual idioms`,
   },
 } as const satisfies Record<string, CoverLetterStyle>;
 
 export type CoverLetterStyleId = keyof typeof COVER_LETTER_STYLES;
 
 export const DEFAULT_COVER_LETTER_STYLE: CoverLetterStyleId = "standard";
+
+// German stopwords/umlauts common enough in a job ad's body that seeing
+// several is a reliable signal the ad itself is written in German — as
+// opposed to a German/EU-based role posted in English, which is common in
+// tech and shouldn't default into a German-register letter (anschreiben's
+// salutation/sign-off phrases are hardcoded German, not translated per JD).
+// ponytail: word-list heuristic, not a language detector — false negatives
+// on a short/sparse JD just fall back to the standard style, which is
+// harmless. Upgrade path: a real langdetect if this misfires in practice.
+const GERMAN_TEXT_SIGNALS =
+  /[äöüß]|\b(und|der|die|das|mit|für|ist|sind|wir|Sie|Ihre|Unternehmen|Bewerbung|Kenntnisse|Erfahrung|Aufgaben|Anforderungen)\b/g;
+
+function looksGerman(text: string | null | undefined): boolean {
+  if (!text) return false;
+  const matches = text.match(GERMAN_TEXT_SIGNALS);
+  return (matches?.length ?? 0) >= 4;
+}
+
+/**
+ * Default style for the generate-cover-letter dropdown: `anschreiben` when
+ * the job is both DE/EU-market (same signal `resolveRegionGuidance` uses)
+ * and the ad itself reads as German — otherwise the usual `standard`
+ * default. Always overridable in the dropdown.
+ */
+export function resolveDefaultCoverLetterStyle(
+  job: JobDetailsJSON | null | undefined
+): CoverLetterStyleId {
+  if (job && isGermanEuJob(job) && looksGerman(job.raw_description)) {
+    return "anschreiben";
+  }
+  return DEFAULT_COVER_LETTER_STYLE;
+}
 
 export function resolveCoverLetterStyleGuide(
   id?: CoverLetterStyleId

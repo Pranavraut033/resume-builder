@@ -7,6 +7,7 @@ import React from "react";
 
 import { RichTextEditorContent } from "@/components/form/RichTextEditor";
 import useResolveCustomization from "@/hooks/useResolveCustomization";
+import { formatCoverLetterDate } from "@/lib/coverLetterDate";
 
 import type { CoverLetterRendererProps } from "./CoverLetterRenderer";
 
@@ -14,6 +15,7 @@ export const ProfessionalCoverLetter: React.FC<CoverLetterRendererProps> = ({
   coverLetter,
   resume,
   customization,
+  jobDetails,
 }) => {
   const {
     primaryColor,
@@ -23,10 +25,11 @@ export const ProfessionalCoverLetter: React.FC<CoverLetterRendererProps> = ({
     backgroundColor,
     textSize,
     fontFamily,
-    today,
+    dateFormat,
     marginClass,
     lineHeight,
   } = useResolveCustomization(customization);
+  const today = formatCoverLetterDate(jobDetails, dateFormat);
 
   return (
     <div

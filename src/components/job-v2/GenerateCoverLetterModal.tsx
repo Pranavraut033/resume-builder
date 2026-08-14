@@ -14,7 +14,7 @@ import cn from "@/lib/cn";
 import {
   COVER_LETTER_STYLES,
   CoverLetterStyleId,
-  DEFAULT_COVER_LETTER_STYLE,
+  resolveDefaultCoverLetterStyle,
 } from "@/lib/llm/prompts/coverLetterStyles";
 
 const INSTRUCTION_SUGGESTIONS = [
@@ -48,8 +48,8 @@ export function GenerateCoverLetterModal({
   } = useJobPageContext();
 
   const [customInstructions, setCustomInstructions] = useState("");
-  const [styleId, setStyleId] = useState<CoverLetterStyleId>(
-    DEFAULT_COVER_LETTER_STYLE
+  const [styleId, setStyleId] = useState<CoverLetterStyleId>(() =>
+    resolveDefaultCoverLetterStyle(job?.details)
   );
   const [showTip, setShowTip] = useState(false);
   const tipRef = useRef<HTMLDivElement>(null);
@@ -112,7 +112,7 @@ export function GenerateCoverLetterModal({
                 <Icon name="lightbulb" className="h-3.5 w-3.5" />
               </button>
               {showTip && (
-                <div className="border-agent-outline-variant bg-agent-surface-container shadow-agent-float absolute left-0 top-full z-20 mt-2 w-52 rounded-xl border p-2.5">
+                <div className="border-agent-outline-variant bg-agent-surface-container shadow-agent-float absolute top-full left-0 z-20 mt-2 w-52 rounded-xl border p-2.5">
                   <p className="text-agent-on-surface mb-1.5 text-xs font-medium">
                     Suggestions
                   </p>

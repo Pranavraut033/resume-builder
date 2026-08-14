@@ -7,7 +7,8 @@ import { Document, Page, Text, View } from "@react-pdf/renderer";
 import React from "react";
 
 import BackgroundPdf from "@/lib/backgrounds/BackgroundPdf";
-import { ResumeJSON } from "@/types/resume";
+import { formatCoverLetterDate } from "@/lib/coverLetterDate";
+import { JobDetailsJSON, ResumeJSON } from "@/types/resume";
 
 import { htmlToPdfNodes } from "../htmlToPdf";
 import { ResolvedPDFStyles } from "../resolveStyles";
@@ -15,20 +16,18 @@ import { ResolvedPDFStyles } from "../resolveStyles";
 export interface CoverLetterPDFProps {
   coverLetter: string;
   resume: ResumeJSON;
+  jobDetails?: JobDetailsJSON | null;
   styles: ResolvedPDFStyles;
 }
 
 export const AcademicSerifCoverLetterPDF: React.FC<CoverLetterPDFProps> = ({
   coverLetter,
   resume,
+  jobDetails,
   styles: s,
 }) => {
   const h = resume.header;
-  const today = new Date().toLocaleDateString("en-US", {
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-  });
+  const today = formatCoverLetterDate(jobDetails, s.dateFormat);
 
   const contactParts = [
     h.email,
@@ -90,7 +89,11 @@ export const AcademicSerifCoverLetterPDF: React.FC<CoverLetterPDFProps> = ({
 
         {/* ── Date ─────────────────────────────────────────── */}
         <Text
-          style={{ fontSize: s.fontSize, color: "#6b7280", marginBottom: 14 }}
+          style={{
+            fontSize: s.fontSize,
+            color: s.secondaryColor,
+            marginBottom: 14,
+          }}
         >
           {today}
         </Text>

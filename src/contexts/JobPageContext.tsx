@@ -26,6 +26,7 @@ import { FallbackState } from "@/components/ui/FallbackState";
 import { useToast } from "@/components/ui/ToastProvider";
 import { JobPageData, useJobPageDataQuery } from "@/hooks/useJobPageDataQuery";
 import { areJsonValuesEqual } from "@/lib";
+import { DateFormat } from "@/lib/date";
 import { loadGoogleFont } from "@/lib/fontLoader";
 import { ResumeHistory } from "@/lib/llm/ResumeHistory";
 import logger from "@/lib/logger";
@@ -117,13 +118,20 @@ export function JobPageProvider({
   const handleSetContentType = useCallback(
     (type: EditorContentType) => {
       setContentType(type);
+      // Each document (resume / cover letter) has its own customization row.
+      // Re-seed on every switch, or the panel keeps showing (and saving)
+      // whichever document's customization happened to be loaded last.
+      setCustomization(
+        (type === "coverLetter" ? data?.coverLetter : data?.resume)
+          ?.customizations ?? DEFAULT_CUSTOMIZATION
+      );
       const newUrl =
         type === "coverLetter"
           ? `${pathname}?contentType=coverLetter`
           : pathname;
       router.replace(newUrl, { scroll: false });
     },
-    [pathname, router]
+    [pathname, router, data?.coverLetter, data?.resume]
   );
 
   const [isExportingTxt, setIsExportingTxt] = useState(false);
@@ -211,7 +219,8 @@ export function JobPageProvider({
           coverLetter,
           resume,
           customization,
-          filename
+          filename,
+          jobData.details
         );
       } else {
         const filename = `${jobData.company?.name ?? "Resume"} ${resume.header.name} Resume.pdf`;
@@ -227,11 +236,22 @@ export function JobPageProvider({
 
   const generateContentText = useCallback(() => {
     if (contentType === "coverLetter") {
-      return coverLetterToText(coverLetter, resume);
+      return coverLetterToText(
+        coverLetter,
+        resume,
+        data?.job?.details,
+        customization.dateFormat as DateFormat
+      );
     } else {
       return resumeToText(resume);
     }
-  }, [contentType, coverLetter, resume]);
+  }, [
+    contentType,
+    coverLetter,
+    resume,
+    data?.job?.details,
+    customization.dateFormat,
+  ]);
 
   const onTXTExport = () => {
     if (!job)

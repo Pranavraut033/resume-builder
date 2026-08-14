@@ -8,6 +8,7 @@ import React from "react";
 
 import useResolveCustomization from "@/hooks/useResolveCustomization";
 import BackgroundSvg from "@/lib/backgrounds/BackgroundSvg";
+import { formatCoverLetterDate } from "@/lib/coverLetterDate";
 import { getPageDimensions } from "@/lib/pageDimensions";
 
 import { CoverLetterBody } from "./CoverLetterBody";
@@ -17,6 +18,7 @@ export const TechSidebarCoverLetter: React.FC<CoverLetterRendererProps> = ({
   coverLetter,
   resume,
   customization,
+  jobDetails,
   editable,
   onChange,
 }) => {
@@ -28,12 +30,13 @@ export const TechSidebarCoverLetter: React.FC<CoverLetterRendererProps> = ({
     backgroundColor,
     textSize,
     fontFamily,
-    today,
+    dateFormat,
     marginClass,
     lineHeight,
     background,
     colorsTuple,
   } = useResolveCustomization(customization);
+  const today = formatCoverLetterDate(jobDetails, dateFormat);
   const { widthPx, heightPx } = getPageDimensions(
     customization.pageFormat,
     customization.marginSize

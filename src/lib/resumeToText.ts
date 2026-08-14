@@ -1,4 +1,6 @@
-import { ResumeJSON, Skill } from "@/types/resume";
+import { formatCoverLetterDate } from "@/lib/coverLetterDate";
+import { DateFormat } from "@/lib/date";
+import { JobDetailsJSON, ResumeJSON, Skill } from "@/types/resume";
 
 /** A run of skills sharing the same (optional) category, in first-seen order. */
 interface SkillGroup {
@@ -205,11 +207,13 @@ export function resumeToProseText(resume: ResumeJSON): string {
 
 export function coverLetterToText(
   coverLetter: string,
-  resume: ResumeJSON
+  resume: ResumeJSON,
+  jobDetails?: JobDetailsJSON | null,
+  dateFormat?: DateFormat
 ): string {
   const header = `${resume.header.name}\n${[resume.header.email, resume.header.phone, resume.header.website].filter(Boolean).join(" | ")}`;
 
-  const date = new Date().toLocaleDateString();
+  const date = formatCoverLetterDate(jobDetails, dateFormat);
 
   return `${header}\n\n${date}\n\n${htmlToText(coverLetter)}`;
 }

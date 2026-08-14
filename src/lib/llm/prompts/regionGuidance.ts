@@ -78,7 +78,6 @@ prompt, this wins):
 - A degree unknown in Germany reads as unverifiable — keep an equivalence note (e.g. anabin recognition) when the profile already has one. State a grade explicitly labelled ("Final grade: 2.1") when the profile gives one.
 - Keep a short, specific Interessen/hobbies line when the profile has one — this overrides the usual US "cut hobbies" advice. Specific beats generic: "nature photography", not "photography".
 - No icons, logos, or graphics: name tools, software and programming languages in words, since the first reader may not be from your field.
-- If the job ad is written in German, the application is expected in German too.
 - The cover letter (Motivationsschreiben) is read after the CV and is expected to complement it and show culture fit, never to repeat it. It is one part of a Bewerbung — a bundle that also carries diplomas with grades and employer certificates — so it doesn't have to carry the whole application on its own.`;
 
 /**
@@ -96,8 +95,22 @@ export function resolveRegionGuidance(
 ): string | undefined {
   if (!job) return undefined;
 
-  const country =
-    job.location?.country ?? job.company?.company_location_country ?? null;
+  return isNonEuCountry(resolveJobCountry(job))
+    ? undefined
+    : REGION_GUIDANCE_FRAGMENT;
+}
 
-  return isNonEuCountry(country) ? undefined : REGION_GUIDANCE_FRAGMENT;
+function resolveJobCountry(job: JobDetailsJSON): string | null {
+  return job.location?.country ?? job.company?.company_location_country ?? null;
+}
+
+/**
+ * Same DE/EU-default signal as `resolveRegionGuidance`, but as a boolean for
+ * non-prompt callers that need the region decision without the guidance
+ * text — e.g. the cover-letter PDF renderers picking a date format
+ * (`src/lib/pdf/coverLetterDate.ts`).
+ */
+export function isGermanEuJob(job: JobDetailsJSON | null | undefined): boolean {
+  if (!job) return true; // same "unknown defaults to German" rule as above
+  return !isNonEuCountry(resolveJobCountry(job));
 }

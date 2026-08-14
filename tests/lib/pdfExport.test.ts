@@ -175,6 +175,42 @@ describe("generateCoverLetterPDF", () => {
     expect(el.type).toBe(TechSidebarCoverLetterPDF);
   });
 
+  it("aliases euro-sidebar to TechSidebarCoverLetterPDF, matching the DOM preview's alias", async () => {
+    // CoverLetterRenderer.tsx aliases "euro-sidebar" to TechSidebarCoverLetter
+    // for the on-screen preview (no dedicated component exists yet). Without
+    // the matching entry here, COVER_LETTER_TEMPLATE_MAP's `?? ModernMinimalCoverLetterPDF`
+    // fallback silently exported a different template than what was previewed.
+    await generateCoverLetterPDF(
+      "cover letter text",
+      resume,
+      customization("euro-sidebar"),
+      "c.pdf"
+    );
+
+    const el = pdf.mock.calls[0][0] as {
+      type: unknown;
+      props: { styles: { fontFamily: string } };
+    };
+    expect(el.type).toBe(TechSidebarCoverLetterPDF);
+  });
+
+  it("threads jobDetails through to the template so it can pick a region-appropriate date format", async () => {
+    const jobDetails = {
+      location: { country: "Germany" },
+    } as unknown as Parameters<typeof generateCoverLetterPDF>[4];
+
+    await generateCoverLetterPDF(
+      "cover letter text",
+      resume,
+      customization("tech-sidebar"),
+      "c.pdf",
+      jobDetails
+    );
+
+    const el = pdf.mock.calls[0][0] as { props: { jobDetails: unknown } };
+    expect(el.props.jobDetails).toBe(jobDetails);
+  });
+
   it("falls back to ModernMinimalCoverLetterPDF for an unmapped template", async () => {
     await generateCoverLetterPDF(
       "cover letter text",

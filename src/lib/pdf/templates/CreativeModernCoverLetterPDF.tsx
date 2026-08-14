@@ -8,31 +8,31 @@ import { Document, Page, Text, View } from "@react-pdf/renderer";
 import React from "react";
 
 import BackgroundPdf from "@/lib/backgrounds/BackgroundPdf";
-import { ResumeJSON } from "@/types/resume";
+import { formatCoverLetterDate } from "@/lib/coverLetterDate";
+import { JobDetailsJSON, ResumeJSON } from "@/types/resume";
 
 import { htmlToPdfNodes } from "../htmlToPdf";
-import { ResolvedPDFStyles } from "../resolveStyles";
+import { getPagePt, ResolvedPDFStyles } from "../resolveStyles";
 
 export interface CoverLetterPDFProps {
   coverLetter: string;
   resume: ResumeJSON;
+  jobDetails?: JobDetailsJSON | null;
   styles: ResolvedPDFStyles;
 }
 
 export const CreativeModernCoverLetterPDF: React.FC<CoverLetterPDFProps> = ({
   coverLetter,
   resume,
+  jobDetails,
   styles: s,
 }) => {
   const h = resume.header;
-  const today = new Date().toLocaleDateString("en-US", {
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-  });
+  const today = formatCoverLetterDate(jobDetails, s.dateFormat);
 
   const contactParts = [h.email, h.phone, h.location].filter(Boolean);
   const linkParts = [h.linkedin, h.github, h.website].filter(Boolean);
+  const { h: pagePtH } = getPagePt(s.pageFormat);
 
   return (
     <Document>
@@ -48,12 +48,26 @@ export const CreativeModernCoverLetterPDF: React.FC<CoverLetterPDFProps> = ({
       >
         <BackgroundPdf styles={s} />
         {/* ── Vertical accent stripe ───────────────────────── */}
+        {/* Fixed full-page-height layer instead of a plain flex sibling —
+            a plain View here only stretches to match page 1's row height and
+            doesn't repeat on a page 2. Same pattern as `BackgroundPdf`. */}
         <View
-          style={{ width: 8, backgroundColor: s.accentColor, flexShrink: 0 }}
+          fixed
+          style={{
+            position: "absolute",
+            top: 0,
+            left: 0,
+            width: 8,
+            height: pagePtH,
+            backgroundColor: s.accentColor,
+          }}
         />
 
         {/* ── Main content ─────────────────────────────────── */}
-        <View style={{ flex: 1, padding: s.marginPt }}>
+        {/* marginLeft: 8 reserves the space the stripe used to occupy as a
+            flex sibling, now that it's an absolutely-positioned overlay
+            instead (see above). */}
+        <View style={{ flex: 1, marginLeft: 8, padding: s.marginPt }}>
           {/* Header */}
           <View style={{ marginBottom: 16 }}>
             <Text

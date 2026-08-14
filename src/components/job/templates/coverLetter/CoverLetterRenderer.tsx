@@ -7,7 +7,7 @@ import React from "react";
 
 import { simpleI32HashString, toStableJsonString } from "@/lib";
 import { SanitizedCustomization, TemplateType } from "@/types/customization";
-import { ResumeJSON } from "@/types/resume";
+import { JobDetailsJSON, ResumeJSON } from "@/types/resume";
 
 import { AcademicSerifCoverLetter } from "./AcademicSerifCoverLetter";
 import { BJetProfessionalCoverLetter } from "./BJetProfessionalCoverLetter";
@@ -23,6 +23,7 @@ export interface CoverLetterRendererProps {
   coverLetter: string;
   resume: ResumeJSON | null;
   customization: SanitizedCustomization;
+  jobDetails?: JobDetailsJSON | null;
   editable?: boolean;
   onChange?: (html: string) => void;
 }
@@ -31,6 +32,7 @@ export const CoverLetterRenderer: React.FC<CoverLetterRendererProps> = ({
   coverLetter,
   resume,
   customization,
+  jobDetails,
   editable,
   onChange,
 }) => {
@@ -67,6 +69,7 @@ export const CoverLetterRenderer: React.FC<CoverLetterRendererProps> = ({
       coverLetter={coverLetter}
       resume={resume}
       customization={customization}
+      jobDetails={jobDetails}
       editable={editable}
       onChange={onChange}
     />

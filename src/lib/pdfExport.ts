@@ -2,7 +2,7 @@ import React from "react";
 
 import { TEMPLATE_CONFIG } from "@/components/job-v2/engine/templates";
 import { SanitizedCustomization } from "@/types/customization";
-import { ResumeJSON } from "@/types/resume";
+import { JobDetailsJSON, ResumeJSON } from "@/types/resume";
 
 import { PDFTemplateEngine } from "./pdf/PDFTemplateEngine";
 import {
@@ -33,8 +33,14 @@ function isUnregisteredFontError(err: unknown): boolean {
   return err instanceof Error && /not registered/i.test(err.message);
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const COVER_LETTER_TEMPLATE_MAP: Record<string, React.ComponentType<any>> = {
+// Exported so tests can iterate every registered cover-letter template
+// without hardcoding a second copy of this list — see
+// tests/lib/pdf/backgroundFullBleed.test.ts.
+export const COVER_LETTER_TEMPLATE_MAP: Record<
+  string,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  React.ComponentType<any>
+> = {
   "modern-minimal": ModernMinimalCoverLetterPDF,
   "business-professional": BusinessProfessionalCoverLetterPDF,
   "tech-sidebar": TechSidebarCoverLetterPDF,
@@ -44,6 +50,11 @@ const COVER_LETTER_TEMPLATE_MAP: Record<string, React.ComponentType<any>> = {
   "compact-modern": CompactModernCoverLetterPDF,
   "two-tone": TwoToneCoverLetterPDF,
   "academic-serif": AcademicSerifCoverLetterPDF,
+  // No dedicated cover-letter PDF template yet for "euro-sidebar" — reuse
+  // tech-sidebar, matching the DOM preview's alias
+  // (CoverLetterRenderer.tsx), so export doesn't silently fall back to
+  // Modern Minimal and mismatch what the user was previewing.
+  "euro-sidebar": TechSidebarCoverLetterPDF,
 };
 
 /**
@@ -128,7 +139,8 @@ export async function generateCoverLetterPDF(
   coverLetter: string,
   resume: ResumeJSON,
   customization: SanitizedCustomization,
-  filename: string
+  filename: string,
+  jobDetails?: JobDetailsJSON | null
 ): Promise<void> {
   const { pdf } = await import("@react-pdf/renderer");
 
@@ -141,6 +153,7 @@ export async function generateCoverLetterPDF(
     const el = React.createElement(TemplateComponent, {
       coverLetter,
       resume,
+      jobDetails,
       styles: pdfStyles,
     });
     return pdf(el).toBlob();

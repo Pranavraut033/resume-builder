@@ -50,12 +50,6 @@ export default function useResolveCustomization(
   const marginClass =
     marginSizeMap[marginSize as MarginSize] || marginSizeMap.normal;
 
-  const today = new Date().toLocaleDateString("en-US", {
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-  });
-
   const colorsTuple = colors.split(",") as ThemeColors;
   const [
     primaryColor,
@@ -85,7 +79,6 @@ export default function useResolveCustomization(
     background,
     textSize,
     fontFamily: fontFamilyCss(fontFamily),
-    today,
     lineHeight: lineHeightMap[lineHeight as Leading] || lineHeightMap.medium,
     marginClass,
     headingSize,
