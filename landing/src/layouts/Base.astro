@@ -93,8 +93,7 @@ const resolvedOgImage = new URL(ogImage ?? `${base}og.png`, Astro.site).href;
             </svg>
           </button>
           <a
-            href={RELEASES}
-            rel="noopener"
+            href={`${base}download`}
             class="hidden items-center gap-1.5 rounded-lg bg-accent px-3.5 py-1.5 text-sm font-semibold text-on-accent transition-opacity hover:opacity-90 sm:inline-flex"
           >
             Download
@@ -115,7 +114,7 @@ const resolvedOgImage = new URL(ogImage ?? `${base}og.png`, Astro.site).href;
               <a href={`${base}faq`} class="rounded-md px-3 py-2 text-ink-muted hover:bg-raised hover:text-ink">FAQ</a>
               <a href={`${base}blog`} class="rounded-md px-3 py-2 text-ink-muted hover:bg-raised hover:text-ink">Writing</a>
               <a href={REPO} rel="noopener" class="rounded-md px-3 py-2 text-ink-muted hover:bg-raised hover:text-ink">GitHub</a>
-              <a href={RELEASES} rel="noopener" class="rounded-md bg-accent px-3 py-2 font-semibold text-on-accent">Download</a>
+              <a href={`${base}download`} class="rounded-md bg-accent px-3 py-2 font-semibold text-on-accent">Download</a>
             </div>
           </details>
         </div>
@@ -140,7 +139,7 @@ const resolvedOgImage = new URL(ogImage ?? `${base}og.png`, Astro.site).href;
         </div>
         <nav aria-label="Product" class="flex flex-col gap-2 text-sm">
           <p class="font-mono text-xs font-semibold tracking-[0.14em] text-ink-muted uppercase">Product</p>
-          <a href={RELEASES} rel="noopener" class="text-ink-muted transition-colors hover:text-ink">Download</a>
+          <a href={`${base}download`} class="text-ink-muted transition-colors hover:text-ink">Download</a>
           <a href={`${base}#features`} class="text-ink-muted transition-colors hover:text-ink">Features</a>
           <a href={`${base}#how`} class="text-ink-muted transition-colors hover:text-ink">How it works</a>
           <a href={`${base}faq`} class="text-ink-muted transition-colors hover:text-ink">FAQ</a>
@@ -148,8 +147,8 @@ const resolvedOgImage = new URL(ogImage ?? `${base}og.png`, Astro.site).href;
         <nav aria-label="Resources" class="flex flex-col gap-2 text-sm">
           <p class="font-mono text-xs font-semibold tracking-[0.14em] text-ink-muted uppercase">Resources</p>
           <a href={`${base}blog`} class="text-ink-muted transition-colors hover:text-ink">Writing</a>
-          <a href={`${REPO}/blob/main/docs/MCP.md`} rel="noopener" class="text-ink-muted transition-colors hover:text-ink">MCP setup</a>
-          <a href={`${REPO}#download--install`} rel="noopener" class="text-ink-muted transition-colors hover:text-ink">Install steps</a>
+          <a href={`${base}mcp`} class="text-ink-muted transition-colors hover:text-ink">MCP setup</a>
+          <a href={`${base}install`} class="text-ink-muted transition-colors hover:text-ink">Install steps</a>
           <a href={`${base}rss.xml`} class="text-ink-muted transition-colors hover:text-ink">RSS</a>
         </nav>
         <nav aria-label="Project" class="flex flex-col gap-2 text-sm">

@@ -1,5 +1,7 @@
 ---
-import { REPO, RELEASES } from '../../consts';
+import { REPO, getBase } from '../../consts';
+
+const base = getBase(import.meta.env.BASE_URL);
 
 // The emphasized clause split into characters for the split-flap entrance.
 // Plain server-rendered text sits alongside via the sr-only sibling below,
@@ -24,8 +26,7 @@ const flapText = 'is one udaan away.';
     </h2>
     <div class="reveal reveal-2 mt-9 flex flex-wrap items-center justify-center gap-3">
       <a
-        href={RELEASES}
-        rel="noopener"
+        href={`${base}download`}
         class="btn-block inline-flex items-center gap-2 rounded-lg bg-accent px-6 py-3.5 font-semibold text-on-accent"
       >
         Download for free
@@ -51,12 +52,8 @@ const flapText = 'is one udaan away.';
       paid-publisher signed, so macOS says "cannot be verified" and Windows shows SmartScreen once.
       On macOS right-click the app → <span class="font-semibold">Open</span>; on Windows click
       <span class="font-semibold">More info</span> → <span class="font-semibold">Run anyway</span>.
-      <a
-        href={`${REPO}#download--install`}
-        rel="noopener"
-        class="underline underline-offset-4 transition-colors hover:text-term-fg"
-      >
-        Full install steps
+      <a href={`${base}install`} class="underline underline-offset-4 transition-colors hover:text-term-fg">
+        More info
       </a>
     </p>
   </div>

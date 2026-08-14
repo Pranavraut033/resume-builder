@@ -1,5 +1,7 @@
 ---
-import { REPO } from '../../consts';
+import { getBase } from '../../consts';
+
+const base = getBase(import.meta.env.BASE_URL);
 
 const tools = [
   'list_flows',
@@ -58,8 +60,7 @@ const tools = [
     </div>
 
     <a
-      href={`${REPO}/blob/main/docs/MCP.md`}
-      rel="noopener"
+      href={`${base}mcp`}
       class="relative reveal mt-8 inline-flex items-center gap-1.5 text-sm font-semibold text-term-accent underline underline-offset-4"
     >
       Read the setup docs

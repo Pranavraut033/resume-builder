@@ -1,0 +1,33 @@
+---
+import { getEntry, render } from 'astro:content';
+import Base from '../layouts/Base.astro';
+
+const title = 'MCP setup · Udaan';
+const description = 'Run Udaan as an MCP server so Claude Desktop or any MCP host can parse jobs, tailor resumes, and export files.';
+
+const entry = await getEntry('docs', 'mcp');
+const { Content } = entry ? await render(entry) : { Content: null };
+---
+
+<Base title={title} description={description}>
+  <article class="mx-auto max-w-3xl px-5 pt-16 pb-24">
+    <p class="font-mono text-xs tracking-[0.2em] text-ink-muted uppercase">MCP server</p>
+    <h1 class="mt-5 font-display text-4xl tracking-tight text-balance sm:text-5xl">
+      Drive it from Claude Desktop.
+    </h1>
+    {
+      Content ? (
+        <div class="prose mt-8">
+          <Content />
+        </div>
+      ) : (
+        <p class="mt-8 text-ink-muted">
+          Couldn't load the setup docs. See{' '}
+          <a href="https://github.com/Pranavraut033/resume-builder/blob/main/docs/MCP.md" rel="noopener" class="underline underline-offset-4 hover:text-ink">
+            docs/MCP.md on GitHub
+          </a>.
+        </p>
+      )
+    }
+  </article>
+</Base>

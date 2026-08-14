@@ -379,6 +379,23 @@ body {
   color: var(--fg-muted);
   font-style: italic;
 }
+.prose table {
+  display: block;
+  overflow-x: auto;
+  border-collapse: collapse;
+  font-size: 0.9em;
+}
+.prose th,
+.prose td {
+  border: 1px solid var(--line);
+  padding: 0.5em 0.75em;
+  text-align: left;
+  white-space: nowrap;
+}
+.prose th {
+  color: var(--fg);
+  font-weight: 600;
+}
 
 /* ── Backdrop effects ─────────────────────────────────────────────────────
    Keyed off the existing --sp/--dp scroll-progress custom properties, both

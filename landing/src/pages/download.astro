@@ -1,0 +1,211 @@
+---
+import Base from '../layouts/Base.astro';
+import Media from '../components/Media.astro';
+import { RELEASES, getBase } from '../consts';
+import { getLatestReleaseAssets } from '../lib/releases';
+
+const title = 'Download Udaan';
+const description = 'Download Udaan for macOS (Apple Silicon or Intel), Windows, and Linux. Free, open-source, local-first.';
+
+const base = getBase(import.meta.env.BASE_URL);
+const downloads = await getLatestReleaseAssets();
+
+// macOS System Settings deep link — jumps straight to the Privacy &
+// Security pane where "Open Anyway" lives, instead of making people
+// hunt for it themselves.
+const MAC_SECURITY_SETTINGS_URL = 'x-apple.systempreferences:com.apple.preference.security?General';
+
+const platforms = [
+  {
+    label: 'macOS',
+    detail: 'Apple Silicon (M1/M2/M3/M4)',
+    asset: downloads.macArm,
+    icon: 'apple' as const,
+  },
+  { label: 'macOS', detail: 'Intel', asset: downloads.macIntel, icon: 'apple' as const },
+  { label: 'Windows', detail: '64-bit', asset: downloads.windows, icon: 'windows' as const },
+  { label: 'Linux', detail: 'AppImage, 64-bit', asset: downloads.linux, icon: 'linux' as const },
+];
+---
+
+<Base title={title} description={description}>
+  <div class="relative overflow-hidden">
+    <div class="dl-glow" aria-hidden="true"></div>
+
+    <!-- ============ Hero ============ -->
+    <div class="relative mx-auto max-w-3xl px-5 pt-20 pb-4 text-center">
+      <p class="dl-reveal mx-auto w-fit rounded-full border border-line bg-raised px-3 py-1 font-mono text-xs tracking-[0.2em] text-ink-muted uppercase">
+        @@ download{downloads.version ? ` · ${downloads.version}` : ''} @@
+      </p>
+      <h1 class="dl-reveal dl-reveal-2 mt-6 font-display text-5xl leading-[0.95] tracking-tight text-balance sm:text-6xl">
+        Get Udaan on <em class="text-accent not-italic">your</em> machine.
+      </h1>
+      <p class="dl-reveal dl-reveal-3 mx-auto mt-5 max-w-md text-lg leading-relaxed text-ink-muted">
+        Free, open-source, local-first. Every application, tailored on your own hardware.
+      </p>
+    </div>
+
+    <!-- ============ Platform grid ============ -->
+    <div class="dl-reveal dl-reveal-3 relative mx-auto mt-12 grid max-w-3xl gap-3 px-5 sm:grid-cols-2">
+      {
+        platforms.map(({ label, detail, asset, icon }) => (
+          <div class="dl-card group relative flex items-center gap-4 overflow-hidden rounded-2xl border border-line bg-raised p-5">
+            <span class="dl-icon inline-grid size-11 shrink-0 place-items-center rounded-xl border border-line bg-surface text-ink">
+              {icon === 'apple' && (
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                  <path d="M16.365 1.43c0 1.14-.415 2.043-1.245 2.708-.83.665-1.767.98-2.812.945-.1-1.07.28-1.98 1.14-2.73.86-.75 1.79-1.13 2.79-1.14.09.07.127.14.127.217zM20.03 17.13c-.44 1.02-.98 1.99-1.62 2.9-.87 1.24-1.58 2.1-2.13 2.58-.85.78-1.76 1.18-2.73 1.2-.7 0-1.54-.2-2.52-.6-.98-.4-1.88-.6-2.7-.6-.86 0-1.79.2-2.79.6-1 .4-1.81.61-2.43.63-.93.04-1.87-.37-2.82-1.23-.6-.52-1.35-1.42-2.24-2.7C1.03 18.4.32 16.5 0 14.44c-.36-2.26-.05-4.27.93-6.02 1.34-2.4 3.36-3.62 6.05-3.66.85-.02 1.9.24 3.16.78 1.25.53 2.06.8 2.42.8.27 0 1.18-.31 2.72-.94 1.46-.58 2.68-.82 3.68-.73 2.71.22 4.75 1.29 6.1 3.23-2.43 1.47-3.63 3.53-3.61 6.17.02 2.06.76 3.77 2.22 5.13.66.63 1.4 1.11 2.22 1.44-.18.51-.37 1-.58 1.48z" />
+                </svg>
+              )}
+              {icon === 'windows' && (
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                  <path d="M0 3.5 9.75 2.2v9.3H0V3.5Zm10.75-1.4L24 0v11.4H10.75V2.1ZM0 12.5h9.75v9.3L0 20.5v-8Zm10.75 0H24V24l-13.25-1.8v-9.7Z" />
+                </svg>
+              )}
+              {icon === 'linux' && (
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="m4 17 6-6-6-6" />
+                  <path d="M12 19h8" />
+                </svg>
+              )}
+            </span>
+            <div class="min-w-0 flex-1">
+              <p class="font-semibold">{label}</p>
+              <p class="truncate text-sm text-ink-muted">{detail}</p>
+            </div>
+            {asset ? (
+              <a
+                href={asset.url}
+                rel="noopener"
+                class="btn-block shrink-0 rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-on-accent transition-opacity hover:opacity-90"
+              >
+                Download
+              </a>
+            ) : (
+              <span class="shrink-0 rounded-lg border border-dashed border-line px-4 py-2 text-sm text-ink-muted">Coming soon</span>
+            )}
+          </div>
+        ))
+      }
+    </div>
+
+    <p class="dl-reveal dl-reveal-3 relative mx-auto mt-6 max-w-3xl px-5 text-center text-sm text-ink-muted">
+      Looking for an older version or checksums?{' '}
+      <a href={RELEASES} rel="noopener" class="underline underline-offset-4 hover:text-ink">See all releases on GitHub</a>.
+    </p>
+
+    <!-- ============ First launch — terminal-styled, matches the site's diff-card language ============ -->
+    <div class="relative mx-auto mt-20 max-w-3xl px-5 pb-24">
+      <div class="dl-reveal overflow-hidden rounded-2xl border border-term-line bg-term shadow-2xl shadow-black/25">
+        <div class="flex items-center gap-2 border-b border-term-line px-4 py-3">
+          <span aria-hidden="true" class="size-2.5 rounded-full bg-term-del/80"></span>
+          <span aria-hidden="true" class="size-2.5 rounded-full bg-accent-2/80"></span>
+          <span aria-hidden="true" class="size-2.5 rounded-full bg-term-add/80"></span>
+          <span class="ml-2 font-mono text-xs text-term-muted">first launch</span>
+        </div>
+
+        <div class="p-6 sm:p-8">
+          <p class="font-mono text-xs tracking-[0.18em] text-term-accent uppercase">@@ one-time warning @@</p>
+          <h2 class="mt-3 font-display text-2xl text-term-fg sm:text-3xl">
+            The OS will flag it. That's expected.
+          </h2>
+          <p class="mt-3 max-w-xl text-sm leading-relaxed text-term-muted">
+            Udaan is open-source and self-signed rather than signed by a paid publisher, so macOS says{' '}
+            <em class="text-term-fg not-italic">"cannot be verified"</em> and Windows shows SmartScreen, once,
+            on the very first launch.
+          </p>
+
+          <div class="mt-6 grid gap-4 sm:grid-cols-2">
+            <figure>
+              <Media
+                name="macos-gatekeeper-warning"
+                alt="macOS Gatekeeper dialog reading 'Udaan cannot be verified'"
+                ratio="aspect-[4/3]"
+                class="border-term-line bg-term/60"
+              />
+              <figcaption class="mt-2 font-mono text-xs text-term-muted">1 · Gatekeeper warning</figcaption>
+            </figure>
+            <figure>
+              <Media
+                name="macos-privacy-settings"
+                alt="macOS System Settings Privacy & Security pane with the Open Anyway button"
+                ratio="aspect-[4/3]"
+                class="border-term-line bg-term/60"
+              />
+              <figcaption class="mt-2 font-mono text-xs text-term-muted">2 · Open Anyway, in Privacy & Security</figcaption>
+            </figure>
+          </div>
+
+          <div class="mt-6 flex flex-wrap items-center gap-3">
+            <a
+              href={MAC_SECURITY_SETTINGS_URL}
+              class="inline-flex items-center gap-2 rounded-lg bg-accent px-4 py-2.5 text-sm font-semibold text-on-accent transition-opacity hover:opacity-90"
+            >
+              Open Privacy &amp; Security Settings
+            </a>
+            <span class="font-mono text-xs text-term-muted">macOS only. Right-click the app → Open also works</span>
+          </div>
+
+          <p class="mt-6 text-sm text-term-muted">
+            On Windows: click <span class="font-semibold text-term-fg">More info</span> →{' '}
+            <span class="font-semibold text-term-fg">Run anyway</span>.{' '}
+            <a href={`${base}install`} class="underline underline-offset-4 transition-colors hover:text-term-fg">
+              More info
+            </a>
+          </p>
+        </div>
+      </div>
+
+      <p class="mt-8 text-center text-sm text-ink-muted">
+        <a href={base} class="underline underline-offset-4 hover:text-ink">← Back home</a>
+      </p>
+    </div>
+  </div>
+</Base>
+
+<style>
+  /* Self-contained page atmosphere — no dependency on index.astro's scroll
+     engine, just a one-shot load animation gated behind prefers-reduced-motion. */
+  .dl-glow {
+    position: absolute;
+    inset: -10% -10% auto -10%;
+    height: 32rem;
+    background: radial-gradient(60% 60% at 50% 0%, color-mix(in srgb, var(--accent) 14%, transparent), transparent 70%);
+    pointer-events: none;
+    z-index: -1;
+  }
+
+  .dl-card {
+    transition: border-color 0.2s ease, transform 0.2s ease;
+  }
+  .dl-card:hover {
+    border-color: color-mix(in srgb, var(--accent) 40%, var(--line));
+    transform: translateY(-2px);
+  }
+  .dl-icon {
+    transition: color 0.2s ease, border-color 0.2s ease;
+  }
+  .dl-card:hover .dl-icon {
+    color: var(--accent);
+    border-color: color-mix(in srgb, var(--accent) 40%, var(--line));
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .dl-reveal {
+      opacity: 0;
+      translate: 0 16px;
+      animation: dl-in 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+    .dl-reveal-2 {
+      animation-delay: 0.08s;
+    }
+    .dl-reveal-3 {
+      animation-delay: 0.16s;
+    }
+    @keyframes dl-in {
+      to {
+        opacity: 1;
+        translate: 0 0;
+      }
+    }
+  }
+</style>
