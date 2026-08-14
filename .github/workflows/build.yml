@@ -9,12 +9,15 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          # ponytail: macOS only — scripts/prepareTauriServer.mjs's Node-runtime
-          # bundling is darwin-only, so Windows/Linux legs fail before they can
-          # produce an artifact. Add them back once that script supports win32/linux.
           - platform: macos-latest
             artifact-name: Resume-Builder-macOS
             artifact-glob: src-tauri/target/release/bundle/dmg/*.dmg
+          - platform: ubuntu-22.04
+            artifact-name: Resume-Builder-Linux
+            artifact-glob: src-tauri/target/release/bundle/appimage/*.AppImage
+          - platform: windows-latest
+            artifact-name: Resume-Builder-Windows
+            artifact-glob: src-tauri/target/release/bundle/nsis/*.exe
     runs-on: ${{ matrix.platform }}
     permissions:
       contents: read
