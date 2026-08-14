@@ -62,9 +62,24 @@ These fail green — no type error, no test failure, just wrong output. Know the
   Grep both sides and compare branch counts.
 - **`resolveStyles.ts` reads nothing from `TemplateConfig`** and has no axis branches — a new axis never
   belongs there.
-- **Cover letters are unmapped for new templates.** `COVER_LETTER_TEMPLATE_MAP` in `src/lib/pdfExport.ts`
-  falls back to `ModernMinimalCoverLetterPDF`, so a new resume template's cover letter silently exports as
-  Modern Minimal.
+- **A new resume template needs an entry in `COVER_LETTER_TEMPLATE_MAP`** (`src/lib/pdfExport.ts`) or it
+  silently falls back to `ModernMinimalCoverLetterPDF` on export. All 10 current ids are mapped —
+  `euro-sidebar` has no dedicated cover-letter PDF component yet and is aliased to
+  `TechSidebarCoverLetterPDF`, matching the DOM preview's alias in `CoverLetterRenderer.tsx`. Keep both
+  aliases in sync.
+- **Cover letter date formatting is centralized in `src/lib/coverLetterDate.ts`** (`formatCoverLetterDate()`)
+  — shared by all nine DOM templates, all nine PDF templates, and TXT export (`resumeToText.ts`). Under the
+  default `"locale"` `Customization.dateFormat`, it picks DE (`13.08.2026`) vs US (`August 13, 2026`) format
+  using the same DE/EU region signal as `regionGuidance.ts`'s `isGermanEuJob()`. Don't reintroduce a
+  per-template `new Date().toLocaleDateString(...)` — that's the duplication this file replaced.
+- **`BackgroundPdf`'s full-bleed layer is positioned `top:0, left:0` with no offset prop**, because react-pdf
+  positions an absolutely-positioned child against the `<Page>`'s border box, not a padding-inset content box
+  — a page with `padding` still gets full-bleed coverage with no adjustment. A `-marginPt` "offset" to cancel
+  padding (the previous approach) actually pushes the pattern off-page; don't reintroduce it.
+- **A "solid" sidebar fill (`sidebarFill: "solid"`, e.g. tech-sidebar/euro-sidebar) is painted by a separate
+  `fixed`, absolutely-positioned, full-page-height `View` in `PDFTemplateEngine.tsx`**, not by the sidebar
+  column's own `backgroundColor` plus `alignItems: "stretch"`. Flex-stretch fell short of the page bottom on
+  short content and didn't repeat per page on multi-page exports.
 
 ## Files
 

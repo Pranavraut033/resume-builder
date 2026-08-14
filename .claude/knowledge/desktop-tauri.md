@@ -75,3 +75,7 @@ Per-target builds: `desktop:build:mac`, `:mac:x64`, `:mac:universal`, `:windows`
 `src/proxy.ts` — **not** `next.config.ts`'s `headers()` — sets a per-request CSP with a fresh nonce. The App
 Router needs `script-src` to allow its own inline RSC/hydration scripts, and a nonce permits that without
 `'unsafe-inline'`. See `docs/SECURITY_AUDIT.md`.
+
+`connect-src` includes `data:` — fontkit (a `@react-pdf/renderer` dependency, used for PDF export) fetches
+its WASM binary as a `data:` URI; without it the fetch is CSP-blocked and PDF export's font subsetting fails.
+`font-src`/`img-src` already allow `data:`, but that doesn't cover `connect-src`.

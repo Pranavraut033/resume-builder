@@ -64,15 +64,26 @@ Never store a key anywhere else, never put one in SQLite, and never include one 
 - `registry.ts` — the `templateRegistry` singleton mapping `PromptPurpose` → template. Templates
   **self-register on import**, so a missing prompt is usually a missing import, not a missing file.
 - `types.ts` — `PromptContext`, `PromptPurpose`, `PromptTemplate`.
-- `templates/` — one module per purpose (`ats.ts`, `cover-letter.ts`, `gap-analysis.ts`, `education.ts`,
-  `field-experience.ts`, `field-projects.ts`, `field-skills.ts`, `field-summary.ts`, …) with
-  `__snapshots__/` locking rendered prompt text.
+- `templates/` — one module per purpose (`ats.ts`, `cover-letter.ts`, `gap-analysis.ts`, `resume-tailoring.ts`,
+  `humanizer.ts`, `parsing.ts`, …) with `__snapshots__/` locking rendered prompt text.
+- `lexicon.ts` — shared word-lists interpolated into more than one template (e.g. `AI_TELL_VERBS`, used by
+  both `humanizer.ts` and `cover-letter.ts`) — add a shared list here instead of copying it per-template,
+  which is how they drifted before.
 - `sanitize.ts` + `injection.test.ts` — **untrusted/user-supplied data is wrapped in delimiters before
   interpolation to block prompt injection.** Any new template interpolating job-description or profile text
   must go through this; `injection.test.ts` is the guard.
-- `regionGuidance.ts` — region-specific CV conventions (EU/German photo, DOB, nationality).
-- `coverLetterStyles.ts` — selectable tone/style presets surfaced in the cover-letter action bar.
-- `documentation.ts` — human-readable descriptions of purposes, used by MCP's `get_prompt`.
+- `regionGuidance.ts` — region-specific CV conventions (EU/German photo, DOB, nationality) for the tailoring
+  prompt; also exports `isGermanEuJob()`, the same DE/EU region signal as a plain boolean for non-prompt
+  callers (cover-letter date format, cover-letter style default).
+- `coverLetterStyles.ts` — selectable tone/style presets surfaced in the cover-letter action bar, plus
+  `resolveDefaultCoverLetterStyle()` — defaults to `anschreiben` when the job is DE/EU **and** the job ad text
+  itself reads as German (word-list heuristic, not a language detector), otherwise `standard`. Always
+  overridable in the dropdown.
+
+Per-field resume generation (`generate_summary`/`generate_experience`/`generate_skills`/`generate_projects`/
+`generate_education`, `src/lib/contextExtractor.ts`, `src/lib/fieldPromptSystem.ts`,
+`llmService.generateFieldText()`) was removed as dead code — no UI ever called it. Don't reintroduce a
+field-level `PromptPurpose` without wiring a caller first.
 
 ## Applying model output to a resume
 
