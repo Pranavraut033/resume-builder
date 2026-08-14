@@ -18,7 +18,11 @@ export function proxy(request: NextRequest) {
   // compiled — so this doesn't expose an eval-user-content vector.
   const csp = [
     "default-src 'self'",
-    "connect-src 'self' http://127.0.0.1:3008 http://localhost:3008 http://127.0.0.1:3009 http://localhost:11434 ipc: http://ipc.localhost https:",
+    // data: is needed for connect-src, not just font-src/img-src — fontkit
+    // (a @react-pdf/renderer dependency, used for PDF export) fetches its
+    // WASM binary as a data: URI; without this the fetch is CSP-blocked and
+    // PDF export's font subsetting fails.
+    "connect-src 'self' http://127.0.0.1:3008 http://localhost:3008 http://127.0.0.1:3009 http://localhost:11434 ipc: http://ipc.localhost https: data:",
     "img-src 'self' data: blob: https:",
     "style-src 'self' 'unsafe-inline'",
     `script-src 'self' 'nonce-${nonce}' 'strict-dynamic' 'unsafe-eval'`,
