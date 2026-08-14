@@ -2,6 +2,12 @@
 
 All notable changes to this project are documented in this file.
 
+## [1.12.2] - 2026-08-14
+
+### Changed
+
+- Resume tailoring now caps skill groups at 5 categories with a 4-skill minimum to stand on their own — smaller categories merge into the closest remaining one instead of staying fragmented ([16a0e50])
+
 ## [1.12.1] - 2026-08-14
 
 ### Changed

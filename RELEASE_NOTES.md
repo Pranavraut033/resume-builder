@@ -1,3 +1,9 @@
+# v1.12.2 — 2026-08-14
+
+A small tuning pass on AI resume tailoring.
+
+- **Tighter skill grouping in tailored resumes.** The AI now keeps skill categories to a maximum of 5, each with at least 4 skills — smaller, fragmented categories get merged into the closest matching one instead of cluttering the resume.
+
 # v1.12.1 — 2026-08-14
 
 Cover letter polish: smarter dates and styles, more reliable PDF export.
