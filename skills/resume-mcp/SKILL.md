@@ -53,6 +53,14 @@ the server hydrates prompts from the database automatically.
 
 ## Flows
 
+**Which flow does a URL/job posting message trigger?** Default to **add_job**
+(the full tailored resume + cover letter chain) whenever the user hands you a
+job posting or URL — including phrasing like "add this job", "add job",
+"apply to this", or a bare URL with no verb. Only use **bookmark** (save-only,
+no generation) when the user's own words say so explicitly: "bookmark",
+"remember this/these", "save for later", or similar — not merely because the
+message contains the word "add" or "job". If in doubt, ask.
+
 - **add_job** — paste a job posting, get a tailored resume + cover letter:
   `parse_job` → `analyze_ats` → `generate_tailored_resume` →
   `generate_cover_letter`. No `jobId` until the final `submit`, which
