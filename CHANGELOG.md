@@ -2,6 +2,25 @@
 
 All notable changes to this project are documented in this file.
 
+## [1.12.1] - 2026-08-14
+
+### Changed
+
+- Cover letter generation moved from a standalone action bar into the shared Generate button on the floating toolbar; Humanize is now available for cover letters too, not just resumes ([9ca1124])
+
+### Fixed
+
+- Cover letter date now uses a region-aware format (DE-style for German/EU jobs, US-style otherwise) and stays consistent across the on-screen preview, PDF export, and TXT export ([765c106])
+- Cover letter style dropdown now defaults to the German "Anschreiben" style when the job ad itself reads as German, instead of always defaulting to the standard style ([765c106])
+- Cover letter customization panel (Fit to One Page, Heading Style) no longer leaks resume-only controls onto the cover letter, and switching between resume/cover letter now reloads the correct saved customization instead of the previously-loaded document's ([765c106])
+- PDF export: full-bleed page backgrounds and solid sidebar fills (Tech Sidebar, Euro Sidebar) are now correctly anchored to the page edges instead of sometimes falling short or overshooting ([3919097])
+- PDF export: the "Euro Sidebar" resume template now exports a matching cover letter PDF instead of silently falling back to Modern Minimal ([765c106])
+- PDF export could fail entirely on machines where the CSP blocked a font-processing library's WASM fetch ([b0fe84c])
+
+### Internal
+
+- Removed unused per-field resume generation code (dead code, no UI ever called it) ([e6d19f9])
+
 ## [1.12.0] - 2026-08-12
 
 ### Added

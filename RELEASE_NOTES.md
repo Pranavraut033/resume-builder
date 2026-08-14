@@ -1,3 +1,12 @@
+# v1.12.1 — 2026-08-14
+
+Cover letter polish: smarter dates and styles, more reliable PDF export.
+
+- **Cover letter dates and styles now adapt to the job's region.** German/EU applications get German-format dates and can auto-default to the formal "Anschreiben" style when the job ad itself is in German — no manual toggling needed, still fully overridable.
+- **Generate and Humanize are now one shared toolbar** for both resumes and cover letters — Humanize was previously resume-only.
+- **Fixed: PDF export reliability.** Full-bleed backgrounds and solid sidebar fills (Tech Sidebar, Euro Sidebar templates) now render correctly to the page edges, the Euro Sidebar template exports a matching cover letter instead of the wrong one, and a CSP issue that could block PDF export entirely on some setups is resolved.
+- **Fixed: switching between resume and cover letter** in the customization panel now shows the right saved settings for each, and resume-only controls no longer show up while editing a cover letter.
+
 # v1.12.0 — 2026-08-12
 
 More European CV fields, a friendlier font picker, and PDF/editor fixes.
