@@ -53,7 +53,7 @@ jobs:
             const fs = require('fs');
             const tag = '${{ steps.resolve_tag.outputs.tag }}';
             const notes = fs.readFileSync('release-notes-section.md', 'utf8').trim();
-            const installSection = `### Installation\n\n**macOS**\n1. Download the \`*_universal.dmg\` below\n2. Open the downloaded file\n3. Drag **Resume Builder** into **Applications**\n4. On first launch: right-click → Open → Open (to bypass macOS Gatekeeper)`;
+            const installSection = `### Installation\n\n**macOS**\n1. Download \`*_aarch64.dmg\` (Apple Silicon: M1/M2/M3/M4) or \`*_x64.dmg\` (Intel) below\n2. Open the downloaded file\n3. Drag **Resume Builder** into **Applications**\n4. On first launch: right-click → Open → Open (to bypass macOS Gatekeeper)`;
             const body = notes
               ? `${notes}\n\n${installSection}`
               : `## Resume Builder ${tag}\n\n${installSection}\n\n### Changelog\n\nSee [commits since last release](https://github.com/${{ github.repository }}/commits/${tag}) for full changes.`;
@@ -81,8 +81,13 @@ jobs:
           # bundling is darwin-only, so Windows/Linux legs fail before they can
           # produce an artifact. Add them back once that script supports win32/linux.
           - platform: macos-latest
-            args: "--target universal-apple-darwin"
-            rust-targets: "aarch64-apple-darwin,x86_64-apple-darwin"
+            arch: aarch64
+            args: "--target aarch64-apple-darwin"
+            rust-targets: "aarch64-apple-darwin"
+          - platform: macos-latest
+            arch: x86_64
+            args: "--target x86_64-apple-darwin"
+            rust-targets: "x86_64-apple-darwin"
     runs-on: ${{ matrix.platform }}
 
     steps:
@@ -208,17 +213,20 @@ jobs:
         if: matrix.platform == 'macos-latest'
         shell: bash
         env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAG: ${{ needs.create-release.outputs.tag }}
         run: |
-          ARCHIVE=$(find src-tauri/target/universal-apple-darwin/release/bundle/macos -name "*.app.tar.gz" | head -1)
+          ARCHIVE=$(find "src-tauri/target/${{ matrix.rust-targets }}/release/bundle/macos" -name "*.app.tar.gz" | head -1)
           SIGNATURE=$(cat "${ARCHIVE}.sig")
-          # ponytail: tauri-action uploads universal-target bundles renamed with
-          # a "_universal" suffix (see the .dmg asset naming), but the file on
-          # disk keeps the unsuffixed product name — match the uploaded name here.
-          FILENAME="$(basename "$ARCHIVE" .app.tar.gz | sed 's/ /./g')_universal.app.tar.gz"
+          # ponytail: tauri-action may rename the uploaded asset (arch suffix
+          # conventions vary), so look up the actual name on the draft release
+          # instead of reconstructing it from the local build path.
+          FILENAME=$(gh api "repos/${{ github.repository }}/releases/${{ needs.create-release.outputs.release_id }}/assets" \
+            --jq '.[].name' | grep -E '\.app\.tar\.gz$' | grep -E '${{ matrix.arch }}')
           URL="https://github.com/${{ github.repository }}/releases/download/${TAG}/${FILENAME}"
-          jq -n --arg url "$URL" --arg sig "$SIGNATURE" \
-            '{"darwin-x86_64": {"url": $url, "signature": $sig}, "darwin-aarch64": {"url": $url, "signature": $sig}}' \
+          PLATFORM_KEY="darwin-${{ matrix.arch == 'x86_64' && 'x86_64' || 'aarch64' }}"
+          jq -n --arg key "$PLATFORM_KEY" --arg url "$URL" --arg sig "$SIGNATURE" \
+            '{($key): {"url": $url, "signature": $sig}}' \
             > update-info.json
 
       - name: Collect updater info (Linux)
@@ -252,7 +260,7 @@ jobs:
       - name: Upload updater info
         uses: actions/upload-artifact@v4
         with:
-          name: update-info-${{ matrix.platform }}
+          name: update-info-${{ matrix.platform }}${{ matrix.arch && format('-{0}', matrix.arch) || '' }}
           path: update-info.json
           retention-days: 1
 
