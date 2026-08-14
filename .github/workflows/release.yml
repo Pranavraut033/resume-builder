@@ -302,6 +302,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+      actions: write
 
     steps:
       - name: Download updater info
@@ -353,3 +354,16 @@ jobs:
               release_id: process.env.RELEASE_ID,
               draft: false
             });
+
+      - name: Trigger landing page rebuild
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        # A release published via the GITHUB_TOKEN (as above) doesn't fire
+        # the `release` event for other workflows — GitHub suppresses event
+        # chaining from the default token to prevent infinite loops. So
+        # deploy-landing.yml's own `release: types: [published]` trigger
+        # (which still correctly fires for a human manually publishing a
+        # release from the UI) never sees this one. Dispatch it explicitly
+        # instead — workflow_dispatch via the API isn't subject to that
+        # restriction.
+        run: gh workflow run deploy-landing.yml --repo ${{ github.repository }}
