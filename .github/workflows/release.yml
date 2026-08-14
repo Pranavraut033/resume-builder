@@ -53,7 +53,7 @@ jobs:
             const fs = require('fs');
             const tag = '${{ steps.resolve_tag.outputs.tag }}';
             const notes = fs.readFileSync('release-notes-section.md', 'utf8').trim();
-            const installSection = `### Installation\n\n**macOS**\n1. Download \`*_aarch64.dmg\` (Apple Silicon: M1/M2/M3/M4) or \`*_x64.dmg\` (Intel) below\n2. Open the downloaded file\n3. Drag **Resume Builder** into **Applications**\n4. On first launch: right-click → Open → Open (to bypass macOS Gatekeeper)`;
+            const installSection = `### Installation\n\n**macOS**\n1. Download \`*_aarch64.dmg\` (Apple Silicon: M1/M2/M3/M4) or \`*_x64.dmg\` (Intel) below\n2. Open the downloaded file\n3. Drag **Resume Builder** into **Applications**\n4. On first launch: right-click → Open → Open (to bypass macOS Gatekeeper)\n\n**Windows**\n1. Run the \`*-setup.exe\` installer below\n2. When SmartScreen appears, click **More info** → **Run anyway**\n\n**Linux**\n1. Download the \`*.AppImage\` below, then \`chmod +x\` it and run it directly — no install needed`;
             const body = notes
               ? `${notes}\n\n${installSection}`
               : `## Resume Builder ${tag}\n\n${installSection}\n\n### Changelog\n\nSee [commits since last release](https://github.com/${{ github.repository }}/commits/${tag}) for full changes.`;
@@ -77,9 +77,6 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          # ponytail: macOS only — scripts/prepareTauriServer.mjs's Node-runtime
-          # bundling is darwin-only, so Windows/Linux legs fail before they can
-          # produce an artifact. Add them back once that script supports win32/linux.
           - platform: macos-latest
             arch: aarch64
             args: "--target aarch64-apple-darwin"
@@ -88,6 +85,16 @@ jobs:
             arch: x86_64
             args: "--target x86_64-apple-darwin"
             rust-targets: "x86_64-apple-darwin"
+          # No explicit --target: builds for the runner's own native triple,
+          # so cargo's output stays at target/release/bundle (no <triple>
+          # subdir) — matches the Collect-updater-info paths below, which
+          # aren't matrix.rust-targets-aware the way the macOS ones are.
+          - platform: ubuntu-22.04
+            args: ""
+            rust-targets: ""
+          - platform: windows-latest
+            args: ""
+            rust-targets: ""
     runs-on: ${{ matrix.platform }}
 
     steps:

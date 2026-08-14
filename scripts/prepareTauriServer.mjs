@@ -181,27 +181,43 @@ function packageRelativePathFor(resolvedFile) {
 // above, which was itself built against *this* script's own Node — so we
 // just download and ship that exact same version, rather than pinning a
 // separate version and rebuilding native modules against it.
-// ponytail: darwin only (matches this repo's actual build/ship platform).
-// Add win32/linux dist URL + archive mapping here when that's needed.
+// Node.js dist naming differs just enough per platform to need a small map:
+// darwin/linux ship a .tar.gz with the binary at "<dir>/bin/node"; Windows
+// ships a .zip with "node.exe" directly at the archive root (no bin/). Arch
+// strings ("arm64"/"x64") are the same across all three, so os.arch() needs
+// no translation. GitHub's windows-latest runner's bundled `tar` is bsdtar,
+// which reads .zip too, so this stays a single `tar` invocation either way.
+// Windows itself resolves an extension-less child-process path by trying
+// "<name>.exe" (see src-tauri/src/lib.rs's node_bin path, which is not
+// platform-branched) — untested on an actual Windows runner as of writing.
+const NODE_DIST_PLATFORM = { darwin: "darwin", linux: "linux", win32: "win" };
+
 async function downloadNodeRuntime() {
   const version = process.version; // e.g. "v24.9.0"
   const arch = os.arch(); // "arm64" | "x64"
-  if (os.platform() !== "darwin") {
-    throw new Error(
-      `Bundling a Node runtime is only implemented for macOS right now (platform: ${os.platform()}).`
-    );
+  const platform = os.platform();
+  const distPlatform = NODE_DIST_PLATFORM[platform];
+  if (!distPlatform) {
+    throw new Error(`Bundling a Node runtime isn't implemented for platform: ${platform}.`);
   }
+  const isWindows = platform === "win32";
+  const binaryName = isWindows ? "node.exe" : "node";
+  const archiveExt = isWindows ? "zip" : "tar.gz";
+  const archiveDirName = `node-${version}-${distPlatform}-${arch}`;
+  const archiveMemberPath = isWindows
+    ? `${archiveDirName}/node.exe`
+    : `${archiveDirName}/bin/node`;
 
   const cacheDir = path.join(
     os.tmpdir(),
     "udaan-node-runtime-cache",
     `${version}-${arch}`
   );
-  const cachedBinary = path.join(cacheDir, "node");
+  const cachedBinary = path.join(cacheDir, binaryName);
 
   if (!existsSync(cachedBinary)) {
     await mkdir(cacheDir, { recursive: true });
-    const tarballName = `node-${version}-darwin-${arch}.tar.gz`;
+    const tarballName = `${archiveDirName}.${archiveExt}`;
     const url = `https://nodejs.org/dist/${version}/${tarballName}`;
     const tarballPath = path.join(cacheDir, tarballName);
 
@@ -217,18 +233,18 @@ async function downloadNodeRuntime() {
     );
 
     execFileSync("tar", [
-      "-xzf",
+      isWindows ? "-xf" : "-xzf",
       tarballPath,
       "-C",
       cacheDir,
-      "--strip-components=2",
-      `node-${version}-darwin-${arch}/bin/node`,
+      `--strip-components=${isWindows ? 1 : 2}`,
+      archiveMemberPath,
     ]);
   }
 
   const outputBinDir = path.join(outputDir, "node-bin");
   await mkdir(outputBinDir, { recursive: true });
-  const bundledBinary = path.join(outputBinDir, "node");
+  const bundledBinary = path.join(outputBinDir, binaryName);
   await cp(cachedBinary, bundledBinary);
   await chmod(bundledBinary, 0o755);
 }
