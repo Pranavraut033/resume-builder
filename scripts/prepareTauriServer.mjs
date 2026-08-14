@@ -6,6 +6,7 @@ import {
   lstat,
   mkdir,
   mkdtemp,
+  readdir,
   readFile,
   rm,
   writeFile,
@@ -376,6 +377,26 @@ async function main() {
   // bundled output isn't self-contained and breaks the moment the source
   // .next/standalone is rebuilt or removed.
   await cp(standaloneDir, outputDir, { recursive: true, dereference: true });
+
+  // sharp's glibc and musl Linux binaries (@img/sharp-linux-x64 vs
+  // @img/sharp-linuxmusl-x64, same for sharp-libvips) don't declare a `libc`
+  // field in package.json, so npm can't tell them apart and installs both
+  // on any Linux x64 host. Next's tracer then bundles both — the musl one
+  // never loads on a glibc build and only makes linuxdeploy fail resolving
+  // libc.musl-x86_64.so.1, which doesn't exist here. Strip it before any
+  // bundler walks the tree. No-op on macOS/Windows (npm's `os` field already
+  // excludes Linux binaries entirely there).
+  const imgModulesDir = path.join(outputDir, "node_modules", "@img");
+  if (existsSync(imgModulesDir)) {
+    for (const entry of await readdir(imgModulesDir)) {
+      if (entry.includes("musl")) {
+        await rm(path.join(imgModulesDir, entry), {
+          recursive: true,
+          force: true,
+        });
+      }
+    }
+  }
 
   // Next expects static assets at .next/static relative to server.js.
   const outputStaticDir = path.join(outputDir, ".next", "static");
