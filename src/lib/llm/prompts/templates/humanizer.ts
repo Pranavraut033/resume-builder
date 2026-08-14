@@ -1,5 +1,6 @@
 import { HumanizerSchema } from "@/types/humanizer";
 
+import { AI_TELL_VERBS } from "../lexicon";
 import { templateRegistry } from "../registry";
 import { PromptTemplate } from "../types";
 
@@ -27,7 +28,7 @@ DATA INTEGRITY (non-negotiable):
 - Fabrication or omission of any factual detail is a critical failure
 
 AI PATTERN REMOVAL — check the input against each rule below, in order, and fix every match:
-1. Inflation verbs: leveraged, spearheaded, championed, fostered, utilized → replace with a direct verb (built, led, ran, cut, shipped)
+1. Inflation verbs: ${AI_TELL_VERBS} → replace with a direct verb (built, led, ran, cut, shipped)
 2. Filler adverbs and phrases: successfully, effectively, proactively, seamlessly, "in order to", "the ability to" → cut entirely or replace with the plain form ("to", "can")
 3. Em dash or en dash as a stylistic separator: "Built the API — reducing latency by 40%" → "Built the API, cutting latency by 40%". Zero em/en dashes in the output.
 4. Uniform sentence or bullet length: vary short and long within a bullet set — identical rhythm across every line is the clearest AI tell

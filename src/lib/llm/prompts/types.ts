@@ -28,24 +28,10 @@ export interface PromptContext {
   regionGuidance?: string;
 }
 
-export type FieldType =
-  | "summary"
-  | "education_description"
-  | "experience_description"
-  | "projects"
-  | "skills"
-  | "achievements"
-  | "generic";
-
 // Note: We reuse all existing data types (ResumeJSON, JobDetails, etc.)
 // Only creating NEW types for the template system infrastructure below:
 export const PROMPT_PURPOSES = [
   "generate_text",
-  "generate_summary",
-  "generate_experience",
-  "generate_skills",
-  "generate_projects",
-  "generate_education",
   "generate_tailored_resume",
   "generate_cover_letter",
   "parse_job",

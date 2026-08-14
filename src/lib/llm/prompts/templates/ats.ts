@@ -21,15 +21,13 @@ of how modern parsers, recruiter search tools, and screening workflows \
 actually behave — not the popular "beat the secret score" myth.
 
 REALITY CHECK (this is the model you must apply, not an implicit keyword-score):
-Across major platforms (Workday, Greenhouse, Lever, Ashby, iCIMS, Taleo) the \
-default candidate list is sorted by application date and pipeline stage, not \
-a hidden ranking. Real automated rejections come almost entirely from \
-knockout questions recruiters configure, not from a keyword score. In rough \
-order of actual impact, a resume gets filtered by:
+Real automated rejections come almost entirely from knockout questions \
+recruiters configure, not from a keyword score. In rough order of actual \
+impact, a resume gets filtered by:
 1. Knockout questions answered "wrong" — the only true auto-reject in most systems
 2. Parsing failure — content the parser drops or scrambles (out of scope here, see below)
 3. Missing search keywords — the recruiter searches the database for a literal string ("Kubernetes", "PMP") and the resume doesn't contain it
-4. Title/seniority mismatch on title-weighted systems (Workday weights job title match heavily)
+4. Title/seniority mismatch on title-weighted systems (e.g. Workday weights job title match heavily)
 5. Human skim rejection — a recruiter opens it and the top third doesn't sell
 
 Evaluate in that order: knockouts first, then keywords, then title alignment, then content quality.
@@ -69,7 +67,7 @@ For the highest-impact weak bullets, populate improvements[].original_text with 
 
 SCORING:
 - formatting_score: this analysis only sees resume text, not layout — set to 100 and leave formatting_issues as an empty array; do not guess at formatting problems you cannot observe. Real parseability (multi-column layouts, tables, missing standard headers, unparseable dates) is the deterministic checker's job (the Quick Check tab / \`@pranavraut033/ats-checker\`), not this LLM pass.
-- composite_score: your overall judgment of ATS readiness, weighing keyword match and content quality roughly equally, discounted for any blocking/likely knockout risk — not a formula, an informed estimate
+- composite_score: your overall judgment of ATS readiness, weighing keyword match and content quality roughly equally, discounted for any blocking/likely knockout risk — not a formula, an informed estimate. formatting_score is a fixed 100 here (see above) and carries no weight in this composite.
 - A resume with no weaknesses for this exact role scores at most 95; reserve 100 as a theoretical ceiling never actually assigned
 
 IMPROVEMENT RECOMMENDATIONS:
@@ -98,13 +96,8 @@ CANDIDATE RESUME: already provided earlier in this conversation — reuse it as 
 {{/if}}
 
 INSTRUCTIONS:
-1. Extract hard knockout requirements from the JD (work authorization, degree, license/cert, location, minimum years) and check each against the resume — silence on a requirement is "possible", never assume failure or pass
-2. Compare the resume's most recent title against the target title's seniority and set title_alignment
-3. Parse the job description for all required and preferred keywords — skills, tools, titles, certifications, methodologies
-4. Cross-reference each keyword against the resume; classify as exact, semantic, or missing
-5. Assess content quality against the four failure modes: duty-not-accomplishment, no quantification, weak/repeated verb, vague scope
-6. Compute sub-scores and composite score using the bands in your instructions
-7. Generate prioritized improvements — each must name the target section, the problem, and the specific fix; for the highest-impact weak bullets, fill original_text (verbatim) and rewrite (XYZ pattern)
+1. Work through the sections in your instructions in order: knockouts → title alignment → keyword match → content quality → scores
+2. Generate prioritized improvements — each must name the target section, the problem, and the specific fix; for the highest-impact weak bullets, fill original_text (verbatim) and rewrite (XYZ pattern)
 
 HARD CONSTRAINTS:
 - Base all keyword matches on what is actually in the resume — no assumptions

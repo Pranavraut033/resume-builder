@@ -24,14 +24,8 @@ export type {
   ValidationResult,
   ValidationError,
 } from "@pranavraut033/llm-core/prompts";
-// export * from "./documentation";
 
 // Import all templates to trigger registration
-import "./templates/field-summary";
-import "./templates/field-experience";
-import "./templates/field-skills";
-import "./templates/field-projects";
-import "./templates/education";
 import "./templates/parsing";
 import "./templates/ats";
 import "./templates/resume-tailoring";
@@ -138,11 +132,6 @@ export class PromptSystem {
   private static labels: Record<PromptPurpose, string> = {
     analyze_ats: "ATS Analysis",
     generate_cover_letter: "Cover Letter Generation",
-    generate_education: "Education Summary Generation",
-    generate_experience: "Experience Description Generation",
-    generate_projects: "Project Description Generation",
-    generate_skills: "Skills Generation",
-    generate_summary: "Professional Summary Generation",
     generate_tailored_resume: "Tailored Resume Generation",
     parse_job: "Job Description Parsing",
     parse_resume: "Resume Parsing",

@@ -152,7 +152,12 @@ ${experiences
 Return ONLY JSON matching the schema: one entry per experience, each echoing its index and company alongside the rewritten achievements array.`;
 
   const { result, usage } = await provider.runStructuredLLM(
-    resolvedPrompt(REWRITE_SYSTEM, userPrompt, "generate_experience"),
+    // "generate_experience" was a dedicated label for this rewrite step, but
+    // the field-level generate_* purposes were removed as dead code (no
+    // template ever ran with that purpose) — this step is part of the resume
+    // tailoring pipeline, so it reuses that label instead of inventing a new
+    // PromptPurpose for what's still just a usage-tracking tag.
+    resolvedPrompt(REWRITE_SYSTEM, userPrompt, "generate_tailored_resume"),
     { model: options.model, reasoningEffort: options.reasoningEffort },
     RewriteSchema,
     "RewriteBulletsSchema"

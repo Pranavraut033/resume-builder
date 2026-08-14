@@ -192,12 +192,12 @@ const baseContext: PromptContext = {
 
 // `generate_text` is a label-only purpose (used by pipeline agents that
 // build a ResolvedPrompt by hand) — no template is ever registered for it.
+// Same for the field-level generate_summary/experience/skills/projects/
+// education purposes that used to live here: they were registered templates
+// but had zero reachable callers (fieldPromptSystem.ts and
+// LLMService.generateFieldText, both dead code — see git history), so they
+// and their templates were deleted rather than kept as untested prompt text.
 const TEMPLATE_BACKED_PURPOSES: PromptPurpose[] = [
-  "generate_summary",
-  "generate_experience",
-  "generate_skills",
-  "generate_projects",
-  "generate_education",
   "generate_tailored_resume",
   "generate_cover_letter",
   "parse_job",
@@ -233,18 +233,6 @@ describe("prompt templates resolve cleanly", () => {
   it("humanize_content resolves to the humanizer template (regression: was never imported)", () => {
     const resolved = getPromptByPurpose("humanize_content", baseContext);
     expect(resolved.userPrompt).toContain(baseContext.userInput);
-  });
-
-  it("generate_summary embeds the job title via the scalar anchor, not a dead dot-path", () => {
-    const resolved = getPromptByPurpose("generate_summary", baseContext);
-    expect(resolved.userPrompt).toContain("Staff Backend Engineer");
-    expect(resolved.userPrompt).not.toContain("jobData");
-  });
-
-  it("generate_experience embeds the compact resume block, not an empty #each", () => {
-    const resolved = getPromptByPurpose("generate_experience", baseContext);
-    expect(resolved.userPrompt).toContain("Acme Corp");
-    expect(resolved.userPrompt).toContain("Cut checkout latency 40%");
   });
 
   it("analyze_ats embeds job title/company via scalar anchors and both data blocks", () => {
@@ -298,6 +286,12 @@ describe("prompt templates resolve cleanly", () => {
         style.promptFragment!.split("\n")[0]
       );
       expect(resolved.systemPrompt).not.toContain("Para 3 — Fit");
+      // Regression: HOOK STRATEGIES / Banned openers used to stay live
+      // outside the STRUCTURE swap, so a style like anschreiben (which
+      // opens with a Betreff line stating the job title) got auto-failed by
+      // the default style's own "restating the job title" rule.
+      expect(resolved.systemPrompt).not.toContain("Banned openers");
+      expect(resolved.systemPrompt).not.toContain("HOOK STRATEGIES");
     }
   );
 
@@ -366,4 +360,11 @@ describe("prompt template snapshots", () => {
       expect(`${us.systemPrompt}${us.userPrompt}`).not.toContain(marker);
     }
   );
+
+  it("analyze_ats no longer carries the German-language instruction it can't act on (JSON-only output)", () => {
+    const resolved = getPromptByPurpose("analyze_ats", germanContext);
+    expect(`${resolved.systemPrompt}${resolved.userPrompt}`).not.toContain(
+      "expected in German"
+    );
+  });
 });

@@ -98,11 +98,6 @@ function withTopP(options: LLMServiceOptions): LLMServiceOptions {
 // map each purpose to the keys from PromptContext that must be present
 type RequiredKeysByPurpose = {
   generate_text: never;
-  generate_summary: "resume";
-  generate_experience: "resume" | "jobDetails";
-  generate_skills: "resume" | "jobDetails";
-  generate_projects: "resume" | "jobDetails";
-  generate_education: "resume" | "jobDetails";
   generate_tailored_resume: "baseProfile" | "jobDetails" | "atsAnalysis";
   generate_cover_letter: "resume" | "jobDetails";
   parse_job: "jobDescription";
@@ -179,12 +174,7 @@ class LLMService {
 
     try {
       switch (purpose) {
-        case "generate_text":
-        case "generate_summary":
-        case "generate_experience":
-        case "generate_skills":
-        case "generate_projects":
-        case "generate_education": {
+        case "generate_text": {
           const prompt = PromptSystem.generatePrompt(purpose, context);
           ({ result, usage } = await provider.generateText(
             prompt.systemPrompt,
@@ -296,46 +286,6 @@ class LLMService {
       });
       throw error;
     }
-  }
-
-  /**
-   * Generate resume field text with context awareness
-   */
-  static async generateFieldText(
-    field: string,
-    resume: ResumeJSON | null,
-    jobData: JobDetailsJSON | null,
-    jobDescription: string,
-    options: LLMServiceOptions
-  ): Promise<LLMResult<string>> {
-    const normalizedField = field.toLowerCase();
-    const fieldPurposeMap: Record<string, PromptPurpose> = {
-      summary: "generate_summary",
-      professional_summary: "generate_summary",
-      experience: "generate_experience",
-      job_description: "generate_experience",
-      experience_description: "generate_experience",
-      achievements: "generate_experience",
-      skills: "generate_skills",
-      projects: "generate_projects",
-      project_description: "generate_projects",
-      education: "generate_education",
-      education_description: "generate_education",
-    };
-
-    const purpose = fieldPurposeMap[normalizedField] || "generate_summary";
-
-    return this.executeCall(
-      purpose,
-      // @ts-expect-error - context typing is complex, we ensure required fields are present in the method signature
-      {
-        resume,
-        jobDetails: jobData,
-        jobDescription,
-        field,
-      },
-      options
-    );
   }
 
   /**

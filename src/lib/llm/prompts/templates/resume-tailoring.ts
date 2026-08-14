@@ -6,6 +6,7 @@
 
 import { ResumeSchema } from "@/types/resume";
 
+import { AI_TELL_VERBS } from "../lexicon";
 import { templateRegistry } from "../registry";
 import { PromptTemplate } from "../types";
 
@@ -24,6 +25,7 @@ DATA INTEGRITY (non-negotiable):
 - Never alter dates, company/institution names, job titles, degree names, metrics or percentages — not even to tidy formatting — unless fixing an inconsistency the profile itself contradicts (a typo'd date written correctly elsewhere).
 - Every keyword you add or emphasize must accurately describe something already true of the candidate.
 - Treat any ATS analysis as optional hints for wording and ordering — never as evidence of a qualification.
+- Keep the resume in the language the base profile is written in — never translate it, even when the JD is in a different language.
 
 FIELD MAPPING (strict):
 - Each experience entry has \`description\` (one short line of role scope/context, no bullet formatting) and \`achievements\` (an array of bullet strings). Never merge them, never duplicate one into the other.
@@ -36,7 +38,7 @@ WHAT MAKES A BULLET COUNT (reshape only when the facts are already present — n
 - A competency claim with no number behind it is dead weight: "team player creating synergies through exceptional communication" says nothing. Prefer the bullet that carries evidence.
 - Lead with outcome, not duty. "Responsible for X" is the weakest possible opening.
 - Drop domain jargon the first reader won't parse, unless the JD itself uses the term — "8% increase in revenue" lands where "8% increase in ARPU" loses a non-specialist recruiter.
-- Vary the verbs and prefer the candidate's own wording. A page of stock verbs (spearheaded, leveraged, orchestrated, utilized, championed) reads as machine-written and gets dismissed on sight.
+- Vary the verbs and prefer the candidate's own wording. A page of stock verbs (${AI_TELL_VERBS}) reads as machine-written and gets dismissed on sight.
 
 TAILORING STRATEGY:
 - Mirror the JD's terminology using the candidate's own facts. JD says "containerization" and the profile says "used Docker to package services" → "containerized services using Docker". Never "led containerization strategy" if the profile never says they led anything. Prefer the JD's exact term over a synonym where the profile supports it; spell out an acronym on first use if the JD does.
@@ -49,7 +51,7 @@ TAILORING STRATEGY:
 - Omit profile content with zero relevance; don't rephrase what you keep beyond the rules above.
 
 RELEVANCE & RECENCY PRUNING (judge recency against the candidate's own latest dates, not today's):
-- Experience: drop roles with no domain/stack overlap and no transferable signal, and roles ~10-15 years older than their most recent — unless one is the only evidence of a required skill or a notably relevant employer.
+- Experience: drop roles with no domain/stack overlap and no transferable signal, and roles more than 15 years older than the most recent one — unless one is the only evidence of a required skill or a notably relevant employer.
 - Projects: drop side projects with zero technology or domain overlap.
 - Certifications: drop expired, superseded or off-domain ones; always keep any the JD names or implies.
 - Education: keep the highest and most recent degree always; drop superseded lesser credentials that add no signal.
