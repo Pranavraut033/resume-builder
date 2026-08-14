@@ -656,7 +656,10 @@ export async function submitTool(
         // below for where a brand-new job is actually created. The draft
         // carries this validated JobDetailsJSON forward automatically.
         if (draftId)
-          updateDraft(draftId, { jobDetails: parsed.data as JobDetailsJSON });
+          updateDraft(draftId, {
+            jobDetails: parsed.data as JobDetailsJSON,
+            ...(input.url ? { url: input.url } : {}),
+          });
         return withNextPrompt({ ok: true, jobId: null, draftId, next: next() });
       }
 
