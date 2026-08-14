@@ -262,7 +262,13 @@ async function bundleMcpServer() {
   // src/mcp changes.
   console.log("Running `npm run build:mcp`...");
   const npm = process.platform === "win32" ? "npm.cmd" : "npm";
-  execFileSync(npm, ["run", "build:mcp"], { cwd: root, stdio: "inherit" });
+  // .cmd shims aren't real executables — Windows needs cmd.exe to run them,
+  // or execFileSync throws EINVAL instead of spawning anything.
+  execFileSync(npm, ["run", "build:mcp"], {
+    cwd: root,
+    stdio: "inherit",
+    shell: process.platform === "win32",
+  });
 
   await mkdir(mcpOutputDir, { recursive: true });
   const entryFiles = ["stdio.js", "http.js"];
@@ -398,6 +404,8 @@ async function main() {
   const templateDbPath = path.join(templateDir, "app-template.db");
   // execFileSync skips the shell, so on Windows it needs the literal .cmd
   // shim name — a bare "npx" only resolves via PATHEXT under a real shell.
+  // And .cmd shims aren't real executables — Windows needs cmd.exe to run
+  // them, or execFileSync throws EINVAL instead of spawning anything.
   const npx = process.platform === "win32" ? "npx.cmd" : "npx";
   execFileSync(
     npx,
@@ -408,7 +416,7 @@ async function main() {
       "--accept-data-loss",
       `--url=file:${templateDbPath}`,
     ],
-    { cwd: root, stdio: "inherit" }
+    { cwd: root, stdio: "inherit", shell: process.platform === "win32" }
   );
   await cp(templateDbPath, path.join(outputDir, "app-template.db"));
   await rm(templateDir, { recursive: true, force: true });
