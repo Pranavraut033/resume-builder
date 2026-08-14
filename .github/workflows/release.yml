@@ -218,11 +218,18 @@ jobs:
         run: |
           ARCHIVE=$(find "src-tauri/target/${{ matrix.rust-targets }}/release/bundle/macos" -name "*.app.tar.gz" | head -1)
           SIGNATURE=$(cat "${ARCHIVE}.sig")
-          # ponytail: tauri-action may rename the uploaded asset (arch suffix
-          # conventions vary), so look up the actual name on the draft release
-          # instead of reconstructing it from the local build path.
+          # tauri-action uploads macOS x86_64 assets suffixed "x64", not the
+          # "x86_64" rust-target/matrix.arch name (aarch64 keeps its own name
+          # as-is) — confirmed from an actual run's upload log, since this
+          # bit us once already. Look up the real name on the draft release
+          # rather than reconstructing it from the local build path.
+          ASSET_ARCH="${{ matrix.arch == 'x86_64' && 'x64' || matrix.arch }}"
           FILENAME=$(gh api "repos/${{ github.repository }}/releases/${{ needs.create-release.outputs.release_id }}/assets" \
-            --jq '.[].name' | grep -E '\.app\.tar\.gz$' | grep -E '${{ matrix.arch }}')
+            --jq '.[].name' | grep -E '\.app\.tar\.gz$' | grep -F "$ASSET_ARCH")
+          if [ -z "$FILENAME" ]; then
+            echo "::error::No .app.tar.gz asset matching '$ASSET_ARCH' found on release ${{ needs.create-release.outputs.release_id }}"
+            exit 1
+          fi
           URL="https://github.com/${{ github.repository }}/releases/download/${TAG}/${FILENAME}"
           PLATFORM_KEY="darwin-${{ matrix.arch == 'x86_64' && 'x86_64' || 'aarch64' }}"
           jq -n --arg key "$PLATFORM_KEY" --arg url "$URL" --arg sig "$SIGNATURE" \
