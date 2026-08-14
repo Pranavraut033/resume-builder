@@ -109,17 +109,25 @@ function renderShape(shape: Shape, key: number) {
 }
 
 /**
- * Full-bleed, theme-coloured background layer for the PDF export. Render it as
- * the FIRST child of a `<Page>` so react-pdf paints it behind the content. The
- * negative `offset` cancels the page's own padding (if any) so the pattern
- * reaches the edges — pass `offset={marginPt}` for a `<Page>` with
- * `padding: marginPt`, or omit it (default 0) for a `<Page>` with no
- * page-level padding.
+ * Full-bleed, theme-coloured background layer for the PDF export. Render it
+ * as the FIRST child of a `<Page>` so react-pdf paints it behind the
+ * content — `top: 0, left: 0` always lands on the page's true outer corner
+ * regardless of the `<Page>`'s own `padding`, because react-pdf positions an
+ * absolutely-positioned child against the page's border box, not a
+ * padding-inset content box the way standard CSS containing blocks work.
+ *
+ * (An earlier version of this component took a `offset`/`-offset` prop meant
+ * to "cancel" the page's padding, modeled on the standard-CSS assumption
+ * that the containing block excludes padding. Verified empirically that
+ * react-pdf doesn't work that way: a `<Page padding={36}>` with a fixed
+ * 612×792 absolutely-positioned child at `top:0,left:0` already covers the
+ * page edge-to-edge with no adjustment. Shifting it by `-marginPt` instead
+ * pushed the pattern off-page on the top-left corner and left it exactly
+ * `marginPt` short of the bottom/right edges — do not reintroduce that.)
  */
 export const BackgroundPdf: React.FC<{
   styles: ResolvedPDFStyles;
-  offset?: number;
-}> = ({ styles, offset = 0 }) => {
+}> = ({ styles }) => {
   const { background, colorsTuple, pageFormat } = styles;
   if (!background || background === "none") return null;
 
@@ -133,7 +141,7 @@ export const BackgroundPdf: React.FC<{
       width={w}
       height={h}
       viewBox={`0 0 ${w} ${h}`}
-      style={{ position: "absolute", top: -offset, left: -offset }}
+      style={{ position: "absolute", top: 0, left: 0 }}
     >
       {drawing.defs.length > 0 && (
         <Defs>{drawing.defs.map(renderGradient)}</Defs>

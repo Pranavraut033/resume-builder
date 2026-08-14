@@ -24,7 +24,12 @@ import { HeadingStyle } from "@/types/customization";
 import { ResumeJSON, getSectionLayout } from "@/types/resume";
 
 import { registerPDFFont } from "./fonts";
-import { borderTint, ResolvedPDFStyles, withAlpha } from "./resolveStyles";
+import {
+  borderTint,
+  getPagePt,
+  ResolvedPDFStyles,
+  withAlpha,
+} from "./resolveStyles";
 import { PDF_SECTION_REGISTRY } from "./sections";
 import { PDFTemplateProps } from "./templates/ModernMinimalPDF";
 import { SectionGroup } from "./templates/shared/SectionGroup";
@@ -779,7 +784,7 @@ export const PDFTemplateEngine: React.FC<PDFTemplateEngineProps> = ({
             padding: marginPt,
           }}
         >
-          <BackgroundPdf styles={s} offset={marginPt} />
+          <BackgroundPdf styles={s} />
           {headerNode}
           {sections}
         </Page>
@@ -826,7 +831,9 @@ export const PDFTemplateEngine: React.FC<PDFTemplateEngineProps> = ({
       key="sidebar"
       style={{
         width: `${ratio0 * 100}%`,
-        backgroundColor: sidebarBg,
+        // No backgroundColor here — a "solid" fill is painted full page
+        // height by the fixed `sidebarFillView` below instead (see its
+        // comment). Text color still needs the contrast override.
         color: isSolidSidebar ? backgroundColor : undefined,
         paddingTop: colPadY,
         paddingBottom: colPadY,
@@ -836,6 +843,28 @@ export const PDFTemplateEngine: React.FC<PDFTemplateEngineProps> = ({
     >
       {col0Sections}
     </View>
+  );
+
+  // Paints a "solid" sidebar fill as a `fixed` full-page-height layer behind
+  // the content, the same pattern as `BackgroundPdf` — instead of relying on
+  // `alignItems: "stretch"` to match the taller column's height, which left
+  // the fill short of the page bottom on short content and didn't repeat
+  // per page on multi-page exports.
+  const { w: pagePtW, h: pagePtH } = getPagePt(pageFormat);
+  const sidebarFillView = isSolidSidebar && (
+    <View
+      key="sidebar-fill"
+      fixed
+      style={{
+        position: "absolute",
+        top: 0,
+        left: sidebarRight ? undefined : 0,
+        right: sidebarRight ? 0 : undefined,
+        width: ratio0 * pagePtW,
+        height: pagePtH,
+        backgroundColor: sidebarBg,
+      }}
+    />
   );
 
   const mainView = (
@@ -870,6 +899,7 @@ export const PDFTemplateEngine: React.FC<PDFTemplateEngineProps> = ({
         }}
       >
         <BackgroundPdf styles={s} />
+        {sidebarFillView}
 
         {/* Header spans full width, unless headerSpan: "main" renders it
             inside the main column instead (see mainView above).
@@ -883,25 +913,12 @@ export const PDFTemplateEngine: React.FC<PDFTemplateEngineProps> = ({
           </View>
         )}
 
-        {/* Two-column body. `alignItems: "stretch"` only applies for a solid
-            sidebar fill (tech-sidebar, euro-sidebar) — it's what makes the
-            sidebar's background match the taller column's height. For
-            "tint"/"none" fills nothing needs that height-matching, and
-            forcing it anyway fights react-pdf's per-page pagination on
-            multi-page resumes (each `wrap={false}` entry paginates
-            independently; asking the row to also stretch equal heights
-            across that can misplace content on the page break). Dropping it
-            here for those templates removes one contributor to that overlap.
-            // ponytail: solid-fill templates still stretch across pages —
-            // real fix is painting the sidebar as a per-page background
-            // instead of via flex height-matching; upgrade if tech-sidebar/
-            // euro-sidebar still overlap on multi-page resumes after this. */}
-        <View
-          style={{
-            flexDirection: "row",
-            alignItems: config.sidebarFill === "solid" ? "stretch" : undefined,
-          }}
-        >
+        {/* Two-column body. The sidebar's own background is now the fixed
+            `sidebarFillView` layer above, so this row no longer needs
+            `alignItems: "stretch"` to fake a full-height fill — which also
+            used to fight react-pdf's per-page pagination on multi-page
+            resumes (each `wrap={false}` entry paginates independently). */}
+        <View style={{ flexDirection: "row" }}>
           {sidebarRight ? [mainView, sidebarView] : [sidebarView, mainView]}
         </View>
       </Page>
