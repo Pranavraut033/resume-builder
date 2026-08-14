@@ -399,20 +399,6 @@ async function main() {
   // .next/standalone is rebuilt or removed.
   await cp(standaloneDir, outputDir, { recursive: true, dereference: true });
 
-  // Several native deps (sharp's @img/sharp-linux-x64 vs
-  // @img/sharp-linuxmusl-x64; llm-core's rolldown, @rolldown/binding-linux-x64-gnu
-  // vs -musl; more will keep turning up) ship separate glibc/musl Linux
-  // binaries without a `libc` field in package.json, so npm can't tell them
-  // apart and installs both on any Linux x64 host. Next's tracer then
-  // bundles both — the musl one never loads on a glibc build, and
-  // linuxdeploy doesn't just skip it: running `ldd` against a musl-linked
-  // .node/.so on a glibc system throws inside linuxdeploy's own dependency
-  // walker and aborts the whole bundle. Sweep every musl-suffixed directory
-  // out of the tree (any depth — nested per-package node_modules included)
-  // before any bundler sees it. No-op on macOS/Windows (npm's `os` field
-  // already excludes Linux binaries entirely there).
-  await stripMuslBinaries(path.join(outputDir, "node_modules"));
-
   // Next expects static assets at .next/static relative to server.js.
   const outputStaticDir = path.join(outputDir, ".next", "static");
   await mkdir(path.dirname(outputStaticDir), { recursive: true });
@@ -467,6 +453,22 @@ async function main() {
 
   await downloadNodeRuntime();
   await bundleMcpServer();
+
+  // Several native deps (sharp's @img/sharp-linux-x64 vs
+  // @img/sharp-linuxmusl-x64; llm-core's rolldown, @rolldown/binding-linux-x64-gnu
+  // vs -musl; more will keep turning up) ship separate glibc/musl Linux
+  // binaries without a `libc` field in package.json, so npm can't tell them
+  // apart and installs both on any Linux x64 host. Next's tracer then
+  // bundles both — the musl one never loads on a glibc build, and
+  // linuxdeploy doesn't just skip it: running `ldd` against a musl-linked
+  // .node/.so on a glibc system throws inside linuxdeploy's own dependency
+  // walker and aborts the whole bundle. Sweep every musl-suffixed directory
+  // out of the tree (any depth — nested per-package node_modules included).
+  // Must run LAST — bundleMcpServer() above re-copies llm-core's real
+  // directory (musl binary included) straight past an earlier strip, which
+  // is exactly how this one got missed the first time. No-op on
+  // macOS/Windows (npm's `os` field already excludes Linux binaries there).
+  await stripMuslBinaries(path.join(outputDir, "node_modules"));
 
   console.log("Prepared bundled Next standalone server for Tauri:", outputDir);
 }
