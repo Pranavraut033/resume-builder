@@ -1,4 +1,4 @@
-import { REPO } from '../consts';
+import { REPO } from "../consts";
 
 export interface ReleaseAsset {
   name: string;
@@ -13,10 +13,19 @@ export interface PlatformDownloads {
   linux: ReleaseAsset | null;
 }
 
-const EMPTY: PlatformDownloads = { version: null, macArm: null, macIntel: null, windows: null, linux: null };
-const REPO_SLUG = REPO.replace('https://github.com/', '');
+const EMPTY: PlatformDownloads = {
+  version: null,
+  macArm: null,
+  macIntel: null,
+  windows: null,
+  linux: null,
+};
+const REPO_SLUG = REPO.replace("https://github.com/", "");
 
-function pickAsset(assets: { name: string; browser_download_url: string }[], pattern: RegExp): ReleaseAsset | null {
+function pickAsset(
+  assets: { name: string; browser_download_url: string }[],
+  pattern: RegExp
+): ReleaseAsset | null {
   const asset = assets.find((a) => pattern.test(a.name));
   return asset ? { name: asset.name, url: asset.browser_download_url } : null;
 }
@@ -27,14 +36,17 @@ function pickAsset(assets: { name: string; browser_download_url: string }[], pat
 // not on any client-side polling.
 export async function getLatestReleaseAssets(): Promise<PlatformDownloads> {
   try {
-    const res = await fetch(`https://api.github.com/repos/${REPO_SLUG}/releases/latest`, {
-      headers: { Accept: 'application/vnd.github+json' },
-    });
+    const res = await fetch(
+      `https://api.github.com/repos/${REPO_SLUG}/releases/latest`,
+      {
+        headers: { Accept: "application/vnd.github+json" },
+      }
+    );
     if (!res.ok) return EMPTY;
     const data = await res.json();
     const assets = Array.isArray(data.assets) ? data.assets : [];
     return {
-      version: typeof data.tag_name === 'string' ? data.tag_name : null,
+      version: typeof data.tag_name === "string" ? data.tag_name : null,
       macArm: pickAsset(assets, /aarch64.*\.dmg$/i),
       macIntel: pickAsset(assets, /(x86_64|x64).*\.dmg$/i),
       windows: pickAsset(assets, /\.exe$/i),

@@ -40,12 +40,12 @@ More screenshots and demo clips (ATS analysis, chat editing, cover letters, cust
 
 Prebuilt desktop apps for macOS, Windows, and Linux are published on the [Releases](https://github.com/Pranavraut033/resume-builder/releases) page for every `v*.*.*` tag.
 
-| Platform      | File                                        | Notes                                           |
-| ------------- | -------------------------------------------- | ------------------------------------------------ |
-| macOS (Apple Silicon) | `Udaan_<version>_aarch64.dmg`        | M1/M2/M3/M4                                     |
-| macOS (Intel) | `Udaan_<version>_x64.dmg`                    | Intel Macs                                      |
-| Windows       | `Udaan_<version>_x64-setup.exe`              | NSIS installer                                  |
-| Linux         | `Udaan_<version>_amd64.AppImage` or `.deb`   | AppImage is portable; `.deb` for Debian/Ubuntu  |
+| Platform              | File                                       | Notes                                          |
+| --------------------- | ------------------------------------------ | ---------------------------------------------- |
+| macOS (Apple Silicon) | `Udaan_<version>_aarch64.dmg`              | M1/M2/M3/M4                                    |
+| macOS (Intel)         | `Udaan_<version>_x64.dmg`                  | Intel Macs                                     |
+| Windows               | `Udaan_<version>_x64-setup.exe`            | NSIS installer                                 |
+| Linux                 | `Udaan_<version>_amd64.AppImage` or `.deb` | AppImage is portable; `.deb` for Debian/Ubuntu |
 
 The app is **self-signed** (not signed by a CA-trusted/registered publisher), so each OS will show a one-time warning before the first launch. This is expected — follow the steps below to open it.
 
