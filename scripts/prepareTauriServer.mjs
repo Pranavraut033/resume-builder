@@ -362,6 +362,27 @@ async function bundleMcpServer() {
   }
 }
 
+// See the call site in main() for why this exists. Recurses into nested
+// node_modules (scoped packages carry their own) since musl-variant
+// binaries aren't only ever hoisted to the top level.
+async function stripMuslBinaries(dir) {
+  let entries;
+  try {
+    entries = await readdir(dir, { withFileTypes: true });
+  } catch {
+    return;
+  }
+  for (const entry of entries) {
+    if (!entry.isDirectory()) continue;
+    const full = path.join(dir, entry.name);
+    if (entry.name.includes("musl")) {
+      await rm(full, { recursive: true, force: true });
+      continue;
+    }
+    await stripMuslBinaries(full);
+  }
+}
+
 async function main() {
   if (!existsSync(standaloneDir)) {
     throw new Error(
@@ -378,25 +399,19 @@ async function main() {
   // .next/standalone is rebuilt or removed.
   await cp(standaloneDir, outputDir, { recursive: true, dereference: true });
 
-  // sharp's glibc and musl Linux binaries (@img/sharp-linux-x64 vs
-  // @img/sharp-linuxmusl-x64, same for sharp-libvips) don't declare a `libc`
-  // field in package.json, so npm can't tell them apart and installs both
-  // on any Linux x64 host. Next's tracer then bundles both — the musl one
-  // never loads on a glibc build and only makes linuxdeploy fail resolving
-  // libc.musl-x86_64.so.1, which doesn't exist here. Strip it before any
-  // bundler walks the tree. No-op on macOS/Windows (npm's `os` field already
-  // excludes Linux binaries entirely there).
-  const imgModulesDir = path.join(outputDir, "node_modules", "@img");
-  if (existsSync(imgModulesDir)) {
-    for (const entry of await readdir(imgModulesDir)) {
-      if (entry.includes("musl")) {
-        await rm(path.join(imgModulesDir, entry), {
-          recursive: true,
-          force: true,
-        });
-      }
-    }
-  }
+  // Several native deps (sharp's @img/sharp-linux-x64 vs
+  // @img/sharp-linuxmusl-x64; llm-core's rolldown, @rolldown/binding-linux-x64-gnu
+  // vs -musl; more will keep turning up) ship separate glibc/musl Linux
+  // binaries without a `libc` field in package.json, so npm can't tell them
+  // apart and installs both on any Linux x64 host. Next's tracer then
+  // bundles both — the musl one never loads on a glibc build, and
+  // linuxdeploy doesn't just skip it: running `ldd` against a musl-linked
+  // .node/.so on a glibc system throws inside linuxdeploy's own dependency
+  // walker and aborts the whole bundle. Sweep every musl-suffixed directory
+  // out of the tree (any depth — nested per-package node_modules included)
+  // before any bundler sees it. No-op on macOS/Windows (npm's `os` field
+  // already excludes Linux binaries entirely there).
+  await stripMuslBinaries(path.join(outputDir, "node_modules"));
 
   // Next expects static assets at .next/static relative to server.js.
   const outputStaticDir = path.join(outputDir, ".next", "static");
