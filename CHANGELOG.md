@@ -2,6 +2,17 @@
 
 All notable changes to this project are documented in this file.
 
+## [1.13.0] - 2026-08-14
+
+### Fixed
+
+- macOS desktop builds are now published as separate Apple Silicon and Intel installers instead of one combined universal build, halving each download's installed size ([9c1152a])
+- MCP server: `add_job`'s job URL is no longer lost between `submit` calls when a host doesn't re-pass it on the final call ([b6d5648])
+
+### Internal
+
+- Landing site gained dedicated Download, Install, and MCP setup pages — platform downloads are pulled from the latest GitHub release at build time, and install/MCP docs render inline instead of linking out to GitHub ([7e303c8])
+
 ## [1.12.2] - 2026-08-14
 
 ### Changed

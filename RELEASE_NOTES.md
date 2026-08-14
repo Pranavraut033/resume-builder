@@ -1,3 +1,10 @@
+# v1.13.0 — 2026-08-14
+
+Smarter macOS downloads, and an MCP fix.
+
+- **macOS downloads are now arch-specific.** Instead of one universal dmg, you'll pick the Apple Silicon or Intel build on the download page — smaller to download and install.
+- **Fixed: MCP job URLs.** A job's URL could get dropped partway through `add_job` if your MCP host didn't re-send it on the final call; it's now carried through automatically.
+
 # v1.12.2 — 2026-08-14
 
 A small tuning pass on AI resume tailoring.
