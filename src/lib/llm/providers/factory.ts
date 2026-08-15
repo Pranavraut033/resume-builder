@@ -1,7 +1,7 @@
 /**
  * Host shim around @pranavraut033/llm-core's provider factory.
  *
- * Registers the 6 built-in providers, injects API-key retrieval from
+ * Registers the 10 built-in providers, injects API-key retrieval from
  * `keyStorage` as the package's `keyResolver`, and keeps the legacy
  * `ProviderFactory.getInstance` caching API so existing call sites
  * (clientLLM, llmService, atsLLMClient, Chatbot) don't need to change.
@@ -15,7 +15,7 @@ import {
 import { getApiKey } from "@/lib/keyStorage";
 import { ProviderType } from "@/types/llm";
 
-// Side-effect import: registers the 6 built-in providers with the shared
+// Side-effect import: registers the 10 built-in providers with the shared
 // registry. MUST happen before any getInstance calls.
 import "@pranavraut033/llm-core/providers/register-builtins";
 // Side-effect import: registers the managed (paid) provider.

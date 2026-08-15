@@ -16,29 +16,29 @@ More screenshots and demo clips (ATS analysis, chat editing, cover letters, cust
 
 ## Features
 
-- **Base profile**: maintain a single reusable professional profile (experience, skills, projects, education) stored locally in SQLite
-- **Bookmarks**: save a job URL for later without generating a resume yet — JD parsing runs in a background queue (up to 5 concurrent) so you can keep pasting URLs; promote a bookmark to a tracked job anytime from `/bookmarks`
-- **Job tracking**: manage multiple applications with status (Bookmarked, Draft, Applied, Interview, Offer, Rejected)
+- **Base profile**: one reusable profile (experience, skills, projects, education) stored locally in SQLite
+- **Bookmarks**: save a job URL without generating a resume yet — JD parsing runs in a background queue (up to 5 concurrent), so you can keep pasting URLs and promote a bookmark to a tracked job later from `/bookmarks`
+- **Job tracking**: manage applications with status (Bookmarked, Draft, Applied, Interview, Offer, Rejected)
 - **AI job parsing**: paste a job description and extract structured requirements client-side via your chosen LLM
 - **AI resume & cover letter tailoring**: generate content tailored to each job from your base profile
 - **Inline WYSIWYG editor**: edit the generated resume directly on the rendered document, with zoom controls and version history (`/job/[jobId]`)
-- **Multiple templates**: several resume templates with per-job color/font/layout customization, rendered by a shared template engine so DOM/PDF/TXT output stay in sync
+- **10 templates**: per-job color/font/layout customization, rendered by a shared template engine so DOM/PDF/TXT output stay in sync
 - **AI humanizer**: rewrite resume/cover letter content to read less like AI output, with reviewable before/after changes
-- **AI proofreading**: deterministic lint checks plus an LLM pass surface grammar, consistency, and unquantified-claim issues in a review drawer; lint-sourced fixes auto-apply
+- **AI proofreading**: deterministic lint checks plus an LLM pass catch grammar, consistency, and unquantified-claim issues in a review drawer; lint-sourced fixes auto-apply
 - **ATS analysis**: keyword/skill match scoring plus knockout-risk and title-alignment checks with rewrite coaching, including a chat action to fix all flagged issues at once
-- **EU/German CVs**: optional profile photo, nationality, date of birth, and hobbies section, DE/EU region prompt guidance, and an Anschreiben cover letter style
+- **EU/German CVs**: optional profile photo, nationality, date of birth, and hobbies section; DE/EU region prompt guidance; an Anschreiben cover letter style
 - **Documents view**: browse all generated resumes and cover letters across jobs (`/documents`)
 - **Notifications**: a bell in the sidebar shows background task progress and results (e.g. bookmark parsing), with history and a clear-all action
 - **PDF & TXT export**: generate application-ready documents
-- **Multiple LLM providers**: OpenAI, Google Gemini, Anthropic (Claude), xAI Grok, Perplexity, local Ollama, or a managed pay-as-you-go gateway (no key required) — switch per job
-- **MCP server (optional)**: drive the same job-parsing/tailoring/ATS/proofreading/humanizing flows, plus reading and editing your base profile (with a diff preview before anything saves), from Claude Desktop or another MCP host on your own chat subscription, no API key configured in this app required — opt-in toggle in **Settings**, off by default; see [docs/MCP.md](./docs/MCP.md)
+- **10 LLM providers**: OpenAI, Google Gemini, Anthropic (Claude), xAI Grok, Groq, DeepSeek, Mistral, OpenRouter, Perplexity, local Ollama — or a managed pay-as-you-go gateway (no key required); switch per job
+- **MCP server (optional)**: drive the same job-parsing/tailoring/ATS/proofreading/humanizing flows, plus reading and editing your base profile with a diff preview before anything saves, from Claude Desktop or another MCP host on your own chat subscription — no API key configured in this app required. Opt-in toggle in **Settings**, off by default; see [docs/MCP.md](./docs/MCP.md)
 - **Secure key storage**: API keys are AES-256-GCM encrypted on disk (desktop), keyed off a per-install master key held in the OS keychain, or `localStorage` (web) — never on the server
 - **Backup & restore**: export the entire local database to a JSON file and restore it later, from **Settings**
 - **Local-first**: all data in a local SQLite database; no mandatory cloud dependency
 
 ## Download & Install
 
-Prebuilt desktop apps for macOS, Windows, and Linux are published on the [Releases](https://github.com/Pranavraut033/resume-builder/releases) page for every `v*.*.*` tag.
+Prebuilt desktop apps for macOS, Windows, and Linux are published on the [Releases](https://github.com/Pranavraut033/resume-builder/releases) page for every `v*.*.*` tag from v1.13.1 onward — earlier tags are macOS-only.
 
 | Platform              | File                                       | Notes                                          |
 | --------------------- | ------------------------------------------ | ---------------------------------------------- |
@@ -84,7 +84,7 @@ The app is **self-signed** (not signed by a CA-trusted/registered publisher), so
 - **Database**: SQLite via Prisma ORM 7
 - **Styling**: Tailwind CSS v4
 - **State**: Zustand (LLM provider/model selection, notifications, background bookmark-parsing queue)
-- **LLM providers**: OpenAI, Google Gemini, Anthropic, Grok, Perplexity, Ollama, or the managed gateway (all client-side); provider base classes/prompt infra live in the `@pranavraut033/llm-core` package (`packages/llm-core/`), ATS scoring logic in `@pranavraut033/ats-checker` (`packages/ats-checker/`)
+- **LLM providers**: OpenAI, Google Gemini, Anthropic, Grok, Groq, DeepSeek, Mistral, OpenRouter, Perplexity, Ollama, or the managed gateway (all client-side); provider base classes/prompt infra live in the `@pranavraut033/llm-core` package (`packages/llm-core/`), ATS scoring logic in `@pranavraut033/ats-checker` (`packages/ats-checker/`)
 - **PDF export**: `@react-pdf/renderer` / `pdf-lib`
 - **Drag & drop**: `@dnd-kit`
 - **Testing**: Vitest + Testing Library, Playwright for e2e
@@ -208,7 +208,6 @@ udaan/
 ├── e2e/                           # Playwright e2e specs
 └── docs/
     ├── plans/                     # PRDs, requirements, implementation plans
-    ├── QUICK_REFERENCE.md
     ├── UI_COMPONENTS_GUIDE.md
     ├── DISTRIBUTION.md
     ├── SECURITY_AUDIT.md

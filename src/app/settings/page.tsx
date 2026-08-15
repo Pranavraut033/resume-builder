@@ -336,7 +336,7 @@ export default function SettingsPage() {
     }
   };
 
-  // Only the 6 builtins + the managed provider are ever registered (see
+  // Only the 10 builtins + the managed provider are ever registered (see
   // providers/factory.ts), so narrowing the package's open ProviderId back
   // to our closed enum is safe.
   const cloudProviders = getAvailableProviders().filter(

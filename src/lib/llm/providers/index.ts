@@ -2,9 +2,9 @@
  * Provider barrel.
  *
  * Re-exports the registry/factory primitives from `@pranavraut033/llm-core`
- * (which ships the 6 concrete providers), plus the host's `ProviderFactory`
+ * (which ships the 10 concrete providers), plus the host's `ProviderFactory`
  * shim. Importing this barrel (transitively, via `./factory`) registers all
- * 6 built-in providers.
+ * 10 built-in providers.
  */
 
 export {
