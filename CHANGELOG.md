@@ -2,6 +2,18 @@
 
 All notable changes to this project are documented in this file.
 
+## [1.13.2] - 2026-08-16
+
+### Fixed
+
+- Logger no longer misattributes stack traces to its own internal frames once the app is bundled/minified — `client.log` again points at the real call site instead of `logger.ts` internals ([316daff])
+
+### Internal
+
+- Tauri capability list now includes `opener:allow-default-urls`, which the opener plugin needs to hand external links off to the OS's default handler for a given URL scheme ([1115f7a])
+- README and docs corrected: LLM provider count (6 → 10 + managed), template count (9 → 10), and platform/download claims that were stale since Windows and Linux builds shipped in v1.13.1 ([c1d0b02], [afcd6aa], [e4fa480])
+- Landing page rewritten: the ATS section no longer implies a resume "score" (an ATS is a database, not a judge — matches what the tailoring prompts actually do), added a section on German/EU CV support, and corrected stale platform/template/tool-count claims ([eddc629])
+
 ## [1.13.1] - 2026-08-15
 
 ### Fixed

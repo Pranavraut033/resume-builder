@@ -1,3 +1,11 @@
+# v1.13.2 — 2026-08-16
+
+Mostly documentation and website accuracy, plus a debug-logging fix.
+
+- **Landing page corrected and expanded.** The ATS section no longer implies a "score" — there isn't one, an ATS is a database, not a judge — and there's a new section on how Udaan follows German/EU CV conventions for jobs based there.
+- **README and docs brought up to date.** The provider list, template count, and platform/download details now match what's actually shipped.
+- **Fixed: error logs in the installed app pointed at the wrong place.** `client.log` now shows the real call site instead of logger internals, making bug reports easier to diagnose.
+
 # v1.13.1 — 2026-08-15
 
 Windows and Linux desktop builds are now available.
