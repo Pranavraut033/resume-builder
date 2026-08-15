@@ -2,6 +2,17 @@
 
 All notable changes to this project are documented in this file.
 
+## [1.13.1] - 2026-08-15
+
+### Fixed
+
+- Windows and Linux desktop installers are now built and published in CI — both the manual smoke-build workflow and the release workflow previously ran macOS only ([853c165], [00e36e7])
+- Windows build failures fixed: `npm.cmd`/`npx.cmd` now spawn correctly with `shell: true` ([a3ca9ca])
+- Linux builds no longer ship a musl-linked binary for `sharp` or llm-core's `rolldown` dependency, which `linuxdeploy`'s AppImage packager couldn't process ([b49976d], [c5f9ffc], [c6e7dec])
+- `desktop:build*` scripts now route through the dotenv-wrapped `tauri` script, so `TAURI_SIGNING_PRIVATE_KEY` loads correctly outside `npm run tauri build` ([31c93b4])
+- Publishing a release now explicitly triggers the landing page deploy, since `GITHUB_TOKEN`-authored release publishes don't fire the `release: published` event other workflows listen for ([42bdd1a])
+- Landing page: corrected screenshot aspect ratios and swapped in the official Apple logo on the download page; removed the stale "Windows and Linux coming soon" footer text now that all three platforms ship ([bd1b065], [1be9893])
+
 ## [1.13.0] - 2026-08-14
 
 ### Fixed

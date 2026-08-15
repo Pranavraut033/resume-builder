@@ -1,3 +1,11 @@
+# v1.13.1 — 2026-08-15
+
+Windows and Linux desktop builds are now available.
+
+- **New: Windows and Linux installers.** Udaan now ships `.exe` (Windows) and `.AppImage`/`.deb` (Linux) builds alongside macOS, both for the manual test build and every tagged release.
+- **Fixed: release publishing now reliably updates the download page**, so the website picks up new releases right away instead of needing a manual trigger.
+- **Landing page polish:** corrected screenshot proportions, the official Apple logo on the download page, and updated footer copy now that all three platforms are supported.
+
 # v1.13.0 — 2026-08-14
 
 Smarter macOS downloads, and an MCP fix.
