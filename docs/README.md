@@ -2,9 +2,11 @@
 
 ## Guides
 
-- [QUICK_REFERENCE.md](./QUICK_REFERENCE.md) — quick reference for common patterns and commands
 - [UI_COMPONENTS_GUIDE.md](./UI_COMPONENTS_GUIDE.md) — UI component patterns and usage
 - [DISTRIBUTION.md](./DISTRIBUTION.md) — packaging and distributing the Tauri desktop app
+- [MCP.md](./MCP.md) — the MCP server's tool surface, for an external MCP host driving this app
+- [MCP_ARCHITECTURE.md](./MCP_ARCHITECTURE.md) — internal design of the MCP server implementation
+- [SECURITY_AUDIT.md](./SECURITY_AUDIT.md) — security audit findings and current status
 
 ## Plans & Requirements (`plans/`)
 
