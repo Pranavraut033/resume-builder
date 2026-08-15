@@ -170,11 +170,11 @@ base64 -i udaan.p12 | pbcopy
 
 ### Workflows
 
-| Workflow                   | File                            | Trigger                                                                                                                                                             |
-| -------------------------- | ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Build (manual smoke build) | `.github/workflows/build.yml`   | Manual (`workflow_dispatch`) — matrix builds macOS, Windows, and Linux                                                                                              |
-| CI (type-check + lint)     | `.github/workflows/ci.yml`      | Push, pull requests — no build or signing, just `type-check`/`lint`                                                                                                 |
-| Release                    | `.github/workflows/release.yml` | Push of a version tag (e.g. `v1.0.0`), or manual dispatch with a `tag` input                                                                                        |
+| Workflow                   | File                            | Trigger                                                                      |
+| -------------------------- | ------------------------------- | ---------------------------------------------------------------------------- |
+| Build (manual smoke build) | `.github/workflows/build.yml`   | Manual (`workflow_dispatch`) — matrix builds macOS, Windows, and Linux       |
+| CI (type-check + lint)     | `.github/workflows/ci.yml`      | Push, pull requests — no build or signing, just `type-check`/`lint`          |
+| Release                    | `.github/workflows/release.yml` | Push of a version tag (e.g. `v1.0.0`), or manual dispatch with a `tag` input |
 
 ### Publishing a Release
 

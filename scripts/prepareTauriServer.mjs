@@ -199,7 +199,9 @@ async function downloadNodeRuntime() {
   const platform = os.platform();
   const distPlatform = NODE_DIST_PLATFORM[platform];
   if (!distPlatform) {
-    throw new Error(`Bundling a Node runtime isn't implemented for platform: ${platform}.`);
+    throw new Error(
+      `Bundling a Node runtime isn't implemented for platform: ${platform}.`
+    );
   }
   const isWindows = platform === "win32";
   const binaryName = isWindows ? "node.exe" : "node";
