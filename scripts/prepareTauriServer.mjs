@@ -6,6 +6,7 @@ import {
   lstat,
   mkdir,
   mkdtemp,
+  readdir,
   readFile,
   rm,
   writeFile,
@@ -181,27 +182,43 @@ function packageRelativePathFor(resolvedFile) {
 // above, which was itself built against *this* script's own Node — so we
 // just download and ship that exact same version, rather than pinning a
 // separate version and rebuilding native modules against it.
-// ponytail: darwin only (matches this repo's actual build/ship platform).
-// Add win32/linux dist URL + archive mapping here when that's needed.
+// Node.js dist naming differs just enough per platform to need a small map:
+// darwin/linux ship a .tar.gz with the binary at "<dir>/bin/node"; Windows
+// ships a .zip with "node.exe" directly at the archive root (no bin/). Arch
+// strings ("arm64"/"x64") are the same across all three, so os.arch() needs
+// no translation. GitHub's windows-latest runner's bundled `tar` is bsdtar,
+// which reads .zip too, so this stays a single `tar` invocation either way.
+// Windows itself resolves an extension-less child-process path by trying
+// "<name>.exe" (see src-tauri/src/lib.rs's node_bin path, which is not
+// platform-branched) — untested on an actual Windows runner as of writing.
+const NODE_DIST_PLATFORM = { darwin: "darwin", linux: "linux", win32: "win" };
+
 async function downloadNodeRuntime() {
   const version = process.version; // e.g. "v24.9.0"
   const arch = os.arch(); // "arm64" | "x64"
-  if (os.platform() !== "darwin") {
-    throw new Error(
-      `Bundling a Node runtime is only implemented for macOS right now (platform: ${os.platform()}).`
-    );
+  const platform = os.platform();
+  const distPlatform = NODE_DIST_PLATFORM[platform];
+  if (!distPlatform) {
+    throw new Error(`Bundling a Node runtime isn't implemented for platform: ${platform}.`);
   }
+  const isWindows = platform === "win32";
+  const binaryName = isWindows ? "node.exe" : "node";
+  const archiveExt = isWindows ? "zip" : "tar.gz";
+  const archiveDirName = `node-${version}-${distPlatform}-${arch}`;
+  const archiveMemberPath = isWindows
+    ? `${archiveDirName}/node.exe`
+    : `${archiveDirName}/bin/node`;
 
   const cacheDir = path.join(
     os.tmpdir(),
     "udaan-node-runtime-cache",
     `${version}-${arch}`
   );
-  const cachedBinary = path.join(cacheDir, "node");
+  const cachedBinary = path.join(cacheDir, binaryName);
 
   if (!existsSync(cachedBinary)) {
     await mkdir(cacheDir, { recursive: true });
-    const tarballName = `node-${version}-darwin-${arch}.tar.gz`;
+    const tarballName = `${archiveDirName}.${archiveExt}`;
     const url = `https://nodejs.org/dist/${version}/${tarballName}`;
     const tarballPath = path.join(cacheDir, tarballName);
 
@@ -217,18 +234,18 @@ async function downloadNodeRuntime() {
     );
 
     execFileSync("tar", [
-      "-xzf",
+      isWindows ? "-xf" : "-xzf",
       tarballPath,
       "-C",
       cacheDir,
-      "--strip-components=2",
-      `node-${version}-darwin-${arch}/bin/node`,
+      `--strip-components=${isWindows ? 1 : 2}`,
+      archiveMemberPath,
     ]);
   }
 
   const outputBinDir = path.join(outputDir, "node-bin");
   await mkdir(outputBinDir, { recursive: true });
-  const bundledBinary = path.join(outputBinDir, "node");
+  const bundledBinary = path.join(outputBinDir, binaryName);
   await cp(cachedBinary, bundledBinary);
   await chmod(bundledBinary, 0o755);
 }
@@ -246,7 +263,13 @@ async function bundleMcpServer() {
   // src/mcp changes.
   console.log("Running `npm run build:mcp`...");
   const npm = process.platform === "win32" ? "npm.cmd" : "npm";
-  execFileSync(npm, ["run", "build:mcp"], { cwd: root, stdio: "inherit" });
+  // .cmd shims aren't real executables — Windows needs cmd.exe to run them,
+  // or execFileSync throws EINVAL instead of spawning anything.
+  execFileSync(npm, ["run", "build:mcp"], {
+    cwd: root,
+    stdio: "inherit",
+    shell: process.platform === "win32",
+  });
 
   await mkdir(mcpOutputDir, { recursive: true });
   const entryFiles = ["stdio.js", "http.js"];
@@ -339,6 +362,27 @@ async function bundleMcpServer() {
   }
 }
 
+// See the call site in main() for why this exists. Recurses into nested
+// node_modules (scoped packages carry their own) since musl-variant
+// binaries aren't only ever hoisted to the top level.
+async function stripMuslBinaries(dir) {
+  let entries;
+  try {
+    entries = await readdir(dir, { withFileTypes: true });
+  } catch {
+    return;
+  }
+  for (const entry of entries) {
+    if (!entry.isDirectory()) continue;
+    const full = path.join(dir, entry.name);
+    if (entry.name.includes("musl")) {
+      await rm(full, { recursive: true, force: true });
+      continue;
+    }
+    await stripMuslBinaries(full);
+  }
+}
+
 async function main() {
   if (!existsSync(standaloneDir)) {
     throw new Error(
@@ -382,6 +426,8 @@ async function main() {
   const templateDbPath = path.join(templateDir, "app-template.db");
   // execFileSync skips the shell, so on Windows it needs the literal .cmd
   // shim name — a bare "npx" only resolves via PATHEXT under a real shell.
+  // And .cmd shims aren't real executables — Windows needs cmd.exe to run
+  // them, or execFileSync throws EINVAL instead of spawning anything.
   const npx = process.platform === "win32" ? "npx.cmd" : "npx";
   execFileSync(
     npx,
@@ -392,7 +438,7 @@ async function main() {
       "--accept-data-loss",
       `--url=file:${templateDbPath}`,
     ],
-    { cwd: root, stdio: "inherit" }
+    { cwd: root, stdio: "inherit", shell: process.platform === "win32" }
   );
   await cp(templateDbPath, path.join(outputDir, "app-template.db"));
   await rm(templateDir, { recursive: true, force: true });
@@ -407,6 +453,22 @@ async function main() {
 
   await downloadNodeRuntime();
   await bundleMcpServer();
+
+  // Several native deps (sharp's @img/sharp-linux-x64 vs
+  // @img/sharp-linuxmusl-x64; llm-core's rolldown, @rolldown/binding-linux-x64-gnu
+  // vs -musl; more will keep turning up) ship separate glibc/musl Linux
+  // binaries without a `libc` field in package.json, so npm can't tell them
+  // apart and installs both on any Linux x64 host. Next's tracer then
+  // bundles both — the musl one never loads on a glibc build, and
+  // linuxdeploy doesn't just skip it: running `ldd` against a musl-linked
+  // .node/.so on a glibc system throws inside linuxdeploy's own dependency
+  // walker and aborts the whole bundle. Sweep every musl-suffixed directory
+  // out of the tree (any depth — nested per-package node_modules included).
+  // Must run LAST — bundleMcpServer() above re-copies llm-core's real
+  // directory (musl binary included) straight past an earlier strip, which
+  // is exactly how this one got missed the first time. No-op on
+  // macOS/Windows (npm's `os` field already excludes Linux binaries there).
+  await stripMuslBinaries(path.join(outputDir, "node_modules"));
 
   console.log("Prepared bundled Next standalone server for Tauri:", outputDir);
 }
