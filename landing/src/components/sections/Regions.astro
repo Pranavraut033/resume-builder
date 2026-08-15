@@ -1,0 +1,67 @@
+---
+// The one thing no other resume tool does: follow German/EU CV conventions
+// instead of US ones. Visual is markup rather than a <Media> slot because
+// there's no screenshot for it, and an empty Media slot renders a visible
+// "drop a file here" placeholder in production.
+//
+// Rows mirror the rules actually enforced in
+// src/lib/llm/prompts/regionGuidance.ts — keep the two in sync.
+const conventions: [string, string, string][] = [
+  ['Length', 'One page, cram to fit', 'Two pages, never crammed'],
+  ['Voice', 'I led the billing rewrite', 'Lead of the billing rewrite'],
+  ['Languages', 'German: fluent', 'German: B2'],
+  ['Proficiency', 'Bars, dots, five stars', 'Words only'],
+  ['Timeline', 'Gaps left unexplained', 'Every gap accounted for'],
+  ['Photo', 'Never', 'If the ad asks for one'],
+];
+---
+
+<!-- ============ Market conventions ============ -->
+<section id="regions" data-scroll class="border-t border-line px-5 py-24 md:py-32">
+  <div class="relative mx-auto max-w-6xl">
+    <p
+      aria-hidden="true"
+      class="ghost-num pointer-events-none absolute -top-4 right-0 -z-10 font-mono text-[7rem] leading-none font-bold tracking-tighter text-ink/[0.04] select-none md:text-[11rem] dark:text-ink/[0.07]"
+    >
+      03
+    </p>
+    <p class="tint-eyebrow reveal flex w-fit items-center rounded-lg px-2.5 py-1 font-mono text-xs font-bold tracking-[0.18em]">
+      @@ market conventions @@
+    </p>
+    <h2 class="reveal mt-5 max-w-2xl font-display text-4xl tracking-tight text-balance sm:text-5xl">
+      Written for the market you're applying into.
+    </h2>
+    <p class="reveal reveal-2 mt-4 max-w-[65ch] leading-relaxed text-ink-muted">
+      A German Lebenslauf and a US résumé disagree about length, pronouns, photos, and how
+      you state a language level. Udaan reads where the job is and follows that market's
+      rules.
+    </p>
+
+    <div class="reveal reveal-2 mt-10 overflow-hidden rounded-2xl border border-line bg-raised">
+      <div class="grid grid-cols-[minmax(0,4.5rem)_1fr_1fr] sm:grid-cols-[minmax(0,8rem)_1fr_1fr] gap-px border-b border-line bg-line font-mono text-xs">
+        <span class="bg-raised px-4 py-3 text-ink-muted"></span>
+        <span class="bg-raised px-4 py-3 font-semibold text-ink-muted">US posting</span>
+        <span class="bg-raised px-4 py-3 font-semibold text-add">+ EU posting</span>
+      </div>
+      {
+        conventions.map(([label, us, eu], i) => (
+          <div
+            class={`grid grid-cols-[minmax(0,4.5rem)_1fr_1fr] sm:grid-cols-[minmax(0,8rem)_1fr_1fr] gap-px bg-line font-mono text-xs sm:text-sm ${
+              i === conventions.length - 1 ? '' : 'border-b border-line'
+            }`}
+          >
+            <span class="bg-raised px-4 py-3 text-ink-muted">{label}</span>
+            <span class="bg-raised px-4 py-3 text-ink-muted">{us}</span>
+            <span class="bg-add-soft px-4 py-3 text-add">{eu}</span>
+          </div>
+        ))
+      }
+    </div>
+
+    <p class="reveal mt-6 max-w-[65ch] text-sm leading-relaxed text-ink-muted">
+      Your resume stays in whatever language you wrote it in. Only the conventions change,
+      so an English CV aimed at Berlin reads as a Lebenslauf without being translated into
+      one. There's a Euro Sidebar template and an Anschreiben cover-letter style to match.
+    </p>
+  </div>
+</section>

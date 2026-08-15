@@ -26,12 +26,12 @@ export const faqs: [string, string][] = [
     "Udaan is self-signed rather than paid-publisher signed, so macOS and Windows show a one-time warning for any app outside their stores. See the note below the download button for the two-click fix.",
   ],
   [
-    "Why is the download 118MB if it's not Electron?",
-    "Tauri keeps the app binary itself small, but Udaan bundles a full Next.js server to run its local API and database layer, and that server is most of the size. It's still a native window rather than a wrapped browser tab, so startup and memory use stay closer to Tauri than Electron.",
+    "Why is the download so big if it's not Electron?",
+    "It ranges from 62MB on Windows to 179MB for the Linux AppImage, with the macOS .dmg around 113MB. Tauri keeps the app binary itself small, but Udaan bundles a full Next.js server to run its local API and database layer, and that server is most of the weight. It's still a native window rather than a wrapped browser tab, so startup and memory use stay closer to Tauri than Electron.",
   ],
   [
-    "Is Windows and Linux support actually coming, or is that just marketing?",
-    "Today's builds are macOS only. Every release so far has shipped a universal .dmg. The Tauri config already targets Windows and Linux, so it's a build and test pass away rather than a rewrite, but there's no fixed date yet.",
+    "Which platforms can I actually run it on?",
+    "macOS, Windows, and Linux, as of v1.13.1. That release was the first to build all three: separate Apple Silicon and Intel .dmg files, an .exe installer and .msi for Windows, and .AppImage, .deb, and .rpm for Linux. Anything older than v1.13.1 is macOS only. There's no universal macOS binary, so pick the one matching your chip.",
   ],
   [
     "Where exactly are my API keys stored?",
@@ -47,7 +47,7 @@ export const faqs: [string, string][] = [
   ],
   [
     "Does it support European CV conventions, like a photo?",
-    "Yes. Your profile has dedicated fields for a photo and a hobbies section, both optional, matching the format expected on a German or broader EU-style CV.",
+    "German and EU conventions are the default, not an add-on. Your profile carries optional fields for a photo, nationality, date of birth, work authorization, and hobbies, and there's a Euro Sidebar template plus an Anschreiben cover-letter style. When the job is EU-based, the tailoring follows German rules: two pages rather than a crammed one, no first-person pronouns, CEFR language levels, no skill bars. Paste a US posting and you get a US résumé instead.",
   ],
   [
     "Can I use it without AI at all?",

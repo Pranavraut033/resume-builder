@@ -9,9 +9,12 @@ const tools = [
   'submit',
   'apply_resume_ops',
   'list_profiles',
+  'get_profile',
   'list_jobs',
-  'fetch_url',
   'get_job_state',
+  'preview_profile_edit',
+  'apply_profile_edit',
+  'fetch_url',
 ];
 ---
 
@@ -22,7 +25,7 @@ const tools = [
       aria-hidden="true"
       class="ghost-num pointer-events-none absolute -top-4 right-0 -z-10 font-mono text-[7rem] leading-none font-bold tracking-tighter text-term-fg/[0.05] select-none md:text-[11rem]"
     >
-      04
+      05
     </p>
     <p class="relative reveal flex w-fit items-center rounded-lg bg-term-line/60 px-2.5 py-1 font-mono text-xs font-bold tracking-[0.18em] text-term-accent">
       @@ mcp server @@
@@ -32,8 +35,9 @@ const tools = [
     </h2>
     <p class="reveal reveal-2 mt-4 max-w-[65ch] leading-relaxed text-term-muted">
       Udaan also runs as an MCP server, so Claude Desktop or any MCP host can parse jobs,
-      tailor resumes, and export files on the subscription you already pay for. No
-      separate API key.
+      tailor resumes, and export files on the subscription you already pay for. No separate
+      API key. Edits to your base profile go through a diff you approve first, so a model
+      driving the app can't quietly rewrite your history.
     </p>
 
     <div class="reveal reveal-2 mt-10 grid gap-6 lg:grid-cols-2">

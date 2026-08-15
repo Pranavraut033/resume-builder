@@ -1,11 +1,8 @@
 ---
 import { REPO, getBase } from '../../consts';
-import { getLatestReleaseAssets } from '../../lib/releases';
 import Media from '../Media.astro';
 
 const base = getBase(import.meta.env.BASE_URL);
-const downloads = await getLatestReleaseAssets();
-const otherPlatformsReady = Boolean(downloads.windows || downloads.linux);
 ---
 
 <!-- ============ Hero — pinned: the diff card settles as you scroll ============ -->
@@ -14,14 +11,7 @@ const otherPlatformsReady = Boolean(downloads.windows || downloads.linux);
     <div class="mx-auto grid w-full max-w-6xl items-center gap-12 px-5 pt-16 pb-20 sm:pt-20 lg:grid-cols-[1.05fr_1fr] lg:gap-16">
       <div class="hero-copy min-w-0">
         <p class="reveal flex flex-wrap items-center gap-2 font-mono text-xs tracking-[0.2em] text-ink-muted uppercase">
-          <span>Free · Open source · macOS{otherPlatformsReady ? ', Windows, Linux' : ''}</span>
-          {
-            !otherPlatformsReady && (
-              <span class="rounded-md border border-line px-2 py-0.5 text-[10px] tracking-normal normal-case text-ink-muted">
-                Windows and Linux coming soon
-              </span>
-            )
-          }
+          <span>Free · Open source · macOS, Windows, Linux</span>
         </p>
         <h1 class="reveal mt-5 font-display text-5xl leading-[0.95] tracking-tight text-balance sm:text-6xl lg:text-7xl xl:text-8xl">
           Every application,
@@ -29,7 +19,8 @@ const otherPlatformsReady = Boolean(downloads.windows || downloads.linux);
         </h1>
         <p class="reveal reveal-2 mt-6 max-w-xl text-lg leading-relaxed text-ink-muted">
           Paste a job description. Get a resume and cover letter written for <em>that</em>{' '}
-          posting: keyword-matched, ATS-scored, and edited by you before it ever leaves your machine.
+          posting: matched to its keywords, checked for the requirements that quietly reject
+          you, and edited by you before any of it leaves your machine.
         </p>
         <div class="reveal reveal-3 mt-8 flex flex-wrap items-center gap-3">
           <a

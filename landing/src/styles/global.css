@@ -204,24 +204,6 @@ body {
   }
 }
 
-/* Hook: word-by-word reveal scrubbed by scroll; the strikethrough on the
-   deleted words draws left→right as they light up */
-.wreveal [data-w] {
-  display: inline-block;
-  padding-inline-end: 0.26em;
-}
-.wreveal .wd-s {
-  text-decoration: none;
-  background-image: linear-gradient(currentColor, currentColor);
-  background-repeat: no-repeat;
-  background-position: 0 56%;
-  background-size: calc(var(--wp, 1) * 100%) 0.07em;
-}
-.motion-ok .wreveal [data-w] {
-  --wp: clamp(0, calc((var(--sp, 1) - 0.08 - var(--i, 0) * 0.021) * 24), 1);
-  opacity: calc(0.14 + 0.86 * var(--wp));
-}
-
 /* Ghost section numerals drift slower than the page (parallax) */
 .motion-ok .ghost-num {
   translate: 0 calc((0.5 - var(--sp, 0.5)) * 80px);
@@ -413,20 +395,6 @@ body {
   position: relative;
 }
 
-/* Hook band — a scan beam sweeps down as --sp advances; faint keyword
-   boxes are the gradient's own hard stops, so no extra markup is needed. */
-.backdrop-scan {
-  background-image: linear-gradient(
-    to bottom,
-    transparent 0%,
-    color-mix(in srgb, var(--color-term-accent) 14%, transparent) 49%,
-    transparent 100%
-  );
-  background-size: 100% 220%;
-  background-position-y: calc(var(--sp, 0) * 140% - 60%);
-  opacity: 0.9;
-}
-
 /* How it works — flight path drawn down the gutter, plane glyph riding
    the same stroke-dashoffset progress via offset-path. */
 .backdrop-flightpath {
@@ -492,9 +460,6 @@ body {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .backdrop-scan {
-    background-position: initial;
-  }
   .flap-char {
     animation: none;
     opacity: 1;

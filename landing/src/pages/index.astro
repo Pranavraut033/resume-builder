@@ -2,9 +2,9 @@
 import Base from '../layouts/Base.astro';
 import Hero from '../components/sections/Hero.astro';
 import Stats from '../components/sections/Stats.astro';
-import Hook from '../components/sections/Hook.astro';
 import Features from '../components/sections/Features.astro';
 import Ats from '../components/sections/Ats.astro';
+import Regions from '../components/sections/Regions.astro';
 import CoverLetters from '../components/sections/CoverLetters.astro';
 import Mcp from '../components/sections/Mcp.astro';
 import HowItWorks from '../components/sections/HowItWorks.astro';
@@ -14,15 +14,15 @@ import FinalCta from '../components/sections/FinalCta.astro';
 
 const title = 'Udaan · a tailored resume and cover letter for every job';
 const description =
-  'Free, open-source desktop app that turns a job description and your base profile into a tailored, ATS-friendly resume and cover letter. Bring your own AI key or run Ollama locally, all data stays on your machine.';
+  'Free, open-source desktop app that turns a job description and your base profile into a tailored resume and cover letter, following German/EU CV conventions or US ones depending on where the job is. Bring your own AI key or run Ollama locally, all data stays on your machine.';
 ---
 
 <Base title={title} description={description}>
   <Hero />
   <Stats />
-  <!-- <Hook /> -->
   <Features />
   <Ats />
+  <Regions />
   <CoverLetters />
   <Mcp />
   <HowItWorks />
