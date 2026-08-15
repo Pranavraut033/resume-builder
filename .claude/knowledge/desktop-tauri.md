@@ -63,7 +63,10 @@ installs. No-op on non-macOS.
 ## Build scripts
 
 - `scripts/prepareTauriServer.mjs` (`npm run prepare:tauri-server`) — stages the standalone Next server into
-  the bundle.
+  the bundle. On Linux it also recursively strips musl-libc native binaries (any `node_modules` dir whose name
+  contains `musl`, e.g. `@img/sharp-linuxmusl-x64`, llm-core's rolldown) from the bundled output — `ldd`
+  chokes on a musl-linked binary and aborts `linuxdeploy`. This must run *after* `bundleMcpServer()`, which
+  re-copies llm-core's real (symlink-dereferenced) directory and would otherwise reintroduce the stripped file.
 - `scripts/migrate-app-db.mjs` — the launch-time migration above.
 - `npm run build:mcp` (`tsup.mcp.config.ts`) — bundles the MCP server; part of `prebuild`.
 

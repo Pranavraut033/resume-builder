@@ -172,7 +172,7 @@ base64 -i udaan.p12 | pbcopy
 
 | Workflow                   | File                            | Trigger                                                                                                                                                             |
 | -------------------------- | ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Build (manual smoke build) | `.github/workflows/build.yml`   | Manual (`workflow_dispatch`) — macOS only for now (see the `ponytail` comment in the file: Windows/Linux are disabled until `prepareTauriServer.mjs` supports them) |
+| Build (manual smoke build) | `.github/workflows/build.yml`   | Manual (`workflow_dispatch`) — matrix builds macOS, Windows, and Linux                                                                                              |
 | CI (type-check + lint)     | `.github/workflows/ci.yml`      | Push, pull requests — no build or signing, just `type-check`/`lint`                                                                                                 |
 | Release                    | `.github/workflows/release.yml` | Push of a version tag (e.g. `v1.0.0`), or manual dispatch with a `tag` input                                                                                        |
 
@@ -188,10 +188,10 @@ git push origin v1.0.0
 GitHub Actions will automatically:
 
 1. Create a draft GitHub release
-2. Build the universal `.dmg` (macOS only — other platforms are disabled in the matrix, same as the Build workflow)
-3. Sign with your certificate (or ad-hoc, if `APPLE_SIGNING_IDENTITY` isn't set)
+2. Build macOS (arm64 + x64 `.dmg`), Windows (`.exe`/NSIS), and Linux (`.AppImage`) installers
+3. Sign macOS with your certificate (or ad-hoc, if `APPLE_SIGNING_IDENTITY` isn't set)
 4. Sign the update package with your Ed25519 key
-5. Upload the `.dmg`/`.app.tar.gz` and generated `update.json` to the release
+5. Upload each platform's installer/`.app.tar.gz` and generated `update.json` to the release
 6. Publish the release (undraft it)
 
 ---
