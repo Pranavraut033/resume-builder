@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+
 import { Logger } from "./logger";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
