@@ -222,18 +222,49 @@ export class Logger {
     }
   }
 
+  // Logger/ScopedLogger method names that show up as internal frames on top
+  // of every captured stack. Filtering by filename (as before) breaks once
+  // this file is bundled/minified — the frame's file becomes a chunk name,
+  // not "logger.ts" — so filter by function name instead, which survives
+  // minification because these are class method names, not local vars.
+  private static readonly INTERNAL_FRAME_NAMES = new Set([
+    "captureStack",
+    "log",
+    "debug",
+    "info",
+    "warn",
+    "error",
+    "fatal",
+  ]);
+
+  // Pull the function name out of one stack frame line, handling both
+  // V8 ("at Foo.bar (url)") and WebKit/JSC ("bar@url:line:col", used by
+  // Tauri's WKWebView) formats.
+  private static frameFunctionName(line: string): string {
+    const trimmed = line.trim();
+    if (trimmed.startsWith("at ")) {
+      const match = trimmed.match(/^at\s+(?:new\s+)?([\w$.]+)/);
+      return match?.[1]?.split(".").pop() ?? "";
+    }
+    const at = trimmed.indexOf("@");
+    return at === -1 ? "" : (trimmed.slice(0, at).split(".").pop() ?? "");
+  }
+
   /**
    * Capture a trimmed call-stack string, stripping logger-internal frames
    * so the top frame points to the actual call site.
    */
   private static captureStack(): string {
     const raw = new Error().stack ?? "";
-    const lines = raw.split("\n");
-    // Drop the Error line and any frames that originate inside Logger/ScopedLogger
-    const external = lines.filter(
-      (l) => l && !l.includes("logger.ts") && l !== "Error"
-    );
-    return external.slice(0, 5).join("\n");
+    const lines = raw.split("\n").filter((l) => l && l !== "Error");
+    let i = 0;
+    while (
+      i < lines.length &&
+      Logger.INTERNAL_FRAME_NAMES.has(Logger.frameFunctionName(lines[i]))
+    ) {
+      i++;
+    }
+    return lines.slice(i, i + 5).join("\n");
   }
 
   /**
