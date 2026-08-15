@@ -1,6 +1,8 @@
 # UI Components Guide
 
-This guide documents the reusable design system components extracted from the Settings page. All components are exported from `src/components/ui/` and follow consistent design patterns aligned with the Material Design 3 color system.
+This guide documents the reusable design system components extracted from the Settings page. All components are exported from `src/components/ui/` and follow consistent design patterns built on a custom color-token system (`--color-agent-*`), defined in Tailwind v4's `@theme` block in `src/styles/global.css`. The token names (surface, on-surface, primary-container, and so on) borrow Material Design 3's naming conventions, but this is not the MD3 library — there are no `md-sys` tokens or MD3 dependency in the codebase.
+
+This guide is a **partial catalog**: it documents 10 of the 27 components in `src/components/ui/` (the ones most used on the Settings page). For the full list, see the `export` statements in `src/components/ui/index.ts`, or read a component's source directly. For conventions on building new components in this directory, see [`../src/components/ui/README.md`](../src/components/ui/README.md).
 
 ## Component Catalog
 
@@ -377,7 +379,7 @@ Enhanced with gradient variant.
 
 ### Color System
 
-All components use the Material Design 3 color system via CSS variables:
+All components use the `agent-*` color-token system, defined as Tailwind v4 `@theme` variables in `src/styles/global.css` (with a `dark:` override block for dark mode):
 
 - `--color-agent-primary`, `--color-agent-on-primary`
 - `--color-agent-surface`, `--color-agent-on-surface`

@@ -1,6 +1,13 @@
-# macOS Distribution Guide
+# Distribution & Code Signing Guide
 
-This guide explains how to build, code-sign, and distribute Udaan as a macOS `.dmg` installer without registering with Apple.
+Udaan releases ship installers for all three desktop platforms: macOS (`.dmg`), Windows (`.exe` NSIS installer and `.msi`), and Linux (`.deb`, `.rpm`, `.AppImage`) — see `src-tauri/tauri.conf.json`'s `bundle.targets: "all"` and the release matrix in `.github/workflows/release.yml`.
+
+This guide is scoped to **macOS** because that's the only platform with a manual signing step: Apple requires a certificate to avoid the Gatekeeper warning, and setting one up means generating a self-signed cert and wiring it into GitHub Actions secrets (below). Windows and Linux need no equivalent setup:
+
+- **Windows** — CI generates a fresh, ephemeral self-signed certificate on every release build (see the "Create self-signed certificate (Windows)" step in `release.yml`). There's no cert to create or store as a secret; SmartScreen just shows a one-time "unknown publisher" warning on install, similar to the macOS Gatekeeper prompt.
+- **Linux** — the `.deb`, `.rpm`, and `.AppImage` bundles aren't code-signed at all; nothing to configure.
+
+All three platforms use the same Ed25519 updater key (Section 2 below) to sign the auto-update payload, regardless of OS.
 
 ---
 
@@ -117,7 +124,7 @@ This is required so the packaged app can run Next.js with Server Actions.
 
 Output locations:
 
-- `.dmg`: `src-tauri/target/release/bundle/dmg/Udaan_<version>_<arch>.dmg` (e.g. `_aarch64` on Apple Silicon, `_x64` on Intel; the release workflow instead builds a universal binary named `_universal.dmg`, see [Section 5](#5-github-actions-cicd-setup))
+- `.dmg`: `src-tauri/target/release/bundle/dmg/Udaan_<version>_<arch>.dmg` (`_aarch64` on Apple Silicon, `_x64` on Intel; the release workflow ([Section 5](#5-github-actions-cicd-setup)) builds each as a separate matrix job and ships both `.dmg`s on the release — not a combined universal binary)
 - `.app`: `src-tauri/target/release/bundle/macos/Udaan.app`
 
 ### Verify code signing
@@ -188,9 +195,9 @@ git push origin v1.0.0
 GitHub Actions will automatically:
 
 1. Create a draft GitHub release
-2. Build macOS (arm64 + x64 `.dmg`), Windows (`.exe`/NSIS), and Linux (`.AppImage`) installers
-3. Sign macOS with your certificate (or ad-hoc, if `APPLE_SIGNING_IDENTITY` isn't set)
-4. Sign the update package with your Ed25519 key
+2. Build macOS (arm64 + x64 `.dmg`), Windows (`.exe` NSIS installer + `.msi`), and Linux (`.deb`, `.rpm`, `.AppImage`) installers
+3. Sign macOS with your certificate (or ad-hoc, if `APPLE_SIGNING_IDENTITY` isn't set) and Windows with the CI-generated ephemeral certificate; Linux packages ship unsigned
+4. Sign the update package (all platforms) with your Ed25519 key
 5. Upload each platform's installer/`.app.tar.gz` and generated `update.json` to the release
 6. Publish the release (undraft it)
 
