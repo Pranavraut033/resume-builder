@@ -22,7 +22,7 @@ export const TemplateRenderer: React.FC<TemplateRendererProps> = ({
   const template = customization.template as TemplateType;
   const rerenderHash = simpleI32HashString(toStableJsonString(customization));
 
-  // All 9 templates are config objects dispatched to the shared engine.
+  // All 13 templates are config objects dispatched to the shared engine.
   // validateCustomization rejects unrecognized template ids at the write
   // boundary, so this falls back to modern-minimal only for legacy/corrupt data.
   const engineConfig =

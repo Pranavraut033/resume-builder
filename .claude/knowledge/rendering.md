@@ -68,6 +68,11 @@ These fail green — no type error, no test failure, just wrong output. Know the
   Grep both sides and compare branch counts.
 - **`resolveStyles.ts` reads nothing from `TemplateConfig`** and has no axis branches — a new axis never
   belongs there.
+- **A PDF `borderColor`/`border{Top,Right,Bottom,Left}Color` fed `withAlpha()`'s `rgba(...)` string renders a
+  wildly wrong (often red- or green-dominant) color, not a translucent one** — react-pdf/pdfkit mis-parses it.
+  Use `borderTint()` (same file, `src/lib/pdf/resolveStyles.ts`) for any border prop; `withAlpha` stays correct
+  for `color`/`backgroundColor` only. This has already recurred once after being fixed for bjet-professional's
+  boxed header — the `rule-above`/`boxed` heading styles reintroduced it independently.
 - **Cover-letter templates are now decoupled from resume templates.** `CoverLetterTemplateType` is a separate
   union of 9 ids (the ones with dedicated DOM + PDF components: `modern-minimal`, `tech-sidebar`,
   `business-professional`, `elegant-timeline`, `creative-modern`, `bjet-professional`, `compact-modern`,

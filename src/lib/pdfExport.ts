@@ -88,7 +88,7 @@ export async function generateResumePDF(
         config,
       });
     } else {
-      // All 9 templates have configs; this only fires for a corrupt/unknown
+      // All 13 templates have configs; this only fires for a corrupt/unknown
       // `template` value — fall back to the legacy Modern Minimal component.
       el = React.createElement(ModernMinimalPDF, {
         resume,
