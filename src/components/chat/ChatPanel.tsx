@@ -92,11 +92,11 @@ export function ChatPanel({ onClose: _close }: ChatPanelProps) {
         <span className="text-agent-on-surface mr-auto font-mono text-sm font-semibold tracking-tight">
           Resume AI
         </span>
-        {/*Ats analysis result is present, show an "ATS Analysis" badge in the header*/}
+        {/*Ats analysis result is present, show a "Recruiter Skim" badge in the header*/}
         {atsAnalysis && (
           <button
             type="button"
-            title="View ATS analysis"
+            title="View recruiter skim"
             onClick={() => setView((prev) => (prev === "ats" ? "chat" : "ats"))}
             className={cn(
               "flex h-7 w-7 items-center justify-center rounded-md transition-colors",

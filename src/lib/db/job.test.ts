@@ -189,22 +189,13 @@ function makeResume(overrides: Partial<ResumeJSON> = {}): ResumeJSON {
 }
 
 const atsAnalysis: ATSAnalysisJSON = {
-  keyword_analysis: [
-    { keyword: "Kafka", match_type: "exact", match_status: "present" },
-  ],
-  missing_keywords: ["Kubernetes"],
-  formatting_issues: [],
+  keyword_analysis: [{ keyword: "Kafka", match_type: "exact" }],
   scores: {
-    keyword_match_score: 80,
-    formatting_score: 100,
-    content_quality_score: 70,
     composite_score: 75,
   },
   improvements: [],
   knockout_risks: [],
   title_alignment: {
-    resume_title: "Backend Engineer",
-    target_title: "Staff Backend Engineer",
     verdict: "below",
     note: "One level below target.",
   },

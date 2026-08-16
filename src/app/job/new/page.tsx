@@ -27,14 +27,14 @@ const logger = createLogger("NewJobPage");
 
 const GENERATION_STEPS = [
   "Parsing job description…",
-  "Scoring resume against ATS…",
+  "Running Recruiter Skim…",
   "Tailoring resume & cover letter…",
   "Saving your application…",
 ];
 
 const SKIP_TAILORING_STEPS = [
   "Parsing job description…",
-  "Scoring resume against ATS…",
+  "Running Recruiter Skim…",
   "Copying your base profile…",
   "Saving your application…",
 ];
@@ -490,7 +490,7 @@ function NewJobPageInner() {
                     />
                     <span className="text-agent-on-surface-variant">
                       Skip AI tailoring — just copy my base profile as the
-                      resume (ATS scoring still runs, no cover letter)
+                      resume (the recruiter skim still runs, no cover letter)
                     </span>
                   </label>
 

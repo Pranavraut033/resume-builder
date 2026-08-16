@@ -112,6 +112,11 @@ function GapRow({
         <span className="border-agent-outline-variant bg-agent-surface-high text-agent-on-surface inline-flex items-center rounded-full border px-2 py-0.5 text-[11px] font-medium">
           {gapTypeLabel(gap.gap_type)}
         </span>
+        {!canFix && (
+          <span className="border-agent-outline-variant text-agent-on-surface-variant ml-auto inline-flex items-center rounded-full border px-2 py-0.5 text-[11px] font-medium">
+            no fix
+          </span>
+        )}
       </div>
       <p className="text-agent-on-surface mb-1 text-sm font-medium">
         {gap.requirement}
@@ -244,28 +249,9 @@ export function GapDrawer({
       open={open}
       onClose={handleClose}
       icon="target"
-      title="Gap Analysis"
-      footer={
-        result && fixableCount > 0 ? (
-          <div className="border-agent-outline-variant flex justify-end gap-2 border-t px-4 py-3">
-            <button
-              onClick={handleClose}
-              className="text-agent-on-surface-variant hover:bg-agent-surface-container rounded-lg px-3 py-1.5 text-xs font-medium transition-colors"
-            >
-              Dismiss
-            </button>
-            <button
-              onClick={handleApply}
-              disabled={selected.size === 0}
-              className="bg-agent-primary text-agent-on-primary rounded-lg px-3 py-1.5 text-xs font-semibold transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              Apply selected ({selected.size})
-            </button>
-          </div>
-        ) : undefined
-      }
+      title="Fit Check"
     >
-      <div className="flex-1 overflow-y-auto p-4">
+      <div className="flex-1 overflow-y-auto p-4 pb-20">
         {showSplash && (
           <div className="flex flex-col gap-4">
             <div className="text-agent-on-surface-variant flex items-start gap-3 text-sm">
@@ -369,6 +355,24 @@ export function GapDrawer({
           </div>
         )}
       </div>
+
+      {/* Floating pill — stays visible over the scroll area regardless of
+          scroll position, since a plain inline button here is easy to miss
+          without scrolling all the way down (same rationale as
+          ThemeCustomizationPanel's sticky reset bar). */}
+      {result && fixableCount > 0 && (
+        <div className="pointer-events-none absolute bottom-4 left-1/2 z-10 -translate-x-1/2">
+          <div className="border-agent-outline-variant bg-agent-surface-lowest/80 shadow-agent-modal pointer-events-auto flex items-center gap-0.5 rounded-full border p-1 backdrop-blur-xs">
+            <button
+              onClick={handleApply}
+              disabled={selected.size === 0}
+              className="bg-agent-primary text-agent-on-primary rounded-full px-4 py-1.5 text-xs font-semibold transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              Apply {selected.size} of {fixableCount} fixable
+            </button>
+          </div>
+        </div>
+      )}
     </SideDrawer>
   );
 }

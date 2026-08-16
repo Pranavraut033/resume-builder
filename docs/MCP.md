@@ -1,7 +1,7 @@
 # MCP server
 
-This app can expose its resume-building flows — job parsing, tailoring, ATS
-analysis, gap analysis, cover letter generation, editing, proofreading,
+This app can expose its resume-building flows — job parsing, tailoring, Recruiter Skim,
+Fit Check, cover letter generation, editing, proofreading,
 humanizing — as
 [Model Context Protocol](https://modelcontextprotocol.io) tools, so you can
 drive them from Claude Desktop (or any other MCP-capable host) instead of the
@@ -34,7 +34,7 @@ the same schema check
 before persisting anything, so a failed `submit` doubles as the dry run.
 Before a job exists yet (mid-`add_job`), `submit` mints a short-lived
 `draftId` and returns it — pass that on subsequent calls instead of
-re-uploading `jobDetails`/the ATS analysis/the tailored resume yourself, and
+re-uploading `jobDetails`/the Recruiter Skim/the tailored resume yourself, and
 `submit`'s response includes the next step's prompt inline as `nextPrompt`
 so a full `add_job` run is 5 tool calls, not 8+.
 

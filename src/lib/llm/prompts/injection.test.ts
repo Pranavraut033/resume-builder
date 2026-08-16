@@ -142,19 +142,12 @@ const sampleJobDetails: JobDetailsJSON = {
 
 const sampleAtsAnalysis: ATSAnalysisJSON = {
   keyword_analysis: [],
-  missing_keywords: [],
-  formatting_issues: [],
   scores: {
-    keyword_match_score: 0,
-    formatting_score: 0,
-    content_quality_score: 0,
     composite_score: 0,
   },
   improvements: [],
   knockout_risks: [],
   title_alignment: {
-    resume_title: "",
-    target_title: "",
     verdict: "unclear",
     note: "",
   },

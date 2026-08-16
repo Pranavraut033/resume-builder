@@ -371,21 +371,9 @@ export const ATSAnalysisSchema = z.object({
     z.object({
       keyword: z.string(),
       match_type: z.enum(["exact", "semantic", "missing"]),
-      match_status: z.enum(["present", "absent"]),
-    })
-  ),
-  missing_keywords: z.array(z.string()),
-  formatting_issues: z.array(
-    z.object({
-      section: z.string(),
-      description: z.string(),
-      severity: z.enum(["high", "medium", "low"]),
     })
   ),
   scores: z.object({
-    keyword_match_score: z.number().min(0).max(100),
-    formatting_score: z.number().min(0).max(100),
-    content_quality_score: z.number().min(0).max(100),
     composite_score: z.number().min(0).max(100),
   }),
   improvements: z.array(
@@ -393,7 +381,6 @@ export const ATSAnalysisSchema = z.object({
       section: z.string(),
       issue: z.string(),
       recommended_fix: z.string(),
-      estimated_score_delta: z.number().min(0).max(100),
       // Verbatim bullet/sentence being critiqued, and its XYZ-pattern
       // rewrite. Nullable + defaulted (not just optional) so old rows in
       // SQLite (Resume.atsAnalysis stored before this field existed) still
@@ -423,14 +410,10 @@ export const ATSAnalysisSchema = z.object({
   // the same back-compat reason as knockout_risks.
   title_alignment: z
     .object({
-      resume_title: z.string(),
-      target_title: z.string(),
       verdict: z.enum(["aligned", "below", "above", "unclear"]),
       note: z.string(),
     })
     .default({
-      resume_title: "",
-      target_title: "",
       verdict: "unclear",
       note: "",
     }),
@@ -449,20 +432,15 @@ export function atsAnalysisToCompactPositional(
   return sanitizeUntrustedText(`
 ATSKeyword_analysis:
 ${atsAnalysis.keyword_analysis
-  .map((ka) => `${ka.keyword}|${ka.match_type}|${ka.match_status}`)
-  .join("\n")}
-${atsAnalysis.missing_keywords.join("|")}
-ATSFormatting_issues:
-${atsAnalysis.formatting_issues
-  .map((fi) => `${fi.section}|${fi.description}|${fi.severity}`)
+  .map((ka) => `${ka.keyword}|${ka.match_type}`)
   .join("\n")}
 ATSscores:
-${[atsAnalysis.scores.keyword_match_score, atsAnalysis.scores.formatting_score, atsAnalysis.scores.content_quality_score, atsAnalysis.scores.composite_score].join("|")}
+${atsAnalysis.scores.composite_score}
 ATSImprovements:
 ${atsAnalysis.improvements
   .map(
     (imp) =>
-      `${imp.section}|${imp.issue}|${imp.recommended_fix}|${imp.estimated_score_delta}|${imp.original_text || ""}|${imp.rewrite || ""}`
+      `${imp.section}|${imp.issue}|${imp.recommended_fix}|${imp.original_text || ""}|${imp.rewrite || ""}`
   )
   .join("\n")}
 ATSKnockout_risks:
@@ -470,7 +448,7 @@ ${atsAnalysis.knockout_risks
   .map((kr) => `${kr.requirement}|${kr.severity}|${kr.evidence}|${kr.advice}`)
   .join("\n")}
 ATSTitle_alignment:
-${atsAnalysis.title_alignment.resume_title}|${atsAnalysis.title_alignment.target_title}|${atsAnalysis.title_alignment.verdict}|${atsAnalysis.title_alignment.note}
+${atsAnalysis.title_alignment.verdict}|${atsAnalysis.title_alignment.note}
 ATSAnalysisSummary:
 ${atsAnalysis.summary}`);
 }

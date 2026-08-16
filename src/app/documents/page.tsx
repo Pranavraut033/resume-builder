@@ -110,7 +110,7 @@ export default function DocumentsPage() {
     if (docType === "resume") {
       base.push({
         accessorKey: "atsScore",
-        header: "ATS Score",
+        header: "Skim",
         cell: ({ row }) => <AtsScoreBadge score={row.original.atsScore} />,
       });
     }
