@@ -34,6 +34,7 @@ expresses it.
 `headingSmallCaps`, `headingSidebar`.
 
 **Style axis unions** (from `src/types/customization.ts`):
+
 - `HeadingStyle`: `uppercase`, `underline`, `bar`, `serif`, `plain`, `accent-rule`, `rule-above`, `boxed`
 - `HeaderStyle`: `underline`, `centered`, `band`, `left-accent`, `minimal`, `plain`, `gradient`, `boxed`, `split`, `overline`
 - `EntryStyle`: `standard`, `timeline`, `compact`, `marker`, `table`, `date-column`, `label-column`
