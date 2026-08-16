@@ -7,6 +7,7 @@ import {
   TEMPLATE_CONFIG,
 } from "@/components/job-v2/engine/templates";
 import { InlineEditProvider } from "@/components/job-v2/resume/InlineEditContext";
+import { ToastProvider } from "@/components/ui/ToastProvider";
 import { DEFAULT_CUSTOMIZATION, TemplateType } from "@/types/customization";
 import { ResumeJSON } from "@/types/resume";
 
@@ -114,8 +115,8 @@ const AXIS_KEYS = [
 ] as const;
 
 describe("template config distinctness", () => {
-  it("covers all 10 templates", () => {
-    expect(TEMPLATE_IDS).toHaveLength(10);
+  it("covers all 13 templates", () => {
+    expect(TEMPLATE_IDS).toHaveLength(13);
   });
 
   it("every pair of templates differs on at least 3 visual axes", () => {
@@ -145,11 +146,13 @@ describe("template DOM output distinctness", () => {
   it("renders visibly different markup for every template", () => {
     const outputs = TEMPLATE_IDS.map((id) => {
       const { container, unmount } = render(
-        <TemplateEngine
-          resume={fixtureResume}
-          customization={{ ...DEFAULT_CUSTOMIZATION, template: id }}
-          config={TEMPLATE_CONFIG[id]!}
-        />
+        <ToastProvider>
+          <TemplateEngine
+            resume={fixtureResume}
+            customization={{ ...DEFAULT_CUSTOMIZATION, template: id }}
+            config={TEMPLATE_CONFIG[id]!}
+          />
+        </ToastProvider>
       );
       const html = container.innerHTML;
       unmount();
@@ -172,13 +175,15 @@ describe("template editability parity", () => {
   it("exposes the same editable fields in every template", () => {
     const counts = TEMPLATE_IDS.map((id) => {
       const { container, unmount } = render(
-        <InlineEditProvider resume={fixtureResume} updateResume={() => {}}>
-          <TemplateEngine
-            resume={fixtureResume}
-            customization={{ ...DEFAULT_CUSTOMIZATION, template: id }}
-            config={TEMPLATE_CONFIG[id]!}
-          />
-        </InlineEditProvider>
+        <ToastProvider>
+          <InlineEditProvider resume={fixtureResume} updateResume={() => {}}>
+            <TemplateEngine
+              resume={fixtureResume}
+              customization={{ ...DEFAULT_CUSTOMIZATION, template: id }}
+              config={TEMPLATE_CONFIG[id]!}
+            />
+          </InlineEditProvider>
+        </ToastProvider>
       );
 
       const result = {

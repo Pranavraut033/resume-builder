@@ -35,18 +35,41 @@ function TableRow({
   accentColor,
   borderColor,
   last = false,
+  variant = "boxed",
 }: {
   label: string;
   children: ReactNode;
   accentColor: string;
   borderColor: string;
   last?: boolean;
+  /** "boxed" (default) is the original bjet-professional look: bordered
+   * rows, accent-tinted label cell. "label" (europass-classic) drops the
+   * per-row border and label tint and right-aligns the label — each row's
+   * `border-r` on the label column stands in for one continuous divider
+   * for the whole entry, since rows stack with no gap between them. */
+  variant?: "boxed" | "label";
 }) {
   // No label (e.g. an uncategorized skills group) — skip the label column
   // entirely instead of reserving its width for a blank cell.
   if (!label) {
     return (
-      <div className={last ? "" : "border-b"} style={{ borderColor }}>
+      <div
+        className={variant === "boxed" && !last ? "border-b" : ""}
+        style={variant === "boxed" ? { borderColor } : undefined}
+      >
+        <div className="p-2 text-xs">{children}</div>
+      </div>
+    );
+  }
+  if (variant === "label") {
+    return (
+      <div className="grid grid-cols-[110px_1fr]">
+        <div
+          className="border-r p-2 text-right text-xs font-semibold"
+          style={{ borderColor }}
+        >
+          {label}
+        </div>
         <div className="p-2 text-xs">{children}</div>
       </div>
     );
@@ -67,14 +90,21 @@ function TableRow({
   );
 }
 
-/** Shared table-entry wrapper: a bordered box containing `TableRow`s. */
+/** Shared table-entry wrapper: a bordered box containing `TableRow`s.
+ * `variant="label"` (europass-classic) drops the outer box border — the
+ * single vertical divider comes from `TableRow`'s own `border-r` instead. */
 function TableEntry({
   children,
   borderColor,
+  variant = "boxed",
 }: {
   children: ReactNode;
   borderColor: string;
+  variant?: "boxed" | "label";
 }) {
+  if (variant === "label") {
+    return <div>{children}</div>;
+  }
   return (
     <div className="overflow-hidden border" style={{ borderColor }}>
       {children}
@@ -266,7 +296,11 @@ const experience: DomSectionBuilder = ({ resume, theme, edit, config }) =>
       };
     }
 
-    if (entryStyle === "timeline" || entryStyle === "marker") {
+    if (
+      entryStyle === "timeline" ||
+      entryStyle === "marker" ||
+      entryStyle === "date-column"
+    ) {
       const roleField = (
         <EditableText
           value={exp.role}
@@ -296,11 +330,16 @@ const experience: DomSectionBuilder = ({ resume, theme, edit, config }) =>
 
       // "timeline" draws a continuous rail with a dot on each entry (rail
       // segments butt together via `tight` on the Block, see below); "marker"
-      // (creative-modern) drops the rail for a floating dot.
+      // (creative-modern) drops the rail for a floating dot; "date-column"
+      // (european-modern/french-elegant) moves the date into its own narrow
+      // left column, ruled off the entry body by a thin vertical line.
       return {
         sectionKey: "experience",
         itemIndex: expIndex,
-        tight: entryStyle === "timeline" ? true : undefined,
+        tight:
+          entryStyle === "timeline" || entryStyle === "date-column"
+            ? true
+            : undefined,
         node:
           entryStyle === "timeline" ? (
             <div
@@ -332,6 +371,34 @@ const experience: DomSectionBuilder = ({ resume, theme, edit, config }) =>
               {description}
               {achievements}
             </div>
+          ) : entryStyle === "date-column" ? (
+            <div className="flex gap-3 pb-3">
+              <div
+                className={`w-[22%] shrink-0 text-right ${theme.textSize}`}
+                style={{ color: theme.accentColor }}
+              >
+                {dates}
+              </div>
+              <div
+                className="flex-1 border-l pl-3"
+                style={{ borderColor: theme.secondaryColor + "40" }}
+              >
+                <h3
+                  className="font-semibold"
+                  style={{ color: theme.accentColor }}
+                >
+                  {roleField}
+                </h3>
+                <p
+                  className={`${theme.textSize}`}
+                  style={{ color: theme.secondaryColor }}
+                >
+                  {companyField}
+                </p>
+                {description}
+                {achievements}
+              </div>
+            </div>
           ) : (
             <div className="relative pl-5">
               <span
@@ -359,17 +426,19 @@ const experience: DomSectionBuilder = ({ resume, theme, edit, config }) =>
       };
     }
 
-    if (entryStyle === "table") {
+    if (entryStyle === "table" || entryStyle === "label-column") {
       const borderColor = theme.secondaryColor + "40";
+      const variant = entryStyle === "label-column" ? "label" : "boxed";
       return {
         sectionKey: "experience",
         itemIndex: expIndex,
         node: (
-          <TableEntry borderColor={borderColor}>
+          <TableEntry borderColor={borderColor} variant={variant}>
             <TableRow
               label="Company"
               accentColor={theme.accentColor + "20"}
               borderColor={borderColor}
+              variant={variant}
             >
               <EditableText
                 value={exp.company}
@@ -383,6 +452,7 @@ const experience: DomSectionBuilder = ({ resume, theme, edit, config }) =>
               label="Role"
               accentColor={theme.accentColor + "20"}
               borderColor={borderColor}
+              variant={variant}
             >
               <EditableText
                 value={exp.role}
@@ -394,6 +464,7 @@ const experience: DomSectionBuilder = ({ resume, theme, edit, config }) =>
               label="Duration"
               accentColor={theme.accentColor + "20"}
               borderColor={borderColor}
+              variant={variant}
             >
               {dates}
             </TableRow>
@@ -402,6 +473,7 @@ const experience: DomSectionBuilder = ({ resume, theme, edit, config }) =>
               accentColor={theme.accentColor + "20"}
               borderColor={borderColor}
               last
+              variant={variant}
             >
               {(exp.description || edit.editable) && (
                 <div className={`${theme.lineHeight} mb-1`}>
@@ -600,7 +672,11 @@ const projects: DomSectionBuilder = ({ resume, theme, edit, config }) =>
       };
     }
 
-    if (entryStyle === "timeline" || entryStyle === "marker") {
+    if (
+      entryStyle === "timeline" ||
+      entryStyle === "marker" ||
+      entryStyle === "date-column"
+    ) {
       const dateLine = dateRangeField && (
         <p
           className={`${theme.textSize}`}
@@ -612,7 +688,10 @@ const projects: DomSectionBuilder = ({ resume, theme, edit, config }) =>
       return {
         sectionKey: "projects",
         itemIndex: projectIndex,
-        tight: entryStyle === "timeline" ? true : undefined,
+        tight:
+          entryStyle === "timeline" || entryStyle === "date-column"
+            ? true
+            : undefined,
         node:
           entryStyle === "timeline" ? (
             <div
@@ -643,6 +722,31 @@ const projects: DomSectionBuilder = ({ resume, theme, edit, config }) =>
               </div>
               {technologiesField}
             </div>
+          ) : entryStyle === "date-column" ? (
+            <div className="flex gap-3 pb-3">
+              <div
+                className={`w-[22%] shrink-0 text-right ${theme.textSize}`}
+                style={{ color: theme.accentColor }}
+              >
+                {dateRangeField}
+              </div>
+              <div
+                className="flex-1 border-l pl-3"
+                style={{ borderColor: theme.secondaryColor + "40" }}
+              >
+                <h3
+                  className="font-semibold"
+                  style={{ color: theme.accentColor }}
+                >
+                  {nameField}
+                  {urlLinkField}
+                </h3>
+                <div className={`${theme.textSize} ${theme.lineHeight} mt-1`}>
+                  {descriptionField}
+                </div>
+                {technologiesField}
+              </div>
+            </div>
           ) : (
             <div className="relative pl-5">
               <span
@@ -666,17 +770,19 @@ const projects: DomSectionBuilder = ({ resume, theme, edit, config }) =>
       };
     }
 
-    if (entryStyle === "table") {
+    if (entryStyle === "table" || entryStyle === "label-column") {
       const borderColor = theme.secondaryColor + "40";
+      const variant = entryStyle === "label-column" ? "label" : "boxed";
       return {
         sectionKey: "projects",
         itemIndex: projectIndex,
         node: (
-          <TableEntry borderColor={borderColor}>
+          <TableEntry borderColor={borderColor} variant={variant}>
             <TableRow
               label="Project"
               accentColor={theme.accentColor + "20"}
               borderColor={borderColor}
+              variant={variant}
             >
               {nameField}
               {urlLinkField}
@@ -685,6 +791,7 @@ const projects: DomSectionBuilder = ({ resume, theme, edit, config }) =>
               label="Duration"
               accentColor={theme.accentColor + "20"}
               borderColor={borderColor}
+              variant={variant}
             >
               {dateRangeField}
             </TableRow>
@@ -693,6 +800,7 @@ const projects: DomSectionBuilder = ({ resume, theme, edit, config }) =>
               accentColor={theme.accentColor + "20"}
               borderColor={borderColor}
               last
+              variant={variant}
             >
               <div className={`${theme.lineHeight} mb-1`}>
                 {descriptionField}
@@ -1167,11 +1275,18 @@ const education: DomSectionBuilder = ({ resume, theme, edit, config }) =>
       };
     }
 
-    if (entryStyle === "timeline" || entryStyle === "marker") {
+    if (
+      entryStyle === "timeline" ||
+      entryStyle === "marker" ||
+      entryStyle === "date-column"
+    ) {
       return {
         sectionKey: "education",
         itemIndex: eduIndex,
-        tight: entryStyle === "timeline" ? true : undefined,
+        tight:
+          entryStyle === "timeline" || entryStyle === "date-column"
+            ? true
+            : undefined,
         node:
           entryStyle === "timeline" ? (
             <div
@@ -1209,6 +1324,40 @@ const education: DomSectionBuilder = ({ resume, theme, edit, config }) =>
                 </p>
               )}
             </div>
+          ) : entryStyle === "date-column" ? (
+            <div className="flex gap-3 pb-3">
+              <div
+                className={`w-[22%] shrink-0 text-right ${theme.textSize}`}
+                style={{ color: theme.accentColor }}
+              >
+                {dates}
+              </div>
+              <div
+                className="flex-1 border-l pl-3"
+                style={{ borderColor: theme.secondaryColor + "40" }}
+              >
+                <h3
+                  className="font-semibold"
+                  style={{ color: theme.accentColor }}
+                >
+                  {degreeField}
+                </h3>
+                <p
+                  className={`${theme.textSize}`}
+                  style={{ color: theme.secondaryColor }}
+                >
+                  {institutionField}
+                </p>
+                {gpaField && (
+                  <p
+                    className={`${theme.textSize}`}
+                    style={{ color: theme.secondaryColor }}
+                  >
+                    {gpaField}
+                  </p>
+                )}
+              </div>
+            </div>
           ) : (
             <div className="relative pl-5">
               <span
@@ -1242,17 +1391,19 @@ const education: DomSectionBuilder = ({ resume, theme, edit, config }) =>
       };
     }
 
-    if (entryStyle === "table") {
+    if (entryStyle === "table" || entryStyle === "label-column") {
       const borderColor = theme.secondaryColor + "40";
+      const variant = entryStyle === "label-column" ? "label" : "boxed";
       return {
         sectionKey: "education",
         itemIndex: eduIndex,
         node: (
-          <TableEntry borderColor={borderColor}>
+          <TableEntry borderColor={borderColor} variant={variant}>
             <TableRow
               label="Institution"
               accentColor={theme.accentColor + "20"}
               borderColor={borderColor}
+              variant={variant}
             >
               {institutionField}
             </TableRow>
@@ -1260,6 +1411,7 @@ const education: DomSectionBuilder = ({ resume, theme, edit, config }) =>
               label="Degree"
               accentColor={theme.accentColor + "20"}
               borderColor={borderColor}
+              variant={variant}
             >
               {degreeField}
             </TableRow>
@@ -1268,6 +1420,7 @@ const education: DomSectionBuilder = ({ resume, theme, edit, config }) =>
               accentColor={theme.accentColor + "20"}
               borderColor={borderColor}
               last={!gpaField}
+              variant={variant}
             >
               {dates}
             </TableRow>
@@ -1277,6 +1430,7 @@ const education: DomSectionBuilder = ({ resume, theme, edit, config }) =>
                 accentColor={theme.accentColor + "20"}
                 borderColor={borderColor}
                 last
+                variant={variant}
               >
                 {gpaField}
               </TableRow>
@@ -1578,11 +1732,18 @@ const volunteer: DomSectionBuilder = ({ resume, theme, edit, config }) =>
       };
     }
 
-    if (entryStyle === "timeline" || entryStyle === "marker") {
+    if (
+      entryStyle === "timeline" ||
+      entryStyle === "marker" ||
+      entryStyle === "date-column"
+    ) {
       return {
         sectionKey: "volunteer",
         itemIndex: volIndex,
-        tight: entryStyle === "timeline" ? true : undefined,
+        tight:
+          entryStyle === "timeline" || entryStyle === "date-column"
+            ? true
+            : undefined,
         node:
           entryStyle === "timeline" ? (
             <div
@@ -1617,6 +1778,37 @@ const volunteer: DomSectionBuilder = ({ resume, theme, edit, config }) =>
                 </div>
               )}
             </div>
+          ) : entryStyle === "date-column" ? (
+            <div className="flex gap-3 pb-3">
+              <div
+                className={`w-[22%] shrink-0 text-right ${theme.textSize}`}
+                style={{ color: theme.accentColor }}
+              >
+                {dates}
+              </div>
+              <div
+                className="flex-1 border-l pl-3"
+                style={{ borderColor: theme.secondaryColor + "40" }}
+              >
+                <h3
+                  className="font-semibold"
+                  style={{ color: theme.accentColor }}
+                >
+                  {roleField}
+                </h3>
+                <p
+                  className={`${theme.textSize}`}
+                  style={{ color: theme.secondaryColor }}
+                >
+                  {organizationField}
+                </p>
+                {descriptionField && (
+                  <div className={`${theme.textSize} ${theme.lineHeight} mt-1`}>
+                    {descriptionField}
+                  </div>
+                )}
+              </div>
+            </div>
           ) : (
             <div className="relative pl-5">
               <span
@@ -1647,17 +1839,19 @@ const volunteer: DomSectionBuilder = ({ resume, theme, edit, config }) =>
       };
     }
 
-    if (entryStyle === "table") {
+    if (entryStyle === "table" || entryStyle === "label-column") {
       const borderColor = theme.secondaryColor + "40";
+      const variant = entryStyle === "label-column" ? "label" : "boxed";
       return {
         sectionKey: "volunteer",
         itemIndex: volIndex,
         node: (
-          <TableEntry borderColor={borderColor}>
+          <TableEntry borderColor={borderColor} variant={variant}>
             <TableRow
               label="Organization"
               accentColor={theme.accentColor + "20"}
               borderColor={borderColor}
+              variant={variant}
             >
               {organizationField}
             </TableRow>
@@ -1665,6 +1859,7 @@ const volunteer: DomSectionBuilder = ({ resume, theme, edit, config }) =>
               label="Role"
               accentColor={theme.accentColor + "20"}
               borderColor={borderColor}
+              variant={variant}
             >
               {roleField}
             </TableRow>
@@ -1673,6 +1868,7 @@ const volunteer: DomSectionBuilder = ({ resume, theme, edit, config }) =>
               accentColor={theme.accentColor + "20"}
               borderColor={borderColor}
               last={!descriptionField}
+              variant={variant}
             >
               {dates}
             </TableRow>
@@ -1682,6 +1878,7 @@ const volunteer: DomSectionBuilder = ({ resume, theme, edit, config }) =>
                 accentColor={theme.accentColor + "20"}
                 borderColor={borderColor}
                 last
+                variant={variant}
               >
                 {descriptionField}
               </TableRow>
