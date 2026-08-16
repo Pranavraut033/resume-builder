@@ -51,7 +51,6 @@ KEYWORD MATCH:
 - Classify each as: exact match | semantic match | missing
 - A semantic match means a related concept is present in different words (e.g. "team leadership" vs "led cross-functional teams"); when unsure whether a resume phrase really covers a keyword, classify it as missing rather than semantic
 - Acronym rule: if the JD keyword is an acronym or its expansion, and the resume only has one form, that's a real gap — recommend spelling it out once with the acronym in parentheses ("Certified Public Accountant (CPA)"), which covers both search strings. This belongs in improvements, not the score.
-- keyword_match_score band: 90-100 = nearly every required keyword present (exact or semantic); 70-89 = most present, a few gaps; 40-69 = roughly half present; 0-39 = most required keywords missing
 
 CONTENT QUALITY — the four failure modes to name explicitly when found:
 1. Duty, not accomplishment — describes what the role required rather than what the candidate achieved
@@ -60,20 +59,19 @@ CONTENT QUALITY — the four failure modes to name explicitly when found:
 4. Vague scope — no sense of team size, budget, users, or timeframe
 Weak verbs/phrases to flag on sight: "responsible for", "worked on", "helped with", "assisted", "participated in", "was involved in", "tasked with", "duties included".
 Clichés to cut: "results-driven", "team player", "detail-oriented", "self-starter", "go-getter", "proven track record", "passionate about excellence", "references available upon request".
-content_quality_score band: 90-100 = most bullets quantified with strong verbs; 70-89 = some quantified, generally clear; 40-69 = mostly vague duty descriptions; 0-39 = little to no quantification or specificity
 
 REWRITE RULE — never invent a metric (stated here and again in the user prompt):
 For the highest-impact weak bullets, populate improvements[].original_text with the exact verbatim bullet and improvements[].rewrite with an XYZ-pattern replacement ("accomplished X, as measured by Y, by doing Z"). Where a number would make the rewrite stronger but only the candidate knows it, use a bracketed placeholder like "[X%]" or "[N] users" rather than fabricating a figure — never invent a metric that isn't already in the source material.
 
 SCORING:
-- formatting_score: this analysis only sees resume text, not layout — set to 100 and leave formatting_issues as an empty array; do not guess at formatting problems you cannot observe. Real parseability (multi-column layouts, tables, missing standard headers, unparseable dates) is the deterministic checker's job (the Quick Check tab / \`@pranavraut033/ats-checker\`), not this LLM pass.
-- composite_score: your overall judgment of ATS readiness, weighing keyword match and content quality roughly equally, discounted for any blocking/likely knockout risk — not a formula, an informed estimate. formatting_score is a fixed 100 here (see above) and carries no weight in this composite.
+- composite_score: your overall judgment of ATS readiness, weighing keyword match and content quality roughly equally, discounted for any blocking/likely knockout risk — not a formula, an informed estimate.
 - A resume with no weaknesses for this exact role scores at most 95; reserve 100 as a theoretical ceiling never actually assigned
 
 IMPROVEMENT RECOMMENDATIONS:
-- Rank improvements by expected score delta (highest impact first)
+- Rank improvements by expected impact (highest impact first)
 - Be surgical: reference the exact resume section and the specific change needed
-- Do not suggest adding experience or skills not present in the resume`,
+- Do not suggest adding experience or skills not present in the resume
+- Fill EXACTLY ONE of (original_text + rewrite) or recommended_fix per improvement — never both. Use original_text/rewrite when you can quote the verbatim bullet and give an XYZ-pattern replacement; use recommended_fix alone when there's no single bullet to rewrite (e.g. a structural or section-level suggestion). The UI renders rewrite when present and falls back to recommended_fix, so filling both wastes output — when original_text/rewrite are used, leave recommended_fix as an empty string.`,
   userPrompt: `\
 Perform a full ATS analysis for the {{jobTitle}}{{#if companyName}} role at {{companyName}}{{/if}}.
 
@@ -108,13 +106,11 @@ HARD CONSTRAINTS:
 {{/if}}
 Return ONLY valid JSON matching the ATSAnalysisSchema. Example shape:
 {
-  "keyword_analysis": [{ "keyword": "PostgreSQL", "match_type": "exact", "match_status": "present" }],
-  "missing_keywords": ["Kubernetes"],
-  "formatting_issues": [],
-  "scores": { "keyword_match_score": 78, "formatting_score": 100, "content_quality_score": 65, "composite_score": 72 },
+  "keyword_analysis": [{ "keyword": "PostgreSQL", "match_type": "exact" }],
+  "scores": { "composite_score": 72 },
   "knockout_risks": [{ "requirement": "Work authorization for Germany", "severity": "possible", "evidence": "JD requires EU work authorization; resume's Work Authorization field is empty", "advice": "Fill in the Work Authorization field on the profile header (e.g. \\"EU Blue Card\\" or \\"Requires sponsorship\\") so this isn't a silent rejection" }],
-  "title_alignment": { "resume_title": "Member of Technical Staff II", "target_title": "Senior Software Engineer", "verdict": "unclear", "note": "Internal title obscures seniority — reframe as \\"Senior Software Engineer (Member of Technical Staff II)\\" so title-weighted parsers can match it" },
-  "improvements": [{ "section": "experience", "issue": "bullet 2 describes a duty with no quantification", "recommended_fix": "add the team size or throughput number already in the source material", "estimated_score_delta": 5, "original_text": "Responsible for managing the checkout flow", "rewrite": "Cut checkout abandonment by [X%] by redesigning the payment flow from 5 steps to 2" }],
+  "title_alignment": { "verdict": "unclear", "note": "Internal title obscures seniority — reframe as \\"Senior Software Engineer (Member of Technical Staff II)\\" so title-weighted parsers can match it" },
+  "improvements": [{ "section": "experience", "issue": "bullet 2 describes a duty with no quantification", "recommended_fix": "", "original_text": "Responsible for managing the checkout flow", "rewrite": "Cut checkout abandonment by [X%] by redesigning the payment flow from 5 steps to 2" }],
   "summary": "Strong keyword coverage for this role; content quality is the main gap — several bullets describe duties without measurable impact."
 }`,
   outputSchema: ATSAnalysisSchema,

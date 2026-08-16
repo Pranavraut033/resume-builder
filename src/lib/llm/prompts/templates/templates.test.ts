@@ -147,15 +147,8 @@ const sampleJobDetails: JobDetailsJSON = {
 };
 
 const sampleAtsAnalysis: ATSAnalysisJSON = {
-  keyword_analysis: [
-    { keyword: "Kafka", match_type: "exact", match_status: "present" },
-  ],
-  missing_keywords: ["Kubernetes"],
-  formatting_issues: [],
+  keyword_analysis: [{ keyword: "Kafka", match_type: "exact" }],
   scores: {
-    keyword_match_score: 80,
-    formatting_score: 100,
-    content_quality_score: 70,
     composite_score: 75,
   },
   improvements: [
@@ -163,15 +156,12 @@ const sampleAtsAnalysis: ATSAnalysisJSON = {
       section: "experience",
       issue: "no quantified impact in bullet 2",
       recommended_fix: "add team size",
-      estimated_score_delta: 5,
       original_text: null,
       rewrite: null,
     },
   ],
   knockout_risks: [],
   title_alignment: {
-    resume_title: "Backend Engineer",
-    target_title: "Staff Backend Engineer",
     verdict: "below",
     note: "Resume title is one level below the target seniority.",
   },
