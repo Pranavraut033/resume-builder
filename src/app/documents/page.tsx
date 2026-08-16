@@ -42,12 +42,19 @@ const globalDocFilter: FilterFn<DocumentRecord> = (
   return `${doc.role} ${doc.companyName}`.toLowerCase().includes(search);
 };
 
-function AtsScoreBadge({ score }: { score: number | null }) {
+/**
+ * Deliberately renders the bare number, not "{n} / 100": this column exists to
+ * rank jobs against each other, not to hand the user a grade. No applicant
+ * tracking system shows a score to anyone on the hiring team, so presenting one
+ * as a mark out of 100 is the exact claim the Recruiter Skim panel drops.
+ * (`Job.atsScore` keeps its name — it's a persisted column, not display text.)
+ */
+function SkimBadge({ score }: { score: number | null }) {
   if (score === null) {
-    return <Badge>No analysis</Badge>;
+    return <Badge>Not run</Badge>;
   }
   const variant = score >= 80 ? "success" : score >= 60 ? "warning" : "error";
-  return <Badge variant={variant}>{Math.round(score)} / 100</Badge>;
+  return <Badge variant={variant}>{Math.round(score)}</Badge>;
 }
 
 export default function DocumentsPage() {
@@ -111,7 +118,7 @@ export default function DocumentsPage() {
       base.push({
         accessorKey: "atsScore",
         header: "Skim",
-        cell: ({ row }) => <AtsScoreBadge score={row.original.atsScore} />,
+        cell: ({ row }) => <SkimBadge score={row.original.atsScore} />,
       });
     }
 
