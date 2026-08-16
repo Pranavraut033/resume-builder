@@ -14,13 +14,14 @@ so DOM, PDF, and TXT stay in sync by construction. Adding a template should mean
 you find yourself writing a new component per template, stop and check whether an existing style axis
 expresses it.
 
-## The 10 templates
+## The 13 templates
 
 `TEMPLATE_CONFIG` in `src/components/job-v2/engine/templates.ts` is a
 `Partial<Record<TemplateType, TemplateConfig>>` keyed by:
 
 `modern-minimal` · `tech-sidebar` · `creative-modern` · `bjet-professional` · `two-tone` ·
-`business-professional` · `compact-modern` · `academic-serif` · `elegant-timeline` · `euro-sidebar`
+`business-professional` · `compact-modern` · `academic-serif` · `elegant-timeline` · `euro-sidebar` ·
+`european-modern` · `europass-classic` · `french-elegant`
 
 `resolveTemplateConfig()` applies defaults once so every engine sees the same fully-resolved config.
 
@@ -32,10 +33,15 @@ expresses it.
 `sectionDivider`, `headingAlign` — plus uncounted extras like `columnRatio`, `sectionColumn`,
 `headingSmallCaps`, `headingSidebar`.
 
+**Style axis unions** (from `src/types/customization.ts`):
+- `HeadingStyle`: `uppercase`, `underline`, `bar`, `serif`, `plain`, `accent-rule`, `rule-above`, `boxed`
+- `HeaderStyle`: `underline`, `centered`, `band`, `left-accent`, `minimal`, `plain`, `gradient`, `boxed`, `split`, `overline`
+- `EntryStyle`: `standard`, `timeline`, `compact`, `marker`, `table`, `date-column`, `label-column`
+
 `resolveTemplateConfig()` applies those defaults, so **engines must always read the resolved config**, never a
 raw `TemplateConfig`.
 
-**`tests/lib/templateDistinctness.test.tsx` enforces two invariants**: every pair of templates differs on
+**`tests/lib/templateDistinctness.test.tsx` enforces two invariants**: every pair of the 13 templates differs on
 **≥3 axes**, and all templates expose **identical editable fields**. The second is the one that bites — a new
 `entryStyle`/`skillStyle` branch must re-wrap the same `EditableText`/`EditableDateRange` fields as the
 `standard` branch, not replace them with plain text, or inline editing silently dies for that template.
@@ -62,11 +68,19 @@ These fail green — no type error, no test failure, just wrong output. Know the
   Grep both sides and compare branch counts.
 - **`resolveStyles.ts` reads nothing from `TemplateConfig`** and has no axis branches — a new axis never
   belongs there.
-- **A new resume template needs an entry in `COVER_LETTER_TEMPLATE_MAP`** (`src/lib/pdfExport.ts`) or it
-  silently falls back to `ModernMinimalCoverLetterPDF` on export. All 10 current ids are mapped —
-  `euro-sidebar` has no dedicated cover-letter PDF component yet and is aliased to
-  `TechSidebarCoverLetterPDF`, matching the DOM preview's alias in `CoverLetterRenderer.tsx`. Keep both
-  aliases in sync.
+- **Cover-letter templates are now decoupled from resume templates.** `CoverLetterTemplateType` is a separate
+  union of 9 ids (the ones with dedicated DOM + PDF components: `modern-minimal`, `tech-sidebar`,
+  `business-professional`, `elegant-timeline`, `creative-modern`, `bjet-professional`, `compact-modern`,
+  `two-tone`, `academic-serif`). `Customization.coverLetterTemplate` (nullable) lets users pick a
+  cover-letter template independently of their resume template. The resolution order is: (1) explicit
+  `coverLetterTemplate` if set, (2) legacy `euro-sidebar → tech-sidebar` alias for old rows with no
+  `coverLetterTemplate` set, (3) resume `template` itself, (4) `ModernMinimalCoverLetterPDF` as the ultimate
+  fallback. This means resume-only templates like `european-modern`, `europass-classic`, `french-elegant`
+  (which have no cover-letter components) don't need an entry in `COVER_LETTER_TEMPLATE_MAP` — they
+  gracefully fall back to Modern Minimal via step 4, which is the designed default, not a silent bug. The
+  `euro-sidebar → tech-sidebar` alias is preserved **only** in the legacy path (step 2) for backward
+  compatibility with rows created before `coverLetterTemplate` existed. Both `CoverLetterRenderer.tsx` and
+  `pdfExport.ts`'s `generateCoverLetterPDF()` implement this same resolution order.
 - **Cover letter date formatting is centralized in `src/lib/coverLetterDate.ts`** (`formatCoverLetterDate()`)
   — shared by all nine DOM templates, all nine PDF templates, and TXT export (`resumeToText.ts`). Under the
   default `"locale"` `Customization.dateFormat`, it picks DE (`13.08.2026`) vs US (`August 13, 2026`) format
@@ -87,7 +101,7 @@ These fail green — no type error, no test failure, just wrong output. Know the
 
 | File                              | Purpose                                                                                     |
 | --------------------------------- | ------------------------------------------------------------------------------------------- |
-| `templates.ts`                    | `TEMPLATE_CONFIG` (all 10) + `resolveTemplateConfig()`.                                     |
+| `templates.ts`                    | `TEMPLATE_CONFIG` (all 13) + `resolveTemplateConfig()`.                                     |
 | `types.ts`                        | `TemplateConfig` and the style-axis unions.                                                 |
 | `buildSections.ts`                | `buildSections()` — resolves order/visibility/custom sections. Shared by all three engines. |
 | `sections.tsx`                    | DOM section registry.                                                                       |
@@ -143,7 +157,11 @@ Mirrors the DOM engine for `@react-pdf/renderer`.
 1. Add the id to `TemplateType` and a config to `TEMPLATE_CONFIG`.
 2. Prefer composing existing axes. Only add a new axis if none can express the look — and then thread it
    through **both** `engine/sections.tsx` and `pdf/sections.tsx`.
-3. Add the matching cover-letter PDF component in `src/lib/pdf/templates/`.
+3. **Optional**: Add a matching cover-letter DOM + PDF component pair (`src/components/job/templates/coverLetter/`
+   and `src/lib/pdf/templates/`) and register both in `CoverLetterRenderer.tsx`'s `templateComponents` map
+   and `pdfExport.ts`'s `COVER_LETTER_TEMPLATE_MAP`. Until you do, the template's cover letter falls back
+   to Modern Minimal (the designed default), so there's no silent bug to fix immediately — defer until a
+   user explicitly requests a custom cover-letter look for that resume template.
 4. Run `npm run test:run -- tests/lib/templateDistinctness.test.tsx` — it will fail on <3-axis distinctness or
-   a dropped editable field.
+   a dropped editable field. All 13 templates must pass.
 5. Verify rendered output, not just the test.
