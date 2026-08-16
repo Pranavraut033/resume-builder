@@ -196,6 +196,97 @@ function mesh(
   return { defs, shapes };
 }
 
+function cornerDots(primary: string, w: number, h: number): BackgroundDrawing {
+  // A grid of small circles confined to the top-right corner, fading out
+  // toward the rest of the page — approximates a masked radial-gradient
+  // dot grid without CSS mask-image (which the PDF renderer can't do).
+  const boxW = w * 0.32;
+  const boxH = h * 0.14;
+  const cols = 11;
+  const rows = 7;
+  const spacingX = boxW / cols;
+  const spacingY = boxH / rows;
+  const r = Math.min(spacingX, spacingY) * 0.22;
+  const shapes: Shape[] = [];
+
+  for (let row = 0; row < rows; row++) {
+    for (let col = 0; col < cols; col++) {
+      // 0 at the box's bottom-left, 1 at its top-right corner — the
+      // densest, most opaque point, fading toward the other corners.
+      const t = (col / (cols - 1) + (rows - 1 - row) / (rows - 1)) / 2;
+      const opacity = 0.18 * Math.pow(t, 2.2);
+      if (opacity < 0.02) continue;
+      shapes.push({
+        kind: "circle",
+        cx: w - boxW + spacingX * (col + 0.5),
+        cy: spacingY * (row + 0.5),
+        r,
+        fill: primary,
+        opacity,
+      });
+    }
+  }
+  return { defs: [], shapes };
+}
+
+/** Continents as unions of ellipses in a [0,1]x[0,1] box (u=west→east,
+ * v=north→south) — a deliberately simplified silhouette, not GIS data,
+ * good enough for a small, subtle, low-opacity decorative dot map. */
+type Ellipse = { cx: number; cy: number; rx: number; ry: number };
+const WORLD_MAP_ELLIPSES: Ellipse[] = [
+  { cx: 0.17, cy: 0.3, rx: 0.115, ry: 0.17 }, // North America
+  { cx: 0.205, cy: 0.44, rx: 0.045, ry: 0.06 }, // Central America
+  { cx: 0.305, cy: 0.09, rx: 0.032, ry: 0.045 }, // Greenland
+  { cx: 0.275, cy: 0.63, rx: 0.06, ry: 0.16 }, // South America
+  { cx: 0.295, cy: 0.78, rx: 0.02, ry: 0.055 }, // South America (tail)
+  { cx: 0.475, cy: 0.23, rx: 0.045, ry: 0.07 }, // Europe
+  { cx: 0.44, cy: 0.18, rx: 0.012, ry: 0.018 }, // UK
+  { cx: 0.49, cy: 0.49, rx: 0.075, ry: 0.185 }, // Africa
+  { cx: 0.5, cy: 0.67, rx: 0.032, ry: 0.045 }, // Africa (southern tip)
+  { cx: 0.66, cy: 0.25, rx: 0.16, ry: 0.145 }, // Asia
+  { cx: 0.58, cy: 0.39, rx: 0.03, ry: 0.06 }, // India
+  { cx: 0.72, cy: 0.35, rx: 0.075, ry: 0.075 }, // SE China / SE Asia
+  { cx: 0.755, cy: 0.485, rx: 0.045, ry: 0.035 }, // Indonesia
+  { cx: 0.835, cy: 0.285, rx: 0.014, ry: 0.028 }, // Japan
+  { cx: 0.835, cy: 0.62, rx: 0.05, ry: 0.045 }, // Australia
+];
+
+function isLand(u: number, v: number): boolean {
+  return WORLD_MAP_ELLIPSES.some(
+    (e) => ((u - e.cx) / e.rx) ** 2 + ((v - e.cy) / e.ry) ** 2 <= 1
+  );
+}
+
+function worldMap(primary: string, w: number, h: number): BackgroundDrawing {
+  // Same top-right placement convention as cornerDots, sized larger to
+  // read as a map rather than a texture.
+  const boxW = w * 0.55;
+  const boxH = h * 0.24;
+  const cols = 50;
+  const rows = 24;
+  const spacingX = boxW / cols;
+  const spacingY = boxH / rows;
+  const r = Math.min(spacingX, spacingY) * 0.28;
+  const shapes: Shape[] = [];
+
+  for (let row = 0; row < rows; row++) {
+    for (let col = 0; col < cols; col++) {
+      const u = (col + 0.5) / cols;
+      const v = (row + 0.5) / rows;
+      if (!isLand(u, v)) continue;
+      shapes.push({
+        kind: "circle",
+        cx: w - boxW + spacingX * (col + 0.5),
+        cy: spacingY * (row + 0.5),
+        r,
+        fill: primary,
+        opacity: 0.16,
+      });
+    }
+  }
+  return { defs: [], shapes };
+}
+
 function pride(w: number, h: number): BackgroundDrawing {
   // A thin vertical rainbow band hugging the left edge — present but quiet.
   const stripeW = 7;
@@ -260,6 +351,10 @@ export function buildBackground(
       return mesh(primary, accent, w, h);
     case "pride":
       return pride(w, h);
+    case "corner-dots":
+      return cornerDots(primary, w, h);
+    case "world-map":
+      return worldMap(primary, w, h);
     case "none":
     default:
       return EMPTY;

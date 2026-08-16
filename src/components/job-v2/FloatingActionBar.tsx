@@ -8,7 +8,6 @@ import { useEscapeKey } from "@/hooks/useEscapeKey";
 import cn from "@/lib/cn";
 
 import { GenerateCoverLetterModal } from "./GenerateCoverLetterModal";
-import { TemplatePicker } from "./TemplatePicker";
 
 /** The seven mutually-exclusive canvas-overlay drawers. `null` means none open. */
 export type DrawerName =
@@ -58,7 +57,7 @@ interface FloatingActionBarProps {
  * the V2 WYSIWYG canvas. Hides on scroll down and reappears on scroll up
  * (see `hidden` prop, driven by useHideOnScroll in the parent).
  *
- * Inline: Export PDF | Undo | Redo (resume-only) | Customize ▾ | Template ▾ |
+ * Inline: Export PDF | Undo | Redo (resume-only) | Customize ▾ |
  * ATS (resume-only) | Generate (cover-letter-only) | Humanize | Chat.
  *
  * Overflow `⋯` menu (lower-frequency actions): Sections | History |
@@ -173,9 +172,6 @@ export function FloatingActionBar({
           <Icon name="palette" className="h-3.5 w-3.5" />
           <span className="hidden md:inline">Customize</span>
         </button>
-
-        {/* Template */}
-        <TemplatePicker />
 
         {isResume && (
           <>
