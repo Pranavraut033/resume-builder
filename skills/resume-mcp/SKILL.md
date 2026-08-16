@@ -1,6 +1,6 @@
 ---
 name: resume-mcp
-description: Drive this app's resume-building flows (tailoring, cover letters, ATS analysis, gap analysis, editing, proofreading, humanizing) and base-profile editing through its local MCP server instead of hand-writing resume content. Use whenever the user pastes a job posting or URL and wants a tailored resume, asks to edit, proofread, humanize, fix ATS issues, or get an honest fit/gap assessment on a resume that already exists in the app, or asks to view/edit their base profile directly. Requires the app's MCP server to be running and connected (see docs/MCP.md) — if tools like `list_flows` aren't available, tell the user to enable the MCP toggle in Settings first.
+description: Drive this app's resume-building flows (tailoring, cover letters, Recruiter Skim, Fit Check, editing, proofreading, humanizing) and base-profile editing through its local MCP server instead of hand-writing resume content. Use whenever the user pastes a job posting or URL and wants a tailored resume, asks to edit, proofread, humanize, fix Skim issues, or get an honest fit assessment on a resume that already exists in the app, or asks to view/edit their base profile directly. Requires the app's MCP server to be running and connected (see docs/MCP.md) — if tools like `list_flows` aren't available, tell the user to enable the MCP toggle in Settings first.
 ---
 
 # Resume MCP
@@ -19,7 +19,7 @@ source of truth for what comes next — its `next` field names the purpose,
 and (when non-null) its `nextPrompt` field already contains that purpose's
 resolved prompt, ready to reason over. Do not:
 
-- Hand-write a tailored resume, cover letter, or ATS analysis yourself and
+- Hand-write a tailored resume, cover letter, or recruiter skim yourself and
   `submit` it without first following a `get_prompt`/`nextPrompt`'s
   `systemPrompt`/`userPrompt` exactly.
 - Skip a step (e.g. jump straight to `generate_tailored_resume` without
@@ -42,7 +42,7 @@ resolved prompt, ready to reason over. Do not:
 **Before a job exists** (mid-`add_job`, no `jobId` yet), `submit` mints a
 `draftId` on first use and returns it — pass that same `draftId` on every
 following `get_prompt`/`submit` call in the flow instead of re-sending
-`jobDetails`/the ATS analysis/the tailored resume yourself; the server
+`jobDetails`/the recruiter skim/the tailored resume yourself; the server
 carries them forward and only actually creates the job on the flow's last
 step (`generate_cover_letter`). If more than one profile exists, that last
 `submit` needs `input.profileId` — call `list_profiles()` first and ask the
@@ -72,7 +72,7 @@ message contains the word "add" or "job". If in doubt, ask.
   `submit` (persists lint fixes automatically and returns the combined
   issue list — not every returned issue was auto-applied) →
   `apply_resume_ops` for the reviewed LLM-judged issues.
-- **ats_fix** — fix flagged ATS issues: `analyze_ats` (against the current
+- **ats_fix** — fix flagged Skim issues: `analyze_ats` (against the current
   tailored resume, not the base profile) → `fix_ats_issues` →
   `apply_resume_ops`.
 - **humanize** — rewrite AI-sounding text: `get_prompt({ purpose: "humanize_content", input: { userInput } })` → `submit`. `userInput` must be the exact text to rewrite — a resume bullet, a whole cover letter, anything. The server has no DB fallback for it (unlike every other purpose) since it can't guess which content you mean; if you already have the text from earlier in the conversation (e.g. a cover letter you just generated), pass that. Omitting `input.userInput` is a hard error, not an empty-content no-op.

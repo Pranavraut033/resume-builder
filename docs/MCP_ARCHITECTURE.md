@@ -76,7 +76,7 @@ are safe to retry or skip confirming.
 | `list_profiles`        | ✅              | Base profiles, for `generate_cover_letter`'s/bookmark's profile disambiguation         |
 | `list_jobs`            | ✅              | Jobs already tracked in the app                                                        |
 | `fetch_url`            | ✅              | Fetch a job posting URL server-side (SSRF-guarded) when a host's own fetch is blocked  |
-| `get_job_state`        | ✅              | A job's details, resume path-lines, ATS score, cover-letter presence                   |
+| `get_job_state`        | ✅              | A job's details, resume path-lines, Skim score, cover-letter presence                  |
 | `get_profile`          | ✅              | Full base-profile content + pathLines (MCP-only, see §5)                               |
 | `preview_profile_edit` | ✅              | Dry-run profile edit ops, returns a before/after diff, writes nothing (MCP-only)       |
 | `apply_profile_edit`   | ❌              | Persist profile edit ops — requires `confirm: true`, warns to back up first (MCP-only) |
