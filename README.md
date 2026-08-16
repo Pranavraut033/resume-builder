@@ -22,7 +22,7 @@ More screenshots and demo clips (ATS analysis, chat editing, cover letters, cust
 - **AI job parsing**: paste a job description and extract structured requirements client-side via your chosen LLM
 - **AI resume & cover letter tailoring**: generate content tailored to each job from your base profile
 - **Inline WYSIWYG editor**: edit the generated resume directly on the rendered document, with zoom controls and version history (`/job/[jobId]`)
-- **10 templates**: per-job color/font/layout customization, rendered by a shared template engine so DOM/PDF/TXT output stay in sync
+- **13 templates**: per-job color/font/layout customization, rendered by a shared template engine so DOM/PDF/TXT output stay in sync
 - **AI humanizer**: rewrite resume/cover letter content to read less like AI output, with reviewable before/after changes
 - **AI proofreading**: deterministic lint checks plus an LLM pass catch grammar, consistency, and unquantified-claim issues in a review drawer; lint-sourced fixes auto-apply
 - **ATS analysis**: keyword/skill match scoring plus knockout-risk and title-alignment checks with rewrite coaching, including a chat action to fix all flagged issues at once

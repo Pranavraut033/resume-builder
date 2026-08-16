@@ -13,7 +13,9 @@ export type BackgroundId =
   | "waves"
   | "blobs"
   | "mesh"
-  | "pride";
+  | "pride"
+  | "corner-dots"
+  | "world-map";
 
 export type BackgroundMeta = {
   id: BackgroundId;
@@ -34,6 +36,16 @@ export const AVAILABLE_BACKGROUNDS: BackgroundMeta[] = [
   },
   { id: "mesh", name: "Mesh", description: "Soft gradient wash" },
   { id: "pride", name: "Pride", description: "Subtle rainbow accent" },
+  {
+    id: "corner-dots",
+    name: "Corner Dots",
+    description: "Faded dot cluster in the top-right corner",
+  },
+  {
+    id: "world-map",
+    name: "World Map",
+    description: "Dotted world map silhouette in the top-right corner",
+  },
 ];
 
 export const VALID_BACKGROUND_IDS = new Set<BackgroundId>(

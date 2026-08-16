@@ -1,5 +1,9 @@
 import { useMemo } from "react";
 
+import {
+  resolveTemplateConfig,
+  TEMPLATE_CONFIG,
+} from "@/components/job-v2/engine/templates";
 import { useJobPageContext } from "@/contexts/JobPageContext";
 import BackgroundSvg from "@/lib/backgrounds/BackgroundSvg";
 import { AVAILABLE_BACKGROUNDS, BackgroundId } from "@/lib/backgrounds/types";
@@ -9,7 +13,10 @@ import { getPageDimensions } from "@/lib/pageDimensions";
 import { legacyToTheme } from "@/lib/theme/legacyToTheme";
 import {
   TemplateType,
+  AVAILABLE_COVER_LETTER_TEMPLATES,
+  AVAILABLE_TEMPLATES,
   COLOR_PRESETS,
+  DEFAULT_CUSTOMIZATION,
   HeadingStyle,
   PerSectionOverride,
   Template,
@@ -65,6 +72,54 @@ const ThemeCustomizationPanel: React.FC<Props> = ({}) => {
 
   const colorsTuple = customization.colors.split(",") as ThemeColors;
   const pageBackgroundColor = colorsTuple[4] || "#ffffff";
+  // Templates whose header visibly blends/blocks two distinct colors
+  // (gradient header, split colour-block header) need an independent
+  // accent-color picker — everywhere else accentColor is just a derived
+  // shade of the primary color, so a second picker would be noise.
+  const rawTemplateConfig =
+    TEMPLATE_CONFIG[customization.template as TemplateType];
+  const resolvedTemplateConfig = rawTemplateConfig
+    ? resolveTemplateConfig(rawTemplateConfig)
+    : null;
+  const supportsAccentColor =
+    resolvedTemplateConfig?.header === "gradient" ||
+    resolvedTemplateConfig?.header === "split";
+
+  // The current template's own defaults — used to offer a reset once the
+  // user has explicitly diverged from them (colors/background only change
+  // automatically on template switch; any other change here is the user's
+  // deliberate choice and is never overwritten on its own). Covers every
+  // layout/appearance setting on this panel: font size, margins, line
+  // height, and per-section overrides (heading color/style, gap, hidden)
+  // don't have a per-template default, so "reset" snaps those back to the
+  // app's stock defaults rather than a template-specific value.
+  const currentTemplateMeta = AVAILABLE_TEMPLATES.find(
+    (t) => t.id === customization.template
+  );
+  const templateDefaultColors = currentTemplateMeta?.colors?.join(",");
+  const templateDefaultBackground = currentTemplateMeta?.background ?? "none";
+  const hasDivergedFromTemplateDefaults =
+    (templateDefaultColors !== undefined &&
+      customization.colors !== templateDefaultColors) ||
+    (customization.background ?? "none") !== templateDefaultBackground ||
+    (currentTemplateMeta !== undefined &&
+      customization.fontFamily !== currentTemplateMeta.fontFamily) ||
+    customization.fontSize !== DEFAULT_CUSTOMIZATION.fontSize ||
+    customization.marginSize !== DEFAULT_CUSTOMIZATION.marginSize ||
+    customization.lineHeight !== DEFAULT_CUSTOMIZATION.lineHeight ||
+    !!customization.themeJson;
+  const resetToTemplateDefaults = () =>
+    updateCustomization({
+      ...(templateDefaultColors && { colors: templateDefaultColors }),
+      background: templateDefaultBackground,
+      ...(currentTemplateMeta && {
+        fontFamily: currentTemplateMeta.fontFamily,
+      }),
+      fontSize: DEFAULT_CUSTOMIZATION.fontSize,
+      marginSize: DEFAULT_CUSTOMIZATION.marginSize,
+      lineHeight: DEFAULT_CUSTOMIZATION.lineHeight,
+      themeJson: null,
+    });
 
   // Heading Style is a resume-only control (it fans out over resume section
   // ids below) — skip computing it on the cover-letter path.
@@ -117,6 +172,20 @@ const ThemeCustomizationPanel: React.FC<Props> = ({}) => {
       ),
     [updateCustomization]
   );
+
+  // Overwrites only accentColor (tuple index 2), preserving the rest. Keyed
+  // on customization.colors so the closure only goes stale exactly when it
+  // should — colors don't change again mid-drag until this debounce itself
+  // fires, so one drag always resolves against the tuple it started with.
+  const handleAccentColorChange = useMemo(
+    () =>
+      debounce((hex: string) => {
+        const next = customization.colors.split(",") as ThemeColors;
+        next[2] = hex;
+        updateCustomization({ colors: next.join(",") });
+      }, 150),
+    [updateCustomization, customization.colors]
+  );
   const { widthPx: pageWidthPx, heightPx: pageHeightPx } = getPageDimensions(
     customization.pageFormat,
     customization.marginSize
@@ -132,9 +201,62 @@ const ThemeCustomizationPanel: React.FC<Props> = ({}) => {
           updateCustomization({
             template: template.id,
             fontFamily: template.fontFamily,
+            ...(template.colors && { colors: template.colors.join(",") }),
+            // Always explicit, never inherited: a template with no default
+            // background resets to "none" rather than keeping whatever the
+            // previously selected template left behind.
+            background: template.background ?? "none",
           })
         }
       />
+      {/* Cover-letter template — independent of the resume template above.
+          Only shown while customizing the cover letter; null (unset) falls
+          back to the resume template (see CoverLetterRenderer.tsx). */}
+      {!isResume && (
+        <Card>
+          <h3
+            className="mb-3 text-sm font-semibold"
+            style={{ color: "var(--color-agent-on-surface)" }}
+          >
+            Cover Letter Template
+          </h3>
+          <p
+            className="mb-3 text-xs"
+            style={{ color: "var(--color-agent-on-surface-variant)" }}
+          >
+            Pick a template for the cover letter, independent of the resume
+            template.
+          </p>
+          <div className="flex flex-col gap-1.5">
+            {AVAILABLE_COVER_LETTER_TEMPLATES.map((t) => {
+              const isSelected = customization.coverLetterTemplate === t.id;
+
+              return (
+                <button
+                  key={t.id}
+                  onClick={() =>
+                    updateCustomization({ coverLetterTemplate: t.id })
+                  }
+                  className="rounded-md px-2 py-1.5 text-left text-xs font-medium transition-all"
+                  style={
+                    isSelected
+                      ? {
+                          background: "var(--color-agent-primary-container)",
+                          color: "var(--color-agent-on-primary-container)",
+                        }
+                      : {
+                          background: "var(--color-agent-surface-container)",
+                          color: "var(--color-agent-on-surface-variant)",
+                        }
+                  }
+                >
+                  {t.name}
+                </button>
+              );
+            })}
+          </div>
+        </Card>
+      )}
 
       {/* Layout settings */}
       <Card className="space-y-2">
@@ -308,13 +430,13 @@ const ThemeCustomizationPanel: React.FC<Props> = ({}) => {
           </div>
         </div>
 
-        {/* Color accent */}
+        {/* Primary color */}
         <div>
           <p
             className="mb-2 text-xs font-medium"
             style={{ color: "var(--color-agent-on-surface-variant)" }}
           >
-            Color Accent
+            Primary Color
           </p>
           <div className="flex flex-wrap items-center gap-2">
             {COLOR_PRESETS.map((preset) => (
@@ -356,6 +478,38 @@ const ThemeCustomizationPanel: React.FC<Props> = ({}) => {
             </label>
           </div>
         </div>
+
+        {/* Accent color — only for templates whose header visibly blends or
+            blocks a second color (gradient/split), e.g. creative-modern,
+            two-tone. Elsewhere accentColor is just a derived shade, so a
+            second picker would be noise. */}
+        {supportsAccentColor && (
+          <div>
+            <p
+              className="mb-2 text-xs font-medium"
+              style={{ color: "var(--color-agent-on-surface-variant)" }}
+            >
+              Accent Color
+            </p>
+            <div className="flex flex-wrap items-center gap-2">
+              <label
+                title="Accent color"
+                className="relative h-7 w-7 cursor-pointer overflow-hidden rounded-full border-2 transition-transform hover:scale-110"
+                style={{
+                  background: colorsTuple[2],
+                  borderColor: "var(--color-agent-outline-variant)",
+                }}
+              >
+                <input
+                  type="color"
+                  defaultValue={colorsTuple[2]}
+                  onChange={(e) => handleAccentColorChange(e.target.value)}
+                  className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
+                />
+              </label>
+            </div>
+          </div>
+        )}
 
         {/* Background */}
         <div>
@@ -455,6 +609,30 @@ const ThemeCustomizationPanel: React.FC<Props> = ({}) => {
           </div>
         )}
       </Card>
+
+      {/* Floating — pinned to the bottom of the scrollable drawer regardless
+          of scroll position, since a plain inline button here is easy to
+          miss without scrolling all the way down. */}
+      {hasDivergedFromTemplateDefaults && (
+        <div
+          className="sticky bottom-0 z-10 -mx-4 -mb-4 border-t px-4 py-3 shadow-[0_-4px_12px_rgba(0,0,0,0.08)] backdrop-blur-sm"
+          style={{
+            background: "var(--color-agent-surface-lowest)",
+            borderColor: "var(--color-agent-outline-variant)",
+          }}
+        >
+          <button
+            onClick={resetToTemplateDefaults}
+            className="w-full rounded-lg py-2 text-xs font-medium transition-colors"
+            style={{
+              background: "var(--color-agent-surface-container)",
+              color: "var(--color-agent-on-surface)",
+            }}
+          >
+            Reset to template defaults
+          </button>
+        </div>
+      )}
     </div>
   );
 };

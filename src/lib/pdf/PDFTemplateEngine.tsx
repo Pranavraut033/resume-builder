@@ -89,15 +89,21 @@ const SectionHeading = memo(function SectionHeading({
   // flat color is invisible against the text, so it needs a translucent
   // variant instead. Mirrors DOM's `theme.backgroundColor + "60"` override
   // for `isSolidSidebarColumn` (TemplateEngine.tsx:173-174), which applies
-  // regardless of heading style, not just "accent-rule".
+  // regardless of heading style, not just "accent-rule". `borderTint`, not
+  // `withAlpha` — this feeds `borderColor`/`border*Color` props, and an
+  // `rgba(...)` string there gets misparsed by react-pdf/pdfkit into a
+  // wildly wrong (often red- or green-dominant) color. See borderTint's
+  // doc comment in resolveStyles.ts.
   const sidebarBorderColor =
-    isSidebar && isSolidSidebar ? withAlpha(backgroundColor, "60") : undefined;
+    isSidebar && isSolidSidebar ? borderTint(backgroundColor, "60") : undefined;
 
   const isUppercase = headingStyle === "uppercase";
   const isBar = headingStyle === "bar";
   const isSerif = headingStyle === "serif";
   const isPlain = headingStyle === "plain";
   const isAccentRule = headingStyle === "accent-rule";
+  const isRuleAbove = headingStyle === "rule-above";
+  const isBoxed = headingStyle === "boxed";
   // ponytail: @react-pdf has no reliable fontVariant: small-caps support, so
   // approximate it with an uppercase title at a slightly reduced size.
   const displayTitle = smallCaps ? title.toUpperCase() : title;
@@ -216,6 +222,62 @@ const SectionHeading = memo(function SectionHeading({
           }}
         >
           {title}
+        </Text>
+      </View>
+    );
+  }
+
+  if (isRuleAbove) {
+    return (
+      <View
+        style={{
+          marginBottom: s.sp(5),
+          marginTop: s.sp(10),
+          borderTopWidth: 1,
+          borderTopColor:
+            sidebarBorderColor ?? borderTint(secondaryColor, "60"),
+          paddingTop: s.sp(4),
+        }}
+      >
+        <Text
+          style={{
+            fontFamily,
+            fontSize: isSidebar ? fontSize + 1 : headingFontSize,
+            fontWeight: 700,
+            letterSpacing: 1.5,
+            color: primaryColor,
+          }}
+        >
+          {title.toUpperCase()}
+        </Text>
+      </View>
+    );
+  }
+
+  if (isBoxed) {
+    return (
+      <View
+        style={{
+          marginBottom: s.sp(5),
+          marginTop: s.sp(10),
+          borderWidth: 1,
+          borderColor: sidebarBorderColor ?? borderTint(secondaryColor, "60"),
+          paddingVertical: s.sp(3),
+          paddingHorizontal: s.sp(6),
+          alignItems: "center",
+        }}
+      >
+        <Text
+          style={{
+            fontFamily,
+            fontSize: headingFontSize,
+            fontWeight: 700,
+            letterSpacing: 1,
+            textAlign: "center",
+            color: primaryColor,
+          }}
+        >
+          {title.toUpperCase()}
         </Text>
       </View>
     );
@@ -675,6 +737,48 @@ export const PDFTemplateEngine: React.FC<PDFTemplateEngineProps> = ({
         </Text>
         {photoImage}
       </View>
+    </View>
+  ) : headerStyle === "overline" ? (
+    // european-modern: small letterspaced headline above a light-weight
+    // name — mirrors DOM's `isOverline` flip of `{headlineNode}{nameNode}`
+    // (TemplateEngine.tsx).
+    <View
+      style={{
+        marginBottom: s.sp(14),
+        flexDirection: "row",
+        alignItems: "center",
+        gap: s.sp(10),
+      }}
+    >
+      <View style={{ flex: 1 }}>
+        {resume.header.headline ? (
+          <Text
+            style={{
+              fontSize: smallFontSize,
+              color: accentColor,
+              marginBottom: 3,
+              letterSpacing: 1.5,
+              textTransform: "uppercase",
+            }}
+          >
+            {resume.header.headline}
+          </Text>
+        ) : null}
+        <Text
+          style={{
+            fontSize: nameFontSize,
+            fontWeight: nameFontWeight,
+            color: textColor,
+            marginBottom: 3,
+          }}
+        >
+          {resume.header.name}
+        </Text>
+        <Text style={{ fontSize: smallFontSize, color: secondaryColor }}>
+          {contactLine}
+        </Text>
+      </View>
+      {photoImage}
     </View>
   ) : (
     // Default/"underline" fallback (business-professional) — DOM's

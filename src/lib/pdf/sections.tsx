@@ -101,6 +101,7 @@ function PdfTableRow({
   isLast = false,
   fontSize = 8,
   sp = (n: number) => n,
+  variant = "boxed",
 }: {
   label: string;
   children: React.ReactNode;
@@ -109,23 +110,57 @@ function PdfTableRow({
   isLast?: boolean;
   fontSize?: number;
   sp?: (n: number) => number;
+  /** "boxed" (default) is the original bjet-professional look: bordered
+   * rows, accent-tinted label cell. "label" (europass-classic) drops the
+   * per-row border and label tint and right-aligns the label — each row's
+   * own right border stands in for one continuous divider for the whole
+   * entry, since rows stack with no gap between them. */
+  variant?: "boxed" | "label";
 }) {
-  const rowStyle = {
-    flexDirection: "row" as const,
-    borderBottomWidth: isLast ? 0 : 1,
-    borderBottomColor: borderColor,
-  };
   // No label (e.g. an uncategorized skills group) — skip the label column
   // entirely instead of reserving its width for a blank cell.
   if (!label) {
+    const rowStyle =
+      variant === "boxed"
+        ? {
+            flexDirection: "row" as const,
+            borderBottomWidth: isLast ? 0 : 1,
+            borderBottomColor: borderColor,
+          }
+        : { flexDirection: "row" as const };
     return (
       <View style={rowStyle}>
         <View style={{ flex: 1, padding: sp(4) }}>{children}</View>
       </View>
     );
   }
+  if (variant === "label") {
+    return (
+      <View style={{ flexDirection: "row" as const }}>
+        <View
+          style={{
+            width: sp(80),
+            borderRightWidth: 1,
+            borderRightColor: borderColor,
+            padding: sp(4),
+          }}
+        >
+          <Text style={{ fontSize, fontWeight: 700, textAlign: "right" }}>
+            {label}
+          </Text>
+        </View>
+        <View style={{ flex: 1, padding: sp(4) }}>{children}</View>
+      </View>
+    );
+  }
   return (
-    <View style={rowStyle}>
+    <View
+      style={{
+        flexDirection: "row" as const,
+        borderBottomWidth: isLast ? 0 : 1,
+        borderBottomColor: borderColor,
+      }}
+    >
       <View
         style={{
           width: sp(80),
@@ -143,16 +178,23 @@ function PdfTableRow({
 }
 
 /** Bordered box wrapping a run of `PdfTableRow`s.
- * `sp` is optional for the same reason as `PdfTableRow` above. */
+ * `sp` is optional for the same reason as `PdfTableRow` above.
+ * `variant="label"` (europass-classic) drops the outer box border — the
+ * single vertical divider comes from `PdfTableRow`'s own right border. */
 function PdfTableEntry({
   children,
   borderColor,
   sp = (n: number) => n,
+  variant = "boxed",
 }: {
   children: React.ReactNode;
   borderColor: string;
   sp?: (n: number) => number;
+  variant?: "boxed" | "label";
 }) {
+  if (variant === "label") {
+    return <View style={{ marginBottom: sp(8) }}>{children}</View>;
+  }
   return (
     <View
       wrap={false}
@@ -275,7 +317,84 @@ const pdfExperience: PDFSectionBuilder = ({ resume, styles: s, config }) => {
     );
   }
 
-  if (entryStyle === "timeline" || entryStyle === "marker") {
+  if (
+    entryStyle === "timeline" ||
+    entryStyle === "marker" ||
+    entryStyle === "date-column"
+  ) {
+    if (entryStyle === "date-column") {
+      const borderColor = borderTint(s.secondaryColor, "40");
+      return (
+        <>
+          {resume.experience.map((exp, i) => (
+            <View
+              key={i}
+              wrap={false}
+              style={{
+                flexDirection: "row",
+                paddingBottom: s.sp(10),
+                gap: s.sp(8),
+              }}
+            >
+              <View style={{ width: "22%" }}>
+                <Text
+                  style={{
+                    fontSize: smallFontSize,
+                    color: accentColor,
+                    textAlign: "right",
+                  }}
+                >
+                  {formatDateRange(exp.startDate, exp.endDate, dateFormat)}
+                </Text>
+              </View>
+              <View
+                style={{
+                  flex: 1,
+                  borderLeftWidth: 1,
+                  borderLeftColor: borderColor,
+                  paddingLeft: s.sp(8),
+                }}
+              >
+                <Text style={{ fontSize, fontWeight: 700, color: accentColor }}>
+                  {exp.role}
+                </Text>
+                <Text
+                  style={{ fontSize: smallFontSize, color: s.secondaryColor }}
+                >
+                  {exp.company}
+                </Text>
+                {exp.description ? (
+                  <Text
+                    style={{
+                      fontSize,
+                      lineHeight,
+                      color: s.textColor,
+                      marginTop: 2,
+                      marginBottom: 3,
+                    }}
+                  >
+                    {plain(exp.description)}
+                  </Text>
+                ) : null}
+                {exp.achievements.map((a, j) => (
+                  <Text
+                    key={j}
+                    style={{
+                      fontSize,
+                      lineHeight,
+                      color: s.textColor,
+                      marginLeft: s.sp(8),
+                    }}
+                  >
+                    {glyph} {a}
+                  </Text>
+                ))}
+              </View>
+            </View>
+          ))}
+        </>
+      );
+    }
     return (
       <>
         {resume.experience.map((exp, i) => (
@@ -361,19 +480,26 @@ const pdfExperience: PDFSectionBuilder = ({ resume, styles: s, config }) => {
     );
   }
 
-  if (entryStyle === "table") {
+  if (entryStyle === "table" || entryStyle === "label-column") {
     const borderColor = borderTint(s.secondaryColor, "40");
     const tint = withAlpha(accentColor, "20");
+    const variant = entryStyle === "label-column" ? "label" : "boxed";
     return (
       <>
         {resume.experience.map((exp, i) => (
-          <PdfTableEntry key={i} borderColor={borderColor} sp={s.sp}>
+          <PdfTableEntry
+            key={i}
+            borderColor={borderColor}
+            sp={s.sp}
+            variant={variant}
+          >
             <PdfTableRow
               label="Company"
               accentColor={tint}
               borderColor={borderColor}
               fontSize={smallFontSize}
               sp={s.sp}
+              variant={variant}
             >
               <Text style={{ fontSize: smallFontSize }}>{exp.company}</Text>
             </PdfTableRow>
@@ -383,6 +509,7 @@ const pdfExperience: PDFSectionBuilder = ({ resume, styles: s, config }) => {
               borderColor={borderColor}
               fontSize={smallFontSize}
               sp={s.sp}
+              variant={variant}
             >
               <Text style={{ fontSize: smallFontSize }}>{exp.role}</Text>
             </PdfTableRow>
@@ -392,6 +519,7 @@ const pdfExperience: PDFSectionBuilder = ({ resume, styles: s, config }) => {
               borderColor={borderColor}
               fontSize={smallFontSize}
               sp={s.sp}
+              variant={variant}
             >
               <Text style={{ fontSize: smallFontSize }}>
                 {formatDateRange(exp.startDate, exp.endDate, dateFormat)}
@@ -404,6 +532,7 @@ const pdfExperience: PDFSectionBuilder = ({ resume, styles: s, config }) => {
               isLast
               fontSize={smallFontSize}
               sp={s.sp}
+              variant={variant}
             >
               {exp.description ? (
                 <Text
@@ -538,7 +667,77 @@ const pdfProjects: PDFSectionBuilder = ({ resume, styles: s, config }) => {
     );
   }
 
-  if (entryStyle === "timeline" || entryStyle === "marker") {
+  if (
+    entryStyle === "timeline" ||
+    entryStyle === "marker" ||
+    entryStyle === "date-column"
+  ) {
+    if (entryStyle === "date-column") {
+      const borderColor = borderTint(s.secondaryColor, "40");
+      return (
+        <>
+          {resume.projects.map((proj, i) => (
+            <View
+              key={i}
+              wrap={false}
+              style={{
+                flexDirection: "row",
+                paddingBottom: s.sp(10),
+                gap: s.sp(8),
+              }}
+            >
+              <View style={{ width: "22%" }}>
+                {proj.startDate || proj.endDate ? (
+                  <Text
+                    style={{
+                      fontSize: smallFontSize,
+                      color: accentColor,
+                      textAlign: "right",
+                    }}
+                  >
+                    {formatDateRange(proj.startDate, proj.endDate, dateFormat)}
+                  </Text>
+                ) : null}
+              </View>
+              <View
+                style={{
+                  flex: 1,
+                  borderLeftWidth: 1,
+                  borderLeftColor: borderColor,
+                  paddingLeft: s.sp(8),
+                }}
+              >
+                <Text style={{ fontSize, fontWeight: 700, color: accentColor }}>
+                  {proj.name}
+                </Text>
+                <Text
+                  style={{
+                    fontSize,
+                    lineHeight,
+                    color: s.textColor,
+                    marginTop: 2,
+                    marginBottom: 3,
+                  }}
+                >
+                  {plain(proj.description)}
+                </Text>
+                {proj.technologies.length > 0 ? (
+                  <Text
+                    style={{
+                      fontSize: smallFontSize,
+                      color: s.secondaryColor,
+                    }}
+                  >
+                    <Text style={{ fontWeight: 600 }}>{"Technologies: "}</Text>
+                    {proj.technologies.join(", ")}
+                  </Text>
+                ) : null}
+              </View>
+            </View>
+          ))}
+        </>
+      );
+    }
     return (
       <>
         {resume.projects.map((proj, i) => (
@@ -611,19 +810,26 @@ const pdfProjects: PDFSectionBuilder = ({ resume, styles: s, config }) => {
     );
   }
 
-  if (entryStyle === "table") {
+  if (entryStyle === "table" || entryStyle === "label-column") {
     const borderColor = borderTint(s.secondaryColor, "40");
     const tint = withAlpha(accentColor, "20");
+    const variant = entryStyle === "label-column" ? "label" : "boxed";
     return (
       <>
         {resume.projects.map((proj, i) => (
-          <PdfTableEntry key={i} borderColor={borderColor} sp={s.sp}>
+          <PdfTableEntry
+            key={i}
+            borderColor={borderColor}
+            sp={s.sp}
+            variant={variant}
+          >
             <PdfTableRow
               label="Project"
               accentColor={tint}
               borderColor={borderColor}
               fontSize={smallFontSize}
               sp={s.sp}
+              variant={variant}
             >
               <Text style={{ fontSize: smallFontSize }}>
                 {proj.name}
@@ -643,6 +849,7 @@ const pdfProjects: PDFSectionBuilder = ({ resume, styles: s, config }) => {
               borderColor={borderColor}
               fontSize={smallFontSize}
               sp={s.sp}
+              variant={variant}
             >
               <Text style={{ fontSize: smallFontSize }}>
                 {proj.startDate || proj.endDate
@@ -657,6 +864,7 @@ const pdfProjects: PDFSectionBuilder = ({ resume, styles: s, config }) => {
               isLast
               fontSize={smallFontSize}
               sp={s.sp}
+              variant={variant}
             >
               <Text
                 style={{ fontSize: smallFontSize, lineHeight, marginBottom: 2 }}
@@ -965,7 +1173,59 @@ const pdfEducation: PDFSectionBuilder = ({ resume, styles: s, config }) => {
     );
   }
 
-  if (entryStyle === "timeline" || entryStyle === "marker") {
+  if (
+    entryStyle === "timeline" ||
+    entryStyle === "marker" ||
+    entryStyle === "date-column"
+  ) {
+    if (entryStyle === "date-column") {
+      const borderColor = borderTint(s.secondaryColor, "40");
+      return (
+        <>
+          {resume.education.map((edu, i) => (
+            <View
+              key={i}
+              wrap={false}
+              style={{
+                flexDirection: "row",
+                paddingBottom: s.sp(10),
+                gap: s.sp(8),
+              }}
+            >
+              <View style={{ width: "22%" }}>
+                <Text
+                  style={{
+                    fontSize: smallFontSize,
+                    color: accentColor,
+                    textAlign: "right",
+                  }}
+                >
+                  {formatDateRange(edu.startDate, edu.endDate, dateFormat)}
+                </Text>
+              </View>
+              <View
+                style={{
+                  flex: 1,
+                  borderLeftWidth: 1,
+                  borderLeftColor: borderColor,
+                  paddingLeft: s.sp(8),
+                }}
+              >
+                <Text style={{ fontSize, fontWeight: 700, color: accentColor }}>
+                  {edu.degree}
+                  {edu.field ? ` in ${edu.field}` : ""}
+                </Text>
+                <Text
+                  style={{ fontSize: smallFontSize, color: s.secondaryColor }}
+                >
+                  {edu.institution}
+                </Text>
+              </View>
+            </View>
+          ))}
+        </>
+      );
+    }
     return (
       <>
         {resume.education.map((edu, i) => (
@@ -1026,19 +1286,26 @@ const pdfEducation: PDFSectionBuilder = ({ resume, styles: s, config }) => {
     );
   }
 
-  if (entryStyle === "table") {
+  if (entryStyle === "table" || entryStyle === "label-column") {
     const borderColor = borderTint(s.secondaryColor, "40");
     const tint = withAlpha(accentColor, "20");
+    const variant = entryStyle === "label-column" ? "label" : "boxed";
     return (
       <>
         {resume.education.map((edu, i) => (
-          <PdfTableEntry key={i} borderColor={borderColor} sp={s.sp}>
+          <PdfTableEntry
+            key={i}
+            borderColor={borderColor}
+            sp={s.sp}
+            variant={variant}
+          >
             <PdfTableRow
               label="Institution"
               accentColor={tint}
               borderColor={borderColor}
               fontSize={smallFontSize}
               sp={s.sp}
+              variant={variant}
             >
               <Text style={{ fontSize: smallFontSize }}>{edu.institution}</Text>
             </PdfTableRow>
@@ -1048,6 +1315,7 @@ const pdfEducation: PDFSectionBuilder = ({ resume, styles: s, config }) => {
               borderColor={borderColor}
               fontSize={smallFontSize}
               sp={s.sp}
+              variant={variant}
             >
               <Text style={{ fontSize: smallFontSize }}>
                 {edu.degree}
@@ -1061,6 +1329,7 @@ const pdfEducation: PDFSectionBuilder = ({ resume, styles: s, config }) => {
               isLast={!edu.gpa}
               fontSize={smallFontSize}
               sp={s.sp}
+              variant={variant}
             >
               <Text style={{ fontSize: smallFontSize }}>
                 {formatDateRange(edu.startDate, edu.endDate, dateFormat)}
@@ -1074,6 +1343,7 @@ const pdfEducation: PDFSectionBuilder = ({ resume, styles: s, config }) => {
                 isLast
                 fontSize={smallFontSize}
                 sp={s.sp}
+                variant={variant}
               >
                 <Text style={{ fontSize: smallFontSize }}>{edu.gpa}</Text>
               </PdfTableRow>
@@ -1230,7 +1500,70 @@ const pdfVolunteer: PDFSectionBuilder = ({ resume, styles: s, config }) => {
     );
   }
 
-  if (entryStyle === "timeline" || entryStyle === "marker") {
+  if (
+    entryStyle === "timeline" ||
+    entryStyle === "marker" ||
+    entryStyle === "date-column"
+  ) {
+    if (entryStyle === "date-column") {
+      const borderColor = borderTint(s.secondaryColor, "40");
+      return (
+        <>
+          {vols.map((v, i) => (
+            <View
+              key={i}
+              wrap={false}
+              style={{
+                flexDirection: "row",
+                paddingBottom: s.sp(10),
+                gap: s.sp(8),
+              }}
+            >
+              <View style={{ width: "22%" }}>
+                <Text
+                  style={{
+                    fontSize: smallFontSize,
+                    color: accentColor,
+                    textAlign: "right",
+                  }}
+                >
+                  {formatDateRange(v.startDate, v.endDate, dateFormat)}
+                </Text>
+              </View>
+              <View
+                style={{
+                  flex: 1,
+                  borderLeftWidth: 1,
+                  borderLeftColor: borderColor,
+                  paddingLeft: s.sp(8),
+                }}
+              >
+                <Text style={{ fontSize, fontWeight: 700, color: accentColor }}>
+                  {v.role}
+                </Text>
+                <Text
+                  style={{ fontSize: smallFontSize, color: s.secondaryColor }}
+                >
+                  {v.organization}
+                </Text>
+                {v.description ? (
+                  <Text
+                    style={{
+                      fontSize,
+                      lineHeight,
+                      color: s.textColor,
+                      marginTop: 2,
+                    }}
+                  >
+                    {plain(v.description)}
+                  </Text>
+                ) : null}
+              </View>
+            </View>
+          ))}
+        </>
+      );
+    }
     return (
       <>
         {vols.map((v, i) => (
@@ -1302,19 +1635,26 @@ const pdfVolunteer: PDFSectionBuilder = ({ resume, styles: s, config }) => {
     );
   }
 
-  if (entryStyle === "table") {
+  if (entryStyle === "table" || entryStyle === "label-column") {
     const borderColor = borderTint(s.secondaryColor, "40");
     const tint = withAlpha(accentColor, "20");
+    const variant = entryStyle === "label-column" ? "label" : "boxed";
     return (
       <>
         {vols.map((v, i) => (
-          <PdfTableEntry key={i} borderColor={borderColor} sp={s.sp}>
+          <PdfTableEntry
+            key={i}
+            borderColor={borderColor}
+            sp={s.sp}
+            variant={variant}
+          >
             <PdfTableRow
               label="Organization"
               accentColor={tint}
               borderColor={borderColor}
               fontSize={smallFontSize}
               sp={s.sp}
+              variant={variant}
             >
               <Text style={{ fontSize: smallFontSize }}>{v.organization}</Text>
             </PdfTableRow>
@@ -1324,6 +1664,7 @@ const pdfVolunteer: PDFSectionBuilder = ({ resume, styles: s, config }) => {
               borderColor={borderColor}
               fontSize={smallFontSize}
               sp={s.sp}
+              variant={variant}
             >
               <Text style={{ fontSize: smallFontSize }}>{v.role}</Text>
             </PdfTableRow>
@@ -1334,6 +1675,7 @@ const pdfVolunteer: PDFSectionBuilder = ({ resume, styles: s, config }) => {
               isLast={!v.description}
               fontSize={smallFontSize}
               sp={s.sp}
+              variant={variant}
             >
               <Text style={{ fontSize: smallFontSize }}>
                 {formatDateRange(v.startDate, v.endDate, dateFormat)}
@@ -1347,6 +1689,7 @@ const pdfVolunteer: PDFSectionBuilder = ({ resume, styles: s, config }) => {
                 isLast
                 fontSize={smallFontSize}
                 sp={s.sp}
+                variant={variant}
               >
                 <Text style={{ fontSize: smallFontSize, lineHeight }}>
                   {plain(v.description)}

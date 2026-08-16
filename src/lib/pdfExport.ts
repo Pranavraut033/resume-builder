@@ -88,7 +88,7 @@ export async function generateResumePDF(
         config,
       });
     } else {
-      // All 9 templates have configs; this only fires for a corrupt/unknown
+      // All 13 templates have configs; this only fires for a corrupt/unknown
       // `template` value — fall back to the legacy Modern Minimal component.
       el = React.createElement(ModernMinimalPDF, {
         resume,
@@ -145,9 +145,21 @@ export async function generateCoverLetterPDF(
   const { pdf } = await import("@react-pdf/renderer");
 
   const styles = resolvePDFCustomization(customization);
+  // Mirrors CoverLetterRenderer.tsx's resolution: prefer the dedicated
+  // cover-letter template, falling back to the legacy euro-sidebar alias
+  // (for old rows with no coverLetterTemplate set) and then the resume
+  // template itself.
+  const legacyEuroSidebarFallback =
+    customization.template === "euro-sidebar" &&
+    !customization.coverLetterTemplate
+      ? "tech-sidebar"
+      : null;
+  const resolvedTemplate =
+    customization.coverLetterTemplate ??
+    legacyEuroSidebarFallback ??
+    customization.template;
   const TemplateComponent =
-    COVER_LETTER_TEMPLATE_MAP[customization.template] ??
-    ModernMinimalCoverLetterPDF;
+    COVER_LETTER_TEMPLATE_MAP[resolvedTemplate] ?? ModernMinimalCoverLetterPDF;
 
   const renderBlob = (pdfStyles: ResolvedPDFStyles): Promise<Blob> => {
     const el = React.createElement(TemplateComponent, {

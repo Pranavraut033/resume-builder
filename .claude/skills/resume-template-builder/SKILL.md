@@ -23,7 +23,7 @@ structurally correct. Treat "it renders" as necessary but not sufficient.
 
 ## Adding a template
 
-**Default path: a fresh combination of existing axis values.** With 10 templates shipped this is almost always
+**Default path: a fresh combination of existing axis values.** With 13 templates shipped this is almost always
 achievable — a ~30-line diff across three files. Read the existing `TEMPLATE_CONFIG` entries and `AXIS_KEYS`
 in the distinctness test to see what's taken before concluding otherwise.
 

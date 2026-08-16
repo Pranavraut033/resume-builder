@@ -75,3 +75,6 @@ src-tauri/resources/next
 # Playwright
 /test-results/
 /playwright-report/
+
+# Reference-only design mockups, not part of the app source
+/template-design-ideas/

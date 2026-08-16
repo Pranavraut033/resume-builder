@@ -6,7 +6,10 @@
 import React from "react";
 
 import { simpleI32HashString, toStableJsonString } from "@/lib";
-import { SanitizedCustomization, TemplateType } from "@/types/customization";
+import {
+  CoverLetterTemplateType,
+  SanitizedCustomization,
+} from "@/types/customization";
 import { JobDetailsJSON, ResumeJSON } from "@/types/resume";
 
 import { AcademicSerifCoverLetter } from "./AcademicSerifCoverLetter";
@@ -36,10 +39,22 @@ export const CoverLetterRenderer: React.FC<CoverLetterRendererProps> = ({
   editable,
   onChange,
 }) => {
-  const template = customization.template as TemplateType;
+  // No dedicated cover-letter component exists for "euro-sidebar" — it was
+  // (and still is, for old rows with no coverLetterTemplate set) aliased to
+  // its nearest structural sibling, TechSidebarCoverLetter. Resolved as an
+  // explicit pre-check since "euro-sidebar" isn't a CoverLetterTemplateType.
+  const legacyEuroSidebarFallback: CoverLetterTemplateType | null =
+    customization.template === "euro-sidebar" &&
+    !customization.coverLetterTemplate
+      ? "tech-sidebar"
+      : null;
+
+  const template = (customization.coverLetterTemplate ??
+    legacyEuroSidebarFallback ??
+    customization.template) as CoverLetterTemplateType;
 
   const templateComponents: Record<
-    TemplateType,
+    CoverLetterTemplateType,
     React.ComponentType<CoverLetterRendererProps>
   > = {
     "modern-minimal": ModernMinimalCoverLetter,
@@ -51,10 +66,6 @@ export const CoverLetterRenderer: React.FC<CoverLetterRendererProps> = ({
     "compact-modern": CompactModernCoverLetter,
     "two-tone": TwoToneCoverLetter,
     "academic-serif": AcademicSerifCoverLetter,
-    // No dedicated cover-letter component yet for "euro-sidebar" — reuse its
-    // nearest structural sibling (also a full-height solid sidebar) rather
-    // than leaving it unmapped. See report: needs a purpose-built component.
-    "euro-sidebar": TechSidebarCoverLetter,
   };
 
   // Fallback to a default template if not found

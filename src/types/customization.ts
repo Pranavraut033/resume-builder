@@ -21,7 +21,27 @@ export type TemplateType =
   | "compact-modern"
   | "two-tone"
   | "academic-serif"
-  | "euro-sidebar";
+  | "euro-sidebar"
+  | "european-modern"
+  | "europass-classic"
+  | "french-elegant";
+
+/**
+ * Cover-letter templates, independent of `TemplateType` (the resume's
+ * template). Only the 9 ids with a dedicated cover-letter component (see
+ * CoverLetterRenderer.tsx's import list) — notably excludes "euro-sidebar"
+ * and the three newer resume-only templates, none of which have one.
+ */
+export type CoverLetterTemplateType =
+  | "modern-minimal"
+  | "tech-sidebar"
+  | "business-professional"
+  | "elegant-timeline"
+  | "creative-modern"
+  | "bjet-professional"
+  | "compact-modern"
+  | "two-tone"
+  | "academic-serif";
 
 export type PageFormat = "letter" | "a4";
 export type FontSize = "small" | "medium" | "large";
@@ -62,6 +82,7 @@ export const DEFAULT_CUSTOMIZATION: SanitizedCustomization = {
   dateFormat: "locale",
   themeJson: null,
   fitToPage: false,
+  coverLetterTemplate: null,
 };
 
 export type Template = {
@@ -71,6 +92,9 @@ export type Template = {
   fontFamily: string;
   features: string[];
   bestFor: string;
+  colors?: ThemeColors;
+  /** Page background pattern applied when this template is selected. */
+  background?: BackgroundId;
 };
 
 export const AVAILABLE_TEMPLATES: Array<Template> = [
@@ -82,6 +106,7 @@ export const AVAILABLE_TEMPLATES: Array<Template> = [
     fontFamily: "Poppins",
     features: ["Two-column layout", "Skill chips", "Pill date badges"],
     bestFor: "Creative professionals, designers, modern companies",
+    colors: ["#1d4ed8", "#475569", "#6d28d9", "#1f2937", "#ffffff"],
   },
   {
     id: "tech-sidebar",
@@ -95,6 +120,7 @@ export const AVAILABLE_TEMPLATES: Array<Template> = [
       "Plain skills list",
     ],
     bestFor: "Software developers, engineers, technical roles",
+    colors: ["#0ea5e9", "#64748b", "#22d3ee", "#0f172a", "#ffffff"],
   },
   {
     id: "creative-modern",
@@ -104,6 +130,7 @@ export const AVAILABLE_TEMPLATES: Array<Template> = [
     fontFamily: "Montserrat",
     features: ["Gradient header", "Right sidebar", "Dot-marker timeline"],
     bestFor: "Creative roles, startups, design-focused companies",
+    colors: ["#7c3aed", "#64748b", "#ec4899", "#1f2937", "#ffffff"],
   },
   {
     id: "two-tone",
@@ -112,6 +139,7 @@ export const AVAILABLE_TEMPLATES: Array<Template> = [
     fontFamily: "Poppins",
     features: ["Split colour-block header", "Tinted sidebar", "Skill chips"],
     bestFor: "Marketing, sales, and design-forward roles",
+    colors: ["#0f766e", "#57534e", "#f59e0b", "#1c1917", "#ffffff"],
   },
   {
     id: "business-professional",
@@ -125,6 +153,7 @@ export const AVAILABLE_TEMPLATES: Array<Template> = [
       "Traditional structure",
     ],
     bestFor: "Corporate positions, management roles, traditional industries",
+    colors: ["#334155", "#64748b", "#334155", "#1e293b", "#ffffff"],
   },
   {
     id: "academic-serif",
@@ -134,6 +163,7 @@ export const AVAILABLE_TEMPLATES: Array<Template> = [
     fontFamily: "Merriweather",
     features: ["Serif typography", "Small-caps headings", "Section dividers"],
     bestFor: "Academics, researchers, education, legal roles",
+    colors: ["#7c2d12", "#57534e", "#7c2d12", "#292524", "#ffffff"],
   },
   {
     id: "elegant-timeline",
@@ -143,6 +173,7 @@ export const AVAILABLE_TEMPLATES: Array<Template> = [
     fontFamily: "Lora",
     features: ["Centered layout", "Timeline rail", "Light-weight name"],
     bestFor: "Experienced professionals, career changers",
+    colors: ["#831843", "#78716c", "#831843", "#292524", "#ffffff"],
   },
   {
     id: "bjet-professional",
@@ -152,6 +183,7 @@ export const AVAILABLE_TEMPLATES: Array<Template> = [
     fontFamily: "Playfair Display",
     features: ["Bordered entry tables", "Boxed header", "Structured CV format"],
     bestFor: "Senior positions, executive roles, premium applications",
+    colors: ["#1e3a5f", "#4b5563", "#1e3a5f", "#111827", "#ffffff"],
   },
   {
     id: "compact-modern",
@@ -160,6 +192,7 @@ export const AVAILABLE_TEMPLATES: Array<Template> = [
     fontFamily: "Inter",
     features: ["Compact entries", "Space-efficient", "ATS-friendly"],
     bestFor: "Experienced candidates with lots to fit, ATS submissions",
+    colors: ["#1f2937", "#4b5563", "#1f2937", "#111827", "#ffffff"],
   },
   {
     id: "euro-sidebar",
@@ -174,8 +207,79 @@ export const AVAILABLE_TEMPLATES: Array<Template> = [
     ],
     bestFor:
       "European/German-style CVs, roles expecting a photo, multilingual candidates",
+    colors: ["#2c5f8a", "#5b6b79", "#2c5f8a", "#26303a", "#ffffff"],
+  },
+  {
+    id: "european-modern",
+    name: "European Modern",
+    description:
+      "Light-tint sidebar with a circular photo and summary up top, a small overline headline above a light-weight name, and a dotted date-rail for experience and education entries",
+    fontFamily: "Inter",
+    features: [
+      "Overline headline over light-weight name",
+      "Tinted sidebar with photo & summary",
+      "Dotted date-rail entries",
+    ],
+    bestFor:
+      "European-format CVs, candidates who want a photo with a soft, modern look",
+    colors: ["#1855a0", "#66717b", "#3f6d9c", "#30353a", "#ffffff"],
+    background: "corner-dots",
+  },
+  {
+    id: "europass-classic",
+    name: "Europass Classic",
+    description:
+      "Single-column official Europass CV layout — bold small-caps section headings, a right-aligned label column ('Dates', 'Employer', 'Position') against a single divider, and a square framed photo",
+    fontFamily: "Arial",
+    features: [
+      "Official Europass-style layout",
+      "Label/value column entries",
+      "Small-caps section headings",
+    ],
+    bestFor:
+      "EU institution and government applications, roles expecting the standard Europass format",
+    colors: ["#111111", "#555555", "#111111", "#111111", "#ffffff"],
+  },
+  {
+    id: "french-elegant",
+    name: "French Elegant",
+    description:
+      "Minimalist taupe sidebar with a serif-accented centered header, boxed section headings, and a plain date-rail for experience entries — a Parisian, editorial CV look",
+    fontFamily: "Cormorant Garamond",
+    features: [
+      "Centered serif header",
+      "Boxed section headings",
+      "Taupe sidebar with skills & interests",
+    ],
+    bestFor:
+      "Design, communications, and creative-industry roles wanting an elegant, minimalist CV",
+    colors: ["#3a3a3a", "#8a8a8a", "#6b5b4f", "#2b2b2b", "#ffffff"],
   },
 ];
+
+const COVER_LETTER_TEMPLATE_IDS: CoverLetterTemplateType[] = [
+  "modern-minimal",
+  "tech-sidebar",
+  "business-professional",
+  "elegant-timeline",
+  "creative-modern",
+  "bjet-professional",
+  "compact-modern",
+  "two-tone",
+  "academic-serif",
+];
+
+export const AVAILABLE_COVER_LETTER_TEMPLATES: Array<{
+  id: CoverLetterTemplateType;
+  name: string;
+}> = COVER_LETTER_TEMPLATE_IDS.map((id) => ({
+  id,
+  name: AVAILABLE_TEMPLATES.find((t) => t.id === id)!.name,
+}));
+
+export const VALID_COVER_LETTER_TEMPLATE_IDS = new Set(
+  AVAILABLE_COVER_LETTER_TEMPLATES.map((t) => t.id)
+);
 
 export const AVAILABLE_FONTS = ALL_FONT_NAMES;
 
@@ -218,9 +322,19 @@ export function validateCustomization({
   dateFormat,
   themeJson,
   fitToPage,
+  coverLetterTemplate,
 }: SanitizedCustomization) {
   if (template && !VALID_TEMPLATE_IDS.has(template as TemplateType)) {
     throw new Error("Invalid template selected.");
+  }
+
+  if (
+    coverLetterTemplate &&
+    !VALID_COVER_LETTER_TEMPLATE_IDS.has(
+      coverLetterTemplate as CoverLetterTemplateType
+    )
+  ) {
+    throw new Error("Invalid cover letter template selected.");
   }
 
   if (fontSize && !VALID_FONT_SIZES.includes(fontSize as FontSize)) {
@@ -374,7 +488,9 @@ export type HeadingStyle =
   | "bar"
   | "serif"
   | "plain"
-  | "accent-rule";
+  | "accent-rule"
+  | "rule-above"
+  | "boxed";
 
 /** Header block layout — how name/headline/contacts are arranged. */
 export type HeaderStyle =
@@ -386,7 +502,8 @@ export type HeaderStyle =
   | "plain"
   | "gradient"
   | "boxed"
-  | "split";
+  | "split"
+  | "overline";
 
 /** How dated entries (experience/education/projects/volunteer) render. */
 export type EntryStyle =
@@ -394,7 +511,9 @@ export type EntryStyle =
   | "timeline"
   | "compact"
   | "marker"
-  | "table";
+  | "table"
+  | "date-column"
+  | "label-column";
 
 /** Profile photo corner treatment. */
 export type PhotoShape = "circle" | "squircle" | "square";

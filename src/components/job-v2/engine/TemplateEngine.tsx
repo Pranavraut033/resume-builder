@@ -32,8 +32,10 @@ import { EditableItem } from "@/components/job-v2/resume/EditableItem";
 import { EditableLink } from "@/components/job-v2/resume/EditableLink";
 import { EditableText } from "@/components/job-v2/resume/EditableText";
 import { useInlineEdit } from "@/components/job-v2/resume/InlineEditContext";
+import { useToast } from "@/components/ui/ToastProvider";
 import { useBlockPaginator } from "@/hooks/useBlockPaginator";
 import useResolveCustomization from "@/hooks/useResolveCustomization";
+import { compressImage, MAX_PHOTO_DATA_URL_LENGTH } from "@/lib/compressImage";
 import { getPageDimensions } from "@/lib/pageDimensions";
 import { setFitScale } from "@/lib/pdf/fitScale";
 import { legacyToTheme } from "@/lib/theme/legacyToTheme";
@@ -115,6 +117,7 @@ export const TemplateEngine: React.FC<TemplateEngineProps> = ({
   const [ratio0, ratio1] = config.columnRatio ?? [0.35, 0.65];
 
   const edit = useInlineEdit();
+  const { pushToast } = useToast();
   const sectionLayout = getSectionLayout(resume);
   const headerHidden = sectionLayout.hidden.includes("header");
 
@@ -139,6 +142,10 @@ export const TemplateEngine: React.FC<TemplateEngineProps> = ({
         return "";
       case "accent-rule":
         return "border-b-2 pb-1";
+      case "rule-above":
+        return "border-t pt-2 uppercase tracking-widest";
+      case "boxed":
+        return "border px-2 py-1 uppercase tracking-wider text-center";
       default:
         return "border-b pb-1";
     }
@@ -176,7 +183,9 @@ export const TemplateEngine: React.FC<TemplateEngineProps> = ({
       ? theme.backgroundColor + "60"
       : resolvedStyle === "accent-rule"
         ? theme.accentColor
-        : (override?.color ?? secondaryColor);
+        : resolvedStyle === "rule-above" || resolvedStyle === "boxed"
+          ? (override?.color ?? secondaryColor + "60")
+          : (override?.color ?? secondaryColor);
     return (
       <h2
         className={`${headingSize} group/heading mb-1.5 flex items-center gap-2 font-semibold ${isHeadingCentered ? "justify-center text-center" : "justify-between"} ${headingClassFor(resolvedStyle)}`}
@@ -338,6 +347,7 @@ export const TemplateEngine: React.FC<TemplateEngineProps> = ({
   const isPlain = headerVariant === "plain";
   const isBoxed = headerVariant === "boxed";
   const isSplit = headerVariant === "split";
+  const isOverline = headerVariant === "overline";
   const isFilled = isBand || isGradient;
 
   const headerNameColor =
@@ -414,13 +424,29 @@ export const TemplateEngine: React.FC<TemplateEngineProps> = ({
             type="file"
             accept="image/*"
             className="hidden"
-            onChange={(e) => {
+            onChange={async (e) => {
               const file = e.target.files?.[0];
+              e.target.value = ""; // allow re-selecting the same file
               if (!file) return;
-              const reader = new FileReader();
-              reader.onload = () =>
-                edit.updateHeader({ photoDataUrl: reader.result as string });
-              reader.readAsDataURL(file);
+              try {
+                const dataUrl = await compressImage(file);
+                if (dataUrl.length > MAX_PHOTO_DATA_URL_LENGTH) {
+                  pushToast({
+                    title: "Photo too large",
+                    description:
+                      "Even compressed, this photo is too large to store. Try a smaller or simpler image.",
+                    variant: "error",
+                  });
+                  return;
+                }
+                edit.updateHeader({ photoDataUrl: dataUrl });
+              } catch {
+                pushToast({
+                  title: "Couldn't process photo",
+                  description: "That file couldn't be read as an image.",
+                  variant: "error",
+                });
+              }
             }}
           />
         </label>
@@ -639,8 +665,17 @@ export const TemplateEngine: React.FC<TemplateEngineProps> = ({
         >
           {isCentered && photoNode}
           <div className="min-w-0 flex-1">
-            {nameNode}
-            {headlineNode}
+            {isOverline ? (
+              <>
+                {headlineNode}
+                {nameNode}
+              </>
+            ) : (
+              <>
+                {nameNode}
+                {headlineNode}
+              </>
+            )}
             {isBoxed && (
               <hr
                 className="my-2"
