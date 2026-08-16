@@ -46,6 +46,15 @@ Server Action boundary** so callers only ever see typed objects.
 A `Profile`'s content is structurally a `ResumeJSON` too — that is what lets `applyResumeOps()` edit a profile
 (the MCP profile-edit trio, see `.claude/knowledge/chat-mcp.md`).
 
+**Stored `ATSAnalysis.contentJson` rows predate the current schema.** Rows written before v1.14 still carry
+fields `ATSAnalysisSchema` no longer declares (`missing_keywords`, `formatting_issues`, `match_status`, three
+of the four `scores`, `estimated_score_delta`, `title_alignment.resume_title`/`.target_title`). Zod strips
+unknown keys, so they parse fine and the stripped fields simply vanish — never read one back expecting it to
+be there, and never re-add a field name assuming old rows carry a usable value. `knockout_risks` and
+`title_alignment` keep object-level `.default()`s precisely because rows exist that predate them. The
+`ATSAnalysisSchema back-compat` suite in `src/types/resume.test.ts` pins this; extend it rather than
+replacing it when the schema changes again.
+
 ### Cascades
 
 Nearly every relation is `onDelete: Cascade`, so deleting a `Job` takes its `Resume`, `CoverLetter`, `Contact`,

@@ -49,6 +49,23 @@ route — both were removed.
 Chat intents (tailor, cover letter, humanize, proofread, gap analysis, fix-all-ATS, edit, question,
 interview, undo) are documented in `.claude/knowledge/chat-mcp.md`, not here.
 
+### Recruiter Skim vs. Fit Check — the split, and why
+
+They divide on one question: **can a text edit fix it?** Recruiter Skim owns the document (keywords, phrasing,
+title, parse) and every finding it shows has a button. Fit Check owns the candidate (seniority, domain,
+missing experience) and mostly cannot be fixed by editing — `GapAnalysisSchema`'s `superRefine` _forbids_ a
+`resume_fix` on `missing`/`seniority` gaps, because a text edit there would be fabrication. Don't re-merge
+them, and don't add an apply path to a gap type the schema marks unfixable. The same boundary is stated to
+the model in `prompts/intentClassifier.ts` ("ats is keyword/format scoring, gap_analysis is substantive fit").
+
+**Neither panel renders a 0–100 score, deliberately.** No applicant tracking system exposes a match score to
+anyone on the hiring team; the number is a third-party-audit invention, so presenting one is a false claim.
+`scores.composite_score` survives in the schema for exactly one reason — `src/actions/job.ts` persists it to
+`Job.atsScore` so `/documents` can _rank jobs against each other_ — and that column shows the bare number, not
+"n / 100". The user-facing labels are "Recruiter Skim" and "Fit Check"; every identifier underneath
+(`analyze_ats`, `gap_analysis`, `ats_fix`, drawer ids `"ats"`/`"gaps"`, `Job.atsScore`) is unchanged and is a
+wire contract with MCP hosts — rename labels, never ids.
+
 ## Bookmarks
 
 A bookmark is **just a `Job` row with `status: "BOOKMARKED"`** (`JOB_STATUSES` in `src/types/job.ts`) — there

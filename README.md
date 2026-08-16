@@ -12,7 +12,7 @@
 
 ![Inline WYSIWYG editor](./landing/public/screenshots/editor.png)
 
-More screenshots and demo clips (ATS analysis, chat editing, cover letters, customization) are on the [landing page](https://udaan.pranavraut.dev).
+More screenshots and demo clips (Recruiter Skim, chat editing, cover letters, customization) are on the [landing page](https://udaan.pranavraut.dev).
 
 ## Features
 
@@ -25,7 +25,8 @@ More screenshots and demo clips (ATS analysis, chat editing, cover letters, cust
 - **13 templates**: per-job color/font/layout customization, rendered by a shared template engine so DOM/PDF/TXT output stay in sync
 - **AI humanizer**: rewrite resume/cover letter content to read less like AI output, with reviewable before/after changes
 - **AI proofreading**: deterministic lint checks plus an LLM pass catch grammar, consistency, and unquantified-claim issues in a review drawer; lint-sourced fixes auto-apply
-- **ATS analysis**: keyword/skill match scoring plus knockout-risk and title-alignment checks with rewrite coaching, including a chat action to fix all flagged issues at once
+- **Recruiter Skim**: no invented "ATS score" — leads with the hard blockers that actually end an application (work authorization, a license, a location), then keyword coverage and title alignment, each with a suggested rewrite; a deterministic offline check runs with no AI call
+- **Fit Check**: a blunt, substantive fit assessment against the job description — missing experience, seniority, and domain gaps a keyword scan can't see, each with a concrete next step, closing with your real strengths
 - **EU/German CVs**: optional profile photo, nationality, date of birth, and hobbies section; DE/EU region prompt guidance; an Anschreiben cover letter style
 - **Documents view**: browse all generated resumes and cover letters across jobs (`/documents`)
 - **Notifications**: a bell in the sidebar shows background task progress and results (e.g. bookmark parsing), with history and a clear-all action
