@@ -78,12 +78,14 @@ const { ModernMinimalCoverLetterPDF } =
   await import("@/lib/pdf/templates/ModernMinimalCoverLetterPDF");
 const { TechSidebarCoverLetterPDF } =
   await import("@/lib/pdf/templates/TechSidebarCoverLetterPDF");
+const { AcademicSerifCoverLetterPDF } =
+  await import("@/lib/pdf/templates/AcademicSerifCoverLetterPDF");
 
 const resume = {} as ResumeJSON;
 const blob = new Blob(["fake"]);
 
-function customization(template: string) {
-  return { template } as unknown as SanitizedCustomization;
+function customization(template: string, coverLetterTemplate?: string) {
+  return { template, coverLetterTemplate } as unknown as SanitizedCustomization;
 }
 
 beforeEach(() => {
@@ -175,11 +177,12 @@ describe("generateCoverLetterPDF", () => {
     expect(el.type).toBe(TechSidebarCoverLetterPDF);
   });
 
-  it("aliases euro-sidebar to TechSidebarCoverLetterPDF, matching the DOM preview's alias", async () => {
+  it("aliases euro-sidebar to TechSidebarCoverLetterPDF when no coverLetterTemplate is set, matching the DOM preview's legacy alias", async () => {
     // CoverLetterRenderer.tsx aliases "euro-sidebar" to TechSidebarCoverLetter
-    // for the on-screen preview (no dedicated component exists yet). Without
-    // the matching entry here, COVER_LETTER_TEMPLATE_MAP's `?? ModernMinimalCoverLetterPDF`
-    // fallback silently exported a different template than what was previewed.
+    // for the on-screen preview when no coverLetterTemplate is set (no
+    // dedicated component exists yet). Without the matching entry here,
+    // COVER_LETTER_TEMPLATE_MAP's `?? ModernMinimalCoverLetterPDF` fallback
+    // would silently export a different template than what was previewed.
     await generateCoverLetterPDF(
       "cover letter text",
       resume,
@@ -192,6 +195,23 @@ describe("generateCoverLetterPDF", () => {
       props: { styles: { fontFamily: string } };
     };
     expect(el.type).toBe(TechSidebarCoverLetterPDF);
+  });
+
+  it("prefers an explicit coverLetterTemplate over the resume template, including for euro-sidebar", async () => {
+    // coverLetterTemplate wins regardless of what the resume template is set
+    // to — proves the new field decouples the cover letter from the resume.
+    await generateCoverLetterPDF(
+      "cover letter text",
+      resume,
+      customization("euro-sidebar", "academic-serif"),
+      "c.pdf"
+    );
+
+    const el = pdf.mock.calls[0][0] as {
+      type: unknown;
+      props: { styles: { fontFamily: string } };
+    };
+    expect(el.type).toBe(AcademicSerifCoverLetterPDF);
   });
 
   it("threads jobDetails through to the template so it can pick a region-appropriate date format", async () => {

@@ -191,6 +191,13 @@ model Customization {
   dateFormat String @default("locale") @map("date_format") // locale, MMM yyyy, MM/yyyy, yyyy-MM, MM.yyyy
   fitToPage  Boolean @default(false) @map("fit_to_page") // shrink content (DOM zoom / PDF font+spacing scale) to force a single page
 
+  // Cover-letter-specific template id, independent of `template` (which is
+  // the resume's template). Null = not chosen yet, derive from `template`
+  // (see CoverLetterRenderer.tsx / pdfExport.ts's resolution logic) — this
+  // is how old rows (pre-decoupling) keep rendering the same cover letter
+  // they always did.
+  coverLetterTemplate String? @map("cover_letter_template")
+
   // ThemeConfig JSON (fonts/spacing/per-section overrides). Null = derive
   // from the legacy scalar columns above via legacyToTheme().
   themeJson String? @map("theme_json")
