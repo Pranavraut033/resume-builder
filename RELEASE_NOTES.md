@@ -1,3 +1,11 @@
+# v1.14.0 — 2026-08-16
+
+Three new European templates, and cover letters get their own look.
+
+- **New templates: European Modern, Europass Classic, and French Elegant.** More options tuned for European-format resumes and CVs.
+- **Cover letters no longer have to match your resume's template.** Pick a cover-letter design independently — mix and match however you like.
+- **Redesigned template picker.** Browse templates in a grid with background pattern previews and each template's accent color, instead of a plain list.
+
 # v1.13.2 — 2026-08-16
 
 Mostly documentation and website accuracy, plus a debug-logging fix.

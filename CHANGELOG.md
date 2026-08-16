@@ -2,6 +2,19 @@
 
 All notable changes to this project are documented in this file.
 
+## [1.14.0] - 2026-08-16
+
+### Added
+
+- Three new European resume templates: European Modern, Europass Classic, and French Elegant ([f7b4e1b])
+- Cover-letter template selection is now independent of the resume template — pick either separately instead of the cover letter always following the resume's design ([b1fe5e9])
+- Template picker redesigned as a grid with background pattern previews and per-template accent colors ([6cf8396])
+
+### Internal
+
+- `rendering.md` and CLAUDE.md/README/landing-page docs synced to the new template count and cover-letter decoupling ([14329e4], [0e213a6])
+- Local `template-design-ideas` reference folder gitignored ([81110c0])
+
 ## [1.13.2] - 2026-08-16
 
 ### Fixed
