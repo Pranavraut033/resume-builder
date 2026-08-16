@@ -222,11 +222,16 @@ function DrillInRow({
 }) {
   const interactive = Boolean(onClick);
 
+  // A non-interactive row renders as a plain <div>, not a disabled <button>:
+  // there's no action to disable here, and a screen reader announcing
+  // "dimmed/disabled button" would describe a state the row never had.
+  const Tag = interactive ? "button" : "div";
+
   return (
-    <button
-      type="button"
-      disabled={!interactive}
-      onClick={onClick}
+    <Tag
+      {...(interactive
+        ? ({ type: "button", onClick } as const)
+        : ({} as const))}
       className={cn(
         "border-agent-outline-variant bg-agent-surface-low flex w-full items-center justify-between gap-3 rounded-lg border px-3 py-2.5 text-left",
         interactive
@@ -256,7 +261,7 @@ function DrillInRow({
           className="text-agent-on-surface-variant h-3.5 w-3.5 shrink-0"
         />
       ) : null}
-    </button>
+    </Tag>
   );
 }
 
@@ -545,9 +550,12 @@ export function ATSAnalysisPanel(props: ATSAnalysisPanelProps) {
                         : `${matchType} match`}
                     </p>
                     <div className="flex flex-wrap gap-2">
-                      {keyWordMap[matchType].map((keyword) => (
+                      {keyWordMap[matchType].map((keyword, idx) => (
                         <span
-                          key={keyword}
+                          // Index-qualified: nothing stops the model emitting
+                          // the same keyword twice in one bucket, and a bare
+                          // `keyword` key would collide when it does.
+                          key={`${matchType}-${keyword}-${idx}`}
                           className={cn(
                             "inline-flex rounded-full border px-2 py-0.5 text-[11px] font-medium",
                             matchType === "exact"
