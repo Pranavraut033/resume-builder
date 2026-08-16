@@ -76,7 +76,7 @@ function GapAnalysisSummary({
           onClick={onOpenGapDrawer}
           className="text-agent-primary hover:text-agent-primary/80 text-xs font-medium underline-offset-2 hover:underline"
         >
-          Open gap report
+          Open fit check
         </button>
       )}
     </div>

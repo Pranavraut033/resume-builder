@@ -30,7 +30,7 @@ const OVERFLOW_ITEMS: OverflowItem[] = [
   { name: "outline", label: "Sections", icon: "panelLeftClose" },
   { name: "history", label: "History", icon: "history" },
   { name: "proofread", label: "Proofread", icon: "spellCheck" },
-  { name: "gaps", label: "Gap analysis", icon: "target" },
+  { name: "gaps", label: "Fit Check", icon: "target" },
 ];
 
 interface FloatingActionBarProps {
@@ -61,7 +61,7 @@ interface FloatingActionBarProps {
  * ATS (resume-only) | Generate (cover-letter-only) | Humanize | Chat.
  *
  * Overflow `⋯` menu (lower-frequency actions): Sections | History |
- * Proofread | Gap analysis | Download JSON.
+ * Proofread | Fit Check | Download JSON.
  */
 export function FloatingActionBar({
   hidden,
@@ -175,7 +175,7 @@ export function FloatingActionBar({
 
         {isResume && (
           <>
-            {/* ATS */}
+            {/* Recruiter Skim */}
             <button
               onClick={() =>
                 onOpenDrawer(activeDrawer === "ats" ? null : "ats")
@@ -186,10 +186,10 @@ export function FloatingActionBar({
                   ? "bg-agent-primary text-agent-on-primary"
                   : "text-agent-on-surface-variant hover:bg-agent-surface-container hover:text-agent-on-surface"
               )}
-              title="ATS analysis"
+              title="Recruiter Skim"
             >
               <Icon name="barChart" className="h-3.5 w-3.5" />
-              <span className="hidden md:inline">ATS</span>
+              <span className="hidden md:inline">Skim</span>
             </button>
           </>
         )}

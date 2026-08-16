@@ -73,17 +73,17 @@ export const INTENT_META: Record<IntentLabel, IntentMeta> = {
     onColor: "text-agent-on-surface-variant",
   },
   ats: {
-    label: "ats advice",
+    label: "recruiter skim advice",
     color: "bg-agent-secondary-container",
     onColor: "text-agent-on-secondary-container",
   },
   fix_ats: {
-    label: "fixing ats issues",
+    label: "fixing skim issues",
     color: "bg-agent-primary",
     onColor: "text-agent-on-primary",
   },
   gap_analysis: {
-    label: "gap analysis",
+    label: "fit check",
     color: "bg-agent-secondary-container",
     onColor: "text-agent-on-secondary-container",
   },
@@ -134,9 +134,9 @@ export function getToolResultMeta(
         icon: "target",
       };
     case IntentLabel.Ats:
-      return { heading: "ATS advice", icon: "cpu" };
+      return { heading: "Recruiter Skim advice", icon: "cpu" };
     case IntentLabel.FixAts:
-      return { heading: "ATS issues fixed", icon: "cpu" };
+      return { heading: "Skim fixes applied", icon: "cpu" };
     case IntentLabel.GapAnalysis: {
       const analysis = args.analysis as
         | { gaps?: { severity?: string }[] }

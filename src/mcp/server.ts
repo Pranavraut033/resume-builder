@@ -1282,7 +1282,7 @@ export function buildServer(deps: McpDeps = defaultDeps): McpServer {
     {
       title: "Get job state",
       description:
-        "Get a job's details, resume path lines, ATS score, and whether a cover letter exists — enough context to orient without re-fetching everything.",
+        "Get a job's details, resume path lines, Skim score, and whether a cover letter exists — enough context to orient without re-fetching everything.",
       inputSchema: {
         jobId: z.number().int().positive(),
       },

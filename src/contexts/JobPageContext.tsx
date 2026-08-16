@@ -368,8 +368,10 @@ export function JobPageProvider({
     },
     onError: (err) => {
       const errorMsg =
-        err instanceof Error ? err.message : "Failed to save ATS analysis";
-      logger.error("JobPageContext", "Failed to save ATS analysis:", err);
+        err instanceof Error
+          ? err.message
+          : "Failed to save the recruiter skim";
+      logger.error("JobPageContext", "Failed to save the recruiter skim:", err);
       pushToast({
         title: "Save failed",
         description: errorMsg,

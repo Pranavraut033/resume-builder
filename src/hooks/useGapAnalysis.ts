@@ -27,7 +27,7 @@ function useGapAnalysis(
 
       if (!data.jobDetails) {
         return Promise.reject(
-          new Error("Job details are required for gap analysis")
+          new Error("Job details are required for fit check")
         );
       }
 

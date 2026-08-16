@@ -236,7 +236,7 @@ export function ChatContextProvider({
       throw new Error("Already busy — wait for the current action to finish.");
     }
     if (!atsAnalysis) {
-      throw new Error("Generate an ATS analysis before fixing all issues.");
+      throw new Error("Run the recruiter skim before fixing all issues.");
     }
     const [providerType, model] = activeModelPair;
     setIsLoading(true);
@@ -274,7 +274,7 @@ export function ChatContextProvider({
           content: "",
           timestamp: now(),
           error:
-            err instanceof Error ? err.message : "Failed to fix ATS issues",
+            err instanceof Error ? err.message : "Failed to apply skim fixes",
         },
       ]);
       throw err;

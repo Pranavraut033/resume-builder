@@ -130,7 +130,7 @@ function normalizedFieldsToString(
 
 export class PromptSystem {
   private static labels: Record<PromptPurpose, string> = {
-    analyze_ats: "ATS Analysis",
+    analyze_ats: "Recruiter Skim",
     generate_cover_letter: "Cover Letter Generation",
     generate_tailored_resume: "Tailored Resume Generation",
     parse_job: "Job Description Parsing",
@@ -138,9 +138,9 @@ export class PromptSystem {
     humanize_content: "Content Humanization",
     generate_text: "General Text Generation",
     extract_fields_to_edit: "Extract Fields to Edit",
-    fix_ats_issues: "ATS Fix Mapping",
+    fix_ats_issues: "Skim Fix Mapping",
     proofread_resume: "Proofread Resume",
-    analyze_resume_gaps: "Gap Analysis",
+    analyze_resume_gaps: "Fit Check",
   };
 
   /**

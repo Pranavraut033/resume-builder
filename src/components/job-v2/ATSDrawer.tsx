@@ -11,17 +11,19 @@ interface ATSDrawerProps {
 
 /**
  * ATSDrawer — slides in from the right side of the document canvas.
- * Wraps the existing ATSAnalysisPanel (non-standalone), which gives both the
- * deterministic "Quick Check" tab and the LLM "AI Analysis" tab, same as the
- * legacy JobPageLayout. State management stays in JobPageContext.
+ * Wraps the existing ATSAnalysisPanel (non-standalone), which gives one
+ * panel with a `summary` / `rewrites` / `keywords` / `offline` view
+ * state — knockout blockers, the skim verdict, suggested rewrites, keyword
+ * coverage, and the deterministic offline check. State management stays in
+ * JobPageContext.
  */
 export function ATSDrawer({ open, onClose }: ATSDrawerProps) {
   return (
     <SideDrawer
       open={open}
       onClose={onClose}
-      icon="barChart"
-      title="ATS Analysis"
+      icon="search"
+      title="Recruiter Skim"
     >
       <div className="flex-1 overflow-y-auto">
         <ATSAnalysisPanel />
