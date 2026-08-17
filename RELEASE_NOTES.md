@@ -1,3 +1,12 @@
+# v1.15.0 — 2026-08-17
+
+ATS analysis is now Recruiter Skim, and it stops pretending to score you — plus a new Fit Check.
+
+- **Recruiter Skim replaces the ATS analysis panel.** No more invented "match score" — no applicant tracking system shows one to anyone on the hiring team, so Udaan doesn't either. It now leads with what actually ends an application (work authorization, a license, a location), then keyword coverage and title alignment, each with a suggested rewrite.
+- **New: Fit Check.** A blunt, honest read on whether you're actually a fit for the role — missing experience, seniority, and domain gaps a keyword scan can't catch — separate from Recruiter Skim's document-level checks, and closing with your real strengths.
+- **Fixed:** the Documents page's score badge said "No analysis" under a column already relabeled "Skim"; it now says "Not run" consistently, and drops the "/ 100" framing since that column ranks jobs against each other, not grades them.
+- **Fixed:** a Recruiter Skim row in the chat view could be announced by a screen reader as a disabled button when it wasn't disabled at all, just non-clickable in that context.
+
 # v1.14.0 — 2026-08-16
 
 Three new European templates, and cover letters get their own look.

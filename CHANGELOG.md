@@ -2,6 +2,26 @@
 
 All notable changes to this project are documented in this file.
 
+## [1.15.0] - 2026-08-17
+
+### Added
+
+- **Recruiter Skim** replaces the old ATS analysis panel: leads with the requirements that actually end an application (work authorization, a license, a location), then keyword coverage and title alignment, each with a suggested rewrite — no invented "match score" ([888a9d3])
+- **Fit Check** (formerly Gap Analysis) gives a blunt, substantive assessment of your fit for a job — missing experience, seniority, and domain gaps a keyword scan can't see — separate from Recruiter Skim's document-level checks ([888a9d3])
+
+### Fixed
+
+- A non-interactive Recruiter Skim row (standalone chat view, no drawer to open) no longer renders as a disabled `<button>`, which a screen reader announced as a disabled action rather than a non-actionable row ([fb93c1c])
+- Keyword chips no longer risk a React key collision when the model emits the same term twice in one match bucket ([fb93c1c])
+- The Documents page's score badge now says "Not run" instead of a stale "No analysis", and drops the "/ 100" framing — that column ranks jobs against each other, it was never a grade ([fb93c1c])
+- The MCP setup card on the landing page no longer overflows the viewport on mobile — a `<pre>` block was widening its parent grid track ([eaf6f7b])
+
+### Internal
+
+- `ATSAnalysisSchema` trimmed to the fields the UI actually renders: dropped duplicate/dead keys (`missing_keywords`, `match_status`, `formatting_issues`, two of four scores, `estimated_score_delta`, redundant `title_alignment` fields) and shortened the LLM prompt to match. Stored rows from before this change still parse — Zod strips the extra fields ([a17ec19])
+- Every "ATS Analysis" / "Gap Analysis" label across the app, docs, MCP tool descriptions, and landing page renamed to Recruiter Skim / Fit Check; internal purpose/intent/schema identifiers are unchanged ([888a9d3], [871ded9], [17cba50])
+- Knowledge files and README synced to the rebrand ([0d84fbe])
+
 ## [1.14.0] - 2026-08-16
 
 ### Added
