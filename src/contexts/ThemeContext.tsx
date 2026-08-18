@@ -24,13 +24,11 @@ function resolveTheme(t: Theme): "light" | "dark" {
   return t;
 }
 
+// Always stamps a resolved light/dark value — the CSS only has a
+// `[data-theme="dark"]` selector (see global.css), so "system" must be
+// resolved here rather than left for a media query to pick up.
 function applyThemeToDom(t: Theme) {
-  const html = document.documentElement;
-  if (t === "system") {
-    html.removeAttribute("data-theme");
-  } else {
-    html.setAttribute("data-theme", t);
-  }
+  document.documentElement.setAttribute("data-theme", resolveTheme(t));
 }
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
@@ -57,8 +55,10 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     const mq = window.matchMedia("(prefers-color-scheme: dark)");
     const handleChange = () => {
       if (themeRef.current === "system") {
-        // Force a re-render so resolvedTheme recomputes
-        setThemeState("system");
+        // setThemeState("system") is a no-op re-render (same value, React
+        // bails out) — re-apply the DOM attribute directly so a live OS
+        // appearance change actually takes effect while in "system" mode.
+        applyThemeToDom("system");
       }
     };
     mq.addEventListener("change", handleChange);
