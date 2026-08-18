@@ -20,6 +20,7 @@ import {
   updateCoverLetter as updateCoverLetterAction,
   updateResume as updateResumeAction,
   saveAtsAnalysis as saveAtsAnalysisAction,
+  saveFitCheck as saveFitCheckAction,
 } from "@/actions/job";
 import { Button } from "@/components/ui/Button";
 import { FallbackState } from "@/components/ui/FallbackState";
@@ -36,7 +37,9 @@ import {
   DEFAULT_CUSTOMIZATION,
   SanitizedCustomization,
 } from "@/types/customization";
-import { ATSAnalysisJSON, ResumeJSON } from "@/types/resume";
+import { DocumentAnalysisJSON } from "@/types/documentAnalysis";
+import { FitCheckJSON } from "@/types/fitCheck";
+import { ResumeJSON } from "@/types/resume";
 
 export type EditorContentType = "resume" | "coverLetter";
 export type ChatSnapPosition = "left" | "right" | "undocked";
@@ -54,7 +57,11 @@ type SaveToDbArgs =
       data: string,
       customization: SanitizedCustomization,
     ]
-  | [contentType: "ats", data: ATSAnalysisJSON];
+  // Named "ats" for historical reasons — the underlying data is a
+  // DocumentAnalysisJSON (Deep Analysis), see saveAtsAnalysis's own doc
+  // comment in src/lib/db/job.ts.
+  | [contentType: "ats", data: DocumentAnalysisJSON]
+  | [contentType: "fitCheck", data: FitCheckJSON];
 
 export interface JobPageContextType {
   contentType: EditorContentType;
@@ -64,8 +71,8 @@ export interface JobPageContextType {
   profile: ResumeJSON;
   historyRef: React.RefObject<ResumeHistory | null>;
   resume: ResumeJSON;
-  atsAnalysis: ATSAnalysisJSON | null;
-  setAtsAnalysis: (analysis: ATSAnalysisJSON) => void;
+  atsAnalysis: DocumentAnalysisJSON | null;
+  setAtsAnalysis: (analysis: DocumentAnalysisJSON) => void;
   updateCoverLetterState: (text: string) => void;
   updateCustomizationState: (updates: Partial<Sanitize<Customization>>) => void;
   updateResumeState: (
@@ -164,7 +171,7 @@ export function JobPageProvider({
       : data?.resume && data.resume?.customizations) ?? DEFAULT_CUSTOMIZATION
   );
 
-  const [atsAnalysis, setAtsAnalysis] = useState<ATSAnalysisJSON | null>(
+  const [atsAnalysis, setAtsAnalysis] = useState<DocumentAnalysisJSON | null>(
     data?.resume?.atsAnalysis ?? data?.job?.baseProfileAnalysis ?? null
   );
 
@@ -360,18 +367,35 @@ export function JobPageProvider({
   });
 
   const saveAtsAnalysisMutation = useMutation({
-    mutationFn: (data: { atsAnalysis: ATSAnalysisJSON }) =>
+    mutationFn: (data: { atsAnalysis: DocumentAnalysisJSON }) =>
       saveAtsAnalysisAction(jobId, data.atsAnalysis),
     onSuccess: () => {
       refetch(undefined, "resume");
-      logger.info("JobPageContext", "ATS analysis saved successfully");
+      logger.info("JobPageContext", "Deep Analysis saved successfully");
     },
     onError: (err) => {
       const errorMsg =
-        err instanceof Error
-          ? err.message
-          : "Failed to save the recruiter skim";
-      logger.error("JobPageContext", "Failed to save the recruiter skim:", err);
+        err instanceof Error ? err.message : "Failed to save Deep Analysis";
+      logger.error("JobPageContext", "Failed to save Deep Analysis:", err);
+      pushToast({
+        title: "Save failed",
+        description: errorMsg,
+        variant: "error",
+      });
+    },
+  });
+
+  const saveFitCheckMutation = useMutation({
+    mutationFn: (data: { fitCheck: FitCheckJSON }) =>
+      saveFitCheckAction(jobId, data.fitCheck),
+    onSuccess: () => {
+      refetch(undefined, "resume");
+      logger.info("JobPageContext", "Fit Check saved successfully");
+    },
+    onError: (err) => {
+      const errorMsg =
+        err instanceof Error ? err.message : "Failed to save Fit Check";
+      logger.error("JobPageContext", "Failed to save Fit Check:", err);
       pushToast({
         title: "Save failed",
         description: errorMsg,
@@ -389,8 +413,10 @@ export function JobPageProvider({
         saveResume({ resume: data, customization });
       else if (contentType === "ats")
         saveAtsAnalysisMutation.mutate({ atsAnalysis: data });
+      else if (contentType === "fitCheck")
+        saveFitCheckMutation.mutate({ fitCheck: data });
     },
-    [saveCoverLetter, saveResume, saveAtsAnalysisMutation]
+    [saveCoverLetter, saveResume, saveAtsAnalysisMutation, saveFitCheckMutation]
   );
 
   useEffect(() => {
@@ -471,15 +497,18 @@ export function JobPageProvider({
   const saveStatus =
     coverLetterStatus === "pending" ||
     resumeStatus === "pending" ||
-    saveAtsAnalysisMutation.status === "pending"
+    saveAtsAnalysisMutation.status === "pending" ||
+    saveFitCheckMutation.status === "pending"
       ? "saving"
       : coverLetterStatus === "error" ||
           resumeStatus === "error" ||
-          saveAtsAnalysisMutation.status === "error"
+          saveAtsAnalysisMutation.status === "error" ||
+          saveFitCheckMutation.status === "error"
         ? "error"
         : coverLetterStatus === "success" ||
             resumeStatus === "success" ||
-            saveAtsAnalysisMutation.status === "success"
+            saveAtsAnalysisMutation.status === "success" ||
+            saveFitCheckMutation.status === "success"
           ? "saved"
           : "idle";
 

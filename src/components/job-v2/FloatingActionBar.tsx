@@ -9,12 +9,11 @@ import cn from "@/lib/cn";
 
 import { GenerateCoverLetterModal } from "./GenerateCoverLetterModal";
 
-/** The seven mutually-exclusive canvas-overlay drawers. `null` means none open. */
+/** The six mutually-exclusive canvas-overlay drawers. `null` means none open. */
 export type DrawerName =
-  | "ats"
+  | "deepAnalysis"
   | "humanizer"
-  | "proofread"
-  | "gaps"
+  | "fitCheck"
   | "history"
   | "outline"
   | "customization"
@@ -29,8 +28,7 @@ interface OverflowItem {
 const OVERFLOW_ITEMS: OverflowItem[] = [
   { name: "outline", label: "Sections", icon: "panelLeftClose" },
   { name: "history", label: "History", icon: "history" },
-  { name: "proofread", label: "Proofread", icon: "spellCheck" },
-  { name: "gaps", label: "Fit Check", icon: "target" },
+  { name: "fitCheck", label: "Fit Check", icon: "target" },
 ];
 
 interface FloatingActionBarProps {
@@ -58,10 +56,10 @@ interface FloatingActionBarProps {
  * (see `hidden` prop, driven by useHideOnScroll in the parent).
  *
  * Inline: Export PDF | Undo | Redo (resume-only) | Customize ▾ |
- * ATS (resume-only) | Generate (cover-letter-only) | Humanize | Chat.
+ * Deep Analysis (resume-only) | Generate (cover-letter-only) | Humanize | Chat.
  *
  * Overflow `⋯` menu (lower-frequency actions): Sections | History |
- * Proofread | Fit Check | Download JSON.
+ * Fit Check | Download JSON.
  */
 export function FloatingActionBar({
   hidden,
@@ -175,21 +173,23 @@ export function FloatingActionBar({
 
         {isResume && (
           <>
-            {/* Recruiter Skim */}
+            {/* Deep Analysis */}
             <button
               onClick={() =>
-                onOpenDrawer(activeDrawer === "ats" ? null : "ats")
+                onOpenDrawer(
+                  activeDrawer === "deepAnalysis" ? null : "deepAnalysis"
+                )
               }
               className={cn(
                 "flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition-all",
-                activeDrawer === "ats"
+                activeDrawer === "deepAnalysis"
                   ? "bg-agent-primary text-agent-on-primary"
                   : "text-agent-on-surface-variant hover:bg-agent-surface-container hover:text-agent-on-surface"
               )}
-              title="Recruiter Skim"
+              title="Deep Analysis"
             >
               <Icon name="barChart" className="h-3.5 w-3.5" />
-              <span className="hidden md:inline">Skim</span>
+              <span className="hidden md:inline">Analysis</span>
             </button>
           </>
         )}
@@ -249,7 +249,7 @@ export function FloatingActionBar({
           <>
             <span className="bg-agent-outline-variant mx-0.5 h-5 w-px" />
 
-            {/* Overflow — Sections, History, Proofread, Gap analysis, Download JSON */}
+            {/* Overflow — Sections, History, Fit Check, Download JSON */}
             <div ref={overflowRef} className="relative">
               <button
                 onClick={() => setIsOverflowOpen((o) => !o)}

@@ -24,7 +24,7 @@ const isNoop = (change: HumanizerChange) =>
   change.original.trim() === change.replacement.trim();
 
 /**
- * HumanizerDrawer — slides in from the right like ATSDrawer/HistoryDrawer.
+ * HumanizerDrawer — slides in from the right like DeepAnalysisDrawer/HistoryDrawer.
  * Opens on a splash screen (what it does + model picker + Start), then shows
  * the change list once humanizing finishes. Resets to the splash every time
  * it's closed so reopening always starts fresh.

@@ -236,3 +236,45 @@ describe("attachGeneratedMaterials", () => {
     expect(coverLetter.contentText).toBe("some text");
   });
 });
+
+describe("getResumeByJobId — stale analysis blob", () => {
+  beforeEach(async () => {
+    await wipeAllTables();
+  });
+
+  it("falls back to atsAnalysis: null instead of throwing when the stored blob predates v: 2", async () => {
+    // Regression: getResumeByJobId used a throwing DocumentAnalysisSchema.parse
+    // with no try/catch, unlike getJob()'s baseProfileAnalysis right above it
+    // in this file. A single stale (pre-v:2) row made the ENTIRE job-editor
+    // page fail to load instead of the drawer showing its own "re-run"
+    // empty state — exactly the crash the v:2 version-check design exists to
+    // prevent.
+    const { jobId } = await createJob({ jobDetails, status: "BOOKMARKED" });
+    await attachGeneratedMaterials(jobId, {
+      tailoredResume: makeResume(),
+      status: "DRAFT",
+    });
+
+    const job = await getJob(jobId);
+    const resumeId = (await getResumeByJobId(jobId)).id;
+
+    // Write a pre-refactor-shaped blob directly, bypassing the app's own
+    // write path (which always writes valid v:2 JSON) to simulate a row
+    // that predates this schema.
+    await prisma.aTSAnalysis.create({
+      data: {
+        contentJson: JSON.stringify({
+          keyword_analysis: [],
+          scores: { composite_score: 80 },
+          improvements: [],
+          summary: "old shape",
+        }),
+        resume: { connect: { id: resumeId } },
+      },
+    });
+
+    const resume = await getResumeByJobId(jobId);
+    expect(resume.atsAnalysis).toBeNull();
+    expect(job.id).toBe(jobId);
+  });
+});

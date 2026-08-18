@@ -87,6 +87,13 @@
   --color-agent-error-container: #ffdad6;
   --color-agent-on-error: #ffffff;
   --color-agent-on-error-container: #93000a;
+  /* Success — text-only token (no container/on-success pair): the one
+     current use is a plain "here's the accepted replacement" line sitting
+     directly on the ambient surface, not a filled badge. */
+  --color-agent-success: #146c2e;
+  /* Warning — same text-only shape as success, for a plain warning/issue-
+     count line with no local background of its own. */
+  --color-agent-warning: #8a5300;
   /* Typography */
   --font-agent-display: "Manrope", sans-serif;
   --font-agent-body: "Inter", sans-serif;
@@ -165,6 +172,10 @@
     --color-agent-error-container: #93000a;
     --color-agent-on-error: #690005;
     --color-agent-on-error-container: #ffdad6;
+    /* Success */
+    --color-agent-success: #8bd5a0;
+    /* Warning */
+    --color-agent-warning: #e8b04a;
     /* Shadows — stronger on dark */
     --shadow-agent-float:
       0 4px 40px rgba(0, 0, 0, 0.4), 0 2px 8px rgba(0, 0, 0, 0.3);

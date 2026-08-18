@@ -15,8 +15,12 @@ import { areJsonValuesEqual } from "@/lib";
 import ResumeChatBot from "@/lib/llm/chat-bot/Chatbot";
 import { trackTokenUsage } from "@/lib/llm/tokenTracker";
 import { useModelStore } from "@/store/modelStore";
-import { GapAnalysisJSON } from "@/types/gapAnalysis";
-import { ATSAnalysisJSON, ResumeSchema } from "@/types/resume";
+import {
+  DocumentAnalysisJSON,
+  DocumentFinding,
+} from "@/types/documentAnalysis";
+import { FitCheckJSON } from "@/types/fitCheck";
+import { ResumeSchema } from "@/types/resume";
 
 import { type ViewMode } from "./ChatPanel";
 import { type ChatMessage } from "./types";
@@ -36,8 +40,8 @@ interface ChatContextType {
   isProviderReady: boolean;
   providerError: string | null;
   retryProviderInit: () => void;
-  atsAnalysis: ATSAnalysisJSON | null;
-  gapAnalysis: GapAnalysisJSON | null;
+  atsAnalysis: DocumentAnalysisJSON | null;
+  fitCheck: FitCheckJSON | null;
   defaultView: ViewMode;
   setInput: (value: string) => void;
   handleSend: () => void;
@@ -46,22 +50,25 @@ interface ChatContextType {
   cancelPending: (id: string) => void;
   resetSession: () => void;
   setDefaultView: (view: ViewMode) => void;
-  fixMissingKeywords: (keywords: string[]) => Promise<void>;
-  fixAllAtsIssues: () => Promise<void>;
-  /** Opens the gap-analysis drawer with results already loaded — wired by
-   * InlineJobPageLayout (cluster 3), where the drawer's open/close state
-   * lives. Optional/no-op until that wiring lands. */
-  onOpenGapDrawer?: () => void;
+  /** Applies whichever of `findings` pass the additive-only guard (an
+   * alternate surface form ADDED on top of what's already there — an
+   * acronym, an expansion — never a rewrite of substance). No LLM call: see
+   * ResumeChatBot.alignResumeTerms's doc comment. */
+  alignFindings: (findings: DocumentFinding[]) => Promise<void>;
+  /** Opens the fit-check drawer with results already loaded — wired by
+   * InlineJobPageLayout, where the drawer's open/close state lives.
+   * Optional/no-op until that wiring lands. */
+  onOpenFitCheckDrawer?: () => void;
 }
 
 const ChatContext = createContext<ChatContextType | null>(null);
 
 export function ChatContextProvider({
   children,
-  onOpenGapDrawer,
+  onOpenFitCheckDrawer,
 }: {
   children: ReactNode;
-  onOpenGapDrawer?: () => void;
+  onOpenFitCheckDrawer?: () => void;
 }) {
   const {
     resume,
@@ -84,10 +91,10 @@ export function ChatContextProvider({
   const [isProviderReady, setIsProviderReady] = useState(false);
   const [providerError, setProviderError] = useState<string | null>(null);
   const [retryNonce, setRetryNonce] = useState(0);
-  const [atsAnalysis, setAtsAnalysis] = useState<ATSAnalysisJSON | null>(
+  const [atsAnalysis, setAtsAnalysis] = useState<DocumentAnalysisJSON | null>(
     initialAtsAnalysis
   );
-  const [gapAnalysis, setGapAnalysis] = useState<GapAnalysisJSON | null>(null);
+  const [fitCheck, setFitCheck] = useState<FitCheckJSON | null>(null);
   const botRef = useRef<ResumeChatBot | null>(null);
   const hasOpenedOnce = useRef(false);
   const [defaultView, setDefaultView] = useState<ViewMode>(
@@ -119,7 +126,7 @@ export function ChatContextProvider({
       profile,
       coverLetter
     );
-    bot.setAtsAnalysis(initialAtsAnalysis);
+    bot.setDocumentAnalysis(initialAtsAnalysis);
     botRef.current = bot;
 
     let attempts = 0;
@@ -176,20 +183,30 @@ export function ChatContextProvider({
     [updateResumeState, saveToDb, customization]
   );
 
-  const fixMissingKeywords = useCallback(
-    async (keywords: string[]) => {
-      if (!botRef.current || !activeModelPair || isLoading) return;
-      const [providerType, model] = activeModelPair;
+  // Replaces the old fixMissingKeywords/fixAllAtsIssues pair — Deep Analysis
+  // findings already carry a concrete path + suggestion, so there's nothing
+  // left to re-derive per call site; both collapse into "align whichever of
+  // these findings pass the additive-only guard" (see
+  // ResumeChatBot.alignResumeTerms's doc comment). No LLM call — `usage` is
+  // only ever non-undefined if the caller passed findings from a fresh
+  // analyzeDocument run.
+  const alignFindings = useCallback(
+    async (findings: DocumentFinding[]) => {
+      if (!botRef.current) return;
+      if (isLoading) {
+        // We don't silently no-op here — a caller showing a success toast
+        // for an alignment that never ran would be worse than a clear
+        // rejection (see plan's "known trap" note).
+        throw new Error(
+          "Already busy — wait for the current action to finish."
+        );
+      }
       setIsLoading(true);
       try {
-        const stream = botRef.current.fixMissingKeywords(keywords, {
-          provider: providerType,
-          model,
-        });
+        const stream = botRef.current.alignResumeTerms(findings);
         for await (const event of stream) {
-          if (event.type === "tool_result" && event.intent === "edit") {
-            const usage = event.args.usage;
-            trackTokenUsage(usage);
+          if (event.type === "tool_result" && event.intent === "align_terms") {
+            if (event.args.usage) trackTokenUsage(event.args.usage);
             updateResumeStates(event.args.updatedResume, event.args.note);
             setMessages((prev) => [
               ...prev,
@@ -214,74 +231,16 @@ export function ChatContextProvider({
             role: "assistant",
             content: "",
             timestamp: now(),
-            error:
-              err instanceof Error
-                ? err.message
-                : "Failed to fix missing keywords",
+            error: err instanceof Error ? err.message : "Failed to align terms",
           },
         ]);
+        throw err;
       } finally {
         setIsLoading(false);
       }
     },
-    [activeModelPair, isLoading, updateResumeStates]
+    [isLoading, updateResumeStates]
   );
-
-  const fixAllAtsIssues = useCallback(async () => {
-    if (!botRef.current || !activeModelPair) return;
-    if (isLoading) {
-      // Unlike fixMissingKeywords, we don't silently no-op here — a caller
-      // showing a success toast for a fix that never ran would be worse than
-      // a clear rejection (see plan's "known trap" note).
-      throw new Error("Already busy — wait for the current action to finish.");
-    }
-    if (!atsAnalysis) {
-      throw new Error("Run the recruiter skim before fixing all issues.");
-    }
-    const [providerType, model] = activeModelPair;
-    setIsLoading(true);
-    try {
-      const stream = botRef.current.fixAllAtsIssues(atsAnalysis, {
-        provider: providerType,
-        model,
-      });
-      for await (const event of stream) {
-        if (event.type === "tool_result" && event.intent === "fix_ats") {
-          const usage = event.args.usage;
-          trackTokenUsage(usage);
-          updateResumeStates(event.args.updatedResume, event.args.note);
-          setMessages((prev) => [
-            ...prev,
-            {
-              id: makeId(),
-              role: "tool",
-              content: event.args.summary ?? "",
-              toolResult: { intent: event.intent, args: event.args },
-              timestamp: now(),
-            },
-          ]);
-        }
-        if (event.type === "error") {
-          throw new Error(event.message);
-        }
-      }
-    } catch (err) {
-      setMessages((prev) => [
-        ...prev,
-        {
-          id: makeId(),
-          role: "assistant",
-          content: "",
-          timestamp: now(),
-          error:
-            err instanceof Error ? err.message : "Failed to apply skim fixes",
-        },
-      ]);
-      throw err;
-    } finally {
-      setIsLoading(false);
-    }
-  }, [activeModelPair, isLoading, atsAnalysis, updateResumeStates]);
 
   const updateCoverLetterStates = useCallback(
     (updatedCoverLetter: string) => {
@@ -401,7 +360,7 @@ export function ChatContextProvider({
                 (event.intent === "edit" ||
                   event.intent === "tailor" ||
                   event.intent === "regenerate" ||
-                  event.intent === "fix_ats") &&
+                  event.intent === "align_terms") &&
                 event.args.rejectedCount
                   ? event.args.rejectedCount
                   : 0;
@@ -416,10 +375,10 @@ export function ChatContextProvider({
                       event.intent === "edit" ||
                       event.intent === "tailor" ||
                       event.intent === "regenerate" ||
-                      event.intent === "fix_ats"
+                      event.intent === "align_terms"
                         ? (event.args.summary ?? "")
-                        : event.intent === "proofread" ||
-                            event.intent === "gap_analysis"
+                        : event.intent === "deep_analysis" ||
+                            event.intent === "fit_check"
                           ? event.args.note
                           : "",
                     toolResult: { intent: event.intent, args: event.args },
@@ -432,31 +391,32 @@ export function ChatContextProvider({
               );
 
               switch (event.intent) {
-                case "ats":
-                  setAtsAnalysis(event.args.atsAnalysis);
-                  setDefaultView("ats");
-                  break;
-                case "gap_analysis":
-                  // Never mutates the resume — no updateResumeStates call.
-                  // Deliberately does NOT call onOpenGapDrawer here: the card
-                  // shows a one-line summary + an explicit "Open gap report"
-                  // button (ChatToolResult.tsx) that calls onOpenGapDrawer
-                  // itself — the drawer opens on click, not automatically.
-                  setGapAnalysis(event.args.analysis);
-                  break;
-                case "edit":
-                case "tailor":
-                case "regenerate":
-                case "fix_ats":
-                  updateResumeStates(event.args.updatedResume, event.args.note);
-                  break;
-                case "proofread":
+                case "deep_analysis":
+                  setAtsAnalysis(event.args.analysis);
+                  setDefaultView("deepAnalysis");
+                  // Only present when the lint-sourced findings were
+                  // auto-applied — see ResumeChatBot's "deep_analysis" case.
                   if (event.args.updatedResume) {
                     updateResumeStates(
                       event.args.updatedResume,
                       event.args.note
                     );
                   }
+                  break;
+                case "fit_check":
+                  // Never mutates the resume — no updateResumeStates call.
+                  // Deliberately does NOT call onOpenFitCheckDrawer here: the
+                  // card shows a one-line summary + an explicit "Open fit
+                  // check" button (ChatToolResult.tsx) that calls
+                  // onOpenFitCheckDrawer itself — the drawer opens on click,
+                  // not automatically.
+                  setFitCheck(event.args.analysis);
+                  break;
+                case "edit":
+                case "tailor":
+                case "regenerate":
+                case "align_terms":
+                  updateResumeStates(event.args.updatedResume, event.args.note);
                   break;
                 case "cover_letter":
                 case "humanize":
@@ -572,7 +532,7 @@ export function ChatContextProvider({
         providerError,
         retryProviderInit,
         atsAnalysis,
-        gapAnalysis,
+        fitCheck,
         defaultView,
         setInput,
         handleSend,
@@ -581,9 +541,8 @@ export function ChatContextProvider({
         cancelPending,
         resetSession,
         setDefaultView,
-        fixMissingKeywords,
-        fixAllAtsIssues,
-        onOpenGapDrawer,
+        alignFindings,
+        onOpenFitCheckDrawer,
       }}
     >
       {children}

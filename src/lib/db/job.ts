@@ -38,6 +38,27 @@ export type JobData = Omit<Job, "baseProfileAnalysis"> & {
  * Get full job context with all details for resume editing
  * Includes parsed job details for LLM-assisted generation
  */
+/**
+ * Parse a stored DocumentAnalysisJSON blob, falling back to null (and
+ * logging) on any failure — including a pre-v:2 blob that no longer
+ * matches the schema. Mirrors getJob()'s own inline baseProfileAnalysis
+ * guard below; factored out so getResumeByJobId/createResume don't each
+ * carry an unguarded `.parse()` that would crash the whole page load on a
+ * single stale row instead of letting the drawer show its own re-run state.
+ */
+function safeParseDocumentAnalysis(
+  contentJson: string | undefined,
+  jobId: number
+): DocumentAnalysisJSON | null {
+  if (!contentJson) return null;
+  try {
+    return DocumentAnalysisSchema.parse(JSON.parse(contentJson));
+  } catch {
+    console.error("Failed to parse atsAnalysis contentJson for job", jobId);
+    return null;
+  }
+}
+
 export async function getJob(jobId: number) {
   const job = await prisma.job.findUniqueOrThrow({
     where: { id: jobId },
@@ -119,11 +140,14 @@ export async function getResumeByJobId(
           ...contentJson,
           skills: normalizeSkills(contentJson.skills),
         },
-        atsAnalysis: job.resume.atsAnalysis?.contentJson
-          ? DocumentAnalysisSchema.parse(
-              JSON.parse(job.resume.atsAnalysis.contentJson)
-            )
-          : null,
+        // Guarded like getJob()'s baseProfileAnalysis above: a stale
+        // pre-v:2 blob must fall back to null and let the drawer's own
+        // "predates the new format, re-run it" empty state handle it — not
+        // throw and take down the whole job-editor page load with it.
+        atsAnalysis: safeParseDocumentAnalysis(
+          job.resume.atsAnalysis?.contentJson,
+          jobId
+        ),
       };
     });
 }
@@ -527,10 +551,9 @@ export async function createResume(
     .then((resume) => ({
       ...resume,
       contentJson: JSON.parse(resume.contentJson),
-      atsAnalysis: resume.atsAnalysis?.contentJson
-        ? DocumentAnalysisSchema.parse(
-            JSON.parse(resume.atsAnalysis.contentJson)
-          )
-        : null,
+      atsAnalysis: safeParseDocumentAnalysis(
+        resume.atsAnalysis?.contentJson,
+        jobId
+      ),
     }));
 }

@@ -31,36 +31,33 @@ import {
   applyChangesToText,
 } from "@/lib/humanizer/applyChanges";
 import { HistoryChangeListener } from "@/lib/llm/ResumeHistory";
-import { applyProofreadFixes } from "@/lib/proofread/applyFixes";
 import { htmlToText, resumeToProseText } from "@/lib/resumeToText";
 import { HumanizerJSON } from "@/types/humanizer";
 import { JobStatus } from "@/types/job";
-import { ResumeJSON } from "@/types/resume";
 
-import { ATSDrawer } from "./ATSDrawer";
 import { ChatOverlay } from "./ChatOverlay";
 import { CustomizationDrawer } from "./CustomizationDrawer";
+import { DeepAnalysisDrawer } from "./DeepAnalysisDrawer";
 import { DocumentCanvas } from "./DocumentCanvas";
+import { FitCheckDrawer } from "./FitCheckDrawer";
 import { FloatingActionBar, DrawerName } from "./FloatingActionBar";
-import { GapDrawer } from "./GapDrawer";
 import { HistoryDrawer } from "./HistoryDrawer";
 import { HumanizerDrawer } from "./HumanizerDrawer";
-import { ProofreadDrawer } from "./ProofreadDrawer";
 import { SectionOutlinePanel } from "./resume/SectionOutlinePanel";
 
 /**
- * ConnectedGapDrawer — GapDrawer stays decoupled from chat (plain props +
- * `externalResult`); this is the one place that bridges chat's stashed
- * `gapAnalysis` into that prop. It has to be its own component (not inlined
- * in InlineJobPageLayout) because it needs to be a descendant of
+ * ConnectedFitCheckDrawer — FitCheckDrawer stays decoupled from chat (plain
+ * props + `externalResult`); this is the one place that bridges chat's
+ * stashed `fitCheck` into that prop. It has to be its own component (not
+ * inlined in InlineJobPageLayout) because it needs to be a descendant of
  * ChatContextProvider to call useChatContext.
  */
-function ConnectedGapDrawer(
-  props: Omit<React.ComponentProps<typeof GapDrawer>, "externalResult">
+function ConnectedFitCheckDrawer(
+  props: Omit<React.ComponentProps<typeof FitCheckDrawer>, "externalResult">
 ) {
   const chatContext = useChatContext(true);
   return (
-    <GapDrawer {...props} externalResult={chatContext?.gapAnalysis ?? null} />
+    <FitCheckDrawer {...props} externalResult={chatContext?.fitCheck ?? null} />
   );
 }
 
@@ -104,12 +101,11 @@ export function InlineJobPageLayout() {
   const [isPendingStatus, startStatusTransition] = useTransition();
 
   const isCustomizationOpen = activeDrawer === "customization";
-  const isAtsOpen = activeDrawer === "ats";
+  const isDeepAnalysisOpen = activeDrawer === "deepAnalysis";
   const isOutlineOpen = activeDrawer === "outline";
   const isHistoryOpen = activeDrawer === "history";
   const isHumanizerOpen = activeDrawer === "humanizer";
-  const isProofreadOpen = activeDrawer === "proofread";
-  const isGapOpen = activeDrawer === "gaps";
+  const isFitCheckOpen = activeDrawer === "fitCheck";
 
   // Toggles `name` on/off; opening any drawer also closes chat, matching the
   // old per-toggle "close the others" hand-written blocks.
@@ -131,21 +127,6 @@ export function InlineJobPageLayout() {
       saveToDb("resume", next, customization);
       pushToast({ title: "Resume updated", variant: "success" });
     }
-    setActiveDrawer(null);
-  };
-
-  const handleProofreadApply = (
-    result: ReturnType<typeof applyProofreadFixes>
-  ) => {
-    updateResumeState(result.resume, "Proofread");
-    saveToDb("resume", result.resume, customization);
-    pushToast({ title: "Resume updated", variant: "success" });
-  };
-
-  const handleGapApply = (updatedResume: ResumeJSON) => {
-    updateResumeState(updatedResume, "Gap fixes");
-    saveToDb("resume", updatedResume, customization);
-    pushToast({ title: "Resume updated", variant: "success" });
     setActiveDrawer(null);
   };
 
@@ -285,7 +266,9 @@ export function InlineJobPageLayout() {
   }, [redoResume, undoResume]);
 
   return (
-    <ChatContextProvider onOpenGapDrawer={() => setActiveDrawer("gaps")}>
+    <ChatContextProvider
+      onOpenFitCheckDrawer={() => setActiveDrawer("fitCheck")}
+    >
       {/* ponytail: masks the forced-reflow layout correction above — see the
           isMaskingLayoutShift effect. Opaque, no spinner (the correction is
           a single frame, too fast for one to read); fades out instead of
@@ -472,31 +455,22 @@ export function InlineJobPageLayout() {
                     onAccept={handleHumanizeAccept}
                   />
 
-                  {/* Proofread drawer — slides over the canvas, resume only */}
+                  {/* Fit Check drawer — slides over the canvas, resume only.
+                      No apply path: gap_type carries no text-level fix any
+                      more (that moved to Deep Analysis's findings) — see
+                      FitCheckDrawer's doc comment. */}
                   {contentType === "resume" && (
-                    <ProofreadDrawer
-                      open={isProofreadOpen}
+                    <ConnectedFitCheckDrawer
+                      open={isFitCheckOpen}
                       onClose={() => setActiveDrawer(null)}
                       resume={resume}
                       jobDetails={job?.details}
-                      onApply={handleProofreadApply}
                     />
                   )}
 
-                  {/* Gap analysis drawer — slides over the canvas, resume only */}
-                  {contentType === "resume" && (
-                    <ConnectedGapDrawer
-                      open={isGapOpen}
-                      onClose={() => setActiveDrawer(null)}
-                      resume={resume}
-                      jobDetails={job?.details}
-                      onApply={handleGapApply}
-                    />
-                  )}
-
-                  {/* ATS analysis drawer — slides over the canvas */}
-                  <ATSDrawer
-                    open={isAtsOpen}
+                  {/* Deep Analysis drawer — slides over the canvas */}
+                  <DeepAnalysisDrawer
+                    open={isDeepAnalysisOpen}
                     onClose={() => setActiveDrawer(null)}
                   />
 
