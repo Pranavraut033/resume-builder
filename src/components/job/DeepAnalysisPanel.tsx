@@ -88,12 +88,32 @@ const SEVERITY_META: Record<
   },
 };
 
+// The HARD CONSTRAINTS in deep-analysis.ts already tell the model never to
+// emit a finding whose suggestion equals its original, but compliance isn't
+// guaranteed — smaller models in particular sometimes "confirm" a field is
+// already correct instead of staying silent. These are real model output,
+// not a bug in what got stored, so filtering happens only at render time
+// (never touches what's persisted) — a defensive belt on top of the prompt
+// instruction, not a replacement for it.
+function isNoOpFinding(finding: DocumentFinding): boolean {
+  return finding.suggestion.trim() === finding.original.trim();
+}
+
+function filterNoOpFindings(findings: DocumentFinding[]): DocumentFinding[] {
+  return findings.filter((f) => !isNoOpFinding(f));
+}
+
 // Provenance findings need the base profile to judge — their suggestion is
 // usually "delete this", so they're never pre-ticked, mirroring the old
 // ProofreadDrawer's PROVENANCE_CATEGORIES caution.
-function defaultSelection(analysis: DocumentAnalysisJSON): Set<number> {
+//
+// Takes the already-filtered findings array (not the whole analysis) so its
+// indices land on the same positions the render list uses — both derive
+// from filterNoOpFindings applied to the same source array, so `selected`'s
+// index N always means the same finding as items[N] in the rendered list.
+function defaultSelection(findings: DocumentFinding[]): Set<number> {
   return new Set(
-    analysis.findings
+    findings
       .map((finding, i) =>
         (finding.severity === "error" || finding.severity === "warning") &&
         finding.kind !== "provenance"
@@ -309,9 +329,12 @@ export function DeepAnalysisPanel(props: DeepAnalysisPanelProps) {
     isPending,
   } = useDeepAnalysis({
     onSuccess(data) {
+      // Persist the model's real output unfiltered — filterNoOpFindings is
+      // a render-time concern only. Selection indices, though, must be
+      // computed against the SAME filtered array the render list will use.
       saveToDb("ats", data.result);
       setAtsAnalysis(data.result);
-      setSelected(defaultSelection(data.result));
+      setSelected(defaultSelection(filterNoOpFindings(data.result.findings)));
       setView("summary");
       pushToast({
         title: "Deep Analysis ready",
@@ -356,6 +379,16 @@ export function DeepAnalysisPanel(props: DeepAnalysisPanelProps) {
 
   const isStale = Boolean(rawAnalysis) && !analysis;
 
+  // What actually renders as a card, and the single source of truth for
+  // `selected`'s indices — see defaultSelection's doc comment above for why
+  // this can't be computed separately in more than one place.
+  const visibleFindings = useMemo(
+    () => (analysis ? filterNoOpFindings(analysis.findings) : []),
+    [analysis]
+  );
+  const hiddenNoOpCount =
+    (analysis?.findings.length ?? 0) - visibleFindings.length;
+
   const countsByKind = useMemo(() => {
     const counts: Record<DocumentFindingKind, number> = {
       correctness: 0,
@@ -365,18 +398,18 @@ export function DeepAnalysisPanel(props: DeepAnalysisPanelProps) {
       provenance: 0,
       title: 0,
     };
-    analysis?.findings.forEach((finding) => {
+    visibleFindings.forEach((finding) => {
       counts[finding.kind] += 1;
     });
     return counts;
-  }, [analysis]);
+  }, [visibleFindings]);
 
-  const titleFinding = analysis?.findings.find((f) => f.kind === "title");
+  const titleFinding = visibleFindings.find((f) => f.kind === "title");
 
   const onAlignAdditive = () => {
     if (!chatCtx || !analysis) return;
     chatCtx
-      .alignFindings(analysis.findings)
+      .alignFindings(visibleFindings)
       .then(() =>
         pushToast({
           title: "Terms aligned",
@@ -405,9 +438,7 @@ export function DeepAnalysisPanel(props: DeepAnalysisPanelProps) {
 
   const onApplySelected = () => {
     if (!analysis) return;
-    const selectedFindings = analysis.findings.filter((_, i) =>
-      selected.has(i)
-    );
+    const selectedFindings = visibleFindings.filter((_, i) => selected.has(i));
     const result = applyProofreadFixes(resume, selectedFindings);
     updateResumeState(result.resume, "Applied Deep Analysis findings");
     saveToDb("resume", result.resume, customization);
@@ -488,20 +519,20 @@ export function DeepAnalysisPanel(props: DeepAnalysisPanelProps) {
 
         {view === "findings" && analysis ? (
           <>
-            {chatCtx && analysis.findings.length > 0 ? (
+            {chatCtx && visibleFindings.length > 0 ? (
               <AlignButton
                 isLoading={chatCtx.isLoading}
                 onClick={onAlignAdditive}
               />
             ) : null}
 
-            {analysis.findings.length === 0 ? (
+            {visibleFindings.length === 0 ? (
               <p className="rounded-(--radius-agent) border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-700">
                 No findings — nothing here needs a change.
               </p>
             ) : (
               KIND_ORDER.map((kind) => {
-                const items = analysis.findings
+                const items = visibleFindings
                   .map((finding, index) => ({ finding, index }))
                   .filter(({ finding }) => finding.kind === kind)
                   .sort(
@@ -534,6 +565,13 @@ export function DeepAnalysisPanel(props: DeepAnalysisPanelProps) {
                 );
               })
             )}
+
+            {hiddenNoOpCount > 0 ? (
+              <p className="text-agent-on-surface-variant text-[11px]">
+                {hiddenNoOpCount} item{hiddenNoOpCount === 1 ? "" : "s"} already
+                correct — no card shown.
+              </p>
+            ) : null}
           </>
         ) : null}
 
@@ -725,7 +763,7 @@ export function DeepAnalysisPanel(props: DeepAnalysisPanelProps) {
   }
 
   // ── L1: summary ──────────────────────────────────────────────────────
-  const totalFindings = analysis.findings.length;
+  const totalFindings = visibleFindings.length;
   const coveredCount = quickAnalysis?.matchedKeywords.length ?? 0;
   const missingCount = quickAnalysis?.missingKeywords.length ?? 0;
 

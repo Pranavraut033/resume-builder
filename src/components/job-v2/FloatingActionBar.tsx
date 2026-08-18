@@ -28,7 +28,6 @@ interface OverflowItem {
 const OVERFLOW_ITEMS: OverflowItem[] = [
   { name: "outline", label: "Sections", icon: "panelLeftClose" },
   { name: "history", label: "History", icon: "history" },
-  { name: "fitCheck", label: "Fit Check", icon: "target" },
 ];
 
 interface FloatingActionBarProps {
@@ -56,10 +55,12 @@ interface FloatingActionBarProps {
  * (see `hidden` prop, driven by useHideOnScroll in the parent).
  *
  * Inline: Export PDF | Undo | Redo (resume-only) | Customize ▾ |
- * Deep Analysis (resume-only) | Generate (cover-letter-only) | Humanize | Chat.
+ * Fit Check | Deep Analysis (both resume-only, Fit Check first — it's the
+ * primary "should I apply" read, Deep Analysis is the secondary
+ * line-editing pass) | Generate (cover-letter-only) | Humanize | Chat.
  *
  * Overflow `⋯` menu (lower-frequency actions): Sections | History |
- * Fit Check | Download JSON.
+ * Download JSON.
  */
 export function FloatingActionBar({
   hidden,
@@ -173,6 +174,25 @@ export function FloatingActionBar({
 
         {isResume && (
           <>
+            {/* Fit Check — left of Deep Analysis: it's the primary "should
+                I apply" read, Deep Analysis is the secondary line-editing
+                pass. */}
+            <button
+              onClick={() =>
+                onOpenDrawer(activeDrawer === "fitCheck" ? null : "fitCheck")
+              }
+              className={cn(
+                "flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition-all",
+                activeDrawer === "fitCheck"
+                  ? "bg-agent-primary text-agent-on-primary"
+                  : "text-agent-on-surface-variant hover:bg-agent-surface-container hover:text-agent-on-surface"
+              )}
+              title="Fit Check"
+            >
+              <Icon name="target" className="h-3.5 w-3.5" />
+              <span className="hidden md:inline">Fit</span>
+            </button>
+
             {/* Deep Analysis */}
             <button
               onClick={() =>
@@ -249,7 +269,7 @@ export function FloatingActionBar({
           <>
             <span className="bg-agent-outline-variant mx-0.5 h-5 w-px" />
 
-            {/* Overflow — Sections, History, Fit Check, Download JSON */}
+            {/* Overflow — Sections, History, Download JSON */}
             <div ref={overflowRef} className="relative">
               <button
                 onClick={() => setIsOverflowOpen((o) => !o)}
