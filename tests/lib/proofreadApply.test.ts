@@ -48,7 +48,9 @@ function makeResume(overrides: Partial<ResumeJSON> = {}): ResumeJSON {
   };
 }
 
-function makeFinding(overrides: Partial<DocumentFinding> = {}): DocumentFinding {
+function makeFinding(
+  overrides: Partial<DocumentFinding> = {}
+): DocumentFinding {
   return {
     path: "/summary",
     kind: "correctness",

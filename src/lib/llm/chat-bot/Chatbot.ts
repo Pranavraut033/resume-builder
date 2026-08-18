@@ -4,6 +4,7 @@ import { LLMUsageInfo } from "@/actions/tokenUsage";
 import { ProviderFactory } from "@/lib/llm/providers";
 import logger from "@/lib/logger";
 import { applyProofreadFixes } from "@/lib/proofread/applyFixes";
+import { readLeafAtPath, countOccurrences } from "@/lib/proofread/applyFixes";
 import { applyResumeOps, ResumeOp } from "@/lib/resume/editor";
 import { useModelStore } from "@/store/modelStore";
 import {
@@ -49,7 +50,6 @@ import {
   isToolIntent,
   ToolIntent,
 } from "./prompts/intentClassifier";
-import { readLeafAtPath, countOccurrences } from "@/lib/proofread/applyFixes";
 import { RESUME_TOOLS, validateEditResumeArgs } from "./tools";
 
 export type ChatBotOptions = {

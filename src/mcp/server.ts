@@ -668,9 +668,7 @@ export async function submitTool(
             parsed.data as DocumentAnalysisJSON,
             input.jobDetails ?? null
           );
-          await withBusyRetry(() =>
-            deps.saveAtsAnalysis(jobId, guardedResult)
-          );
+          await withBusyRetry(() => deps.saveAtsAnalysis(jobId, guardedResult));
           return withNextPrompt({
             ok: true,
             jobId,
