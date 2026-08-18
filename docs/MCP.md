@@ -1,6 +1,6 @@
 # MCP server
 
-This app can expose its resume-building flows — job parsing, tailoring, Recruiter Skim,
+This app can expose its resume-building flows — job parsing, tailoring, Deep Analysis,
 Fit Check, cover letter generation, editing, proofreading,
 humanizing — as
 [Model Context Protocol](https://modelcontextprotocol.io) tools, so you can
@@ -24,9 +24,10 @@ model should follow once it's talking to this server, and
 built (module map, request lifecycle, the `add_job` draft state machine,
 guard/validation flow) — this doc covers setup and security, not internals.
 
-The server exposes 11 tools: `list_flows`, `get_prompt`, `submit`,
-`apply_resume_ops`, `list_profiles`, `list_jobs`, `fetch_url`,
-`get_job_state`, `get_profile`, `preview_profile_edit`, `apply_profile_edit`.
+The server exposes 12 tools: `list_flows`, `get_prompt`, `submit`,
+`apply_resume_ops`, `align_resume_terms`, `list_profiles`, `list_jobs`,
+`fetch_url`, `get_job_state`, `get_profile`, `preview_profile_edit`,
+`apply_profile_edit`.
 `fetch_url` fetches a job posting URL server-side and
 returns its extracted text when a host's own fetch is blocked (e.g.
 LinkedIn). There is no standalone `validate` tool — `submit` already runs
@@ -34,9 +35,9 @@ the same schema check
 before persisting anything, so a failed `submit` doubles as the dry run.
 Before a job exists yet (mid-`add_job`), `submit` mints a short-lived
 `draftId` and returns it — pass that on subsequent calls instead of
-re-uploading `jobDetails`/the Recruiter Skim/the tailored resume yourself, and
-`submit`'s response includes the next step's prompt inline as `nextPrompt`
-so a full `add_job` run is 5 tool calls, not 8+.
+re-uploading `jobDetails`/the Deep Analysis findings/the tailored resume
+yourself, and `submit`'s response includes the next step's prompt inline as
+`nextPrompt` so a full `add_job` run is 5 tool calls, not 8+.
 
 To just save a job posting URL for later without generating a resume (the
 `bookmark` flow — the MCP equivalent of pasting a URL into `/bookmarks`),
@@ -45,13 +46,15 @@ a `BOOKMARKED` job immediately and stops (`next: null`), one LLM call per
 URL. Re-submitting a URL that's already bookmarked returns the existing job
 (`duplicate: true`) instead of creating a second one.
 
-The `gap_analysis` flow (`analyze_resume_gaps`) is deliberately not a
-keyword/format scorer like `ats_fix` — it reads an existing job's tailored
-resume against the JD the way a hiring manager would: missing experience,
-seniority shortfalls, domain mismatch, each with a concrete solution and
-always closing with evidence-based strengths. Nothing is persisted
-server-side; apply any gap that carries a `resume_fix` with
-`apply_resume_ops` yourself.
+The `fit_check` flow (`analyze_fit`) is deliberately not a keyword/format
+scorer — it reads an existing job's tailored resume against the JD the way
+a hiring manager would: missing experience, seniority shortfalls, domain
+mismatch, each with a concrete solution and a rated knockout risk (work
+authorization, a license, a location), always closing with evidence-based
+strengths. Nothing is persisted server-side, and a gap carries no follow-up
+`resume_fix`/apply step of its own — a fixable version of the same issue
+shows up in `document_fix`'s Deep Analysis findings instead, which do carry
+one.
 
 Base-profile editing (`get_profile` / `preview_profile_edit` /
 `apply_profile_edit`) is MCP-only — the in-app chat already has its own

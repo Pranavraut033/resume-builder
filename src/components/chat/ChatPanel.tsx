@@ -9,10 +9,10 @@ import cn from "@/lib/cn";
 
 import { useChatContext } from "./ChatContext";
 import { ChatMessageItem } from "./ChatMessage";
-import ATSAnalysisPanel from "../job/ATSAnalysisPanel";
+import DeepAnalysisPanel from "../job/DeepAnalysisPanel";
 import { Button } from "../ui";
 
-export type ViewMode = "chat" | "settings" | "ats";
+export type ViewMode = "chat" | "settings" | "deepAnalysis";
 
 interface ChatPanelProps {
   onClose?: () => void;
@@ -92,17 +92,23 @@ export function ChatPanel({ onClose: _close }: ChatPanelProps) {
         <span className="text-agent-on-surface mr-auto font-mono text-sm font-semibold tracking-tight">
           Resume AI
         </span>
-        {/*Ats analysis result is present, show a "Recruiter Skim" badge in the header*/}
+        {/*Deep Analysis result is present, show a badge in the header*/}
         {atsAnalysis && (
           <button
             type="button"
-            title="View recruiter skim"
-            onClick={() => setView((prev) => (prev === "ats" ? "chat" : "ats"))}
+            title="View Deep Analysis"
+            onClick={() =>
+              setView((prev) =>
+                prev === "deepAnalysis" ? "chat" : "deepAnalysis"
+              )
+            }
             className={cn(
               "flex h-7 w-7 items-center justify-center rounded-md transition-colors",
               {
-                "bg-agent-primary text-agent-on-primary": view === "ats",
-                "text-agent-on-surface-variant bg-transparent": view !== "ats",
+                "bg-agent-primary text-agent-on-primary":
+                  view === "deepAnalysis",
+                "text-agent-on-surface-variant bg-transparent":
+                  view !== "deepAnalysis",
               }
             )}
           >
@@ -140,9 +146,9 @@ export function ChatPanel({ onClose: _close }: ChatPanelProps) {
           </button>
         )}
       </div>
-      {view === "ats" && atsAnalysis && (
+      {view === "deepAnalysis" && atsAnalysis && (
         <div className="min-h-0 flex-1 overflow-y-auto">
-          <ATSAnalysisPanel atsAnalysis={atsAnalysis} standalone />
+          <DeepAnalysisPanel atsAnalysis={atsAnalysis} standalone />
         </div>
       )}
       {/* ── Settings view ───────────────────────────────────────────────── */}

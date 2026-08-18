@@ -27,12 +27,11 @@ export type {
 
 // Import all templates to trigger registration
 import "./templates/parsing";
-import "./templates/ats";
+import "./templates/deep-analysis";
 import "./templates/resume-tailoring";
 import "./templates/cover-letter";
 import "./templates/humanizer";
-import "./templates/proofread";
-import "./templates/gap-analysis";
+import "./templates/fit-check";
 
 // Re-export registry instance
 export { templateRegistry } from "./registry";
@@ -43,7 +42,7 @@ import { resumePathLines } from "@/lib/resume/editor";
 import {
   resumeJsonToCompactPositional,
   jobDetailsToCompactPositional,
-  atsAnalysisToCompactPositional,
+  documentAnalysisToCompactPositional,
 } from "@/types/resume";
 import { resolveTemplate } from "@pranavraut033/llm-core/prompts";
 
@@ -91,7 +90,8 @@ function normalizedFieldsToString(
     resume: context.resume ? resumeJsonToCompactPositional(context.resume) : "",
     // Unlike `resume` above, this is NOT routed through
     // resumeJsonToCompactPositional — that serializer strips exactly the
-    // whitespace/punctuation/casing detail a proofreader needs to catch.
+    // whitespace/punctuation/casing detail a Deep Analysis correctness pass
+    // needs to catch.
     // Full JSON.stringify, then the same sanitizer chokepoint as every other
     // untrusted field so a `---`/``` line inside the resume can't escape the
     // fence it's interpolated into.
@@ -100,9 +100,10 @@ function normalizedFieldsToString(
       : "",
     // One line per string leaf as an RFC-6902 JSON Pointer (see
     // src/lib/resume/editor.ts::resumePathLines) — path-editing templates
-    // (proofread, humanizer) feed this alongside resumeFull so the model can
-    // name the exact leaf a finding/change lives at instead of only echoing
-    // text back. App-generated from resumeFull, so no sanitization needed.
+    // (deep-analysis, humanizer) feed this alongside resumeFull so the model
+    // can name the exact leaf a finding/change lives at instead of only
+    // echoing text back. App-generated from resumeFull, so no sanitization
+    // needed.
     resumePathLines: context.resumeFull
       ? sanitizeUntrustedText(resumePathLines(context.resumeFull))
       : "",
@@ -110,7 +111,7 @@ function normalizedFieldsToString(
       ? jobDetailsToCompactPositional(context.jobDetails)
       : "",
     atsAnalysis: context.atsAnalysis
-      ? atsAnalysisToCompactPositional(context.atsAnalysis)
+      ? documentAnalysisToCompactPositional(context.atsAnalysis)
       : "",
     // Small scalar anchors for templates that need to name the role/company
     // in a sentence — the compact-positional strings above are deliberately
@@ -130,7 +131,7 @@ function normalizedFieldsToString(
 
 export class PromptSystem {
   private static labels: Record<PromptPurpose, string> = {
-    analyze_ats: "Recruiter Skim",
+    analyze_document: "Deep Analysis",
     generate_cover_letter: "Cover Letter Generation",
     generate_tailored_resume: "Tailored Resume Generation",
     parse_job: "Job Description Parsing",
@@ -138,9 +139,7 @@ export class PromptSystem {
     humanize_content: "Content Humanization",
     generate_text: "General Text Generation",
     extract_fields_to_edit: "Extract Fields to Edit",
-    fix_ats_issues: "Skim Fix Mapping",
-    proofread_resume: "Proofread Resume",
-    analyze_resume_gaps: "Fit Check",
+    analyze_fit: "Fit Check",
   };
 
   /**

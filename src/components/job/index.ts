@@ -1,4 +1,4 @@
-import ATSAnalysisPanel from "./ATSAnalysisPanel";
+import DeepAnalysisPanel from "./DeepAnalysisPanel";
 import ThemeCustomizationPanel from "./ThemeCustomizationPanel";
 
-export { ATSAnalysisPanel, ThemeCustomizationPanel };
+export { DeepAnalysisPanel, ThemeCustomizationPanel };

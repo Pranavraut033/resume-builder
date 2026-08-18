@@ -3,7 +3,7 @@
  *
  * @pranavraut033/llm-core's `LLMProvider` base class is domain-agnostic and
  * only ships `runLLM`/`runStructuredLLM`/`generateText`. The resume-specific
- * operations (generate resume, analyze ATS, etc.) that used to live as
+ * operations (generate resume, analyze fit, etc.) that used to live as
  * methods on the project's own base class are free functions here instead —
  * they take a provider instance and use only its public API plus the
  * domain prompt system and Zod schemas.
@@ -13,10 +13,16 @@ import { LLMProvider } from "@pranavraut033/llm-core";
 import { PromptSystem, ResolvedPrompt } from "@/lib/llm/prompts";
 import { lintResume } from "@/lib/proofread/lint";
 import {
-  GapAnalysisJSON,
-  GapAnalysisPromptInput,
-  GapAnalysisSchema,
-} from "@/types/gapAnalysis";
+  DocumentAnalysisJSON,
+  DocumentAnalysisPromptInput,
+  DocumentAnalysisSchema,
+  DocumentFinding,
+} from "@/types/documentAnalysis";
+import {
+  FitCheckJSON,
+  FitCheckPromptInput,
+  FitCheckSchema,
+} from "@/types/fitCheck";
 import { HumanizerSchema } from "@/types/humanizer";
 import {
   ResumePromptInput,
@@ -29,21 +35,8 @@ import {
   ResumeGenerationResult,
   ResumeParsingResult,
   HumanizeContentResult,
-  ATSAnalysisPromptInput,
 } from "@/types/llm";
-import {
-  ProofreadIssue,
-  ProofreadJSON,
-  ProofreadPromptInput,
-  ProofreadSchema,
-} from "@/types/proofread";
-import {
-  JobDetailsSchema,
-  ATSAnalysisSchema,
-  ATSAnalysisJSON,
-  ResumeSchema,
-  ResumeJSON,
-} from "@/types/resume";
+import { JobDetailsSchema, ResumeSchema, ResumeJSON } from "@/types/resume";
 
 // ponytail: ResumeSchema allows empty arrays (a resume mid-edit is valid), so
 // Zod alone can't catch a model that silently drops every section — observed
@@ -110,79 +103,98 @@ export async function generateResume(
   return { result, usage };
 }
 
-export function analyzeATS(
+/**
+ * `analyze_fit` — "should I apply, and what's blocking me?" Pure judgment
+ * call, no deterministic merge step (unlike `analyzeDocument` below): there
+ * is nothing lint.ts can check for a fit verdict.
+ */
+export function analyzeFit(
   provider: LLMProvider,
-  input: ATSAnalysisPromptInput,
+  input: FitCheckPromptInput,
   options: LLMGenerationOptions
-): Promise<LLMResult<ATSAnalysisJSON>> {
-  const prompt = PromptSystem.generatePrompt("analyze_ats", input);
+): Promise<LLMResult<FitCheckJSON>> {
+  const prompt = PromptSystem.generatePrompt("analyze_fit", {
+    resume: input.resume,
+    jobDetails: input.jobDetails,
+  });
 
   return provider.runStructuredLLM(
     prompt,
     options,
-    ATSAnalysisSchema,
-    "ATSAnalysisSchema"
+    FitCheckSchema,
+    "FitCheckSchema"
   );
 }
 
-export function analyzeResumeGaps(
-  provider: LLMProvider,
-  input: GapAnalysisPromptInput,
-  options: LLMGenerationOptions
-): Promise<LLMResult<GapAnalysisJSON>> {
-  const prompt = PromptSystem.generatePrompt("analyze_resume_gaps", input);
-
-  return provider.runStructuredLLM(
-    prompt,
-    options,
-    GapAnalysisSchema,
-    "GapAnalysisSchema"
-  );
-}
-
-// A finding's identity for cross-pass dedup: which field it lives in plus
-// its normalized (case/whitespace-insensitive) `original` text. Lint issues
+// A finding's identity for cross-pass dedup: which leaf it lives at (`path`,
+// replacing the old `field`, both now derivable from `path`) plus its
+// normalized (case/whitespace-insensitive) `original` text. Lint findings
 // are deterministic and their `suggestion` is safe to auto-apply, so when
-// both passes report the same defect, the lint issue wins.
-function proofreadDedupeKey(issue: ProofreadIssue): string {
-  return `${issue.field}::${issue.original.toLowerCase().replace(/\s+/g, " ").trim()}`;
+// both passes report the same defect, the lint finding wins. Mirrored BY
+// HAND in src/mcp/guards.ts's `documentFindingDedupeKey` — that server-side
+// guard can't import this (it must never call an LLM, and this function is
+// bundled with the LLM call below), so keep the two in sync manually.
+function documentFindingDedupeKey(finding: DocumentFinding): string {
+  return `${finding.path}::${finding.original.toLowerCase().replace(/\s+/g, " ").trim()}`;
 }
 
-export async function proofreadResume(
+export interface AnalyzeDocumentOptions extends LLMGenerationOptions {
+  // lite/full prompt-depth switch — vary the input, never the output (see
+  // templates/deep-analysis.ts's `{{#if fullMode}}` block). Defaults to
+  // `true` (full) so a caller that doesn't resolve a preference gets today's
+  // behavior, not a silent downgrade. Callers resolve this per-model from
+  // src/store/modelStore.ts's `promptDepthByModel` (see LLMService.executeCall
+  // and Chatbot.ts's `resolvePromptDepth`) — there's no model→tier table here
+  // by design, it would go stale every release.
+  fullMode?: boolean;
+}
+
+/**
+ * `analyze_document` — "what do I change in the document?" Merges the LLM
+ * pass's findings with the deterministic `lintResume()` pass, lint winning
+ * on any collision (same dedupe-key logic as the old `proofreadResume`, see
+ * `documentFindingDedupeKey` above).
+ */
+export async function analyzeDocument(
   provider: LLMProvider,
-  input: ProofreadPromptInput,
-  options: LLMGenerationOptions
-): Promise<LLMResult<ProofreadJSON>> {
-  const prompt = PromptSystem.generatePrompt("proofread_resume", {
+  input: DocumentAnalysisPromptInput,
+  options: AnalyzeDocumentOptions
+): Promise<LLMResult<DocumentAnalysisJSON>> {
+  const { fullMode = true, ...llmOptions } = options;
+
+  const prompt = PromptSystem.generatePrompt("analyze_document", {
     resumeFull: input.resumeFull,
-    jobDetails: input.jobDetails ?? undefined,
+    jobDetails: input.jobDetails,
     baseProfile: input.baseProfile ?? undefined,
+    fullMode,
   });
 
   const { result, usage } = await provider.runStructuredLLM(
     prompt,
-    options,
-    ProofreadSchema,
-    "ProofreadSchema"
+    llmOptions,
+    DocumentAnalysisSchema,
+    "DocumentAnalysisSchema"
   );
 
-  const lintIssues = lintResume(input.resumeFull);
-  const lintKeys = new Set(lintIssues.map(proofreadDedupeKey));
-  // The model cannot reliably self-report which pass an issue "belongs to" —
-  // it has no visibility into what lintResume() actually checks, and in
-  // practice mislabels judgment categories (e.g. terminology_consistency,
-  // unquantified_claim) as source: "lint". That label gates auto-apply
-  // downstream (Chatbot.ts only auto-applies source === "lint" findings), so
-  // trusting an LLM-supplied source would let a subjective call — including
-  // one whose suggestion is a deletion — get silently applied. Only issues
+  const lintFindings = lintResume(input.resumeFull, {
+    jobDetails: input.jobDetails,
+  });
+  const lintKeys = new Set(lintFindings.map(documentFindingDedupeKey));
+  // The model cannot reliably self-report which pass a finding "belongs
+  // to" — it has no visibility into what lintResume() actually checks, and
+  // in practice mislabels judgment categories (weak verbs, unquantified
+  // claims, etc.) as source: "lint". That label gates auto-apply downstream
+  // (Chatbot.ts only auto-applies source === "lint" findings), so trusting
+  // an LLM-supplied source would let a subjective call — including one
+  // whose suggestion is a deletion — get silently applied. Only findings
   // that actually came out of lintResume() are source: "lint"; every model
-  // issue is forced to "llm" regardless of what it claimed.
-  const llmIssues = result.issues
-    .filter((issue) => !lintKeys.has(proofreadDedupeKey(issue)))
-    .map((issue) => ({ ...issue, source: "llm" as const }));
+  // finding is forced to "llm" regardless of what it claimed.
+  const llmFindings = result.findings
+    .filter((finding) => !lintKeys.has(documentFindingDedupeKey(finding)))
+    .map((finding) => ({ ...finding, source: "llm" as const }));
 
   return {
-    result: { ...result, issues: [...lintIssues, ...llmIssues] },
+    result: { ...result, findings: [...lintFindings, ...llmFindings] },
     usage,
   };
 }

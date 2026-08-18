@@ -8,6 +8,7 @@ import {
   Alert,
   Badge,
   Button,
+  Modal,
   MultiSelect,
   PageHeader,
   PageSection,
@@ -20,8 +21,14 @@ import { useToast } from "@/components/ui/ToastProvider";
 import { useAppUpdaterContext } from "@/contexts/AppUpdaterContext";
 import { useTheme } from "@/contexts/ThemeContext";
 import { downloadFile } from "@/lib/download";
-import { setApiKey, getApiKey, isTauriContext } from "@/lib/keyStorage";
+import {
+  setApiKey,
+  getApiKey,
+  deleteApiKey,
+  isTauriContext,
+} from "@/lib/keyStorage";
 import { validateProviderConnection } from "@/lib/llm/clientLLM";
+import { PROVIDER_ICONS, PROVIDER_INFO } from "@/lib/llm/providerMetaInfo";
 import { getAvailableProviders } from "@/lib/llm/providers";
 import { createLogger } from "@/lib/logger";
 import {
@@ -29,6 +36,7 @@ import {
   stopMcpServer,
   getMcpServerStatus,
   getMcpStdioCommand,
+  exportCoworkPlugin,
   MCP_SERVER_PORT,
   McpStdioCommand,
 } from "@/lib/mcpServer";
@@ -55,7 +63,6 @@ export default function SettingsPage() {
   const [ollamaHost, setOllamaHost] = useState("http://localhost:11434");
   const { theme, setTheme } = useTheme();
   const { pushToast } = useToast();
-  const [telemetry, setTelemetry] = useState(false);
   const [isBackingUp, setIsBackingUp] = useState(false);
   const [isRestoring, setIsRestoring] = useState(false);
   const [backupError, setBackupError] = useState<string | null>(null);
@@ -69,6 +76,16 @@ export default function SettingsPage() {
   const [mcpConfigCopied, setMcpConfigCopied] = useState(false);
   const [mcpStdioCommand, setMcpStdioCommand] =
     useState<McpStdioCommand | null>(null);
+  const [exportingPlugin, setExportingPlugin] = useState(false);
+
+  // Providers the user has explicitly opened via "Add provider" this
+  // session, even before a key is saved — so the card doesn't disappear the
+  // moment they click into it. Not persisted: a card with no saved key is
+  // meant to fall back out of view on reload.
+  const [addedProviders, setAddedProviders] = useState<Set<ProviderType>>(
+    new Set()
+  );
+  const [providerPickerOpen, setProviderPickerOpen] = useState(false);
 
   useEffect(() => {
     if (!isTauriContext()) return;
@@ -121,10 +138,17 @@ export default function SettingsPage() {
     try {
       await loadModels();
       const providers = getAvailableProviders();
+      const entries = await Promise.all(
+        providers.map(
+          async (provider): Promise<[string, string | null]> => [
+            provider.type,
+            await getApiKey(provider.type),
+          ]
+        )
+      );
       const loadedKeys: Record<string, string> = {};
-      for (const provider of providers) {
-        const key = await getApiKey(provider.type);
-        if (key) loadedKeys[provider.type] = key;
+      for (const [type, key] of entries) {
+        if (key) loadedKeys[type] = key;
       }
       setKeys(loadedKeys);
     } catch (err) {
@@ -152,6 +176,33 @@ export default function SettingsPage() {
       });
     } finally {
       setSavingProvider(null);
+    }
+  };
+
+  const handleDeleteProvider = async (providerType: ProviderType) => {
+    if (
+      keys[providerType] &&
+      !window.confirm(
+        `Remove your saved ${PROVIDER_INFO[providerType].name} API key? You can add it again any time.`
+      )
+    ) {
+      return;
+    }
+    try {
+      if (keys[providerType]) await deleteApiKey(providerType);
+      setKeys((prev) => {
+        const next = { ...prev };
+        delete next[providerType];
+        return next;
+      });
+      setAddedProviders((prev) => {
+        const next = new Set(prev);
+        next.delete(providerType);
+        return next;
+      });
+    } catch (err) {
+      logger.error("Error deleting API key", { err });
+      pushToast({ title: "Couldn't remove API key", variant: "error" });
     }
   };
 
@@ -336,6 +387,25 @@ export default function SettingsPage() {
     }
   };
 
+  const handleExportPlugin = async () => {
+    setExportingPlugin(true);
+    try {
+      const savedPath = await exportCoworkPlugin();
+      if (savedPath) {
+        pushToast({
+          title: "Connector downloaded",
+          description: savedPath,
+          variant: "success",
+        });
+      }
+    } catch (err) {
+      logger.error("Error exporting MCP connector", { err });
+      pushToast({ title: "Couldn't download connector", variant: "error" });
+    } finally {
+      setExportingPlugin(false);
+    }
+  };
+
   // Only the 10 builtins + the managed provider are ever registered (see
   // providers/factory.ts), so narrowing the package's open ProviderId back
   // to our closed enum is safe.
@@ -345,8 +415,18 @@ export default function SettingsPage() {
     type: ProviderType;
   })[];
 
+  // Only providers with a saved key, or ones opened via "Add provider" this
+  // session — the long tail stays behind the picker instead of always
+  // rendering all 10 cards.
+  const visibleProviders = cloudProviders.filter(
+    (p) => keys[p.type] || addedProviders.has(p.type)
+  );
+  const unconfiguredProviders = cloudProviders.filter(
+    (p) => !visibleProviders.includes(p)
+  );
+
   return (
-    <div className="text-agent-on-surface min-h-full px-6 py-8">
+    <div className="text-agent-on-surface min-h-full">
       <PageHeader
         title="Settings"
         description="Configure your intelligent drafting engine. All configurations are stored locally on your device."
@@ -381,33 +461,174 @@ export default function SettingsPage() {
       )}
 
       <div className="space-y-8">
-        {/* Cloud LLM Providers */}
+        {/* MCP Server — desktop-only, spawns/kills the bundled MCP server */}
+        {isTauriContext() && (
+          <PageSection title="MCP Server">
+            <SurfacePanel stack>
+              <SettingsRow
+                label="External AI Access (MCP Server)"
+                description="Let an AI assistant you already use (e.g. Claude Desktop, Codex) drive this app's resume flows using your own subscription instead of an API key. Off by default."
+                control={
+                  <Toggle
+                    checked={mcpRunning}
+                    onChange={(checked) => handleMcpToggle(checked)}
+                    disabled={mcpPending}
+                    label="MCP Server"
+                  />
+                }
+              />
+
+              <SettingsRow
+                label="Connector file"
+                description="The easiest way to connect an assistant that supports plugin installs. Prefer typing a command instead, or need a different host? See the manual setup instructions."
+                control={
+                  <div className="flex items-center gap-3">
+                    <Button
+                      variant="gradient"
+                      size="sm"
+                      onClick={handleExportPlugin}
+                      disabled={exportingPlugin || !mcpStdioCommand}
+                    >
+                      {exportingPlugin ? "Downloading…" : "Download connector"}
+                    </Button>
+                    <Link
+                      href="/settings/mcp"
+                      className="text-agent-primary text-sm underline"
+                    >
+                      Manual setup
+                    </Link>
+                  </div>
+                }
+              />
+
+              {mcpRunning && (
+                <div className="bg-agent-surface-container space-y-3 rounded-xl px-4 py-3">
+                  <p className="text-agent-on-surface text-sm">
+                    Running on{" "}
+                    <code className="text-agent-primary font-mono">
+                      http://127.0.0.1:{MCP_SERVER_PORT}
+                    </code>
+                  </p>
+                  <div>
+                    <div className="mb-1.5 flex items-center justify-between">
+                      <p className="text-agent-on-surface-variant text-xs font-semibold tracking-wider uppercase">
+                        Config file snippet
+                      </p>
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        onClick={handleCopyMcpConfig}
+                      >
+                        {mcpConfigCopied ? "Copied" : "Copy"}
+                      </Button>
+                    </div>
+                    <pre className="bg-agent-surface text-agent-on-surface min-w-0 overflow-x-auto rounded-lg p-3 text-xs">
+                      <code>{claudeDesktopConfigSnippet}</code>
+                    </pre>
+                    <p className="text-agent-on-surface-variant mt-2 text-xs">
+                      {mcpStdioCommand
+                        ? "Points at this install's own bundled Node — no separate install needed."
+                        : "No bundled entrypoint found (expected only in a dev build) — falling back to the repo-checkout dev workflow."}{" "}
+                      Paste this into whichever assistant you&apos;re connecting
+                      — the format is the same one Claude Desktop uses.
+                    </p>
+                  </div>
+                </div>
+              )}
+            </SurfacePanel>
+          </PageSection>
+        )}
+
+        {/* Cloud LLM Providers — no SurfacePanel wrapper: each ProviderCard
+            already carries its own surface background/padding, so nesting
+            them in another surface-low p-5 panel just doubled the padding
+            around the whole grid without adding anything visually. */}
         <PageSection title="Cloud LLM Providers">
-          <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-            {cloudProviders.map((provider) => {
+          <div className="space-y-4">
+            {visibleProviders.length > 0 ? (
+              <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+                {visibleProviders.map((provider) => {
+                  return (
+                    <ProviderCard
+                      key={provider.type}
+                      providerType={provider.type}
+                      apiKey={keys[provider.type] || ""}
+                      onApiKeyChange={(v) =>
+                        setKeys((prev) => ({ ...prev, [provider.type]: v }))
+                      }
+                      onSave={() => handleSaveKey(provider.type)}
+                      onValidate={() => handleValidate(provider.type)}
+                      onDelete={() => handleDeleteProvider(provider.type)}
+                      isSaving={savingProvider === provider.type}
+                      isValidating={validatingProvider === provider.type}
+                      validationMessage={
+                        validationResults[provider.type]?.message ?? ""
+                      }
+                      validationSuccess={
+                        validationResults[provider.type]?.success ?? null
+                      }
+                    />
+                  );
+                })}
+              </div>
+            ) : (
+              <p className="text-agent-on-surface-variant text-sm">
+                No providers configured yet. Add one to start generating with
+                your own API key.
+              </p>
+            )}
+            {unconfiguredProviders.length > 0 && (
+              <div className="flex justify-start">
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => setProviderPickerOpen(true)}
+                >
+                  Add provider
+                </Button>
+              </div>
+            )}
+          </div>
+        </PageSection>
+
+        <Modal
+          isOpen={providerPickerOpen}
+          onClose={() => setProviderPickerOpen(false)}
+          title="Add a provider"
+          size="sm"
+        >
+          <div className="space-y-2">
+            {unconfiguredProviders.map((provider) => {
+              const Icon = PROVIDER_ICONS[provider.type];
+              const meta = PROVIDER_INFO[provider.type];
               return (
-                <ProviderCard
+                <button
                   key={provider.type}
-                  providerType={provider.type}
-                  apiKey={keys[provider.type] || ""}
-                  onApiKeyChange={(v) =>
-                    setKeys((prev) => ({ ...prev, [provider.type]: v }))
-                  }
-                  onSave={() => handleSaveKey(provider.type)}
-                  onValidate={() => handleValidate(provider.type)}
-                  isSaving={savingProvider === provider.type}
-                  isValidating={validatingProvider === provider.type}
-                  validationMessage={
-                    validationResults[provider.type]?.message ?? ""
-                  }
-                  validationSuccess={
-                    validationResults[provider.type]?.success ?? null
-                  }
-                />
+                  type="button"
+                  onClick={() => {
+                    setAddedProviders((prev) =>
+                      new Set(prev).add(provider.type)
+                    );
+                    setProviderPickerOpen(false);
+                  }}
+                  className="hover:bg-agent-surface-container flex w-full items-center gap-3 rounded-xl p-3 text-left transition-colors"
+                >
+                  <Icon className="size-5 shrink-0" />
+                  <div className="min-w-0">
+                    <p className="text-agent-on-surface text-sm font-medium">
+                      {meta.name}
+                    </p>
+                    {meta.description && (
+                      <p className="text-agent-on-surface-variant truncate text-xs">
+                        {meta.description}
+                      </p>
+                    )}
+                  </div>
+                </button>
               );
             })}
           </div>
-        </PageSection>
+        </Modal>
 
         {/* Local LLM — Ollama */}
         <PageSection title="Local LLM">
@@ -584,72 +805,6 @@ export default function SettingsPage() {
           </SurfacePanel>
         </PageSection>
 
-        {/* MCP Server — desktop-only, spawns/kills the bundled MCP server */}
-        {isTauriContext() && (
-          <PageSection title="MCP Server">
-            <SurfacePanel stack>
-              <SettingsRow
-                label="External AI Access (MCP Server)"
-                description="Let an external MCP client (e.g. Claude Desktop) drive this app's resume flows using your own chat subscription instead of an API key. Off by default."
-                control={
-                  <Toggle
-                    checked={mcpRunning}
-                    onChange={(checked) => handleMcpToggle(checked)}
-                    disabled={mcpPending}
-                    label="MCP Server"
-                  />
-                }
-              />
-
-              <p className="text-agent-on-surface-variant text-sm">
-                Prefer Claude Code (CLI) over Claude Desktop?{" "}
-                <Link
-                  href="/settings/mcp"
-                  className="text-agent-primary underline"
-                >
-                  See setup instructions
-                </Link>
-                .
-              </p>
-
-              {mcpRunning && (
-                <div className="bg-agent-surface-container space-y-3 rounded-xl px-4 py-3">
-                  <p className="text-agent-on-surface text-sm">
-                    Running on{" "}
-                    <code className="text-agent-primary font-mono">
-                      http://127.0.0.1:{MCP_SERVER_PORT}
-                    </code>
-                  </p>
-                  <div>
-                    <div className="mb-1.5 flex items-center justify-between">
-                      <p className="text-agent-on-surface-variant text-xs font-semibold tracking-wider uppercase">
-                        claude_desktop_config.json
-                      </p>
-                      <Button
-                        variant="secondary"
-                        size="sm"
-                        onClick={handleCopyMcpConfig}
-                      >
-                        {mcpConfigCopied ? "Copied" : "Copy"}
-                      </Button>
-                    </div>
-                    <pre className="bg-agent-surface text-agent-on-surface overflow-x-auto rounded-lg p-3 text-xs">
-                      <code>{claudeDesktopConfigSnippet}</code>
-                    </pre>
-                    <p className="text-agent-on-surface-variant mt-2 text-xs">
-                      {mcpStdioCommand
-                        ? "Points at this install's own bundled Node + stdio.js — no repo clone or separate Node install needed."
-                        : "No bundled entrypoint found (expected only in a dev build) — falling back to the repo-checkout dev workflow."}{" "}
-                      See <code>docs/MCP.md</code> for the HTTP alternative and
-                      full setup.
-                    </p>
-                  </div>
-                </div>
-              )}
-            </SurfacePanel>
-          </PageSection>
-        )}
-
         {/* General Preferences */}
         <PageSection title="General Preferences">
           <SurfacePanel stack>
@@ -727,18 +882,15 @@ export default function SettingsPage() {
               }
             />
 
-            {/* Telemetry */}
-            <SettingsRow
-              label="Anonymous Telemetry"
-              description="Help improve AI parsing accuracy (Opt-in)"
-              control={
-                <Toggle
-                  checked={telemetry}
-                  onChange={setTelemetry}
-                  label="Anonymous Telemetry"
-                />
-              }
-            />
+            {/* Privacy — there's no toggle here because there's nothing to
+                turn off: no analytics, no crash reports, nothing collected. */}
+            <div className="bg-agent-surface-container rounded-xl px-4 py-3">
+              <p className="text-agent-on-surface-variant text-sm leading-relaxed">
+                Udaan collects nothing. No analytics, no crash reports, no
+                account. Your resume text is sent only to the AI provider you
+                configure, when you ask for a generation.
+              </p>
+            </div>
 
             {/* Version */}
             <div className="bg-agent-surface-container flex items-center justify-between rounded-xl px-4 py-3">
@@ -771,18 +923,18 @@ export default function SettingsPage() {
                 Udaan by Pranav Raut
               </span>
               <div className="flex gap-4 text-sm">
-                <a
-                  href={`${REPO_URL}/blob/main/LICENSE`}
+                <Link
+                  href="/settings/licenses"
                   className="text-agent-primary hover:underline"
                 >
                   License
-                </a>
-                <a
-                  href={`${REPO_URL}/blob/main/LICENSE-THIRD-PARTY.md`}
+                </Link>
+                <Link
+                  href="/settings/licenses"
                   className="text-agent-primary hover:underline"
                 >
                   Third-Party Licenses
-                </a>
+                </Link>
               </div>
             </div>
           </SurfacePanel>

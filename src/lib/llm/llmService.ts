@@ -21,7 +21,8 @@ import { ProviderFactory } from "@/lib/llm/providers/factory";
 import { generateRequestId, trackTokenUsage } from "@/lib/llm/tokenTracker";
 import { createLogger } from "@/lib/logger";
 import { useModelStore } from "@/store/modelStore";
-import { GapAnalysisJSON } from "@/types/gapAnalysis";
+import { DocumentAnalysisJSON } from "@/types/documentAnalysis";
+import { FitCheckJSON } from "@/types/fitCheck";
 import { HumanizerJSON } from "@/types/humanizer";
 import {
   ProviderType,
@@ -29,10 +30,9 @@ import {
   JobParsingResult,
   ResumeParsingResult,
   CoverLetterGenerationResult,
-  ATSAnalysisResult,
+  DocumentAnalysisResult,
 } from "@/types/llm";
-import { ProofreadJSON } from "@/types/proofread";
-import { ResumeJSON, JobDetailsJSON, ATSAnalysisJSON } from "@/types/resume";
+import { ResumeJSON, JobDetailsJSON } from "@/types/resume";
 
 import * as domainOps from "./domainOps";
 import {
@@ -95,6 +95,21 @@ function withTopP(options: LLMServiceOptions): LLMServiceOptions {
   return topP !== null ? { ...options, topP } : options;
 }
 
+/**
+ * Resolves the user's per-model lite/full preference (src/store/modelStore.ts)
+ * the same way `withReasoningEffort` resolves reasoning effort — except this
+ * isn't an `LLMGenerationOptions` field, it's a `PromptContext` flag only
+ * `analyze_document` reads (see `templates/deep-analysis.ts`'s `{{#if
+ * fullMode}}` block), so it's applied directly at that one call site instead
+ * of folded into the generic `options` pipeline above. Default "full" —
+ * today's behavior, so no existing user silently degrades.
+ */
+function resolvePromptDepth(options: LLMServiceOptions): "lite" | "full" {
+  return useModelStore
+    .getState()
+    .getPromptDepth(options.provider, options.model);
+}
+
 // map each purpose to the keys from PromptContext that must be present
 type RequiredKeysByPurpose = {
   generate_text: never;
@@ -102,12 +117,14 @@ type RequiredKeysByPurpose = {
   generate_cover_letter: "resume" | "jobDetails";
   parse_job: "jobDescription";
   parse_resume: "resumeText";
-  analyze_ats: "resume" | "jobDetails";
+  analyze_fit: "resume" | "jobDetails";
+  // jobDetails is required here (not optional, unlike the old proofread
+  // purpose) — the deep-analysis template's `keyword`/`title` finding kinds
+  // are both judged against the target job, see
+  // DocumentAnalysisPromptInput's doc comment.
+  analyze_document: "resumeFull" | "jobDetails";
   humanize_content: "userInput";
   extract_fields_to_edit: never;
-  fix_ats_issues: "resume" | "jobDetails" | "userInput";
-  proofread_resume: "resumeFull";
-  analyze_resume_gaps: "resume" | "jobDetails";
 };
 
 // Helper type to enforce required context fields based on purpose, error here means RequiredKeysByPurpose is not properly defined to match PromptContext keys - this is a compile-time check to ensure our RequiredKeysByPurpose mapping is correct
@@ -237,8 +254,8 @@ class LLMService {
           ));
           break;
         }
-        case "analyze_ats": {
-          ({ result, usage } = await domainOps.analyzeATS(
+        case "analyze_fit": {
+          ({ result, usage } = await domainOps.analyzeFit(
             provider,
             {
               resume: context.resume!,
@@ -248,26 +265,15 @@ class LLMService {
           ));
           break;
         }
-        case "proofread_resume": {
-          ({ result, usage } = await domainOps.proofreadResume(
+        case "analyze_document": {
+          ({ result, usage } = await domainOps.analyzeDocument(
             provider,
             {
               resumeFull: context.resumeFull!,
-              jobDetails: context.jobDetails ?? null,
+              jobDetails: context.jobDetails!,
               baseProfile: context.baseProfile ?? null,
             },
-            options
-          ));
-          break;
-        }
-        case "analyze_resume_gaps": {
-          ({ result, usage } = await domainOps.analyzeResumeGaps(
-            provider,
-            {
-              resume: context.resume!,
-              jobDetails: context.jobDetails!,
-            },
-            options
+            { ...options, fullMode: resolvePromptDepth(options) === "full" }
           ));
           break;
         }
@@ -330,7 +336,7 @@ class LLMService {
   static async generateTailoredResume(
     baseProfile: ResumeJSON,
     jobDetails: JobDetailsJSON,
-    atsAnalysis: ATSAnalysisJSON | null,
+    atsAnalysis: DocumentAnalysisJSON | null,
     options: LLMServiceOptions
   ): Promise<LLMResult<ResumeJSON>> {
     return this.executeCall(
@@ -349,7 +355,7 @@ class LLMService {
   static async generateVerifiedTailoredResume(
     baseProfile: ResumeJSON,
     jobDetails: JobDetailsJSON,
-    atsAnalysis: ATSAnalysisJSON | null,
+    atsAnalysis: DocumentAnalysisJSON | null,
     rawOptions: LLMServiceOptions
   ): Promise<VerifiedResumeResult> {
     const options = withTopP(withTemperature(withReasoningEffort(rawOptions)));
@@ -383,43 +389,34 @@ class LLMService {
     return this.executeCall("humanize_content", { userInput: text }, options);
   }
 
-  static async analyzeATS(
+  /**
+   * "What do I change in the document?" — merges the old ATS-analysis and
+   * proofread purposes (see domainOps.analyzeDocument). `jobDetails` is
+   * required (not optional like the old proofreadResume's) — see
+   * DocumentAnalysisPromptInput's doc comment.
+   */
+  static async analyzeDocument(
     resume: ResumeJSON,
     jobDetails: JobDetailsJSON,
-    options: LLMServiceOptions
-  ): Promise<LLMResult<ATSAnalysisJSON>> {
-    return this.executeCall("analyze_ats", { resume, jobDetails }, options);
-  }
-
-  static async proofreadResume(
-    resume: ResumeJSON,
-    context: {
-      jobDetails?: JobDetailsJSON | null;
-      baseProfile?: ResumeJSON | null;
-    },
-    options: LLMServiceOptions
-  ): Promise<LLMResult<ProofreadJSON>> {
+    options: LLMServiceOptions,
+    baseProfile?: ResumeJSON | null
+  ): Promise<DocumentAnalysisResult> {
     return this.executeCall(
-      "proofread_resume",
-      {
-        resumeFull: resume,
-        jobDetails: context.jobDetails ?? null,
-        baseProfile: context.baseProfile ?? null,
-      },
+      "analyze_document",
+      { resumeFull: resume, jobDetails, baseProfile: baseProfile ?? null },
       options
     );
   }
 
-  static async analyzeResumeGaps(
+  /**
+   * "Should I apply, and what's blocking me?" — see domainOps.analyzeFit.
+   */
+  static async analyzeFit(
     resume: ResumeJSON,
     jobDetails: JobDetailsJSON,
     options: LLMServiceOptions
-  ): Promise<LLMResult<GapAnalysisJSON>> {
-    return this.executeCall(
-      "analyze_resume_gaps",
-      { resume, jobDetails },
-      options
-    );
+  ): Promise<LLMResult<FitCheckJSON>> {
+    return this.executeCall("analyze_fit", { resume, jobDetails }, options);
   }
 
   /**
@@ -446,14 +443,22 @@ class LLMService {
     jobDetails: JobParsingResult;
     resume: ResumeParsingResult;
     coverLetter: CoverLetterGenerationResult;
-    atsAnalysis: ATSAnalysisResult;
+    // Field name kept as `atsAnalysis` (not renamed to `documentAnalysis`)
+    // since it feeds `generateTailoredResume`'s `atsAnalysis` param below —
+    // same "historically ATS, now Deep Analysis" naming call as
+    // PromptContext.atsAnalysis (see src/lib/llm/prompts/types.ts).
+    atsAnalysis: DocumentAnalysisResult;
   }> {
     const jobDetails = await this.parseJob(jobDescription, {
       model,
       provider,
     });
 
-    const atsAnalysis = await this.analyzeATS(profile, jobDetails.result, {
+    // Deep Analysis, not Fit Check — this feeds resume-tailoring.ts as
+    // "hints for wording and ordering", which is what analyze_document
+    // findings (keywords/title/impact) are; a fit judgment (analyze_fit)
+    // isn't guidance the tailoring prompt knows how to use.
+    const atsAnalysis = await this.analyzeDocument(profile, jobDetails.result, {
       model,
       provider,
     });

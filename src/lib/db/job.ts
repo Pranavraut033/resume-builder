@@ -12,14 +12,13 @@ import {
   SanitizedCustomization,
   validateCustomization,
 } from "@/types/customization";
-import { JobStatus } from "@/types/job";
 import {
-  ResumeJSON,
-  JobDetailsJSON,
-  ATSAnalysisJSON,
-  ATSAnalysisSchema,
-  normalizeSkills,
-} from "@/types/resume";
+  DocumentAnalysisJSON,
+  DocumentAnalysisSchema,
+} from "@/types/documentAnalysis";
+import { FitCheckJSON } from "@/types/fitCheck";
+import { JobStatus } from "@/types/job";
+import { ResumeJSON, JobDetailsJSON, normalizeSkills } from "@/types/resume";
 
 // Read functions used directly by the MCP server (src/mcp/server.ts), which
 // must never import anything that transitively pulls in next/cache — that's
@@ -30,7 +29,7 @@ import {
 
 export type JobData = Omit<Job, "baseProfileAnalysis"> & {
   details: JobDetailsJSON;
-  baseProfileAnalysis: ATSAnalysisJSON | null;
+  baseProfileAnalysis: DocumentAnalysisJSON | null;
   contact: Contact | null;
   company: Company;
 };
@@ -39,6 +38,27 @@ export type JobData = Omit<Job, "baseProfileAnalysis"> & {
  * Get full job context with all details for resume editing
  * Includes parsed job details for LLM-assisted generation
  */
+/**
+ * Parse a stored DocumentAnalysisJSON blob, falling back to null (and
+ * logging) on any failure — including a pre-v:2 blob that no longer
+ * matches the schema. Mirrors getJob()'s own inline baseProfileAnalysis
+ * guard below; factored out so getResumeByJobId/createResume don't each
+ * carry an unguarded `.parse()` that would crash the whole page load on a
+ * single stale row instead of letting the drawer show its own re-run state.
+ */
+function safeParseDocumentAnalysis(
+  contentJson: string | undefined,
+  jobId: number
+): DocumentAnalysisJSON | null {
+  if (!contentJson) return null;
+  try {
+    return DocumentAnalysisSchema.parse(JSON.parse(contentJson));
+  } catch {
+    console.error("Failed to parse atsAnalysis contentJson for job", jobId);
+    return null;
+  }
+}
+
 export async function getJob(jobId: number) {
   const job = await prisma.job.findUniqueOrThrow({
     where: { id: jobId },
@@ -56,10 +76,10 @@ export async function getJob(jobId: number) {
     throw new Error(`Failed to parse jobDetailsJson for job ${jobId}`);
   }
 
-  let baseProfileAnalysis: ATSAnalysisJSON | null = null;
+  let baseProfileAnalysis: DocumentAnalysisJSON | null = null;
   if (job.baseProfileAnalysis?.contentJson) {
     try {
-      baseProfileAnalysis = ATSAnalysisSchema.parse(
+      baseProfileAnalysis = DocumentAnalysisSchema.parse(
         JSON.parse(job.baseProfileAnalysis.contentJson)
       );
     } catch {
@@ -82,7 +102,7 @@ export type ResumeWithDetails = Omit<
 > & {
   contentJson: ResumeJSON;
   customizations: Customization;
-  atsAnalysis: ATSAnalysisJSON | null;
+  atsAnalysis: DocumentAnalysisJSON | null;
 };
 export async function getResumeByJobId(
   jobId: number,
@@ -120,11 +140,14 @@ export async function getResumeByJobId(
           ...contentJson,
           skills: normalizeSkills(contentJson.skills),
         },
-        atsAnalysis: job.resume.atsAnalysis?.contentJson
-          ? ATSAnalysisSchema.parse(
-              JSON.parse(job.resume.atsAnalysis.contentJson)
-            )
-          : null,
+        // Guarded like getJob()'s baseProfileAnalysis above: a stale
+        // pre-v:2 blob must fall back to null and let the drawer's own
+        // "predates the new format, re-run it" empty state handle it — not
+        // throw and take down the whole job-editor page load with it.
+        atsAnalysis: safeParseDocumentAnalysis(
+          job.resume.atsAnalysis?.contentJson,
+          jobId
+        ),
       };
     });
 }
@@ -200,7 +223,7 @@ export async function createJob(input: {
   jobDetails: JobDetailsJSON;
   tailoredResume?: ResumeJSON;
   coverLetterText?: string;
-  atsAnalysis?: ATSAnalysisJSON | null;
+  atsAnalysis?: DocumentAnalysisJSON | null;
   url?: string;
   profileId?: number;
   status?: JobStatus;
@@ -297,7 +320,7 @@ export async function attachGeneratedMaterials(
   input: {
     tailoredResume?: ResumeJSON;
     coverLetterText?: string;
-    atsAnalysis?: ATSAnalysisJSON | null;
+    atsAnalysis?: DocumentAnalysisJSON | null;
     status?: JobStatus;
   }
 ): Promise<{ success: true }> {
@@ -427,7 +450,7 @@ async function snapshotResume(
 
 export async function saveAtsAnalysis(
   jobId: number,
-  atsAnalysis: ATSAnalysisJSON
+  atsAnalysis: DocumentAnalysisJSON
 ) {
   const resume = await prisma.job
     .findFirstOrThrow({
@@ -450,6 +473,42 @@ export async function saveAtsAnalysis(
         ...(resume.aTSAnalysisId
           ? { update: { contentJson: JSON.stringify(atsAnalysis) } }
           : { create: { contentJson: JSON.stringify(atsAnalysis) } }),
+      },
+    },
+  });
+
+  return { success: true };
+}
+
+/**
+ * Persist a Fit Check result. Mirrors saveAtsAnalysis above — same
+ * upsert-through-the-relation shape, against the FitCheck table rather than
+ * the (historically named) ATSAnalysis one.
+ *
+ * This write path is what makes the Fit Check drawer reopen with its last
+ * result instead of forgetting it, and it is also what /documents reads to
+ * rank jobs by fit level.
+ */
+export async function saveFitCheck(jobId: number, fitCheck: FitCheckJSON) {
+  const resume = await prisma.job
+    .findFirstOrThrow({
+      where: { id: jobId },
+      select: { resume: { select: { id: true, fitCheckId: true } } },
+    })
+    .then((job) => job.resume);
+
+  if (!resume)
+    throw new Error(`Cannot save fit check: Resume not found for job ${jobId}`);
+
+  const now = new Date();
+  await prisma.resume.update({
+    where: { id: resume.id },
+    data: {
+      updatedAt: now,
+      fitCheck: {
+        ...(resume.fitCheckId
+          ? { update: { contentJson: JSON.stringify(fitCheck) } }
+          : { create: { contentJson: JSON.stringify(fitCheck) } }),
       },
     },
   });
@@ -492,8 +551,9 @@ export async function createResume(
     .then((resume) => ({
       ...resume,
       contentJson: JSON.parse(resume.contentJson),
-      atsAnalysis: resume.atsAnalysis?.contentJson
-        ? ATSAnalysisSchema.parse(JSON.parse(resume.atsAnalysis.contentJson))
-        : null,
+      atsAnalysis: safeParseDocumentAnalysis(
+        resume.atsAnalysis?.contentJson,
+        jobId
+      ),
     }));
 }

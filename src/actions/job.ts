@@ -10,8 +10,10 @@ import {
   SanitizedCustomization,
   validateCustomization,
 } from "@/types/customization";
+import { DocumentAnalysisJSON } from "@/types/documentAnalysis";
+import { FitCheckJSON, FitCheckSchema, FitLevel } from "@/types/fitCheck";
 import { JobStatus, JOB_STATUSES } from "@/types/job";
-import { ResumeJSON, ATSAnalysisJSON, normalizeSkills } from "@/types/resume";
+import { ResumeJSON, normalizeSkills } from "@/types/resume";
 
 /**
  * Create a new job with parsed details, resume, and cover letter
@@ -227,11 +229,19 @@ export async function restoreResumeSnapshot(
 
 export async function saveAtsAnalysis(
   jobId: number,
-  atsAnalysis: ATSAnalysisJSON
+  atsAnalysis: DocumentAnalysisJSON
 ) {
   const result = await dbJob.saveAtsAnalysis(jobId, atsAnalysis);
 
   revalidatePath(`/job/${jobId}/resume`);
+  return result;
+}
+
+export async function saveFitCheck(jobId: number, fitCheck: FitCheckJSON) {
+  const result = await dbJob.saveFitCheck(jobId, fitCheck);
+
+  revalidatePath(`/job/${jobId}/resume`);
+  revalidatePath("/documents");
   return result;
 }
 
@@ -261,7 +271,7 @@ export type DocumentRecord = {
   role: string;
   companyName: string;
   status: JobStatus;
-  atsScore: number | null;
+  fitLevel: FitLevel | null;
   createdAt: Date;
   updatedAt: Date;
 };
@@ -277,7 +287,7 @@ export async function getAllDocuments(
     orderBy: { updatedAt: "desc" },
     include: {
       company: true,
-      resume: { include: { atsAnalysis: true } },
+      resume: { include: { fitCheck: true } },
       coverLetter: true,
     },
   });
@@ -293,22 +303,25 @@ export async function getAllDocuments(
     };
 
     if (job.resume) {
-      let atsScore: number | null = null;
-      if (job.resume.atsAnalysis?.contentJson) {
+      let fitLevel: FitLevel | null = null;
+      if (job.resume.fitCheck?.contentJson) {
+        // A blob that predates the `v: 2` shape fails parse on purpose (see
+        // the version-check discipline in fitCheck.ts) — treated the same
+        // as "never run" rather than crashing the documents list.
         try {
-          const parsed = JSON.parse(
-            job.resume.atsAnalysis.contentJson
-          ) as ATSAnalysisJSON;
-          atsScore = parsed.scores.composite_score;
+          const result = FitCheckSchema.safeParse(
+            JSON.parse(job.resume.fitCheck.contentJson)
+          );
+          fitLevel = result.success ? result.data.fit_level : null;
         } catch {
-          atsScore = null;
+          fitLevel = null;
         }
       }
 
       documents.push({
         ...base,
         docType: "resume",
-        atsScore,
+        fitLevel,
         createdAt: job.resume.createdAt,
         updatedAt: job.resume.updatedAt,
       });
@@ -318,7 +331,7 @@ export async function getAllDocuments(
       documents.push({
         ...base,
         docType: "coverLetter",
-        atsScore: null,
+        fitLevel: null,
         createdAt: job.coverLetter.createdAt,
         updatedAt: job.coverLetter.updatedAt,
       });

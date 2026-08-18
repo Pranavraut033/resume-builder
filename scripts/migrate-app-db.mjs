@@ -5,9 +5,9 @@
 // updates replace the bundle but never touch the user's app-data db — see
 // src-tauri/src/lib.rs::sync_database_schema.
 //
-// ponytail: additive only (new tables, new columns) — matches how this
-// schema has actually evolved so far. No renames/drops/type changes; add a
-// real migration tool (prisma migrate) if that's ever needed.
+// ponytail: additive only (new tables, new columns, new indexes) — matches
+// how this schema has actually evolved so far. No renames/drops/type
+// changes; add a real migration tool (prisma migrate) if that's ever needed.
 import Database from "better-sqlite3";
 
 const [, , templatePath, livePath] = process.argv;
@@ -67,6 +67,31 @@ for (const table of templateTables) {
     }
     statements.push(ddl);
   }
+}
+
+// Indexes are NOT carried by either path above: sqlite_master's CREATE TABLE
+// sql omits them, and `ALTER TABLE ... ADD COLUMN` never brings a column's
+// UNIQUE index with it. Without this pass, adding an `@unique` field to an
+// existing model silently drops the constraint on every upgraded db while
+// looking fine on a fresh install. Safe to run last: a unique index over a
+// freshly-added column sees only NULLs, and SQLite permits duplicate NULLs.
+const templateIndexes = template
+  .prepare(
+    "SELECT name, sql FROM sqlite_master WHERE type = 'index' AND sql IS NOT NULL"
+  )
+  .all();
+
+const liveIndexNames = new Set(
+  live
+    .prepare(
+      "SELECT name FROM sqlite_master WHERE type = 'index' AND sql IS NOT NULL"
+    )
+    .all()
+    .map((row) => row.name)
+);
+
+for (const index of templateIndexes) {
+  if (!liveIndexNames.has(index.name)) statements.push(index.sql);
 }
 
 if (statements.length > 0) {

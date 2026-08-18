@@ -2,7 +2,7 @@ import { useMutation } from "@tanstack/react-query";
 
 import LLMService from "@/lib/llm/llmService";
 import { useModelStore } from "@/store/modelStore";
-import { GapAnalysisJSON } from "@/types/gapAnalysis";
+import { FitCheckJSON } from "@/types/fitCheck";
 import { LLMResult } from "@/types/llm";
 import { JobDetailsJSON, ResumeJSON } from "@/types/resume";
 
@@ -11,16 +11,19 @@ type Args = {
   jobDetails?: JobDetailsJSON | null;
 };
 
-function useGapAnalysis(
+/**
+ * "Should I apply, and what's blocking me?" — see domainOps.analyzeFit.
+ */
+function useFitCheck(
   options?: Omit<
-    Parameters<typeof useMutation<LLMResult<GapAnalysisJSON>, Error, Args>>[0],
+    Parameters<typeof useMutation<LLMResult<FitCheckJSON>, Error, Args>>[0],
     "mutationFn"
   >
 ) {
   const activeModelPair = useModelStore((state) => state.activeModelPair);
 
-  return useMutation<LLMResult<GapAnalysisJSON>, Error, Args>({
-    mutationFn: (data: Args): Promise<LLMResult<GapAnalysisJSON>> => {
+  return useMutation<LLMResult<FitCheckJSON>, Error, Args>({
+    mutationFn: (data: Args): Promise<LLMResult<FitCheckJSON>> => {
       if (!activeModelPair) {
         return Promise.reject(new Error("No model selected"));
       }
@@ -31,7 +34,7 @@ function useGapAnalysis(
         );
       }
 
-      return LLMService.analyzeResumeGaps(data.resume, data.jobDetails, {
+      return LLMService.analyzeFit(data.resume, data.jobDetails, {
         provider: activeModelPair[0],
         model: activeModelPair[1],
       });
@@ -40,4 +43,4 @@ function useGapAnalysis(
   });
 }
 
-export default useGapAnalysis;
+export default useFitCheck;

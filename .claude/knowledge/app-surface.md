@@ -16,8 +16,9 @@ notifications, bookmarks.
 | `/find-jobs`        | `find-jobs/page.tsx`                  | Job-search entry point.                                                                                            |
 | `/find-jobs/browse` | `find-jobs/browse/page.tsx`           | In-app browser over job sites (`JobBrowserTabs.tsx`, `JobBrowserToolbar.tsx`).                                     |
 | `/analytics/tokens` | `analytics/tokens/page.tsx`           | Token-usage dashboard (`src/components/analytics/`: summary cards, filters, time series, breakdown charts, table). |
-| `/settings`         | `settings/page.tsx`                   | API keys, model selection, Backup & Restore.                                                                       |
-| `/settings/mcp`     | `settings/mcp/page.tsx`               | MCP server toggle (off by default) — see `.claude/knowledge/chat-mcp.md`.                                          |
+| `/settings`         | `settings/page.tsx`                   | API keys (add/remove per provider), model selection, MCP server toggle + connector download, Backup & Restore.    |
+| `/settings/mcp`     | `settings/mcp/page.tsx`               | Manual/CLI MCP setup instructions only (toggle + connector download live on `/settings`) — see `.claude/knowledge/chat-mcp.md`. |
+| `/settings/licenses`| `settings/licenses/page.tsx`          | Third-party license attributions, rendered from a bundled markdown file via `MarkdownBlock.tsx`.                   |
 
 **There is no `src/app/api/` directory.** Data flows through Server Actions only (see
 [data-layer.md](data-layer.md)).
@@ -32,13 +33,12 @@ route — both were removed.
 
 | File                           | Purpose                                                                                                                                                                                                                                                                                                                   |
 | ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `InlineJobPageLayout.tsx`      | Owns `activeDrawer` — the **seven mutually-exclusive drawers** — and wires chat context to them.                                                                                                                                                                                                                          |
+| `InlineJobPageLayout.tsx`      | Owns `activeDrawer` — the **six mutually-exclusive drawers** — and wires chat context to them.                                                                                                                                                                                                                          |
 | `DocumentCanvas.tsx`           | The paged document surface, with zoom controls.                                                                                                                                                                                                                                                                           |
-| `FloatingActionBar.tsx`        | Inline actions (PDF, Undo/Redo, Customize, Skim, Humanize, Chat) + a `⋯` overflow (Sections, History, Proofread, Fit Check, Download JSON). Exports `DrawerName` — the source of truth for openable drawers.                                                                                                              |
+| `FloatingActionBar.tsx`        | Inline actions (PDF, Undo/Redo, Customize, Fit Check, Deep Analysis, Humanize, Chat) + a `⋯` overflow (Sections, History, Download JSON). Fit Check sits left of Deep Analysis in the main row — the primary "should I apply" read, Deep Analysis the secondary line-editing pass. Exports `DrawerName` — the source of truth for openable drawers.                                                                                                              |
 | `SideDrawer.tsx`               | Shared drawer shell.                                                                                                                                                                                                                                                                                                      |
-| `ATSDrawer.tsx`                | "Recruiter Skim" — wraps `ATSAnalysisPanel`. One panel, no tabs: an L1 summary (hard blockers → skim verdict → drill-in rows → link to Fit Check) with `view`-state L2 pages for rewrites, keywords, and the offline deterministic check. Renders no 0–100 score.                                                         |
-| `GapDrawer.tsx`                | "Fit Check" — substantive resume-vs-JD fit (not keyword scoring); applies selected `resume_fix` ops via a floating pill. Rows whose gap type forbids a fix (`missing`/`seniority`) show a `no fix` chip instead of a checkbox.                                                                                            |
-| `ProofreadDrawer.tsx`          | LLM-judged proofread issues for review (deterministic lint fixes are auto-applied first).                                                                                                                                                                                                                                 |
+| `DeepAnalysisDrawer.tsx`       | Wraps `DeepAnalysisPanel` (`src/components/job/`) — renders `DocumentAnalysisJSON`'s flat `findings[]` grouped by kind. A finding where `suggestion === original` (model confirming a field needs no change) is filtered out at render time to a one-line count instead of a card — nothing persisted changes.                                                         |
+| `FitCheckDrawer.tsx`           | Substantive resume-vs-JD fit (not keyword scoring), plus `knockout_risks`. No apply pill — `FitCheckSchema` gaps carry no `resume_fix` any more, so there's nothing left for a pill to apply.                                                                                            |
 | `HumanizerDrawer.tsx`          | AI-humanizing pass (`HumanizerDrawer.test.tsx`).                                                                                                                                                                                                                                                                          |
 | `HistoryDrawer.tsx`            | `ResumeSnapshot` version history.                                                                                                                                                                                                                                                                                         |
 | `CustomizationDrawer.tsx`      | Colors/fonts/layout for this job's `Customization` — including the template picker grid (`job/TemplateSelector.tsx`, no longer a separate toolbar control) and, for cover letters, an independent template picker. See [rendering.md](rendering.md) for how templates and cover-letter template decoupling actually work. |
@@ -49,22 +49,23 @@ route — both were removed.
 Chat intents (tailor, cover letter, humanize, proofread, gap analysis, fix-all-ATS, edit, question,
 interview, undo) are documented in `.claude/knowledge/chat-mcp.md`, not here.
 
-### Recruiter Skim vs. Fit Check — the split, and why
+### Fit Check vs. Deep Analysis — the split, and why
 
-They divide on one question: **can a text edit fix it?** Recruiter Skim owns the document (keywords, phrasing,
-title, parse) and every finding it shows has a button. Fit Check owns the candidate (seniority, domain,
-missing experience) and mostly cannot be fixed by editing — `GapAnalysisSchema`'s `superRefine` _forbids_ a
-`resume_fix` on `missing`/`seniority` gaps, because a text edit there would be fabrication. Don't re-merge
-them, and don't add an apply path to a gap type the schema marks unfixable. The same boundary is stated to
-the model in `prompts/intentClassifier.ts` ("ats is keyword/format scoring, gap_analysis is substantive fit").
+They divide on one question: **can a text edit fix it?** Deep Analysis owns the document — a flat
+`findings[]`, each with a verbatim `original` and a JSON-Pointer `path`, so every finding is editable by
+construction. Fit Check owns the candidate (seniority, domain, missing experience) and cannot be fixed by
+editing — `FitCheckSchema`'s gaps carry no `resume_fix` at all, because a text edit there would be
+fabrication. Don't re-merge them, and don't invent an apply path for Fit Check gaps. See
+[`.claude/knowledge/llm-runtime.md`](llm-runtime.md) for the schema/prompt side of this split
+(`FitCheckSchema` + `DocumentAnalysisSchema`, the `analyze_fit`/`analyze_document` MCP purposes).
 
 **Neither panel renders a 0–100 score, deliberately.** No applicant tracking system exposes a match score to
 anyone on the hiring team; the number is a third-party-audit invention, so presenting one is a false claim.
 `scores.composite_score` survives in the schema for exactly one reason — `src/actions/job.ts` persists it to
 `Job.atsScore` so `/documents` can _rank jobs against each other_ — and that column shows the bare number, not
-"n / 100". The user-facing labels are "Recruiter Skim" and "Fit Check"; every identifier underneath
-(`analyze_ats`, `gap_analysis`, `ats_fix`, drawer ids `"ats"`/`"gaps"`, `Job.atsScore`) is unchanged and is a
-wire contract with MCP hosts — rename labels, never ids.
+"n / 100". The user-facing labels are "Fit Check" and "Deep Analysis"; underlying identifiers
+(`Job.atsScore`, the `FitCheck`/`ATSAnalysis` tables) are unchanged and are a wire contract with MCP hosts —
+rename labels, never ids.
 
 ## Bookmarks
 
@@ -98,8 +99,8 @@ is no separate table.
   temperature, top-p), `notificationStore.ts`, `bookmarkQueueStore.ts`, `mcpServerStore.ts`.
 - **React context** (`src/contexts/`): `JobPageContext.tsx`, `ThemeContext.tsx`, `AppUpdaterContext.tsx`.
 - **Hooks** (`src/hooks/`): data — `useProfileQuery`, `useJobPageDataQuery`, `useProfileSelection`,
-  `useDeleteJob`; LLM actions — `useGenerateCoverLetter`, `useHumanizeContent`, `useProofreadResume`,
-  `useGapAnalysis`; rendering — `useBlockPaginator`, `useResolveCustomization`; UI — `useEscapeKey`,
+  `useDeleteJob`; LLM actions — `useGenerateCoverLetter`, `useHumanizeContent`, `useDeepAnalysis`,
+  `useFitCheck`; rendering — `useBlockPaginator`, `useResolveCustomization`; UI — `useEscapeKey`,
   `useHideOnScroll`, `useFakeProgress`, `useHydrated`, `useNavigationOnProfileChange`; desktop —
   `useAppUpdater`.
 
@@ -107,6 +108,13 @@ is no separate table.
 
 Tailwind CSS v4. Shared design tokens live in `src/styles/global.css` inside an `@theme {}` block — define new
 tokens there so Tailwind generates utility classes (e.g. `bg-brand-primary`).
+
+**Dark mode is resolved in JS, not by `prefers-color-scheme`.** `ThemeContext.tsx` always stamps a resolved
+`data-theme="light"|"dark"` on `<html>` — including for the `"system"` preference, resolved once via
+`matchMedia` — and `global.css` keys its `@custom-variant dark` and dark-token overrides off that attribute,
+not a media query. `layout.tsx` also inlines a pre-hydration `<script>` that stamps the same attribute before
+first paint, to avoid a flash of the OS theme while React boots; keep it in sync with `ThemeContext.tsx`'s
+`STORAGE_KEY`/resolution logic if either changes.
 
 **Do not** use inline `style={{}}`, `var()` inside class strings, or arbitrary `[--token:value]` declarations
 in JSX. `src/lib/cn.ts` is the class-merging helper. The `tailwind-ui-designer` skill

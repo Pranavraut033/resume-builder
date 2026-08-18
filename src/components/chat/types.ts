@@ -72,23 +72,18 @@ export const INTENT_META: Record<IntentLabel, IntentMeta> = {
     color: "bg-agent-surface-high",
     onColor: "text-agent-on-surface-variant",
   },
-  ats: {
-    label: "recruiter skim advice",
+  deep_analysis: {
+    label: "reading like an editor",
     color: "bg-agent-secondary-container",
     onColor: "text-agent-on-secondary-container",
   },
-  fix_ats: {
-    label: "fixing skim issues",
+  align_terms: {
+    label: "aligning wording with the job",
     color: "bg-agent-primary",
     onColor: "text-agent-on-primary",
   },
-  gap_analysis: {
+  fit_check: {
     label: "fit check",
-    color: "bg-agent-secondary-container",
-    onColor: "text-agent-on-secondary-container",
-  },
-  proofread: {
-    label: "proofreading resume",
     color: "bg-agent-secondary-container",
     onColor: "text-agent-on-secondary-container",
   },
@@ -133,11 +128,42 @@ export function getToolResultMeta(
         heading: "Resume tailored to job description",
         icon: "target",
       };
-    case IntentLabel.Ats:
-      return { heading: "Recruiter Skim advice", icon: "cpu" };
-    case IntentLabel.FixAts:
-      return { heading: "Skim fixes applied", icon: "cpu" };
-    case IntentLabel.GapAnalysis: {
+    case IntentLabel.DeepAnalysis: {
+      const analysis = args.analysis as
+        | { findings?: { severity?: string }[] }
+        | undefined;
+      const findings = Array.isArray(analysis?.findings)
+        ? analysis.findings
+        : [];
+      const errors = findings.filter((f) => f.severity === "error").length;
+      const warnings = findings.filter((f) => f.severity === "warning").length;
+      const suggestions = findings.filter(
+        (f) => f.severity === "suggestion"
+      ).length;
+
+      const heading =
+        findings.length === 0
+          ? "No findings"
+          : [
+              errors > 0 ? `${errors} error(s)` : null,
+              warnings > 0 ? `${warnings} warning(s)` : null,
+              suggestions > 0 ? `${suggestions} suggestion(s)` : null,
+            ]
+              .filter(Boolean)
+              .join(", ");
+
+      return { heading, icon: "spellCheck" };
+    }
+    case IntentLabel.AlignTerms: {
+      const rejectedCount =
+        typeof args.rejectedCount === "number" ? args.rejectedCount : 0;
+      const heading =
+        rejectedCount > 0
+          ? `Term alignment applied — ${rejectedCount} finding(s) skipped`
+          : "Term alignment applied";
+      return { heading, icon: "cpu" };
+    }
+    case IntentLabel.FitCheck: {
       const analysis = args.analysis as
         | { gaps?: { severity?: string }[] }
         | undefined;
@@ -151,29 +177,6 @@ export function getToolResultMeta(
           : `${gaps.length} gap(s) found — ${blocking} blocking, ${major} major`;
 
       return { heading, icon: "gauge" };
-    }
-    case IntentLabel.Proofread: {
-      const issues = Array.isArray(args.issues)
-        ? (args.issues as { severity?: string }[])
-        : [];
-      const errors = issues.filter((i) => i.severity === "error").length;
-      const warnings = issues.filter((i) => i.severity === "warning").length;
-      const suggestions = issues.filter(
-        (i) => i.severity === "suggestion"
-      ).length;
-
-      const heading =
-        issues.length === 0
-          ? "No issues found"
-          : [
-              errors > 0 ? `${errors} error(s)` : null,
-              warnings > 0 ? `${warnings} warning(s)` : null,
-              suggestions > 0 ? `${suggestions} suggestion(s)` : null,
-            ]
-              .filter(Boolean)
-              .join(", ");
-
-      return { heading, icon: "spellCheck" };
     }
     case IntentLabel.CoverLetter:
       return { heading: "Cover letter rewritten", icon: "fileText" };

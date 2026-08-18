@@ -27,6 +27,7 @@ import {
 import { useProfileSelection } from "@/hooks/useProfileSelection";
 import { formatTimestamp } from "@/lib";
 import cn from "@/lib/cn";
+import { FitLevel } from "@/types/fitCheck";
 import { isJobStatus } from "@/types/job";
 
 type DocType = DocumentRecord["docType"];
@@ -42,19 +43,48 @@ const globalDocFilter: FilterFn<DocumentRecord> = (
   return `${doc.role} ${doc.companyName}`.toLowerCase().includes(search);
 };
 
+// Rank order for sorting, deliberately not the enum's own declaration order
+// (strong/stretch/reach/mismatch is a "how good" ordering; the schema orders
+// them however the prompt lists them). Higher = better fit.
+const FIT_LEVEL_RANK: Record<FitLevel, number> = {
+  strong: 3,
+  stretch: 2,
+  reach: 1,
+  mismatch: 0,
+};
+
+const FIT_LEVEL_LABEL: Record<FitLevel, string> = {
+  strong: "Strong",
+  stretch: "Stretch",
+  reach: "Reach",
+  mismatch: "Mismatch",
+};
+
+const FIT_LEVEL_VARIANT: Record<
+  FitLevel,
+  "success" | "info" | "warning" | "error"
+> = {
+  strong: "success",
+  stretch: "info",
+  reach: "warning",
+  mismatch: "error",
+};
+
 /**
- * Deliberately renders the bare number, not "{n} / 100": this column exists to
- * rank jobs against each other, not to hand the user a grade. No applicant
- * tracking system shows a score to anyone on the hiring team, so presenting one
- * as a mark out of 100 is the exact claim the Recruiter Skim panel drops.
- * (`Job.atsScore` keeps its name — it's a persisted column, not display text.)
+ * Fit Check no longer produces a 0–100 score — `fit_level` is a categorical
+ * judgment call ("should I apply, and what's blocking me?"), not a grade. No
+ * applicant tracking system shows a score to anyone on the hiring team, so a
+ * numeric mark here would make the exact claim the Recruiter Skim panel
+ * dropped. The badge variant alone carries the signal, from `success`
+ * (strong) down to `error` (mismatch).
  */
-function SkimBadge({ score }: { score: number | null }) {
-  if (score === null) {
+function FitLevelBadge({ level }: { level: FitLevel | null }) {
+  if (level === null) {
     return <Badge>Not run</Badge>;
   }
-  const variant = score >= 80 ? "success" : score >= 60 ? "warning" : "error";
-  return <Badge variant={variant}>{Math.round(score)}</Badge>;
+  return (
+    <Badge variant={FIT_LEVEL_VARIANT[level]}>{FIT_LEVEL_LABEL[level]}</Badge>
+  );
 }
 
 export default function DocumentsPage() {
@@ -116,9 +146,16 @@ export default function DocumentsPage() {
 
     if (docType === "resume") {
       base.push({
-        accessorKey: "atsScore",
-        header: "Skim",
-        cell: ({ row }) => <SkimBadge score={row.original.atsScore} />,
+        accessorKey: "fitLevel",
+        header: "Fit",
+        cell: ({ row }) => <FitLevelBadge level={row.original.fitLevel} />,
+        sortingFn: (rowA, rowB) => {
+          const a = rowA.original.fitLevel;
+          const b = rowB.original.fitLevel;
+          const rankA = a ? FIT_LEVEL_RANK[a] : -1;
+          const rankB = b ? FIT_LEVEL_RANK[b] : -1;
+          return rankA - rankB;
+        },
       });
     }
 

@@ -4,7 +4,8 @@ import path from "node:path";
 
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 
-import { ATSAnalysisJSON, JobDetailsJSON, ResumeJSON } from "@/types/resume";
+import { DocumentAnalysisJSON } from "@/types/documentAnalysis";
+import { JobDetailsJSON, ResumeJSON } from "@/types/resume";
 
 // A dedicated on-disk SQLite file for this test suite, kept separate from the
 // dev/app database so we never touch real user data. Must be set before any
@@ -57,6 +58,7 @@ async function wipeAllTables() {
   await prisma.coverLetter.deleteMany();
   await prisma.resume.deleteMany();
   await prisma.aTSAnalysis.deleteMany();
+  await prisma.fitCheck.deleteMany();
   await prisma.customization.deleteMany();
   await prisma.contact.deleteMany();
   await prisma.company.deleteMany();
@@ -188,17 +190,19 @@ function makeResume(overrides: Partial<ResumeJSON> = {}): ResumeJSON {
   };
 }
 
-const atsAnalysis: ATSAnalysisJSON = {
-  keyword_analysis: [{ keyword: "Kafka", match_type: "exact" }],
-  scores: {
-    composite_score: 75,
-  },
-  improvements: [],
-  knockout_risks: [],
-  title_alignment: {
-    verdict: "below",
-    note: "One level below target.",
-  },
+const atsAnalysis: DocumentAnalysisJSON = {
+  v: 2,
+  findings: [
+    {
+      path: "/experience/0/achievements/0",
+      original: "Cut checkout latency 40%.",
+      suggestion: "Cut checkout latency 40% via Kafka-backed caching.",
+      kind: "keyword",
+      severity: "suggestion",
+      why: "Missing the primary technology keyword from the job description.",
+      source: "llm",
+    },
+  ],
   summary: "Strong coverage.",
 };
 
@@ -230,5 +234,47 @@ describe("attachGeneratedMaterials", () => {
 
     const coverLetter = await getCoverLetterByJobId(jobId);
     expect(coverLetter.contentText).toBe("some text");
+  });
+});
+
+describe("getResumeByJobId — stale analysis blob", () => {
+  beforeEach(async () => {
+    await wipeAllTables();
+  });
+
+  it("falls back to atsAnalysis: null instead of throwing when the stored blob predates v: 2", async () => {
+    // Regression: getResumeByJobId used a throwing DocumentAnalysisSchema.parse
+    // with no try/catch, unlike getJob()'s baseProfileAnalysis right above it
+    // in this file. A single stale (pre-v:2) row made the ENTIRE job-editor
+    // page fail to load instead of the drawer showing its own "re-run"
+    // empty state — exactly the crash the v:2 version-check design exists to
+    // prevent.
+    const { jobId } = await createJob({ jobDetails, status: "BOOKMARKED" });
+    await attachGeneratedMaterials(jobId, {
+      tailoredResume: makeResume(),
+      status: "DRAFT",
+    });
+
+    const job = await getJob(jobId);
+    const resumeId = (await getResumeByJobId(jobId)).id;
+
+    // Write a pre-refactor-shaped blob directly, bypassing the app's own
+    // write path (which always writes valid v:2 JSON) to simulate a row
+    // that predates this schema.
+    await prisma.aTSAnalysis.create({
+      data: {
+        contentJson: JSON.stringify({
+          keyword_analysis: [],
+          scores: { composite_score: 80 },
+          improvements: [],
+          summary: "old shape",
+        }),
+        resume: { connect: { id: resumeId } },
+      },
+    });
+
+    const resume = await getResumeByJobId(jobId);
+    expect(resume.atsAnalysis).toBeNull();
+    expect(job.id).toBe(jobId);
   });
 });

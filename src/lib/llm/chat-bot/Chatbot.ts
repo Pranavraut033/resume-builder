@@ -4,9 +4,14 @@ import { LLMUsageInfo } from "@/actions/tokenUsage";
 import { ProviderFactory } from "@/lib/llm/providers";
 import logger from "@/lib/logger";
 import { applyProofreadFixes } from "@/lib/proofread/applyFixes";
+import { readLeafAtPath, countOccurrences } from "@/lib/proofread/applyFixes";
 import { applyResumeOps, ResumeOp } from "@/lib/resume/editor";
 import { useModelStore } from "@/store/modelStore";
-import { GapAnalysisJSON } from "@/types/gapAnalysis";
+import {
+  DocumentAnalysisJSON,
+  DocumentFinding,
+} from "@/types/documentAnalysis";
+import { FitCheckJSON } from "@/types/fitCheck";
 import { HumanizerJSON } from "@/types/humanizer";
 import {
   ProviderType,
@@ -15,9 +20,7 @@ import {
   ReasoningEffort,
   PromptMessage,
 } from "@/types/llm";
-import { ProofreadIssue } from "@/types/proofread";
 import {
-  ATSAnalysisJSON,
   JobDetailsJSON,
   jobDetailsToCompactPositional,
   ResumeJSON,
@@ -47,12 +50,6 @@ import {
   isToolIntent,
   ToolIntent,
 } from "./prompts/intentClassifier";
-import {
-  AtsFixMappingSchema,
-  buildAtsFixPrompt,
-  buildKeywordMappingPrompt,
-  mappingsToResumeOps,
-} from "./prompts/keywordMappingPrompt";
 import { RESUME_TOOLS, validateEditResumeArgs } from "./tools";
 
 export type ChatBotOptions = {
@@ -68,10 +65,9 @@ const INTENT_STATUS_TEXT: Record<IntentLabel, string> = {
   [IntentLabel.Edit]: "Editing your resume…",
   [IntentLabel.Regenerate]: "Rebuilding your resume…",
   [IntentLabel.Tailor]: "Tailoring to the job…",
-  [IntentLabel.Ats]: "Reading your resume like a recruiter…",
-  [IntentLabel.FixAts]: "Applying the skim's fixes…",
-  [IntentLabel.GapAnalysis]: "Analyzing your fit for this role…",
-  [IntentLabel.Proofread]: "Proofreading your resume…",
+  [IntentLabel.DeepAnalysis]: "Reading your resume like an editor…",
+  [IntentLabel.AlignTerms]: "Aligning your resume's wording with the job…",
+  [IntentLabel.FitCheck]: "Checking how you fit this role…",
   [IntentLabel.Interview]: "Preparing interview prep…",
   [IntentLabel.Question]: "Answering…",
   [IntentLabel.CoverLetter]: "Rewriting your cover letter…",
@@ -93,37 +89,49 @@ export type ChatStreamEvent =
   | { type: "chunk"; text: string } // interview / question text chunks
   | {
       type: "tool_result";
-      intent: IntentLabel.Ats;
-      args: { atsAnalysis: ATSAnalysisJSON; usage: LLMUsageInfo };
+      intent: IntentLabel.DeepAnalysis;
+      args: {
+        analysis: DocumentAnalysisJSON;
+        // Only present when the lint-sourced findings were auto-applied —
+        // see the "deep_analysis" case's doc comment below.
+        updatedResume?: ResumeJSON;
+        usage: LLMUsageInfo;
+        note: string;
+      };
     }
   | {
       type: "tool_result";
       // Never mutates the resume — kept out of the shared
-      // "regenerate" | "tailor" | "edit" | "fix_ats" branch above on purpose.
-      intent: IntentLabel.GapAnalysis;
-      args: { analysis: GapAnalysisJSON; usage: LLMUsageInfo; note: string };
+      // "regenerate" | "tailor" | "edit" | "align_terms" branch above on
+      // purpose.
+      intent: IntentLabel.FitCheck;
+      args: { analysis: FitCheckJSON; usage: LLMUsageInfo; note: string };
     }
   | {
       type: "tool_result";
-      intent: Extract<ToolIntent, "regenerate" | "tailor" | "edit" | "fix_ats">;
+      intent: Extract<ToolIntent, "regenerate" | "tailor" | "edit">;
       args: {
         updatedResume: ResumeJSON;
         usage: LLMUsageInfo;
         note: string;
         summary?: string;
-        /** Count of ops the model produced that couldn't be applied (schema-invalid path/value) — lets the UI show a friendly warning + retry instead of silently looking identical to a full success. */
+        /** Count of ops that couldn't be applied (schema-invalid path/value) — lets the UI show a friendly warning instead of silently looking identical to a full success. */
         rejectedCount?: number;
       };
     }
   | {
       type: "tool_result";
-      intent: IntentLabel.Proofread;
+      // No LLM call of its own (see `alignResumeTerms`'s doc comment) —
+      // `usage` is only present when the caller had to run a fresh
+      // analyzeDocument first to get findings to align.
+      intent: IntentLabel.AlignTerms;
       args: {
-        issues: ProofreadIssue[];
-        summary: string;
-        updatedResume?: ResumeJSON;
-        usage: LLMUsageInfo;
+        updatedResume: ResumeJSON;
+        usage?: LLMUsageInfo;
         note: string;
+        summary?: string;
+        /** Count of findings that couldn't be applied — either rejected by applyResumeOps, or filtered out for failing the additive-only check. */
+        rejectedCount?: number;
       };
     }
   | {
@@ -179,6 +187,86 @@ function buildOpsNote(
   return parts.join(" — ");
 }
 
+// ── align_terms: additive-only term alignment ──────────────────────────────
+//
+// Mirrors src/mcp/guards.ts's `guardAlignOps`/`normalizeTokens` (kept in
+// sync BY HAND — that server-side guard can't import this, it must never
+// call an LLM and this module reaches into provider calls elsewhere): the
+// finding is additive-only iff its `original`'s normalized word-token set is
+// a STRICT SUBSET of its `suggestion`'s — i.e. the finding may only ADD an
+// alternate surface form (an acronym, an expansion) on top of what's already
+// there, never rewrite or replace the substance. A finding whose suggestion
+// is "" (a deletion) is never additive by definition.
+//
+// Deep Analysis findings already carry a concrete `path` + `suggestion` (see
+// templates/deep-analysis.ts's own worked examples, e.g. a CPA-acronym
+// keyword finding), so unlike the old fix_ats flow this never re-prompts the
+// model to re-derive ops from scratch — it filters and applies what
+// analyzeDocument already produced.
+function normalizeTokens(value: string): Set<string> {
+  return new Set(
+    value
+      .toLowerCase()
+      .split(/[^a-z0-9]+/)
+      .filter(Boolean)
+  );
+}
+
+function isStrictSubset(a: Set<string>, b: Set<string>): boolean {
+  if (a.size >= b.size) return false;
+  for (const token of a) if (!b.has(token)) return false;
+  return true;
+}
+
+function isAdditiveFinding(finding: DocumentFinding): boolean {
+  if (!finding.suggestion) return false;
+  return isStrictSubset(
+    normalizeTokens(finding.original),
+    normalizeTokens(finding.suggestion)
+  );
+}
+
+/**
+ * Resolve one additive finding into a verified ResumeOp against the CURRENT
+ * resume — never trusts `finding.original` as ground truth for what's
+ * actually at `finding.path` right now, and never overwrites a whole leaf
+ * just because `suggestion` is the new value.
+ *
+ * `original` is documented (documentAnalysis.ts) as a VERBATIM SUBSTRING of
+ * the resume, not necessarily the entire leaf — the acronym rule in
+ * deep-analysis.ts explicitly expects findings like this to "fold into"
+ * existing content (e.g. `original: "CPA"` inside a longer bullet). A naive
+ * `{op:"replace", value: finding.suggestion}` would silently delete
+ * everything else sharing that leaf whenever `original` isn't the whole
+ * field. So a non-empty `original` gets the same splice-with-occurrence-
+ * check treatment as applyFixes.ts's lint auto-apply: read the CURRENT leaf
+ * text, require `original` to appear in it EXACTLY ONCE, and substitute only
+ * that occurrence. Returns null (finding dropped, never a bad write) if the
+ * leaf can't be read or the match isn't unique.
+ *
+ * An empty `original` is the one genuine exception — a brand-new insertion
+ * (e.g. path "/skills/-") has no existing leaf to splice into, so it's a
+ * real "add" with the suggestion as the whole new value.
+ */
+function resolveAlignOp(
+  resume: ResumeJSON,
+  finding: DocumentFinding
+): ResumeOp | null {
+  if (finding.original === "") {
+    return { op: "add", path: finding.path, value: finding.suggestion };
+  }
+
+  const text = readLeafAtPath(resume, finding.path);
+  if (text === null) return null;
+  if (countOccurrences(text, finding.original) !== 1) return null;
+
+  return {
+    op: "replace",
+    path: finding.path,
+    value: text.replace(finding.original, finding.suggestion),
+  };
+}
+
 class ResumeChatBot {
   protected model: string;
   protected provider: LLMProvider | null = null;
@@ -191,8 +279,8 @@ class ResumeChatBot {
   protected chatHistory: Record<ChatHistoryLabel, PromptMessage[]> = {
     chat: [],
   };
-  private atsAnalysis: ATSAnalysisJSON | null = null;
-  private gapAnalysis: GapAnalysisJSON | null = null;
+  private documentAnalysis: DocumentAnalysisJSON | null = null;
+  private fitCheck: FitCheckJSON | null = null;
 
   constructor(
     providerType: ProviderType,
@@ -233,8 +321,8 @@ class ResumeChatBot {
     this.jobDetails = jd;
   }
 
-  setAtsAnalysis(analysis: ATSAnalysisJSON | null) {
-    this.atsAnalysis = analysis;
+  setDocumentAnalysis(analysis: DocumentAnalysisJSON | null) {
+    this.documentAnalysis = analysis;
   }
 
   resetSession(resume: ResumeJSON, jobDetails: JobDetailsJSON) {
@@ -320,6 +408,20 @@ class ResumeChatBot {
       useModelStore.getState().getTopP(options.provider, options.model) ??
       undefined
     );
+  }
+
+  /**
+   * Resolves the lite/full prompt-depth preference the same way
+   * resolveReasoningEffort/resolveTemperature/resolveTopP do. Only
+   * `deep_analysis` reads this (see
+   * src/lib/llm/prompts/templates/deep-analysis.ts's `{{#if fullMode}}`
+   * block) — `align_terms` reuses whatever analysis is already cached
+   * rather than resolving it again.
+   */
+  private resolvePromptDepth(options: ChatBotOptions): "lite" | "full" {
+    return useModelStore
+      .getState()
+      .getPromptDepth(options.provider, options.model);
   }
 
   /**
@@ -584,7 +686,7 @@ class ResumeChatBot {
           {
             baseProfile: this.baseProfile,
             jobDetails: this.jobDetails,
-            atsAnalysis: this.atsAnalysis,
+            atsAnalysis: this.documentAnalysis,
           },
           this.callOptions(options)
         );
@@ -615,145 +717,47 @@ class ResumeChatBot {
         yield* this.runTailorIntent(userMessage, options);
         return;
       }
-      case "ats": {
+      case "deep_analysis": {
         logger.info(
           "ResumeChatBot",
-          `Providing ATS advice — intent: ${intent}`
+          `Running deep analysis — intent: ${intent}`
         );
 
-        yield { type: "status", text: "Analyzing ATS compatibility…" };
+        yield { type: "status", text: "Reading your resume like an editor…" };
 
-        const { result, usage } = await domainOps.analyzeATS(
-          this.provider,
-          {
-            resume: this.resume,
-            jobDetails: this.jobDetails,
-          },
-          this.callOptions(options)
-        );
-
-        this.atsAnalysis = result;
-
-        this.pushToHistory("chat", userMessage, {
-          role: "assistant",
-          content: `[${intent} applied]`,
-        });
-
-        logger.info(
-          "ResumeChatBot",
-          `ATS advice provided — usage: ${JSON.stringify(usage)}`
-        );
-
-        yield {
-          type: "tool_result",
-          intent: intent,
-          args: { atsAnalysis: result, usage },
-        };
-        yield { type: "done", usage };
-        return;
-      }
-      case "gap_analysis": {
-        logger.info(
-          "ResumeChatBot",
-          `Analyzing resume-vs-JD gaps — intent: ${intent}`
-        );
-
-        yield { type: "status", text: "Analyzing your fit for this role…" };
-
-        const { result, usage } = await domainOps.analyzeResumeGaps(
-          this.provider,
-          {
-            resume: this.resume,
-            jobDetails: this.jobDetails,
-          },
-          this.callOptions(options)
-        );
-
-        this.gapAnalysis = result;
-
-        this.pushToHistory("chat", userMessage, {
-          role: "assistant",
-          content: `[${intent} applied]`,
-        });
-
-        logger.info(
-          "ResumeChatBot",
-          `Gap analysis complete — ${result.gaps.length} gap(s), usage: ${JSON.stringify(usage)}`
-        );
-
-        yield {
-          type: "tool_result",
-          intent: IntentLabel.GapAnalysis,
-          args: {
-            analysis: result,
-            usage,
-            note: result.verdict,
-          },
-        };
-        yield { type: "done", usage };
-        return;
-      }
-      case "fix_ats": {
-        logger.info("ResumeChatBot", `Fixing ATS issues — intent: ${intent}`);
-
-        let analysisUsage: LLMUsageInfo | undefined;
-        let analysis = this.atsAnalysis;
-        if (!analysis) {
-          yield { type: "status", text: "Analyzing ATS compatibility…" };
-          const { result, usage } = await domainOps.analyzeATS(
-            this.provider,
-            { resume: this.resume, jobDetails: this.jobDetails },
-            this.callOptions(options)
-          );
-          this.atsAnalysis = result;
-          analysis = result;
-          analysisUsage = usage;
-        }
-
-        yield { type: "status", text: "Applying ATS fixes…" };
-
-        this.pushToHistory("chat", userMessage, {
-          role: "assistant",
-          content: `[${intent} applied]`,
-        });
-
-        yield* this.fixAllAtsIssues(analysis, options, analysisUsage);
-        return;
-      }
-      case "proofread": {
-        logger.info("ResumeChatBot", `Proofreading resume — intent: ${intent}`);
-
-        yield { type: "status", text: "Proofreading your resume…" };
-
-        const { result, usage } = await domainOps.proofreadResume(
+        const fullMode = this.resolvePromptDepth(options) === "full";
+        const { result, usage } = await domainOps.analyzeDocument(
           this.provider,
           {
             resumeFull: this.resume,
             jobDetails: this.jobDetails,
             baseProfile: this.baseProfile,
           },
-          this.callOptions(options)
+          { ...this.callOptions(options), fullMode }
         );
 
-        // Only auto-apply the deterministic lint-sourced findings — those are
-        // safe, mechanical fixes (stray artifacts, spacing, etc). Everything
-        // the LLM judged (including errors and the provenance group) is
-        // reported but left for the user to review in the Proofread drawer.
-        const lintIssues = result.issues.filter(
-          (issue) => issue.source === "lint"
+        this.documentAnalysis = result;
+
+        // Only auto-apply the deterministic lint-sourced findings — those
+        // are safe, mechanical fixes (stray artifacts, spacing, brand
+        // casing, etc). Everything the LLM judged (including provenance and
+        // content-quality findings) is reported but left for the user to
+        // review in the Deep Analysis panel.
+        const lintFindings = result.findings.filter(
+          (finding) => finding.source === "lint"
         );
         const {
           resume: updatedResume,
           applied,
           unapplied,
-        } = applyProofreadFixes(this.resume, lintIssues);
+        } = applyProofreadFixes(this.resume, lintFindings);
 
-        const reviewCount = result.issues.length - applied.length;
+        const reviewCount = result.findings.length - applied.length;
         const note =
           applied.length > 0
-            ? `Auto-fixed ${applied.length} formatting issue(s); ${reviewCount} more need your review in the Proofread panel.`
+            ? `Auto-fixed ${applied.length} formatting issue(s); ${reviewCount} more need your review in the Deep Analysis panel.`
             : reviewCount > 0
-              ? `Found ${reviewCount} issue(s) that need your review in the Proofread panel — nothing was auto-applied.`
+              ? `Found ${reviewCount} issue(s) that need your review in the Deep Analysis panel — nothing was auto-applied.`
               : "No issues found.";
 
         if (applied.length > 0) {
@@ -767,21 +771,102 @@ class ResumeChatBot {
 
         logger.info(
           "ResumeChatBot",
-          `Proofread complete — ${result.issues.length} issue(s), ${applied.length} auto-applied, ${unapplied.length} unapplied lint fix(es), usage: ${JSON.stringify(usage)}`
+          `Deep analysis complete — ${result.findings.length} finding(s), ${applied.length} auto-applied, ${unapplied.length} unapplied lint fix(es), usage: ${JSON.stringify(usage)}`
         );
 
         yield {
           type: "tool_result",
           intent,
           args: {
-            issues: result.issues,
-            summary: result.summary,
+            analysis: result,
             updatedResume: applied.length > 0 ? updatedResume : undefined,
             usage,
             note,
           },
         };
         yield { type: "done", usage };
+        return;
+      }
+      case "fit_check": {
+        logger.info(
+          "ResumeChatBot",
+          `Checking fit for this role — intent: ${intent}`
+        );
+
+        yield { type: "status", text: "Checking how you fit this role…" };
+
+        const { result, usage } = await domainOps.analyzeFit(
+          this.provider,
+          {
+            resume: this.resume,
+            jobDetails: this.jobDetails,
+          },
+          this.callOptions(options)
+        );
+
+        this.fitCheck = result;
+
+        this.pushToHistory("chat", userMessage, {
+          role: "assistant",
+          content: `[${intent} applied]`,
+        });
+
+        logger.info(
+          "ResumeChatBot",
+          `Fit check complete — ${result.gaps.length} gap(s), fit_level: ${result.fit_level}, usage: ${JSON.stringify(usage)}`
+        );
+
+        yield {
+          type: "tool_result",
+          intent: IntentLabel.FitCheck,
+          args: {
+            analysis: result,
+            usage,
+            note: result.verdict,
+          },
+        };
+        yield { type: "done", usage };
+        return;
+      }
+      case "align_terms": {
+        logger.info(
+          "ResumeChatBot",
+          `Aligning resume terms — intent: ${intent}`
+        );
+
+        let analysisUsage: LLMUsageInfo | undefined;
+        let analysis = this.documentAnalysis;
+        if (!analysis) {
+          yield {
+            type: "status",
+            text: "Reading your resume like an editor…",
+          };
+          const fullMode = this.resolvePromptDepth(options) === "full";
+          const { result, usage } = await domainOps.analyzeDocument(
+            this.provider,
+            {
+              resumeFull: this.resume,
+              jobDetails: this.jobDetails,
+              baseProfile: this.baseProfile,
+            },
+            { ...this.callOptions(options), fullMode }
+          );
+          this.documentAnalysis = result;
+          analysis = result;
+          analysisUsage = usage;
+        }
+
+        yield {
+          type: "status",
+          text: "Aligning your resume's wording with the job…",
+        };
+
+        this.pushToHistory("chat", userMessage, {
+          role: "assistant",
+          content: `[${intent} applied]`,
+        });
+
+        yield* this.alignResumeTerms(analysis.findings, analysisUsage);
         return;
       }
       case "edit": {
@@ -1058,209 +1143,95 @@ class ResumeChatBot {
   }
 
   /**
-   * Shared second half of the "map findings → path-targeted ops" flow used by
-   * both fixMissingKeywords and fixAllAtsIssues: apply the ops the mapping
-   * call already produced. `notePrefix` labels the resulting note (e.g.
-   * "Keyword fix" vs "ATS fix"); `usage` is the total usage of the mapping
-   * call(s) that produced `ops` — there is no further LLM call here, `ops`
-   * are applied directly via applyResumeOps, and any rejected op is surfaced
-   * in the note instead of throwing and aborting the turn.
+   * One-click "align resume terminology to the job": filters `findings` down
+   * to the additive-only ones (see `isAdditiveFinding` above — every op may
+   * only ADD an alternate surface form, never rewrite substance) and applies
+   * them directly. No LLM call: Deep Analysis findings already carry a
+   * concrete `path` + `suggestion`, so unlike the old fixMissingKeywords/
+   * fixAllAtsIssues pair there's nothing left to re-derive — `priorUsage`
+   * (if the caller just ran a fresh analyzeDocument to get `findings`) is
+   * passed straight through since this step itself costs nothing.
+   *
+   * Pass `analysis.findings` for "align everything additive", or a
+   * caller-filtered subset (e.g. only the findings a user checked in the
+   * Deep Analysis panel) for a narrower selection.
    */
-  private async *applyFieldChanges(
-    ops: ResumeOp[],
-    notePrefix: string,
-    usage: LLMUsageInfo,
-    resultIntent: Extract<ToolIntent, "edit" | "fix_ats"> = IntentLabel.Edit
+  async *alignResumeTerms(
+    findings: DocumentFinding[],
+    priorUsage?: LLMUsageInfo
   ): AsyncGenerator<ChatStreamEvent> {
-    this.isSessionInitialized();
+    const usage = priorUsage;
+    const additive = findings.filter(isAdditiveFinding);
 
-    const {
-      resume: updatedResume,
-      applied,
-      rejected,
-    } = this.applyEdits(this.resume, ops);
+    if (additive.length === 0) {
+      yield {
+        type: "tool_result",
+        intent: IntentLabel.AlignTerms,
+        args: {
+          updatedResume: this.resume,
+          usage,
+          note: "No additive term alignments found — every remaining finding would change substance, not just terminology.",
+          rejectedCount: findings.length,
+        },
+      };
+      yield { type: "done", usage };
+      return;
+    }
 
+    // Resolved and applied one finding at a time (not a single batch built
+    // from the original resume) so two findings targeting the same leaf
+    // compose correctly — the second finding's occurrence check must see
+    // the first finding's already-spliced text, not the pre-edit original.
+    let workingResume = this.resume;
+    const applied: ResumeOp[] = [];
+    const rejected: { op: ResumeOp; reason: string }[] = [];
+
+    for (const finding of additive) {
+      const op = resolveAlignOp(workingResume, finding);
+      if (!op) {
+        rejected.push({
+          op: { op: "replace", path: finding.path, value: finding.suggestion },
+          reason:
+            "original text not found (or not unique) at this path in the current resume",
+        });
+        continue;
+      }
+
+      const result = applyResumeOps(workingResume, [op]);
+      if (result.rejected.length > 0) {
+        rejected.push({ op, reason: result.rejected[0].reason });
+        continue;
+      }
+
+      workingResume = result.resume;
+      applied.push(op);
+    }
+
+    const updatedResume = workingResume;
     if (applied.length > 0) {
       this.resume = updatedResume;
     }
 
-    const note = buildOpsNote(notePrefix, applied, rejected);
-
+    const note = buildOpsNote("Term alignment", applied, rejected);
     logger.info("ResumeChatBot", note);
 
-    // No LLM-authored change_summary for this path (ops come from a mapping
-    // call, not a conversational tool call) — synthesize a friendly one so
-    // the UI has something better than the raw path-list note to show.
     const summary =
       applied.length > 0
-        ? `${notePrefix}: updated ${applied.length} item${applied.length === 1 ? "" : "s"}`
-        : `${notePrefix}: no changes could be applied`;
+        ? `Term alignment: updated ${applied.length} item${applied.length === 1 ? "" : "s"}`
+        : "Term alignment: no changes could be applied";
 
     yield {
       type: "tool_result",
-      intent: resultIntent,
+      intent: IntentLabel.AlignTerms,
       args: {
         updatedResume,
         usage,
         note,
         summary,
-        rejectedCount: rejected.length,
+        rejectedCount: rejected.length + (findings.length - additive.length),
       },
     };
     yield { type: "done", usage };
-  }
-
-  /**
-   * One-click ATS keyword fix: intelligently maps each missing keyword to
-   * path-targeted edit ops based on existing content, then applies them
-   * directly — without fabricating experience.
-   *
-   * Flow:
-   *  1. Keyword mapping LLM call — maps each keyword to op(s) targeting real paths
-   *  2. applyFieldChanges        — applies the ops via applyResumeOps directly
-   */
-  async *fixMissingKeywords(
-    keywords: string[],
-    options: ChatBotOptions
-  ): AsyncGenerator<ChatStreamEvent> {
-    this.isSessionInitialized();
-
-    if (keywords.length === 0) {
-      yield { type: "done" };
-      return;
-    }
-
-    try {
-      // Step 1: Map each keyword to the best field(s) in the resume
-      const mappingPrompt = buildKeywordMappingPrompt(
-        this.resume,
-        keywords,
-        this.jobDetails
-      );
-
-      logger.info(
-        "ResumeChatBot",
-        `fixMissingKeywords — mapping ${keywords.length} keyword(s) to fields`
-      );
-
-      const { result: mapping, usage: mappingUsage } =
-        await this.provider.runStructuredLLM(
-          mappingPrompt,
-          this.callOptions(options, { maxTokens: 800 }),
-          AtsFixMappingSchema,
-          "AtsFixMappingSchema"
-        );
-
-      if (mapping.ops.length === 0) {
-        logger.warn(
-          "ResumeChatBot",
-          "fixMissingKeywords — no honest keyword anchors found; nothing to edit"
-        );
-        yield { type: "done" };
-        return;
-      }
-
-      logger.info(
-        "ResumeChatBot",
-        `fixMissingKeywords — mapped to paths: ${mapping.ops.map((m) => m.path).join(", ")}`
-      );
-
-      // Step 2: apply the mapped ops directly
-      yield* this.applyFieldChanges(
-        mappingsToResumeOps(mapping.ops),
-        "Keyword fix",
-        mappingUsage
-      );
-    } catch (err) {
-      logger.error(
-        "ResumeChatBot",
-        `fixMissingKeywords error: ${err instanceof Error ? err.message : String(err)}`
-      );
-      yield {
-        type: "error",
-        message: err instanceof Error ? err.message : "Unknown error",
-      };
-    }
-  }
-
-  /**
-   * One-click "fix everything the ATS analysis found": maps every missing
-   * keyword, improvement suggestion, knockout risk, and title-alignment note
-   * to path-targeted op(s) that can honestly address it, then applies them
-   * in one pass via the same applyFieldChanges flow as fixMissingKeywords.
-   */
-  async *fixAllAtsIssues(
-    analysis: ATSAnalysisJSON,
-    options: ChatBotOptions,
-    priorUsage?: LLMUsageInfo
-  ): AsyncGenerator<ChatStreamEvent> {
-    this.isSessionInitialized();
-
-    const hasFindings =
-      analysis.keyword_analysis.some((k) => k.match_type === "missing") ||
-      analysis.improvements.length > 0 ||
-      analysis.knockout_risks.length > 0 ||
-      analysis.title_alignment.verdict !== "aligned";
-
-    if (!hasFindings) {
-      yield { type: "done", usage: priorUsage };
-      return;
-    }
-
-    try {
-      const mappingPrompt = buildAtsFixPrompt(
-        this.resume,
-        analysis,
-        this.jobDetails
-      );
-
-      logger.info(
-        "ResumeChatBot",
-        "fixAllAtsIssues — mapping ATS findings to fields"
-      );
-
-      const { result: mapping, usage: mappingUsage } =
-        await this.provider.runStructuredLLM(
-          mappingPrompt,
-          this.callOptions(options, { maxTokens: 1500 }),
-          AtsFixMappingSchema,
-          "AtsFixMappingSchema"
-        );
-
-      const usage = priorUsage
-        ? mergeLLMUsageInfo(priorUsage, mappingUsage)
-        : mappingUsage;
-
-      if (mapping.ops.length === 0) {
-        logger.warn(
-          "ResumeChatBot",
-          "fixAllAtsIssues — no honest anchors found for any finding; nothing to edit"
-        );
-        yield { type: "done", usage };
-        return;
-      }
-
-      logger.info(
-        "ResumeChatBot",
-        `fixAllAtsIssues — mapped to paths: ${mapping.ops.map((m) => m.path).join(", ")}`
-      );
-
-      yield* this.applyFieldChanges(
-        mappingsToResumeOps(mapping.ops),
-        "ATS fix",
-        usage,
-        IntentLabel.FixAts
-      );
-    } catch (err) {
-      logger.error(
-        "ResumeChatBot",
-        `fixAllAtsIssues error: ${err instanceof Error ? err.message : String(err)}`
-      );
-      yield {
-        type: "error",
-        message: err instanceof Error ? err.message : "Unknown error",
-      };
-    }
   }
 }
 

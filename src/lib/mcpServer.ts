@@ -97,8 +97,16 @@ export async function getMcpStdioCommand(): Promise<McpStdioCommand> {
 export async function exportCoworkPlugin(): Promise<string | null> {
   assertTauriContext();
   const { save } = await import("@tauri-apps/plugin-dialog");
+  const { getVersion } = await import("@tauri-apps/api/app");
+  // Bare semver (e.g. "1.15.0"), same format as Rust's
+  // `app.package_info().version.to_string()` — the version baked into the
+  // bundle's own `.claude-plugin/plugin.json` (see export_cowork_plugin) —
+  // so the filename and the bundle contents never disagree. Versioned so
+  // multiple downloads across app updates are distinguishable by filename
+  // alone without opening any of them.
+  const version = await getVersion();
   const destPath = await save({
-    defaultPath: "udaan.plugin",
+    defaultPath: `udaan-${version}.plugin`,
     filters: [{ name: "Cowork plugin", extensions: ["plugin"] }],
   });
   if (!destPath) return null;

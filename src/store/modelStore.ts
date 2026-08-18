@@ -34,6 +34,16 @@ type TemperatureByModel = Record<string, number>;
 // Same keying and rejection rule as temperature — top_p is part of the same
 // sampling-param family OpenAI's reasoning models reject outright.
 type TopPByModel = Record<string, number>;
+export type PromptDepth = "lite" | "full";
+// Same "provider:model" keying as reasoning effort/temperature/top_p — but
+// unlike those, this isn't a provider sampling param at all, it's an app
+// prompt-content switch (see templates/deep-analysis.ts's `{{#if fullMode}}`
+// block). Deliberately no model→tier lookup table: a table like that would
+// go stale every release as new models ship, so the user sets it per model
+// instead. Default is "full" — today's behavior, so no existing user
+// silently degrades to a stripped-down analysis just because a model wasn't
+// in a hardcoded list.
+type PromptDepthByModel = Record<string, PromptDepth>;
 
 const modelKey = (provider: ProviderType, model: string) =>
   `${provider}:${model}`;
@@ -58,6 +68,10 @@ interface ModelState {
 
   // Top P preference, per "provider:model"
   topPByModel: TopPByModel;
+
+  // lite/full prompt-depth preference, per "provider:model" — default "full"
+  // (see getPromptDepth below, not a stored default).
+  promptDepthByModel: PromptDepthByModel;
 
   // Cache timestamp for 6-hour refresh validation
   cacheTimestamp: number | null;
@@ -87,6 +101,11 @@ interface ModelState {
     temperature: number | null
   ) => void;
   setTopP: (provider: ProviderType, model: string, topP: number | null) => void;
+  setPromptDepth: (
+    provider: ProviderType,
+    model: string,
+    depth: PromptDepth | null
+  ) => void;
   clearError: () => void;
   setCacheTimer: (timerId: NodeJS.Timeout) => void;
   clearCacheTimer: () => void;
@@ -105,6 +124,11 @@ interface ModelState {
   getActiveTemperature: () => number | null;
   getTopP: (provider: ProviderType, model: string) => number | null;
   getActiveTopP: () => number | null;
+  // Always returns a concrete value (never null) — default "full" lives here
+  // rather than in the stored map, so an unset model reads as today's
+  // behavior instead of an ambiguous absence.
+  getPromptDepth: (provider: ProviderType, model: string) => PromptDepth;
+  getActivePromptDepth: () => PromptDepth;
 
   // Legacy aliases for UI pages
   loadModels: () => Promise<void>;
@@ -119,6 +143,7 @@ export const useModelStore = create<ModelState>()(
       reasoningEffortByModel: {},
       temperatureByModel: {},
       topPByModel: {},
+      promptDepthByModel: {},
       cacheTimestamp: null,
       activeModelPair: null,
       isLoading: false,
@@ -253,6 +278,23 @@ export const useModelStore = create<ModelState>()(
         });
       },
 
+      setPromptDepth: (
+        provider: ProviderType,
+        model: string,
+        depth: PromptDepth | null
+      ) => {
+        set((state) => {
+          const next = { ...state.promptDepthByModel };
+          const key = modelKey(provider, model);
+          if (depth === null) {
+            delete next[key];
+          } else {
+            next[key] = depth;
+          }
+          return { promptDepthByModel: next };
+        });
+      },
+
       clearError: () => {
         set({ error: null });
       },
@@ -330,6 +372,17 @@ export const useModelStore = create<ModelState>()(
         return getTopP(activeModelPair[0], activeModelPair[1]);
       },
 
+      getPromptDepth: (provider: ProviderType, model: string): PromptDepth => {
+        const { promptDepthByModel } = get();
+        return promptDepthByModel[modelKey(provider, model)] ?? "full";
+      },
+
+      getActivePromptDepth: (): PromptDepth => {
+        const { activeModelPair, getPromptDepth } = get();
+        if (!activeModelPair) return "full";
+        return getPromptDepth(activeModelPair[0], activeModelPair[1]);
+      },
+
       loadModels: async () => {
         await get().initializeCache();
       },
@@ -348,6 +401,7 @@ export const useModelStore = create<ModelState>()(
         reasoningEffortByModel: state.reasoningEffortByModel,
         temperatureByModel: state.temperatureByModel,
         topPByModel: state.topPByModel,
+        promptDepthByModel: state.promptDepthByModel,
       }),
     }
   )

@@ -7,11 +7,29 @@ import { PROVIDER_ICONS, PROVIDER_INFO } from "@/lib/llm/providerMetaInfo";
 import { useModelStore } from "@/store/modelStore";
 import { ProviderType } from "@/types/llm";
 
+// Decorative per-provider accent, so cards in the same grid are tellable
+// apart at a glance instead of all sharing one flat surface color.
+// Approximate brand colors — cosmetic only, not asserted as exact.
+const PROVIDER_ACCENT: Record<ProviderType, string> = {
+  [ProviderType.OPENAI]: "#10a37f",
+  [ProviderType.GEMINI]: "#3186ff",
+  [ProviderType.GROK]: "#6b7280",
+  [ProviderType.OLLAMA]: "#6b7280",
+  [ProviderType.PERPLEXITY]: "#22b8cd",
+  [ProviderType.ANTHROPIC]: "#d97757",
+  [ProviderType.MANAGED]: "#7b8fe8",
+  [ProviderType.GROQ]: "#f55036",
+  [ProviderType.DEEPSEEK]: "#4d6bfe",
+  [ProviderType.MISTRAL]: "#ff7000",
+  [ProviderType.OPENROUTER]: "#6467f2",
+};
+
 export interface ProviderCardProps {
   apiKey: string;
   isSaving: boolean;
   isValidating?: boolean;
   onApiKeyChange: (v: string) => void;
+  onDelete: () => void;
   onSave: () => void;
   onValidate: () => void;
   providerType: ProviderType;
@@ -24,6 +42,7 @@ export function ProviderCard({
   isSaving,
   isValidating = false,
   onApiKeyChange,
+  onDelete,
   onSave,
   onValidate,
   providerType,
@@ -45,10 +64,14 @@ export function ProviderCard({
   const isConnected = _modelOptions?.length > 0;
 
   const Icon = PROVIDER_ICONS[providerType];
+  const accent = PROVIDER_ACCENT[providerType];
   return (
     <div
       className="flex flex-col gap-4 rounded-2xl p-5"
-      style={{ background: "var(--color-agent-surface-low)" }}
+      style={{
+        background: `color-mix(in srgb, ${accent} 6%, var(--color-agent-surface-low))`,
+        borderLeft: `3px solid ${accent}`,
+      }}
     >
       {/* Fallback warning */}
       {hasFallback && (
@@ -79,7 +102,10 @@ export function ProviderCard({
       )}
       {/* Header */}
       <div className="flex items-center gap-3">
-        <div className="flex size-9 items-center justify-center rounded-lg text-xs font-semibold text-white">
+        <div
+          className="flex size-9 shrink-0 items-center justify-center rounded-lg"
+          style={{ background: `${accent}1f`, color: accent }}
+        >
           <Icon className="size-5" />
         </div>
         <div className="min-w-0 flex-1">
@@ -126,9 +152,39 @@ export function ProviderCard({
               ? "Connected"
               : "Not Configured"}
         </span>
+        <button
+          type="button"
+          onClick={onDelete}
+          className="shrink-0 opacity-60 transition-opacity hover:opacity-100"
+          style={{ color: "var(--color-agent-error)" }}
+          aria-label={`Remove ${meta.name}`}
+        >
+          <svg
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <polyline points="3 6 5 6 21 6" />
+            <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+            <path d="M10 11v6" />
+            <path d="M14 11v6" />
+            <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
+          </svg>
+        </button>
       </div>
 
       {/* API Key row */}
+      <p
+        className="text-xs"
+        style={{ color: "var(--color-agent-on-surface-variant)" }}
+      >
+        Sent only to {meta.name} when you generate — never to Udaan.
+      </p>
       <div className="flex items-center gap-2">
         <div
           className="flex flex-1 items-center gap-2 rounded-xl px-3 py-2 text-sm"

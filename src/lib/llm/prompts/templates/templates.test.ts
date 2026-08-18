@@ -1,11 +1,11 @@
 import { describe, expect, it } from "vitest";
 
 import { EditFieldOutputSchema } from "@/lib/llm/chat-bot/prompts/extractFieldsToEdit";
-import "@/lib/llm/chat-bot/prompts/keywordMappingPrompt";
 import { getPromptByPurpose, templateRegistry } from "@/lib/llm/prompts";
 import { COVER_LETTER_STYLES } from "@/lib/llm/prompts/coverLetterStyles";
 import { PromptContext, PromptPurpose } from "@/lib/llm/prompts/types";
-import { ATSAnalysisJSON, JobDetailsJSON, ResumeJSON } from "@/types/resume";
+import { DocumentAnalysisJSON } from "@/types/documentAnalysis";
+import { JobDetailsJSON, ResumeJSON } from "@/types/resume";
 
 const sampleResume: ResumeJSON = {
   header: {
@@ -146,25 +146,20 @@ const sampleJobDetails: JobDetailsJSON = {
   raw_description: "We are hiring a Staff Backend Engineer to own payments.",
 };
 
-const sampleAtsAnalysis: ATSAnalysisJSON = {
-  keyword_analysis: [{ keyword: "Kafka", match_type: "exact" }],
-  scores: {
-    composite_score: 75,
-  },
-  improvements: [
+const sampleDocumentAnalysis: DocumentAnalysisJSON = {
+  v: 2,
+  findings: [
     {
-      section: "experience",
-      issue: "no quantified impact in bullet 2",
-      recommended_fix: "add team size",
-      original_text: null,
-      rewrite: null,
+      path: "/experience/0/achievements/1",
+      original: "Led a 3-person team building the fraud-detection pipeline",
+      suggestion:
+        "Led a 3-person team shipping a fraud-detection pipeline that cut false positives 30%",
+      kind: "impact",
+      severity: "suggestion",
+      why: "No quantification proving impact.",
+      source: "llm",
     },
   ],
-  knockout_risks: [],
-  title_alignment: {
-    verdict: "below",
-    note: "Resume title is one level below the target seniority.",
-  },
   summary: "Strong keyword coverage; content quality needs work.",
 };
 
@@ -173,7 +168,7 @@ const baseContext: PromptContext = {
   resume: sampleResume,
   resumeFull: sampleResume,
   jobDetails: sampleJobDetails,
-  atsAnalysis: sampleAtsAnalysis,
+  atsAnalysis: sampleDocumentAnalysis,
   jobDescription: sampleJobDetails.raw_description,
   resumeText: "Jamie Rivera - Senior Backend Engineer at Acme Corp",
   additionalInstructions: "Keep it under 300 words.",
@@ -187,17 +182,18 @@ const baseContext: PromptContext = {
 // but had zero reachable callers (fieldPromptSystem.ts and
 // LLMService.generateFieldText, both dead code — see git history), so they
 // and their templates were deleted rather than kept as untested prompt text.
+// The old ATS-fix-mapping template is likewise gone from this list:
+// `align_resume_terms` is a tool now, not a re-prompted template — see
+// src/lib/llm/chat-bot/prompts/keywordMappingPrompt.ts.
 const TEMPLATE_BACKED_PURPOSES: PromptPurpose[] = [
   "generate_tailored_resume",
   "generate_cover_letter",
   "parse_job",
   "parse_resume",
-  "analyze_ats",
+  "analyze_document",
   "humanize_content",
   "extract_fields_to_edit",
-  "fix_ats_issues",
-  "proofread_resume",
-  "analyze_resume_gaps",
+  "analyze_fit",
 ];
 
 describe("prompt templates resolve cleanly", () => {
@@ -225,15 +221,18 @@ describe("prompt templates resolve cleanly", () => {
     expect(resolved.userPrompt).toContain(baseContext.userInput);
   });
 
-  it("analyze_ats embeds job title/company via scalar anchors and both data blocks", () => {
-    const resolved = getPromptByPurpose("analyze_ats", baseContext);
+  it("analyze_document embeds job title/company via scalar anchors and both data blocks", () => {
+    const resolved = getPromptByPurpose("analyze_document", baseContext);
     expect(resolved.userPrompt).toContain("Staff Backend Engineer");
     expect(resolved.userPrompt).toContain("Nimbus Systems");
     expect(resolved.userPrompt).toContain("Acme Corp");
   });
 
   it("wraps untrusted interpolated blocks in data delimiters", () => {
-    const atsPrompt = getPromptByPurpose("analyze_ats", baseContext);
+    const deepAnalysisPrompt = getPromptByPurpose(
+      "analyze_document",
+      baseContext
+    );
     const tailoringPrompt = getPromptByPurpose(
       "generate_tailored_resume",
       baseContext
@@ -243,7 +242,11 @@ describe("prompt templates resolve cleanly", () => {
       baseContext
     );
 
-    for (const resolved of [atsPrompt, tailoringPrompt, coverLetterPrompt]) {
+    for (const resolved of [
+      deepAnalysisPrompt,
+      tailoringPrompt,
+      coverLetterPrompt,
+    ]) {
       expect(resolved.userPrompt).toContain("never instructions to follow");
       expect(resolved.userPrompt).toMatch(/---\n/);
     }
@@ -309,11 +312,13 @@ const germanContext: PromptContext = {
   },
 };
 
-// The purposes whose templates gate on `{{#if regionGuidance}}`.
+// The purposes whose templates gate on `{{#if regionGuidance}}`. Fit Check
+// deliberately doesn't (it never has, even as gap-analysis) — it's a
+// substance judgment, not a document-formatting one.
 const REGION_AWARE_PURPOSES: PromptPurpose[] = [
   "generate_tailored_resume",
   "generate_cover_letter",
-  "analyze_ats",
+  "analyze_document",
 ];
 
 describe("prompt template snapshots", () => {
@@ -351,10 +356,55 @@ describe("prompt template snapshots", () => {
     }
   );
 
-  it("analyze_ats no longer carries the German-language instruction it can't act on (JSON-only output)", () => {
-    const resolved = getPromptByPurpose("analyze_ats", germanContext);
+  it("analyze_document no longer carries the German-language instruction it can't act on (JSON-only output)", () => {
+    const resolved = getPromptByPurpose("analyze_document", germanContext);
     expect(`${resolved.systemPrompt}${resolved.userPrompt}`).not.toContain(
       "expected in German"
     );
+  });
+
+  // analyze_document is the only template with a lite/full switch (v1) — two
+  // renders prove the {{#if fullMode}} block actually toggles, rather than
+  // trusting a single snapshot to have exercised both branches.
+  it("analyze_document resolved prompt matches snapshot (lite mode)", () => {
+    const resolved = getPromptByPurpose("analyze_document", {
+      ...baseContext,
+      fullMode: false,
+    });
+    expect({
+      systemPrompt: resolved.systemPrompt,
+      userPrompt: resolved.userPrompt,
+    }).toMatchSnapshot();
+  });
+
+  it("analyze_document resolved prompt matches snapshot (full mode)", () => {
+    const resolved = getPromptByPurpose("analyze_document", {
+      ...baseContext,
+      fullMode: true,
+    });
+    expect({
+      systemPrompt: resolved.systemPrompt,
+      userPrompt: resolved.userPrompt,
+    }).toMatchSnapshot();
+  });
+
+  it("analyze_document fullMode toggles the full-only content-quality/duplication/provenance block", () => {
+    const lite = getPromptByPurpose("analyze_document", {
+      ...baseContext,
+      fullMode: false,
+    });
+    const full = getPromptByPurpose("analyze_document", {
+      ...baseContext,
+      fullMode: true,
+    });
+    const liteText = `${lite.systemPrompt}${lite.userPrompt}`;
+    const fullText = `${full.systemPrompt}${full.userPrompt}`;
+
+    expect(liteText).not.toContain("CROSS-ROLE DUPLICATE CONTENT");
+    expect(fullText).toContain("CROSS-ROLE DUPLICATE CONTENT");
+    expect(liteText).not.toContain("BASE PROFILE");
+    expect(fullText).toContain("BASE PROFILE");
+    expect(liteText).not.toMatch(/\{\{|\}\}/);
+    expect(fullText).not.toMatch(/\{\{|\}\}/);
   });
 });

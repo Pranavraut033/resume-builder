@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { applyProofreadFixes } from "@/lib/proofread/applyFixes";
-import { ProofreadIssue } from "@/types/proofread";
+import { DocumentFinding } from "@/types/documentAnalysis";
 import { ResumeJSON } from "@/types/resume";
 
 function makeResume(overrides: Partial<ResumeJSON> = {}): ResumeJSON {
@@ -48,25 +48,26 @@ function makeResume(overrides: Partial<ResumeJSON> = {}): ResumeJSON {
   };
 }
 
-function makeIssue(overrides: Partial<ProofreadIssue>): ProofreadIssue {
+function makeFinding(
+  overrides: Partial<DocumentFinding> = {}
+): DocumentFinding {
   return {
-    field: "summary",
-    category: "other",
+    path: "/summary",
+    kind: "correctness",
     severity: "suggestion",
-    location: "Summary",
     original: "",
     suggestion: "",
-    explanation: "",
+    why: "",
     source: "llm",
     ...overrides,
   };
 }
 
 describe("applyProofreadFixes", () => {
-  it("applies a fix whose `original` matches uniquely within its field", () => {
+  it("applies a fix whose `original` matches uniquely within its leaf", () => {
     const resume = makeResume();
-    const issue = makeIssue({
-      field: "summary",
+    const finding = makeFinding({
+      path: "/summary",
       original: "engineer",
       suggestion: "developer",
     });
@@ -75,9 +76,9 @@ describe("applyProofreadFixes", () => {
       resume: updated,
       applied,
       unapplied,
-    } = applyProofreadFixes(resume, [issue]);
+    } = applyProofreadFixes(resume, [finding]);
 
-    expect(applied).toEqual([issue]);
+    expect(applied).toEqual([finding]);
     expect(unapplied).toEqual([]);
     expect(updated.summary).toBe(
       "Senior backend developer with 6 years building payment systems."
@@ -86,8 +87,8 @@ describe("applyProofreadFixes", () => {
 
   it("leaves the resume untouched and reports unapplied when there are zero matches", () => {
     const resume = makeResume();
-    const issue = makeIssue({
-      field: "summary",
+    const finding = makeFinding({
+      path: "/summary",
       original: "this text does not appear anywhere",
       suggestion: "replacement",
     });
@@ -96,14 +97,14 @@ describe("applyProofreadFixes", () => {
       resume: updated,
       applied,
       unapplied,
-    } = applyProofreadFixes(resume, [issue]);
+    } = applyProofreadFixes(resume, [finding]);
 
     expect(applied).toEqual([]);
-    expect(unapplied).toEqual([issue]);
+    expect(unapplied).toEqual([finding]);
     expect(updated).toEqual(resume);
   });
 
-  it("reports unapplied when `original` matches more than once in the field", () => {
+  it("reports unapplied when `original` matches more than once in the leaf", () => {
     const resume = makeResume({
       experience: [
         {
@@ -111,16 +112,13 @@ describe("applyProofreadFixes", () => {
           role: "Senior Engineer",
           startDate: "2020",
           endDate: "2021",
-          description: "Owned platform tools.",
-          achievements: [
-            "Built tools for scale.",
-            "Improved tools reliability.",
-          ],
+          description: "Owned tools for scale, and more tools for reliability.",
+          achievements: ["Built tools for scale."],
         },
       ],
     });
-    const issue = makeIssue({
-      field: "experience",
+    const finding = makeFinding({
+      path: "/experience/0/description",
       original: "tools",
       suggestion: "systems",
     });
@@ -129,17 +127,17 @@ describe("applyProofreadFixes", () => {
       resume: updated,
       applied,
       unapplied,
-    } = applyProofreadFixes(resume, [issue]);
+    } = applyProofreadFixes(resume, [finding]);
 
     expect(applied).toEqual([]);
-    expect(unapplied).toEqual([issue]);
+    expect(unapplied).toEqual([finding]);
     expect(updated).toEqual(resume);
   });
 
   it("reports unapplied when the replacement breaks the field's Zod shape", () => {
     const resume = makeResume();
-    const issue = makeIssue({
-      field: "skills",
+    const finding = makeFinding({
+      path: "/skills/0/tier",
       original: "primary",
       suggestion: "not_a_real_tier",
     });
@@ -148,22 +146,22 @@ describe("applyProofreadFixes", () => {
       resume: updated,
       applied,
       unapplied,
-    } = applyProofreadFixes(resume, [issue]);
+    } = applyProofreadFixes(resume, [finding]);
 
     expect(applied).toEqual([]);
-    expect(unapplied).toEqual([issue]);
+    expect(unapplied).toEqual([finding]);
     expect(updated.skills).toEqual(resume.skills);
   });
 
-  it("applies two fixes to the same field, composing sequentially", () => {
+  it("applies two fixes to different leaves, composing sequentially", () => {
     const resume = makeResume();
-    const issue1 = makeIssue({
-      field: "experience",
+    const finding1 = makeFinding({
+      path: "/experience/0/achievements/0",
       original: "Cut checkout latency 40% by migrating to Kafka-based retries.",
       suggestion: "Cut checkout latency 40% via Kafka-based retries.",
     });
-    const issue2 = makeIssue({
-      field: "experience",
+    const finding2 = makeFinding({
+      path: "/experience/0/achievements/1",
       original: "Led a 3-person team building the fraud-detection pipeline.",
       suggestion: "Led a 3-person team on the fraud-detection pipeline.",
     });
@@ -172,41 +170,39 @@ describe("applyProofreadFixes", () => {
       resume: updated,
       applied,
       unapplied,
-    } = applyProofreadFixes(resume, [issue1, issue2]);
+    } = applyProofreadFixes(resume, [finding1, finding2]);
 
     expect(unapplied).toEqual([]);
-    expect(applied).toEqual([issue1, issue2]);
+    expect(applied).toEqual([finding1, finding2]);
     expect(updated.experience[0].achievements).toEqual([
       "Cut checkout latency 40% via Kafka-based retries.",
       "Led a 3-person team on the fraud-detection pipeline.",
     ]);
   });
 
-  it("never throws — a malformed issue is reported as unapplied", () => {
+  it("never throws — a malformed finding is reported as unapplied", () => {
     const resume = makeResume();
-    const issue = makeIssue({
+    const finding = makeFinding({
       // Empty `original` is degenerate (countOccurrences treats it as 0
       // matches) rather than matching every position.
-      field: "summary",
+      path: "/summary",
       original: "",
       suggestion: "x",
     });
 
-    expect(() => applyProofreadFixes(resume, [issue])).not.toThrow();
-    const { applied, unapplied } = applyProofreadFixes(resume, [issue]);
+    expect(() => applyProofreadFixes(resume, [finding])).not.toThrow();
+    const { applied, unapplied } = applyProofreadFixes(resume, [finding]);
     expect(applied).toEqual([]);
-    expect(unapplied).toEqual([issue]);
+    expect(unapplied).toEqual([finding]);
   });
 
   describe("path-based apply", () => {
-    it("applies a fix whose `original` contains a double quote (fails today via serialized JSON)", () => {
+    it("applies a fix whose `original` contains a double quote", () => {
       const resume = makeResume({
         summary:
           'Senior backend engineer known for "shipping fast" and reliable systems.',
       });
-      const issue = makeIssue({
-        field: "summary",
-        location: "Summary",
+      const finding = makeFinding({
         path: "/summary",
         original: '"shipping fast"',
         suggestion: "shipping fast",
@@ -216,10 +212,10 @@ describe("applyProofreadFixes", () => {
         resume: updated,
         applied,
         unapplied,
-      } = applyProofreadFixes(resume, [issue]);
+      } = applyProofreadFixes(resume, [finding]);
 
       expect(unapplied).toEqual([]);
-      expect(applied).toEqual([issue]);
+      expect(applied).toEqual([finding]);
       expect(updated.summary).toBe(
         "Senior backend engineer known for shipping fast and reliable systems."
       );
@@ -244,9 +240,7 @@ describe("applyProofreadFixes", () => {
       });
       // "in payments" appears in summary, description, and the second
       // achievement — `path` scopes this fix to only the second achievement.
-      const issue = makeIssue({
-        field: "experience",
-        location: "Experience → Acme Corp → bullet 2",
+      const finding = makeFinding({
         path: "/experience/0/achievements/1",
         original: "in payments",
         suggestion: "in fintech",
@@ -256,10 +250,10 @@ describe("applyProofreadFixes", () => {
         resume: updated,
         applied,
         unapplied,
-      } = applyProofreadFixes(resume, [issue]);
+      } = applyProofreadFixes(resume, [finding]);
 
       expect(unapplied).toEqual([]);
-      expect(applied).toEqual([issue]);
+      expect(applied).toEqual([finding]);
       expect(updated.experience[0].achievements[1]).toBe(
         "Improved reliability in fintech across the board."
       );
@@ -272,26 +266,23 @@ describe("applyProofreadFixes", () => {
       );
     });
 
-    it("falls back to the serialized-field strategy when `path` is absent (regression)", () => {
+    it("reports unapplied when `path` doesn't resolve to a string leaf", () => {
       const resume = makeResume();
-      const issue = makeIssue({
-        field: "summary",
+      const finding = makeFinding({
+        path: "/experience", // array, not a string leaf
         original: "engineer",
         suggestion: "developer",
-        // no `path` set
       });
 
       const {
         resume: updated,
         applied,
         unapplied,
-      } = applyProofreadFixes(resume, [issue]);
+      } = applyProofreadFixes(resume, [finding]);
 
-      expect(applied).toEqual([issue]);
-      expect(unapplied).toEqual([]);
-      expect(updated.summary).toBe(
-        "Senior backend developer with 6 years building payment systems."
-      );
+      expect(applied).toEqual([]);
+      expect(unapplied).toEqual([finding]);
+      expect(updated).toEqual(resume);
     });
   });
 });

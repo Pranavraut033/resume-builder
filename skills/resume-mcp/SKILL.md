@@ -1,6 +1,6 @@
 ---
 name: resume-mcp
-description: Drive this app's resume-building flows (tailoring, cover letters, Recruiter Skim, Fit Check, editing, proofreading, humanizing) and base-profile editing through its local MCP server instead of hand-writing resume content. Use whenever the user pastes a job posting or URL and wants a tailored resume, asks to edit, proofread, humanize, fix Skim issues, or get an honest fit assessment on a resume that already exists in the app, or asks to view/edit their base profile directly. Requires the app's MCP server to be running and connected (see docs/MCP.md) — if tools like `list_flows` aren't available, tell the user to enable the MCP toggle in Settings first.
+description: Drive this app's resume-building flows (tailoring, cover letters, Deep Analysis, Fit Check, term alignment, editing, humanizing) and base-profile editing through its local MCP server instead of hand-writing resume content. Use whenever the user pastes a job posting or URL and wants a tailored resume, asks to edit their resume, run Deep Analysis (typos, wording, keywords, title alignment), align resume wording to the job description, humanize AI-sounding text, or get an honest Fit Check assessment on a resume that already exists in the app, or asks to view/edit their base profile directly. Requires the app's MCP server to be running and connected (see docs/MCP.md) — if tools like `list_flows` aren't available, tell the user to enable the MCP toggle in Settings first.
 ---
 
 # Resume MCP
@@ -19,11 +19,11 @@ source of truth for what comes next — its `next` field names the purpose,
 and (when non-null) its `nextPrompt` field already contains that purpose's
 resolved prompt, ready to reason over. Do not:
 
-- Hand-write a tailored resume, cover letter, or recruiter skim yourself and
-  `submit` it without first following a `get_prompt`/`nextPrompt`'s
-  `systemPrompt`/`userPrompt` exactly.
+- Hand-write a tailored resume, cover letter, or Deep Analysis result
+  yourself and `submit` it without first following a `get_prompt`/
+  `nextPrompt`'s `systemPrompt`/`userPrompt` exactly.
 - Skip a step (e.g. jump straight to `generate_tailored_resume` without
-  `analyze_ats` first) even if you think you already have enough
+  `analyze_document` first) even if you think you already have enough
   information.
 - Reorder steps, or stop before `next`/`nextPrompt` is absent.
 
@@ -37,16 +37,18 @@ resolved prompt, ready to reason over. Do not:
    reports the same validation errors a separate dry-run would — fix and
    retry rather than calling anything else first.
 5. If the response has `next`, use its `nextPrompt` and repeat from step 2.
-   If `next` is absent, the flow is done.
+   If `next` is absent, the flow is done (later steps in that flow, if any,
+   are direct tool calls — `apply_resume_ops`/`align_resume_terms` — not
+   another `get_prompt`/`submit` purpose).
 
 **Before a job exists** (mid-`add_job`, no `jobId` yet), `submit` mints a
 `draftId` on first use and returns it — pass that same `draftId` on every
 following `get_prompt`/`submit` call in the flow instead of re-sending
-`jobDetails`/the recruiter skim/the tailored resume yourself; the server
-carries them forward and only actually creates the job on the flow's last
-step (`generate_cover_letter`). If more than one profile exists, that last
-`submit` needs `input.profileId` — call `list_profiles()` first and ask the
-user which one if it's not obvious.
+`jobDetails`/the Deep Analysis result/the tailored resume yourself; the
+server carries them forward and only actually creates the job on the flow's
+last step (`generate_cover_letter`). If more than one profile exists, that
+last `submit` needs `input.profileId` — call `list_profiles()` first and ask
+the user which one if it's not obvious.
 
 **Once a job exists** (every other flow below), pass its `jobId` instead —
 the server hydrates prompts from the database automatically.
@@ -62,37 +64,56 @@ no generation) when the user's own words say so explicitly: "bookmark",
 message contains the word "add" or "job". If in doubt, ask.
 
 - **add_job** — paste a job posting, get a tailored resume + cover letter:
-  `parse_job` → `analyze_ats` → `generate_tailored_resume` →
+  `parse_job` → `analyze_document` (Deep Analysis run against the base
+  profile, before a resume is tailored) → `generate_tailored_resume` →
   `generate_cover_letter`. No `jobId` until the final `submit`, which
   returns the new one.
 - **edit** — targeted field edits ("update my third bullet under X"): call
   `get_job_state` if you don't know the resume's field paths yet, then
   `get_prompt({ purpose: "extract_fields_to_edit" })` → `apply_resume_ops`.
-- **proofread** — grammar/consistency review: `proofread_resume` →
-  `submit` (persists lint fixes automatically and returns the combined
-  issue list — not every returned issue was auto-applied) →
-  `apply_resume_ops` for the reviewed LLM-judged issues.
-- **ats_fix** — fix flagged Skim issues: `analyze_ats` (against the current
-  tailored resume, not the base profile) → `fix_ats_issues` →
-  `apply_resume_ops`.
+- **document_fix** — run Deep Analysis against an existing job's already
+  tailored resume, then turn findings into edits: `analyze_document`
+  (correctness, impact, keyword, duplication, provenance, and title
+  findings — this server's own deterministic lint findings are merged in
+  automatically) → `submit` (never touches the resume's own content — it
+  re-stamps every submitted finding to `source: "llm"`, merges in this
+  server's deterministic lint findings, persists the merged result, and
+  returns it inline as `result`). From there, turn the findings you want
+  fixed into ops yourself: form-only alignment
+  swaps (acronym ↔ expansion, an alias the JD uses — e.g. "CPA" →
+  "Certified Public Accountant (CPA)") go through the `align_resume_terms`
+  tool directly — no `get_prompt`/`submit` round trip, it's a standalone
+  tool call taking the findings you already have as its arguments and
+  applying them itself (see the tool's own `description` for the exact
+  additive-only rule it enforces — a genuine rewrite or new claim is
+  rejected, not just the swap that triggered it). Everything else (a real
+  rewrite, a new bullet, a non-string field) goes through
+  `apply_resume_ops` instead. There is no standalone **proofread** flow any
+  more — Deep Analysis absorbed it; grammar/typo/consistency findings show
+  up in the same `findings[]` array as keyword/title findings, distinguished
+  by `kind`.
 - **humanize** — rewrite AI-sounding text: `get_prompt({ purpose: "humanize_content", input: { userInput } })` → `submit`. `userInput` must be the exact text to rewrite — a resume bullet, a whole cover letter, anything. The server has no DB fallback for it (unlike every other purpose) since it can't guess which content you mean; if you already have the text from earlier in the conversation (e.g. a cover letter you just generated), pass that. Omitting `input.userInput` is a hard error, not an empty-content no-op.
 - **cover_letter** — regenerate just the cover letter: `generate_cover_letter`
   → `submit`.
-- **gap_analysis** — honest, substantive fit assessment against the JD (not
-  a keyword/format score like `ats_fix`): `analyze_resume_gaps` → `submit`
-  (validate-only, nothing persisted) → `apply_resume_ops` for any gap that
-  carries a `resume_fix` (never present for `missing`/`seniority` gaps —
-  those need an offline action, not a text edit). Report the `verdict` and
-  gaps to the user plainly; don't soften a blocking or major gap into
-  something it isn't, and always relay the closing `strengths` too.
+- **fit_check** — honest, substantive fit assessment against the JD (not a
+  keyword/wording review like `document_fix`): `analyze_fit` → `submit`
+  (validate-only, nothing persisted server-side). Fit Check has **no apply
+  step at all** — every gap is reported, none is auto-appliable: its `Gap`
+  schema carries no `resume_fix`/edit-op field (that's the point — a fit
+  judgment like "you're two years short of the seniority bar" or "this role
+  requires a domain you haven't worked in" isn't a document edit). Report
+  the `verdict`, `knockout_risks`, and `gaps` to the user plainly; don't
+  soften a `blocking` or `major` gap into something it isn't, and always
+  relay the closing `strengths` too — the analysis always ends with at
+  least one genuinely evidence-based strength.
 - **bookmark** — save a job posting URL for later, no resume/cover letter
   generated: a single `parse_job` step, persisted immediately. When the user
   hands you one or more URLs to save/bookmark, for each one: `fetch_url` →
   `get_prompt({ purpose: "parse_job" })` → reason → `submit({ purpose:
 "parse_job", result, input: { url, bookmark: true, profileId? } })`. This
   submit does **not** return a `nextPrompt` — `next` is `null` on purpose,
-  don't chain into `analyze_ats`. Call `list_profiles()` once up front if
-  more than one profile exists and reuse that `profileId` for every URL
+  don't chain into `analyze_document`. Call `list_profiles()` once up front
+  if more than one profile exists and reuse that `profileId` for every URL
   rather than asking per URL. A URL that's already bookmarked comes back
   with `duplicate: true` and the existing `jobId` — not an error, just skip
   it. If one URL in a batch fails (bad fetch, parse error), report it and
@@ -129,6 +150,11 @@ the full profile content). Never skip straight to `apply_profile_edit`:
 - **`apply_resume_ops` rejections**: retry a rejected op once (e.g.
   re-derive its path from a fresh `get_job_state`) before giving up. Tell
   the user what didn't apply and why rather than dropping it silently.
+- **`align_resume_terms` rejections**: this tool rejects the **whole call**
+  — nothing applied — if even one op in the batch isn't a strictly additive
+  term swap (see the tool's own `description`). Split out the offending op
+  and either drop it or route it through `apply_resume_ops` instead (for a
+  genuine rewrite), then resubmit the rest.
 - **Uncertain output shape**: `submit` and see what it reports — it
   validates before persisting, so a bad shape never gets written.
 - **Unrecognized purpose**: re-check `list_flows()` rather than guessing a

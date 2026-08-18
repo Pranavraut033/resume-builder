@@ -70,7 +70,7 @@ const cases: { label: string; input: string; expected: string }[] = [
   {
     label: "typo: ATS phrasing close to prompt's own example",
     input: "will this resum pass thru the ATS scan or nah",
-    expected: "ats",
+    expected: "deep_analysis",
   },
   {
     label: "bad grammar: 'what' question wins over 'interview' wording",
