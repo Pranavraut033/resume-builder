@@ -16,6 +16,7 @@ import {
   DocumentAnalysisJSON,
   DocumentAnalysisSchema,
 } from "@/types/documentAnalysis";
+import { FitCheckJSON } from "@/types/fitCheck";
 import { JobStatus } from "@/types/job";
 import { ResumeJSON, JobDetailsJSON, normalizeSkills } from "@/types/resume";
 
@@ -448,6 +449,42 @@ export async function saveAtsAnalysis(
         ...(resume.aTSAnalysisId
           ? { update: { contentJson: JSON.stringify(atsAnalysis) } }
           : { create: { contentJson: JSON.stringify(atsAnalysis) } }),
+      },
+    },
+  });
+
+  return { success: true };
+}
+
+/**
+ * Persist a Fit Check result. Mirrors saveAtsAnalysis above — same
+ * upsert-through-the-relation shape, against the FitCheck table rather than
+ * the (historically named) ATSAnalysis one.
+ *
+ * This write path is what makes the Fit Check drawer reopen with its last
+ * result instead of forgetting it, and it is also what /documents reads to
+ * rank jobs by fit level.
+ */
+export async function saveFitCheck(jobId: number, fitCheck: FitCheckJSON) {
+  const resume = await prisma.job
+    .findFirstOrThrow({
+      where: { id: jobId },
+      select: { resume: { select: { id: true, fitCheckId: true } } },
+    })
+    .then((job) => job.resume);
+
+  if (!resume)
+    throw new Error(`Cannot save fit check: Resume not found for job ${jobId}`);
+
+  const now = new Date();
+  await prisma.resume.update({
+    where: { id: resume.id },
+    data: {
+      updatedAt: now,
+      fitCheck: {
+        ...(resume.fitCheckId
+          ? { update: { contentJson: JSON.stringify(fitCheck) } }
+          : { create: { contentJson: JSON.stringify(fitCheck) } }),
       },
     },
   });

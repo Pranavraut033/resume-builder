@@ -2,10 +2,14 @@ import { describe, expect, it } from "vitest";
 
 import {
   applyGuard,
-  guardProofreadResult,
+  guardAlignOps,
+  guardDocumentAnalysis,
   guardTailoredResume,
 } from "@/mcp/guards";
-import { ProofreadIssue, ProofreadJSON } from "@/types/proofread";
+import {
+  DocumentAnalysisJSON,
+  DocumentFinding,
+} from "@/types/documentAnalysis";
 import { ResumeJSON } from "@/types/resume";
 
 function makeResume(overrides: Partial<ResumeJSON> = {}): ResumeJSON {
@@ -32,11 +36,18 @@ function makeResume(overrides: Partial<ResumeJSON> = {}): ResumeJSON {
         startDate: "2020",
         endDate: "2021",
         description: "Owned the checkout platform.",
-        achievements: ["Cut checkout latency 40%."],
+        achievements: [
+          "Cut checkout latency 40%.",
+          "Managed the deploy pipeline.",
+        ],
       },
     ],
     projects: [],
-    skills: [{ name: "TypeScript", category: null, tier: "primary" }],
+    skills: [
+      { name: "CPA", category: null, tier: "primary" },
+      { name: "K8s", category: null, tier: "primary" },
+      { name: "TypeScript", category: null, tier: "primary" },
+    ],
     education: [
       {
         institution: "State University",
@@ -127,31 +138,31 @@ describe("guardTailoredResume", () => {
   });
 });
 
-describe("guardProofreadResult", () => {
-  const baseIssue: ProofreadIssue = {
-    field: "summary",
-    category: "unquantified_claim",
-    severity: "warning",
-    location: "Summary",
+describe("guardDocumentAnalysis", () => {
+  const baseFinding: DocumentFinding = {
+    path: "/summary",
     original: "Senior backend engineer with 6 years building payment systems.",
     suggestion: "",
-    explanation: "No metrics given.",
+    kind: "impact",
+    severity: "warning",
+    why: "No metrics given.",
     source: "llm",
   };
 
-  it('re-stamps every submitted issue to source: "llm", even one claiming source: "lint"', () => {
+  it('re-stamps every submitted finding to source: "llm", even one claiming source: "lint"', () => {
     const resume = makeResume();
-    const submitted: ProofreadJSON = {
-      issues: [{ ...baseIssue, source: "lint" }],
+    const submitted: DocumentAnalysisJSON = {
+      v: 2,
+      findings: [{ ...baseFinding, source: "lint" }],
       summary: "test",
     };
 
-    const result = guardProofreadResult(resume, submitted);
+    const result = guardDocumentAnalysis(resume, submitted);
 
-    const judgmentIssue = result.issues.find(
-      (issue) => issue.category === "unquantified_claim"
+    const judgmentFinding = result.findings.find(
+      (finding) => finding.path === "/summary"
     );
-    expect(judgmentIssue?.source).toBe("llm");
+    expect(judgmentFinding?.source).toBe("llm");
   });
 
   it("merges in this server's own lintResume() findings, tagged source: lint", () => {
@@ -159,25 +170,30 @@ describe("guardProofreadResult", () => {
     const resume = makeResume({
       summary: "Senior backend  engineer with double spacing.",
     });
-    const submitted: ProofreadJSON = { issues: [], summary: "test" };
+    const submitted: DocumentAnalysisJSON = {
+      v: 2,
+      findings: [],
+      summary: "test",
+    };
 
-    const result = guardProofreadResult(resume, submitted);
+    const result = guardDocumentAnalysis(resume, submitted);
 
-    expect(result.issues.length).toBeGreaterThan(0);
-    for (const issue of result.issues) {
-      expect(issue.source).toBe("lint");
+    expect(result.findings.length).toBeGreaterThan(0);
+    for (const finding of result.findings) {
+      expect(finding.source).toBe("lint");
     }
   });
 
-  it("drops a submitted issue that duplicates a lint finding rather than double-reporting it", () => {
+  it("drops a submitted finding that duplicates a lint finding rather than double-reporting it", () => {
     const resume = makeResume({
       summary: "Senior backend  engineer with double spacing.",
     });
-    const submitted: ProofreadJSON = {
-      issues: [
+    const submitted: DocumentAnalysisJSON = {
+      v: 2,
+      findings: [
         {
-          ...baseIssue,
-          category: "spacing",
+          ...baseFinding,
+          kind: "correctness",
           original: "  ",
           suggestion: " ",
           source: "llm",
@@ -186,14 +202,201 @@ describe("guardProofreadResult", () => {
       summary: "test",
     };
 
-    const result = guardProofreadResult(resume, submitted);
+    const result = guardDocumentAnalysis(resume, submitted);
 
-    const spacingIssues = result.issues.filter(
-      (issue) => issue.category === "spacing"
+    const spacingFindings = result.findings.filter(
+      (finding) => finding.original.trim() === ""
     );
     // Deduped: only the lint-produced instance survives, not a second
     // LLM-reported copy of the same defect.
-    expect(spacingIssues).toHaveLength(1);
-    expect(spacingIssues[0].source).toBe("lint");
+    expect(spacingFindings).toHaveLength(1);
+    expect(spacingFindings[0].source).toBe("lint");
+  });
+});
+
+describe("guardAlignOps", () => {
+  function mapping(ops: Parameters<typeof guardAlignOps>[1]["ops"]) {
+    return { ops };
+  }
+
+  it('rejects a rewrite smuggled in as an "add" on an existing member', () => {
+    // RFC 6902 `add` REPLACES an existing object member (fast-json-patch
+    // implements this faithfully), so gating the subset check on op name
+    // instead of on what the path resolves to left a hole: the same rewrite
+    // rejected as "replace" sailed through as "add".
+    const resume = makeResume();
+
+    expect(() =>
+      guardAlignOps(
+        resume,
+        mapping([
+          {
+            item: "summary rewrite",
+            op: "add",
+            path: "/summary",
+            value: "Architected a 40% faster deploy pipeline",
+          },
+        ])
+      )
+    ).toThrow(/not additive/);
+  });
+
+  it("still accepts a genuine append to an unresolved path", () => {
+    const resume = makeResume();
+
+    const result = guardAlignOps(
+      resume,
+      mapping([
+        {
+          item: "new skill",
+          op: "add",
+          path: "/skills/-",
+          value: "Kubernetes (K8s)",
+        },
+      ])
+    );
+
+    expect(result).toHaveLength(1);
+  });
+
+  it("accepts an acronym -> expansion swap (CPA -> Certified Public Accountant (CPA))", () => {
+    const resume = makeResume();
+
+    const result = guardAlignOps(
+      resume,
+      mapping([
+        {
+          item: "CPA keyword",
+          op: "replace",
+          path: "/skills/0/name",
+          value: "Certified Public Accountant (CPA)",
+        },
+      ])
+    );
+
+    expect(result).toEqual([
+      {
+        op: "replace",
+        path: "/skills/0/name",
+        value: "Certified Public Accountant (CPA)",
+      },
+    ]);
+  });
+
+  it("accepts an abbreviation -> full-name-plus-abbreviation swap (K8s -> Kubernetes (K8s))", () => {
+    const resume = makeResume();
+
+    const result = guardAlignOps(
+      resume,
+      mapping([
+        {
+          item: "Kubernetes keyword",
+          op: "replace",
+          path: "/skills/1/name",
+          value: "Kubernetes (K8s)",
+        },
+      ])
+    );
+
+    expect(result).toEqual([
+      { op: "replace", path: "/skills/1/name", value: "Kubernetes (K8s)" },
+    ]);
+  });
+
+  it("rejects a rewrite disguised as a swap (Managed the deploy pipeline -> Architected a 40% faster pipeline)", () => {
+    const resume = makeResume();
+
+    expect(() =>
+      guardAlignOps(
+        resume,
+        mapping([
+          {
+            item: "Impact keyword",
+            op: "replace",
+            path: "/experience/0/achievements/1",
+            value: "Architected a 40% faster pipeline",
+          },
+        ])
+      )
+    ).toThrow(/not additive/);
+  });
+
+  it("rejects an op whose path does not resolve to an existing string value", () => {
+    const resume = makeResume();
+
+    expect(() =>
+      guardAlignOps(
+        resume,
+        mapping([
+          {
+            item: "Nonexistent field",
+            op: "replace",
+            path: "/experience/0/achievements/99",
+            value: "Anything",
+          },
+        ])
+      )
+    ).toThrow(/does not resolve/);
+  });
+
+  it("rejects the whole call if even one op among several fails the rule", () => {
+    const resume = makeResume();
+
+    expect(() =>
+      guardAlignOps(
+        resume,
+        mapping([
+          {
+            item: "CPA keyword",
+            op: "replace",
+            path: "/skills/0/name",
+            value: "Certified Public Accountant (CPA)",
+          },
+          {
+            item: "Impact keyword",
+            op: "replace",
+            path: "/experience/0/achievements/1",
+            value: "Architected a 40% faster pipeline",
+          },
+        ])
+      )
+    ).toThrow(/not additive/);
+  });
+
+  it('rejects a "remove" op — removal is never additive', () => {
+    const resume = makeResume();
+
+    expect(() =>
+      guardAlignOps(
+        resume,
+        mapping([
+          { item: "Drop it", op: "remove", path: "/skills/2", value: null },
+        ])
+      )
+    ).toThrow(/never additive/);
+  });
+
+  it('accepts an "add" op without checking token overlap (new content never overwrites existing content)', () => {
+    const resume = makeResume();
+
+    const result = guardAlignOps(
+      resume,
+      mapping([
+        {
+          item: "New certification keyword",
+          op: "add",
+          path: "/skills/-",
+          value: "Certified Public Accountant (CPA)",
+        },
+      ])
+    );
+
+    expect(result).toEqual([
+      {
+        op: "add",
+        path: "/skills/-",
+        value: "Certified Public Accountant (CPA)",
+      },
+    ]);
   });
 });

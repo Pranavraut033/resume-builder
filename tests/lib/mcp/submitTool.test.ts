@@ -3,7 +3,9 @@ import { describe, expect, it, vi } from "vitest";
 import { getDraft } from "@/mcp/draft";
 import { getPromptTool, McpDeps, submitTool } from "@/mcp/server";
 import { DEFAULT_CUSTOMIZATION } from "@/types/customization";
-import { ATSAnalysisJSON, JobDetailsJSON, ResumeJSON } from "@/types/resume";
+import { DocumentAnalysisJSON } from "@/types/documentAnalysis";
+import { FitCheckJSON } from "@/types/fitCheck";
+import { JobDetailsJSON, ResumeJSON } from "@/types/resume";
 
 function makeResume(overrides: Partial<ResumeJSON> = {}): ResumeJSON {
   return {
@@ -130,18 +132,43 @@ const jobDetails: JobDetailsJSON = {
   raw_description: "We are hiring a Staff Backend Engineer to own payments.",
 };
 
-const atsAnalysis: ATSAnalysisJSON = {
-  keyword_analysis: [{ keyword: "Kafka", match_type: "exact" }],
-  scores: {
-    composite_score: 75,
-  },
-  improvements: [],
-  knockout_risks: [],
-  title_alignment: {
-    verdict: "below",
-    note: "One level below target.",
-  },
+const documentAnalysis: DocumentAnalysisJSON = {
+  v: 2,
+  findings: [
+    {
+      path: "/skills/-",
+      original: "",
+      suggestion: "Kafka",
+      kind: "keyword",
+      severity: "warning",
+      why: "JD requires Kafka; resume never states it.",
+      source: "llm",
+    },
+  ],
   summary: "Strong coverage.",
+};
+
+const fitCheck: FitCheckJSON = {
+  v: 2,
+  fit_level: "stretch",
+  verdict:
+    "Solid backend fundamentals, but no evidence of the Kafka-scale streaming work this role needs.",
+  knockout_risks: [],
+  gaps: [
+    {
+      requirement: "5+ years operating Kafka at scale",
+      severity: "major",
+      gap_type: "seniority",
+      evidence_in_resume: "Owns the checkout and payments platform.",
+      solution: "Quantify the Kafka throughput/scale you actually owned.",
+    },
+  ],
+  strengths: [
+    {
+      requirement: "Backend ownership",
+      evidence: "Owns the checkout and payments platform.",
+    },
+  ],
 };
 
 function makeDeps(overrides: Partial<McpDeps> = {}): McpDeps {
@@ -164,7 +191,7 @@ function makeDeps(overrides: Partial<McpDeps> = {}): McpDeps {
 }
 
 describe("submitTool — add_job draft chain", () => {
-  it("walks parse_job -> analyze_ats -> generate_tailored_resume -> generate_cover_letter via a single draftId, creating the job only at the end", async () => {
+  it("walks parse_job -> analyze_document -> generate_tailored_resume -> generate_cover_letter via a single draftId, creating the job only at the end", async () => {
     const deps = makeDeps();
 
     const step1 = await submitTool(deps, {
@@ -175,22 +202,31 @@ describe("submitTool — add_job draft chain", () => {
     if (!step1.ok) throw new Error("unreachable");
     expect(step1.jobId).toBeNull();
     expect(step1.draftId).toBeDefined();
-    expect(step1.next).toBe("analyze_ats");
+    expect(step1.next).toBe("analyze_document");
     expect(step1.nextPrompt).toBeDefined();
     const draftId = step1.draftId!;
     expect(getDraft(draftId)?.jobDetails).toEqual(jobDetails);
 
     const step2 = await submitTool(deps, {
-      purpose: "analyze_ats",
+      purpose: "analyze_document",
       draftId,
-      result: atsAnalysis,
+      result: documentAnalysis,
     });
     expect(step2.ok).toBe(true);
     if (!step2.ok) throw new Error("unreachable");
     expect(step2.jobId).toBeNull();
     expect(step2.next).toBe("generate_tailored_resume");
     expect(deps.saveAtsAnalysis).not.toHaveBeenCalled();
-    expect(getDraft(draftId)?.atsAnalysis).toEqual(atsAnalysis);
+    expect(getDraft(draftId)?.atsAnalysis?.summary).toBe(
+      documentAnalysis.summary
+    );
+    // Every submitted finding is re-stamped to source: "llm" even in the
+    // add_job phase, where there's no resume yet to lint against.
+    expect(
+      getDraft(draftId)?.atsAnalysis?.findings.every(
+        (finding) => finding.source === "llm"
+      )
+    ).toBe(true);
 
     const tailored = makeResume({ summary: "Tailored summary." });
     const step3 = await submitTool(deps, {
@@ -224,7 +260,7 @@ describe("submitTool — add_job draft chain", () => {
     expect(created.jobDetails).toEqual(jobDetails);
     expect(created.tailoredResume.summary).toBe("Tailored summary.");
     expect(created.coverLetterText).toBe("<p>Cover letter.</p>");
-    expect(created.atsAnalysis).toEqual(atsAnalysis);
+    expect(created.atsAnalysis.summary).toBe(documentAnalysis.summary);
     expect(created.profileId).toBe(1);
 
     // Draft is cleared once the job is actually created.
@@ -247,9 +283,9 @@ describe("submitTool — add_job draft chain", () => {
     const deps = makeDeps();
 
     const result = await submitTool(deps, {
-      purpose: "analyze_ats",
+      purpose: "analyze_document",
       draftId: "not-a-real-draft-id",
-      result: atsAnalysis,
+      result: documentAnalysis,
     });
 
     expect(result.ok).toBe(false);
@@ -294,8 +330,8 @@ describe("submitTool — client-stringified result", () => {
     const deps = makeDeps();
 
     const result = await submitTool(deps, {
-      purpose: "analyze_ats",
-      result: JSON.stringify(atsAnalysis),
+      purpose: "analyze_document",
+      result: JSON.stringify(documentAnalysis),
     });
 
     expect(result.ok).toBe(true);
@@ -327,7 +363,7 @@ describe("submitTool — client-stringified result", () => {
     const deps = makeDeps();
 
     const result = await submitTool(deps, {
-      purpose: "analyze_ats",
+      purpose: "analyze_document",
       result: "not json at all",
     });
 
@@ -338,7 +374,7 @@ describe("submitTool — client-stringified result", () => {
     const deps = makeDeps();
 
     const result = await submitTool(deps, {
-      purpose: "analyze_ats",
+      purpose: "analyze_document",
       result: "{ this is not valid json and looks truncated",
     });
 
@@ -376,7 +412,7 @@ describe("submitTool — validation and guards", () => {
     const deps = makeDeps();
 
     const result = await submitTool(deps, {
-      purpose: "analyze_ats",
+      purpose: "analyze_document",
       result: { not: "valid" },
     });
 
@@ -609,7 +645,7 @@ describe("submitTool — bookmark flow", () => {
     expect(deps.createJob).not.toHaveBeenCalled();
   });
 
-  it("does not affect a normal (non-bookmark) parse_job submit — still drafts and returns next: analyze_ats", async () => {
+  it("does not affect a normal (non-bookmark) parse_job submit — still drafts and returns next: analyze_document", async () => {
     const deps = makeDeps();
 
     const result = await submitTool(deps, {
@@ -620,45 +656,113 @@ describe("submitTool — bookmark flow", () => {
     expect(result.ok).toBe(true);
     if (!result.ok) throw new Error("unreachable");
     expect(result.jobId).toBeNull();
-    expect(result.next).toBe("analyze_ats");
+    expect(result.next).toBe("analyze_document");
     expect(deps.createJob).not.toHaveBeenCalled();
   });
 });
 
-describe("submitTool — analyze_resume_gaps", () => {
-  const validGapAnalysis = {
-    fit_level: "stretch",
-    verdict:
-      "Solid backend fundamentals, but no evidence of the Kafka-scale streaming work this role needs. Close the gap with concrete numbers or don't apply at Staff level.",
-    gaps: [
-      {
-        requirement: "5+ years operating Kafka at scale",
-        severity: "major" as const,
-        gap_type: "understated" as const,
-        evidence_in_resume: "Owns the checkout and payments platform.",
-        solution: "Quantify the Kafka throughput/scale you actually owned.",
-        resume_fix: {
-          op: "replace" as const,
-          path: "/experience/0/description",
-          value:
-            "Owns the checkout and payments platform, processing 2M+ Kafka events/day.",
-        },
-      },
-    ],
-    strengths: [
-      {
-        requirement: "Backend ownership",
-        evidence: "Owns the checkout and payments platform.",
-      },
-    ],
-  };
+describe("submitTool — analyze_document (document_fix persistence + guard)", () => {
+  it("guards the submitted findings (re-stamp + lint merge) before persisting via saveAtsAnalysis, and returns the merged result inline", async () => {
+    const deps = makeDeps({
+      getJob: vi
+        .fn()
+        .mockResolvedValue({ id: 1, profileId: 1, details: jobDetails }),
+      getResumeByJobId: vi.fn().mockResolvedValue({
+        id: 1,
+        contentJson: makeResume({
+          summary: "Backend  engineer with double spacing.",
+        }),
+        customizations: { ...DEFAULT_CUSTOMIZATION, id: 1 },
+        atsAnalysis: null,
+      }),
+    });
 
+    const submitted: DocumentAnalysisJSON = {
+      v: 2,
+      findings: [
+        {
+          // Same path + normalized original as the double-space defect
+          // lintResume() will independently detect at "/summary" (see
+          // lint.ts's DOUBLE_SPACE_RE, whose `original` is the matched
+          // "  " itself, not the whole sentence) — this is what the guard's
+          // dedupe key is keyed on.
+          path: "/summary",
+          original: "  ",
+          suggestion: " ",
+          kind: "correctness",
+          severity: "warning",
+          why: "Double space.",
+          // Client tries to forge a lint source — must be re-stamped.
+          source: "lint",
+        },
+      ],
+      summary: "One correctness issue found.",
+    };
+
+    const result = await submitTool(deps, {
+      purpose: "analyze_document",
+      jobId: 1,
+      result: submitted,
+    });
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) throw new Error("unreachable");
+    expect(result.next).toBeNull();
+    expect(deps.saveAtsAnalysis).toHaveBeenCalledTimes(1);
+
+    const saved = (deps.saveAtsAnalysis as ReturnType<typeof vi.fn>).mock
+      .calls[0][1] as DocumentAnalysisJSON;
+    // The submitted finding collides with this server's own lintResume()
+    // double-space finding — deduped down to the lint-produced instance,
+    // which is the only one allowed to carry source: "lint".
+    const spacingFindings = saved.findings.filter(
+      (finding) => finding.kind === "correctness"
+    );
+    expect(spacingFindings).toHaveLength(1);
+    expect(spacingFindings[0].source).toBe("lint");
+
+    expect(result.result).toEqual(saved);
+  });
+
+  it("does not persist an add_job-phase (no resume yet) submission, but still re-stamps and carries it forward via the draft", async () => {
+    const deps = makeDeps();
+
+    const step1 = await submitTool(deps, {
+      purpose: "parse_job",
+      result: jobDetails,
+    });
+    if (!step1.ok) throw new Error("unreachable");
+    const draftId = step1.draftId!;
+
+    const spoofed: DocumentAnalysisJSON = {
+      ...documentAnalysis,
+      findings: documentAnalysis.findings.map((f) => ({
+        ...f,
+        source: "lint",
+      })),
+    };
+
+    const result = await submitTool(deps, {
+      purpose: "analyze_document",
+      draftId,
+      result: spoofed,
+    });
+
+    expect(result.ok).toBe(true);
+    expect(deps.saveAtsAnalysis).not.toHaveBeenCalled();
+    expect(
+      getDraft(draftId)?.atsAnalysis?.findings.every((f) => f.source === "llm")
+    ).toBe(true);
+  });
+});
+
+describe("submitTool — analyze_fit", () => {
   it("returns { ok: true, next: null } for a schema-valid result, with nothing persisted", async () => {
     const deps = makeDeps();
 
     const result = await submitTool(deps, {
-      purpose: "analyze_resume_gaps",
-      result: validGapAnalysis,
+      purpose: "analyze_fit",
+      result: fitCheck,
     });
 
     expect(result.ok).toBe(true);
@@ -672,8 +776,8 @@ describe("submitTool — analyze_resume_gaps", () => {
     const deps = makeDeps();
 
     const result = await submitTool(deps, {
-      purpose: "analyze_resume_gaps",
-      result: { ...validGapAnalysis, strengths: [] },
+      purpose: "analyze_fit",
+      result: { ...fitCheck, strengths: [] },
     });
 
     expect(result.ok).toBe(false);
@@ -681,59 +785,31 @@ describe("submitTool — analyze_resume_gaps", () => {
     expect(result.errors.length).toBeGreaterThan(0);
   });
 
-  it("returns { ok: false } when a 'missing' gap carries a non-null resume_fix (superRefine)", async () => {
+  it("returns { ok: false, errors } for an out-of-enum gap_type (superseded by the v: 2 3-value enum)", async () => {
     const deps = makeDeps();
 
     const invalid = {
-      ...validGapAnalysis,
-      gaps: [
-        {
-          requirement: "5+ years operating Kafka at scale",
-          severity: "major" as const,
-          gap_type: "missing" as const,
-          evidence_in_resume: null,
-          solution: "Get hands-on Kafka experience before applying.",
-          resume_fix: {
-            op: "replace" as const,
-            path: "/experience/0/description",
-            value: "Ran Kafka clusters at massive scale.",
-          },
-        },
-      ],
+      ...fitCheck,
+      gaps: [{ ...fitCheck.gaps[0], gap_type: "understated" }],
     };
 
     const result = await submitTool(deps, {
-      purpose: "analyze_resume_gaps",
+      purpose: "analyze_fit",
       result: invalid,
     });
 
     expect(result.ok).toBe(false);
   });
 
-  it("returns { ok: false } when a 'seniority' gap carries a non-null resume_fix (superRefine)", async () => {
+  it("returns { ok: false, errors } for a blob missing the v: 2 literal", async () => {
     const deps = makeDeps();
 
-    const invalid = {
-      ...validGapAnalysis,
-      gaps: [
-        {
-          requirement: "Staff-level cross-team architecture ownership",
-          severity: "blocking" as const,
-          gap_type: "seniority" as const,
-          evidence_in_resume: "Owns the checkout and payments platform.",
-          solution: "This is a seniority gap, not fixable by rewording.",
-          resume_fix: {
-            op: "replace" as const,
-            path: "/header/headline",
-            value: "Staff Backend Engineer",
-          },
-        },
-      ],
-    };
+    const withoutVersion: Partial<FitCheckJSON> = { ...fitCheck };
+    delete withoutVersion.v;
 
     const result = await submitTool(deps, {
-      purpose: "analyze_resume_gaps",
-      result: invalid,
+      purpose: "analyze_fit",
+      result: withoutVersion,
     });
 
     expect(result.ok).toBe(false);

@@ -16,7 +16,8 @@
  * ponytail: process-memory only — a draft is minutes old and dies with the
  * server. Persist to SQLite only if hosts start losing flows to restarts.
  */
-import { ATSAnalysisJSON, JobDetailsJSON, ResumeJSON } from "@/types/resume";
+import { DocumentAnalysisJSON } from "@/types/documentAnalysis";
+import { JobDetailsJSON, ResumeJSON } from "@/types/resume";
 
 export type DraftField =
   | "jobDetails"
@@ -26,7 +27,12 @@ export type DraftField =
 
 export interface Draft {
   jobDetails?: JobDetailsJSON;
-  atsAnalysis?: ATSAnalysisJSON | null;
+  // Field name kept as `atsAnalysis` even though this now carries a Deep
+  // Analysis result — it's what gets carried forward into
+  // generate_tailored_resume's/createJob's own `atsAnalysis` param (see
+  // src/lib/db/job.ts), which keeps that name for the same historical
+  // reason (see prisma/schema.prisma's ATSAnalysis model comment).
+  atsAnalysis?: DocumentAnalysisJSON | null;
   tailoredResume?: ResumeJSON;
   url?: string;
   profileId?: number;

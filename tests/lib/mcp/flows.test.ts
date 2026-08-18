@@ -4,8 +4,8 @@ import { FLOW_CATALOG, nextPurposeFor } from "@/mcp/flows";
 
 describe("nextPurposeFor", () => {
   it("walks the add_job chain in order", () => {
-    expect(nextPurposeFor("parse_job")).toBe("analyze_ats");
-    expect(nextPurposeFor("analyze_ats", { hasResume: false })).toBe(
+    expect(nextPurposeFor("parse_job")).toBe("analyze_document");
+    expect(nextPurposeFor("analyze_document", { hasResume: false })).toBe(
       "generate_tailored_resume"
     );
     expect(nextPurposeFor("generate_tailored_resume")).toBe(
@@ -14,30 +14,29 @@ describe("nextPurposeFor", () => {
     expect(nextPurposeFor("generate_cover_letter")).toBeNull();
   });
 
-  it("disambiguates analyze_ats's two callers via hasResume", () => {
-    // add_job: scoring the base profile, no tailored resume yet.
-    expect(nextPurposeFor("analyze_ats", { hasResume: false })).toBe(
+  it("disambiguates analyze_document's two callers via hasResume", () => {
+    // add_job: scoring the base profile, no tailored resume yet — continue
+    // on to tailoring.
+    expect(nextPurposeFor("analyze_document", { hasResume: false })).toBe(
       "generate_tailored_resume"
     );
-    // ats_fix: scoring the already-tailored resume directly.
-    expect(nextPurposeFor("analyze_ats", { hasResume: true })).toBe(
-      "fix_ats_issues"
-    );
+    // document_fix: scoring the already-tailored resume directly — the
+    // flow ends here (the caller turns findings into ops itself, via
+    // align_resume_terms or apply_resume_ops, not another purpose).
+    expect(nextPurposeFor("analyze_document", { hasResume: true })).toBeNull();
   });
 
   it("defaults hasResume to false when omitted", () => {
-    expect(nextPurposeFor("analyze_ats")).toBe("generate_tailored_resume");
+    expect(nextPurposeFor("analyze_document")).toBe("generate_tailored_resume");
   });
 
-  it("terminates flows whose remaining steps are apply_resume_ops, not another purpose", () => {
+  it("terminates flows whose remaining steps are apply_resume_ops/align_resume_terms, not another purpose", () => {
     expect(nextPurposeFor("extract_fields_to_edit")).toBeNull();
-    expect(nextPurposeFor("proofread_resume")).toBeNull();
-    expect(nextPurposeFor("fix_ats_issues")).toBeNull();
     expect(nextPurposeFor("humanize_content")).toBeNull();
   });
 
-  it("terminates analyze_resume_gaps (apply is a separate apply_resume_ops call)", () => {
-    expect(nextPurposeFor("analyze_resume_gaps")).toBeNull();
+  it("terminates analyze_fit (it has no apply path at all)", () => {
+    expect(nextPurposeFor("analyze_fit")).toBeNull();
   });
 });
 
@@ -47,12 +46,11 @@ describe("FLOW_CATALOG", () => {
     expect(names).toEqual([
       "add_job",
       "edit",
-      "proofread",
-      "ats_fix",
+      "document_fix",
       "humanize",
       "cover_letter",
       "bookmark",
-      "gap_analysis",
+      "fit_check",
     ]);
   });
 
@@ -61,18 +59,25 @@ describe("FLOW_CATALOG", () => {
     expect(bookmark?.purposes).toEqual(["parse_job"]);
   });
 
-  it("orders add_job as parse_job -> analyze_ats -> generate_tailored_resume -> generate_cover_letter", () => {
+  it("orders add_job as parse_job -> analyze_document -> generate_tailored_resume -> generate_cover_letter", () => {
     const addJob = FLOW_CATALOG.find((flow) => flow.name === "add_job");
     expect(addJob?.purposes).toEqual([
       "parse_job",
-      "analyze_ats",
+      "analyze_document",
       "generate_tailored_resume",
       "generate_cover_letter",
     ]);
   });
 
-  it("orders ats_fix as analyze_ats -> fix_ats_issues", () => {
-    const atsFix = FLOW_CATALOG.find((flow) => flow.name === "ats_fix");
-    expect(atsFix?.purposes).toEqual(["analyze_ats", "fix_ats_issues"]);
+  it("orders document_fix as a single analyze_document step (align_resume_terms/apply_resume_ops are tools, not purposes)", () => {
+    const documentFix = FLOW_CATALOG.find(
+      (flow) => flow.name === "document_fix"
+    );
+    expect(documentFix?.purposes).toEqual(["analyze_document"]);
+  });
+
+  it("orders fit_check as a single analyze_fit step", () => {
+    const fitCheck = FLOW_CATALOG.find((flow) => flow.name === "fit_check");
+    expect(fitCheck?.purposes).toEqual(["analyze_fit"]);
   });
 });

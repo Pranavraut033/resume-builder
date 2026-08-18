@@ -11,7 +11,7 @@ import {
   validateCustomization,
 } from "@/types/customization";
 import { DocumentAnalysisJSON } from "@/types/documentAnalysis";
-import { FitCheckSchema, FitLevel } from "@/types/fitCheck";
+import { FitCheckJSON, FitCheckSchema, FitLevel } from "@/types/fitCheck";
 import { JobStatus, JOB_STATUSES } from "@/types/job";
 import { ResumeJSON, normalizeSkills } from "@/types/resume";
 
@@ -234,6 +234,14 @@ export async function saveAtsAnalysis(
   const result = await dbJob.saveAtsAnalysis(jobId, atsAnalysis);
 
   revalidatePath(`/job/${jobId}/resume`);
+  return result;
+}
+
+export async function saveFitCheck(jobId: number, fitCheck: FitCheckJSON) {
+  const result = await dbJob.saveFitCheck(jobId, fitCheck);
+
+  revalidatePath(`/job/${jobId}/resume`);
+  revalidatePath("/documents");
   return result;
 }
 

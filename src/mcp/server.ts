@@ -1,5 +1,5 @@
 /**
- * MCP server definition — 11 tools that let an external LLM (Claude Desktop,
+ * MCP server definition — 12 tools that let an external LLM (Claude Desktop,
  * etc.) drive this app's resume flows using its OWN reasoning. This module
  * never calls an LLM and never touches an API key: it only serves prompts
  * already built by this app's existing prompt system, and validates/
@@ -15,13 +15,15 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 
-// Side-effect imports: these two purposes self-register on module load only
-// (they live in src/lib/llm/chat-bot/prompts/, not the templates/ barrel
-// src/lib/llm/prompts/index.ts already imports) — without these,
-// templateRegistry.getByPurpose("extract_fields_to_edit" | "fix_ats_issues")
-// returns undefined and get_prompt/submit would 404 on them.
+// Side-effect import: extract_fields_to_edit self-registers on module load
+// only (it lives in src/lib/llm/chat-bot/prompts/, not the templates/
+// barrel src/lib/llm/prompts/index.ts already imports) — without this,
+// templateRegistry.getByPurpose("extract_fields_to_edit") returns undefined
+// and get_prompt/submit would 404 on it. keywordMappingPrompt.ts no longer
+// registers a PromptTemplate (fix_ats_issues is gone — align_resume_terms
+// is a TOOL now, not a get_prompt purpose); it's imported below purely for
+// AtsFixMappingSchema/mappingsToResumeOps, this tool's argument contract.
 import "@/lib/llm/chat-bot/prompts/extractFieldsToEdit";
-import "@/lib/llm/chat-bot/prompts/keywordMappingPrompt";
 
 import {
   getAllProfiles,
@@ -41,15 +43,19 @@ import {
   updateResume as dbUpdateResume,
 } from "@/lib/db/job";
 import { EditFieldOutputSchema } from "@/lib/llm/chat-bot/prompts/extractFieldsToEdit";
-import { AtsFixMappingSchema } from "@/lib/llm/chat-bot/prompts/keywordMappingPrompt";
+import {
+  AtsFixMapping,
+  AtsFixMappingSchema,
+} from "@/lib/llm/chat-bot/prompts/keywordMappingPrompt";
 import { PromptContext, PromptPurpose, PromptSystem } from "@/lib/llm/prompts";
 import { applyResumeOps, resumePathLines, ResumeOp } from "@/lib/resume/editor";
-import { GapAnalysisSchema } from "@/types/gapAnalysis";
-import { HumanizerSchema } from "@/types/humanizer";
-import { ProofreadJSON, ProofreadSchema } from "@/types/proofread";
 import {
-  ATSAnalysisJSON,
-  ATSAnalysisSchema,
+  DocumentAnalysisJSON,
+  DocumentAnalysisSchema,
+} from "@/types/documentAnalysis";
+import { FitCheckSchema } from "@/types/fitCheck";
+import { HumanizerSchema } from "@/types/humanizer";
+import {
   JobDetailsJSON,
   JobDetailsSchema,
   ResumeJSON,
@@ -68,7 +74,8 @@ import {
 import { FLOW_CATALOG, nextPurposeFor } from "./flows";
 import {
   applyGuard,
-  guardProofreadResult,
+  guardAlignOps,
+  guardDocumentAnalysis,
   guardTailoredResume,
 } from "./guards";
 
@@ -109,14 +116,12 @@ export const defaultDeps: McpDeps = {
 
 export const MCP_PURPOSES = [
   "parse_job",
-  "analyze_ats",
+  "analyze_document",
+  "analyze_fit",
   "generate_tailored_resume",
   "generate_cover_letter",
   "humanize_content",
   "extract_fields_to_edit",
-  "fix_ats_issues",
-  "proofread_resume",
-  "analyze_resume_gaps",
 ] as const;
 
 export type McpPurpose = (typeof MCP_PURPOSES)[number];
@@ -129,13 +134,11 @@ const RESULT_SCHEMAS: Record<
   z.ZodTypeAny
 > = {
   parse_job: JobDetailsSchema,
-  analyze_ats: ATSAnalysisSchema,
+  analyze_document: DocumentAnalysisSchema,
+  analyze_fit: FitCheckSchema,
   generate_tailored_resume: ResumeSchema,
   humanize_content: HumanizerSchema,
   extract_fields_to_edit: EditFieldOutputSchema,
-  fix_ats_issues: AtsFixMappingSchema,
-  proofread_resume: ProofreadSchema,
-  analyze_resume_gaps: GapAnalysisSchema,
 };
 
 function schemaFor(purpose: McpPurpose): z.ZodTypeAny {
@@ -214,7 +217,9 @@ const McpInputSchema = z.object({
   // steps. Requires input.url.
   bookmark: z.boolean().optional(),
   jobDetails: JobDetailsSchema.optional(),
-  atsAnalysis: ATSAnalysisSchema.nullable().optional(),
+  // Field name kept as `atsAnalysis` — see draft.ts's Draft.atsAnalysis
+  // comment; this now carries a DocumentAnalysisJSON (Deep Analysis) blob.
+  atsAnalysis: DocumentAnalysisSchema.nullable().optional(),
   baseProfile: ResumeSchema.optional(),
   resume: ResumeSchema.optional(),
   resumeFull: ResumeSchema.optional(),
@@ -267,22 +272,31 @@ async function hydrateContext(
     case "parse_job":
       return { context: { jobDescription: input.jobDescription }, resumeRow };
 
-    case "analyze_ats": {
-      // add_job (no resume yet): score the base profile, mirroring
-      // LLMService.analyzeATS(profile, jobDetails) in job/new/page.tsx.
-      // ats_fix (resume already tailored): score it directly.
-      const baseline = resumeRow
-        ? resumeRow.contentJson
+    case "analyze_document": {
+      // add_job (no resume yet): Deep Analysis the base profile, mirroring
+      // the old analyze_ats baseline-scoring behavior — its findings
+      // become the `atsAnalysis` guidance context field
+      // generate_tailored_resume reads. document_fix (resume already
+      // tailored): analyze it directly, with the base profile alongside
+      // too so full-mode provenance diffing has ground truth to compare
+      // against (mirrors the old proofread_resume's baseProfile lookup).
+      const profile = resumeRow
+        ? undefined
         : ((await deps.getProfileById(
             input.profileId ?? job?.profileId ?? null
           )) ?? undefined);
-      const resumeValue = input.resume ?? baseline ?? null;
+      const resumeFullValue =
+        input.resumeFull ?? resumeRow?.contentJson ?? profile ?? null;
+      const baseProfileValue = job?.profileId
+        ? ((await deps.getProfileById(job.profileId)) ?? undefined)
+        : undefined;
       const jobDetailsValue =
         input.jobDetails ?? draft?.jobDetails ?? job?.details ?? null;
       return {
         context: {
-          resume: pick(draft, "baseProfile", resumeValue),
+          resumeFull: pick(draft, "baseProfile", resumeFullValue),
           jobDetails: pick(draft, "jobDetails", jobDetailsValue),
+          baseProfile: input.baseProfile ?? baseProfileValue,
         },
         resumeRow,
       };
@@ -355,31 +369,7 @@ async function hydrateContext(
     case "extract_fields_to_edit":
       return { context: { userInput: input.userInput }, resumeRow };
 
-    case "fix_ats_issues":
-      return {
-        context: {
-          resume: input.resume ?? resumeRow?.contentJson ?? null,
-          jobDetails: input.jobDetails ?? job?.details ?? null,
-          userInput: input.userInput,
-        },
-        resumeRow,
-      };
-
-    case "proofread_resume": {
-      const baseProfile = job?.profileId
-        ? await deps.getProfileById(job.profileId)
-        : null;
-      return {
-        context: {
-          resumeFull: input.resumeFull ?? resumeRow?.contentJson ?? null,
-          jobDetails: input.jobDetails ?? job?.details ?? null,
-          baseProfile: input.baseProfile ?? baseProfile ?? undefined,
-        },
-        resumeRow,
-      };
-    }
-
-    case "analyze_resume_gaps":
+    case "analyze_fit":
       return {
         context: {
           resume: input.resume ?? resumeRow?.contentJson ?? null,
@@ -663,24 +653,46 @@ export async function submitTool(
         return withNextPrompt({ ok: true, jobId: null, draftId, next: next() });
       }
 
-      case "analyze_ats": {
+      case "analyze_document": {
         if (jobId != null && hasResumeBefore) {
+          // document_fix flow: the resume being analyzed already exists —
+          // guard it (re-stamp every submitted finding to source: "llm",
+          // merge in this server's own lintResume() findings as the only
+          // "lint"-sourced ones, see guards.ts) before persisting, and
+          // return the merged result inline so the caller can turn it into
+          // ops (align_resume_terms for form-only swaps, apply_resume_ops
+          // otherwise) without a second round trip.
+          const resumeRow = await deps.getResumeByJobId(jobId);
+          const guardedResult = guardDocumentAnalysis(
+            resumeRow.contentJson,
+            parsed.data as DocumentAnalysisJSON,
+            input.jobDetails ?? null
+          );
           await withBusyRetry(() =>
-            deps.saveAtsAnalysis(jobId, parsed.data as ATSAnalysisJSON)
+            deps.saveAtsAnalysis(jobId, guardedResult)
           );
           return withNextPrompt({
             ok: true,
             jobId,
             next: nextPurposeFor(purpose, { hasResume: true }),
+            result: guardedResult,
           });
         }
         // add_job phase: no resume exists yet to attach this analysis to
         // (job.baseProfileAnalysis is only settable via createJob's own
-        // atsAnalysis param at creation time). Validated only; the draft
-        // carries this forward to the final generate_cover_letter submit,
-        // which performs the real createJob.
-        if (draftId)
-          updateDraft(draftId, { atsAnalysis: parsed.data as ATSAnalysisJSON });
+        // atsAnalysis param at creation time) or to lint against — just
+        // re-stamp every submitted finding to source: "llm" (the same
+        // security property as the branch above, minus the lint merge,
+        // since there's no persisted resume to lint here yet) and let the
+        // draft carry this forward to the final generate_cover_letter
+        // submit, which performs the real createJob.
+        const restamped: DocumentAnalysisJSON = {
+          ...(parsed.data as DocumentAnalysisJSON),
+          findings: (parsed.data as DocumentAnalysisJSON).findings.map(
+            (finding) => ({ ...finding, source: "llm" as const })
+          ),
+        };
+        if (draftId) updateDraft(draftId, { atsAnalysis: restamped });
         return withNextPrompt({ ok: true, jobId: null, draftId, next: next() });
       }
 
@@ -815,34 +827,17 @@ export async function submitTool(
       }
 
       case "extract_fields_to_edit":
-      case "fix_ats_issues":
       case "humanize_content":
-      case "analyze_resume_gaps":
+      case "analyze_fit":
         // Validate-only — the caller applies the result itself via
-        // apply_resume_ops (edit ops / ATS fix ops / gap resume_fix ops) or a
-        // follow-up submit (humanized cover-letter text), never a direct DB
-        // write here.
+        // apply_resume_ops (edit ops) or a follow-up submit (humanized
+        // cover-letter text), never a direct DB write here. Fit Check has
+        // no apply path at all (its Gap schema carries no resume_fix, see
+        // src/types/fitCheck.ts — that's the point, a fit judgment isn't a
+        // document edit) and, unlike analyze_document/ATSAnalysis, this
+        // server has no FitCheck-table write path yet either — nothing in
+        // src/lib/db/job.ts saves a FitCheckJSON blob as of this cluster.
         return withNextPrompt({ ok: true, jobId: jobId ?? null, next: next() });
-
-      case "proofread_resume": {
-        if (jobId == null) {
-          return {
-            ok: false,
-            errors: ["proofread_resume requires an existing jobId."],
-          };
-        }
-        const resumeRow = await deps.getResumeByJobId(jobId);
-        const guardedResult = guardProofreadResult(
-          resumeRow.contentJson,
-          parsed.data as ProofreadJSON
-        );
-        return withNextPrompt({
-          ok: true,
-          jobId,
-          next: nextPurposeFor(purpose, { hasResume: true }),
-          result: guardedResult,
-        });
-      }
     }
   } catch (err) {
     return {
@@ -882,6 +877,60 @@ export async function applyResumeOpsTool(
   }
 
   return { applied, rejected };
+}
+
+// ── align_resume_terms ──────────────────────────────────────────────────
+//
+// A TOOL, not a get_prompt/submit purpose — the calling model already has
+// the Deep Analysis findings and the resume path lines from an earlier
+// analyze_document call, so re-prompting it to re-derive ops would be a
+// wasted round trip. Arguments are AtsFixMappingSchema's ops (imported, not
+// redefined) unchanged from the old fix_ats_issues purpose's output shape.
+//
+// Guarded by guardAlignOps's additive-only rule (see guards.ts) — this is
+// the ONE MCP write path allowed to auto-apply a suggested term swap
+// without a human reviewing it first, and the guard is the entire reason
+// that's safe: apply_resume_ops has no equivalent content check at all, by
+// design, since it's the general-purpose editor.
+
+export interface AlignResumeTermsResult {
+  ok: true;
+  applied: ResumeOp[];
+  rejected: { op: ResumeOp; reason: string }[];
+}
+export interface AlignResumeTermsError {
+  ok: false;
+  error: string;
+}
+
+export async function alignResumeTermsTool(
+  deps: McpDeps,
+  args: { jobId: number; ops: AtsFixMapping["ops"] }
+): Promise<AlignResumeTermsResult | AlignResumeTermsError> {
+  const resumeRow = await deps.getResumeByJobId(args.jobId);
+
+  const guarded = applyGuard(() =>
+    guardAlignOps(resumeRow.contentJson, { ops: args.ops })
+  );
+  if (!guarded.ok) return { ok: false, error: guarded.error };
+
+  const { resume, applied, rejected } = applyResumeOps(
+    resumeRow.contentJson,
+    guarded.value
+  );
+
+  if (applied.length > 0) {
+    await withBusyRetry(() =>
+      deps.updateResume(
+        args.jobId,
+        resume,
+        resumeRow.customizations,
+        "MCP align terms"
+      )
+    );
+  }
+
+  return { ok: true, applied, rejected };
 }
 
 // ── get_profile / preview_profile_edit / apply_profile_edit ────────────────
@@ -1119,7 +1168,7 @@ export function buildServer(deps: McpDeps = defaultDeps): McpServer {
     {
       title: "List flows",
       description:
-        "List every flow (add_job, edit, proofread, ats_fix, humanize, cover_letter, bookmark, gap_analysis) and the ordered purposes each one walks through get_prompt/submit. Base-profile editing (get_profile / preview_profile_edit / apply_profile_edit) is NOT in this catalog — it needs no LLM prompt from this server (you already have the full profile from get_profile), so it's a standalone propose-then-confirm tool trio instead of a get_prompt/submit purpose sequence.",
+        "List every flow (add_job, edit, document_fix, humanize, cover_letter, bookmark, fit_check) and the ordered purposes each one walks through get_prompt/submit. Base-profile editing (get_profile / preview_profile_edit / apply_profile_edit) is NOT in this catalog — it needs no LLM prompt from this server (you already have the full profile from get_profile), so it's a standalone propose-then-confirm tool trio instead of a get_prompt/submit purpose sequence. align_resume_terms is also not in this catalog — it's a standalone tool, not a get_prompt/submit purpose (see its own description).",
       annotations: readOnly,
     },
     async () => toToolResult(listFlowsTool())
@@ -1177,6 +1226,27 @@ export function buildServer(deps: McpDeps = defaultDeps): McpServer {
         await applyResumeOpsTool(
           deps,
           args as { jobId: number; ops: ResumeOp[] }
+        )
+      )
+  );
+
+  server.registerTool(
+    "align_resume_terms",
+    {
+      title: "Align resume terms",
+      description:
+        'Turn Deep Analysis "keyword"/"correctness" findings you already have into resume ops and apply them directly — no re-prompt needed, no fix_ats_issues round trip. Arguments match AtsFixMappingSchema (item/op/path/value per finding, same as the old fix_ats_issues output). ADDITIVE-ONLY, guarded server-side: normalize the resume\'s CURRENT value at each op\'s path and the op\'s proposed value (lowercase, strip punctuation/whitespace into word tokens) — an op is legal ONLY when the current value\'s tokens are a STRICT SUBSET of the new value\'s, i.e. it adds an alternate surface form on top of what\'s already there (acronym -> expansion, expansion -> acronym+expansion, an alias the JD uses) and never drops or replaces a word. "CPA" -> "Certified Public Accountant (CPA)" and "K8s" -> "Kubernetes (K8s)" both pass; "Managed the deploy pipeline" -> "Architected a 40% faster pipeline" is a rewrite, not an alignment, and is REJECTED. A "remove" op is always rejected (never additive). The WHOLE call is rejected — nothing applied — if any single op fails the rule; fix or drop that op and resubmit. For a genuine rewrite, a new claim, or a non-string field, use apply_resume_ops directly instead — this tool exists ONLY for additive term alignment.',
+      inputSchema: {
+        jobId: z.number().int().positive(),
+        ops: AtsFixMappingSchema.shape.ops,
+      },
+      annotations: { readOnlyHint: false, idempotentHint: true },
+    },
+    async (args) =>
+      toToolResult(
+        await alignResumeTermsTool(
+          deps,
+          args as { jobId: number; ops: AtsFixMapping["ops"] }
         )
       )
   );
