@@ -4,6 +4,8 @@ import { z } from "zod";
 
 import { sanitizeUntrustedText } from "@/lib/llm/prompts/sanitize";
 
+import type { DocumentAnalysisJSON } from "./documentAnalysis";
+
 // Job Identification
 const JobIdentificationSchema = z.object({
   job_title: z.string(),
@@ -366,91 +368,24 @@ export type Language = z.infer<typeof LanguageSchema>;
 export type Volunteer = z.infer<typeof VolunteerSchema>;
 export type Award = z.infer<typeof AwardSchema>;
 
-export const ATSAnalysisSchema = z.object({
-  keyword_analysis: z.array(
-    z.object({
-      keyword: z.string(),
-      match_type: z.enum(["exact", "semantic", "missing"]),
-    })
-  ),
-  scores: z.object({
-    composite_score: z.number().min(0).max(100),
-  }),
-  improvements: z.array(
-    z.object({
-      section: z.string(),
-      issue: z.string(),
-      recommended_fix: z.string(),
-      // Verbatim bullet/sentence being critiqued, and its XYZ-pattern
-      // rewrite. Nullable + defaulted (not just optional) so old rows in
-      // SQLite (Resume.atsAnalysis stored before this field existed) still
-      // parse — see knockout_risks/title_alignment below for the same
-      // back-compat convention.
-      original_text: z.string().nullable().default(null),
-      rewrite: z.string().nullable().default(null),
-    })
-  ),
-  summary: z.string(),
-  // Hard JD requirements (work authorization/visa, degree, license/cert,
-  // location/onsite, minimum years) cross-checked against the resume.
-  // `.default([])` (not `.optional()`) so old stored `Resume.atsAnalysis`
-  // JSON without this field still parses.
-  knockout_risks: z
-    .array(
-      z.object({
-        requirement: z.string(),
-        severity: z.enum(["blocking", "likely", "possible"]),
-        evidence: z.string(),
-        advice: z.string(),
-      })
-    )
-    .default([]),
-  // Resume's most recent title vs. the target title's seniority — some ATS
-  // platforms (e.g. Workday) weight title match heavily. `.default(...)` for
-  // the same back-compat reason as knockout_risks.
-  title_alignment: z
-    .object({
-      verdict: z.enum(["aligned", "below", "above", "unclear"]),
-      note: z.string(),
-    })
-    .default({
-      verdict: "unclear",
-      note: "",
-    }),
-});
-
-export type ATSAnalysisJSON = z.infer<typeof ATSAnalysisSchema>;
-
-export function atsAnalysisToCompactPositional(
-  atsAnalysis: ATSAnalysisJSON
+export function documentAnalysisToCompactPositional(
+  documentAnalysis: DocumentAnalysisJSON
 ): string {
   // Sanitized before returning: this compact string is interpolated
-  // unescaped (`{{{atsAnalysis}}}`) into a `---`-fenced prompt block — an ATS
-  // analysis field (e.g. `summary`, `issue`, `recommended_fix`) that itself
+  // unescaped (`{{{documentAnalysis}}}`) into a `---`-fenced prompt block — a
+  // document analysis field (e.g. `summary`, `why`, `original`) that itself
   // contains a standalone `---`/``` line could otherwise close the fence
   // early. See @/lib/llm/prompts/sanitize.ts.
   return sanitizeUntrustedText(`
-ATSKeyword_analysis:
-${atsAnalysis.keyword_analysis
-  .map((ka) => `${ka.keyword}|${ka.match_type}`)
-  .join("\n")}
-ATSscores:
-${atsAnalysis.scores.composite_score}
-ATSImprovements:
-${atsAnalysis.improvements
+DocumentFindings:
+${documentAnalysis.findings
   .map(
-    (imp) =>
-      `${imp.section}|${imp.issue}|${imp.recommended_fix}|${imp.original_text || ""}|${imp.rewrite || ""}`
+    (finding) =>
+      `${finding.path}|${finding.original}|${finding.suggestion}|${finding.kind}|${finding.severity}|${finding.why}|${finding.source}`
   )
   .join("\n")}
-ATSKnockout_risks:
-${atsAnalysis.knockout_risks
-  .map((kr) => `${kr.requirement}|${kr.severity}|${kr.evidence}|${kr.advice}`)
-  .join("\n")}
-ATSTitle_alignment:
-${atsAnalysis.title_alignment.verdict}|${atsAnalysis.title_alignment.note}
-ATSAnalysisSummary:
-${atsAnalysis.summary}`);
+DocumentAnalysisSummary:
+${documentAnalysis.summary}`);
 }
 
 export function resumeJsonToCompactPositional(resume: ResumeJSON): string {
