@@ -52,13 +52,13 @@ installs. No-op on non-macOS.
 
 ## Rust sources (`src-tauri/src/`)
 
-| File            | Purpose                                                                                                                                |
-| --------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
-| `main.rs`       | Binary entry point.                                                                                                                    |
+| File            | Purpose                                                                                                                                                                                                                                                                                                                                             |
+| --------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `main.rs`       | Binary entry point.                                                                                                                                                                                                                                                                                                                                 |
 | `lib.rs`        | App setup — `spawn_bundled_next_server`, `sync_database_schema`, `clear_quarantine`. On restart (e.g. after an update install), it kills the old bundled-server child and `.wait()`s for it before a new one spawns — without the wait, the new instance's bind can race a still-open port-3009 socket and the app exits before its window appears. |
-| `keychain.rs`   | OS keychain access (`keyring`) for the per-install master key behind encrypted API-key storage — see [llm-runtime.md](llm-runtime.md). |
-| `browser.rs`    | In-app browser webview backing `/find-jobs/browse` (client side: `src/lib/browserWebview.ts`).                                         |
-| `mcp_server.rs` | Hosts the MCP server process (client side: `src/lib/mcpServer.ts`, `src/store/mcpServerStore.ts`).                                     |
+| `keychain.rs`   | OS keychain access (`keyring`) for the per-install master key behind encrypted API-key storage — see [llm-runtime.md](llm-runtime.md).                                                                                                                                                                                                              |
+| `browser.rs`    | In-app browser webview backing `/find-jobs/browse` (client side: `src/lib/browserWebview.ts`).                                                                                                                                                                                                                                                      |
+| `mcp_server.rs` | Hosts the MCP server process (client side: `src/lib/mcpServer.ts`, `src/store/mcpServerStore.ts`).                                                                                                                                                                                                                                                  |
 
 ## Build scripts
 

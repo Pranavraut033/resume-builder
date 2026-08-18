@@ -24,8 +24,8 @@ All notable changes to this project are documented in this file.
 ### Fixed
 
 - A single stale pre-`v:2` analysis row took down the entire job-editor page load: `getResumeByJobId` and `createResume` parsed `atsAnalysis` with a throwing `.parse()` and no fallback. Factored into one shared `safeParseDocumentAnalysis` ([07ecb7d])
-- `align_resume_terms` could silently delete resume content: `findingToAlignOp` built a whole-leaf replace for every additive finding, but `DocumentFinding.original` is a verbatim *substring*. It now reads the current leaf, requires an exactly-one occurrence match, and splices only that substring — applied sequentially so two findings on the same leaf compose ([473ee30])
-- `guardAlignOps` keyed off the op name and skipped `add` as additive by construction. RFC 6902 `add` on an existing member *replaces* it, so `{op:"add", path:"/summary"}` performed exactly the rewrite the guard exists to reject. It now keys off what the path resolves to ([8aba5d2])
+- `align_resume_terms` could silently delete resume content: `findingToAlignOp` built a whole-leaf replace for every additive finding, but `DocumentFinding.original` is a verbatim _substring_. It now reads the current leaf, requires an exactly-one occurrence match, and splices only that substring — applied sequentially so two findings on the same leaf compose ([473ee30])
+- `guardAlignOps` keyed off the op name and skipped `add` as additive by construction. RFC 6902 `add` on an existing member _replaces_ it, so `{op:"add", path:"/summary"}` performed exactly the rewrite the guard exists to reject. It now keys off what the path resolves to ([8aba5d2])
 - `saveFitCheck` write path was missing — the table and read path landed without a writer, so a Fit Check result was never persisted ([8aba5d2])
 - Deep Analysis no longer renders a card per no-op finding (`suggestion === original`); a one-line count replaces them, and the visible list is now the single source both the render and the default selection derive from, so a checkbox can't apply to the wrong finding ([bc32697])
 - Theme flash on launch eliminated, and live system-theme changes now apply immediately ([c7f2fb4])
