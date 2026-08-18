@@ -155,7 +155,9 @@ function AppShellContent({ children }: AppShellProps) {
             </>
           }
         />
-        <main className="flex-1 overflow-y-auto px-6 py-6">{children}</main>
+        <main className="flex-1 overflow-x-hidden overflow-y-auto px-6 py-6">
+          {children}
+        </main>
       </div>
     </div>
   );
