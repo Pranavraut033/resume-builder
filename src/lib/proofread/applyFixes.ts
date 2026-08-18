@@ -24,7 +24,11 @@ export interface ApplyProofreadFixesResult {
   unapplied: DocumentFinding[];
 }
 
-function countOccurrences(haystack: string, needle: string): number {
+// Exported for src/lib/llm/chat-bot/Chatbot.ts's alignResumeTerms, which
+// needs the same verified-substring-splice safety this file already gives
+// lint auto-apply, but for a different finding subset (additive-only) and
+// a different reporting shape (ResumeOp-based, to match applyEdits).
+export function countOccurrences(haystack: string, needle: string): number {
   if (!needle) return 0;
   return haystack.split(needle).length - 1;
 }
@@ -32,7 +36,10 @@ function countOccurrences(haystack: string, needle: string): number {
 // Every path segment is either a fixed field name or a numeric array index
 // (see the note in src/lib/resume/editor.ts) — plain property/index access
 // is enough, no JSON-pointer escaping to worry about.
-function readLeafAtPath(resume: ResumeJSON, path: string): string | null {
+export function readLeafAtPath(
+  resume: ResumeJSON,
+  path: string
+): string | null {
   const segments = path.split("/").filter(Boolean);
   let current: unknown = resume;
   for (const segment of segments) {

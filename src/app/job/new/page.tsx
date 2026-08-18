@@ -167,7 +167,12 @@ function NewJobPageInner() {
       }
 
       setActiveStep(bookmarkId ? 0 : 1);
-      const atsAnalysis = await LLMService.analyzeATS(
+      // Deep Analysis, not Fit Check: this feeds generateTailoredResume as
+      // wording/ordering hints and gets persisted via attachGeneratedMaterials/
+      // createJob's `atsAnalysis` field, both of which expect a
+      // DocumentAnalysisJSON — same call LLMService.generateApplicationMaterials
+      // makes for the same reason.
+      const atsAnalysis = await LLMService.analyzeDocument(
         profile,
         jobDetailsResult,
         modelOptions

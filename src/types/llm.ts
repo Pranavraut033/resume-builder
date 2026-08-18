@@ -10,8 +10,9 @@
 
 import { LLMUsageInfo } from "@/actions/tokenUsage";
 
+import { DocumentAnalysisJSON } from "./documentAnalysis";
 import { HumanizerJSON } from "./humanizer";
-import { ATSAnalysisJSON, JobDetailsJSON, ResumeJSON } from "./resume";
+import { JobDetailsJSON, ResumeJSON } from "./resume";
 
 import type { ToolCall } from "@pranavraut033/llm-core";
 
@@ -49,7 +50,10 @@ export enum ProviderType {
 export interface ResumePromptInput {
   baseProfile: ResumeJSON;
   jobDetails: JobDetailsJSON;
-  atsAnalysis: ATSAnalysisJSON | null;
+  // Historically an ATS analysis; Deep Analysis (analyze_document) is the
+  // successor schema — see PromptContext.atsAnalysis's doc comment in
+  // src/lib/llm/prompts/types.ts for why the field name stayed the same.
+  atsAnalysis: DocumentAnalysisJSON | null;
 }
 
 export interface CoverLetterPromptInput {
@@ -58,8 +62,6 @@ export interface CoverLetterPromptInput {
   customInstructions?: string;
   styleGuide?: string;
 }
-
-export type ATSAnalysisPromptInput = CoverLetterPromptInput;
 
 export interface PromptMessage {
   role: "system" | "user" | "assistant";
@@ -78,4 +80,4 @@ export type ResumeParsingResult = ResumeGenerationResult;
 export type CoverLetterGenerationResult = LLMResult<string>;
 export type JobParsingResult = LLMResult<JobDetailsJSON>;
 export type HumanizeContentResult = LLMResult<HumanizerJSON>;
-export type ATSAnalysisResult = LLMResult<ATSAnalysisJSON>;
+export type DocumentAnalysisResult = LLMResult<DocumentAnalysisJSON>;

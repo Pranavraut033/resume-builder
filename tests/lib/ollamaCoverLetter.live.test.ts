@@ -8,7 +8,7 @@
  * content (done_reason: "length"). Fixed in packages/llm-core by defaulting
  * `think: false` unless the caller opts in via a positive thinkingBudget.
  *
- * Root cause 2 (analyzeATS/parseJobDetails on large real prompts):
+ * Root cause 2 (analyzeDocument/parseJobDetails on large real prompts):
  * OllamaProvider never set `num_ctx`, so Ollama's small default context
  * window (independent of num_predict/maxTokens) silently truncated output
  * once prompt + output tokens hit it. Fixed by defaulting num_ctx to 8192.
@@ -25,7 +25,7 @@ import { getProviderInstance } from "@pranavraut033/llm-core";
 import "@pranavraut033/llm-core/providers/register-builtins";
 
 import {
-  analyzeATS,
+  analyzeDocument,
   generateCoverLetter,
   generateResume,
   humanizeContent,
@@ -185,21 +185,25 @@ describe.skipIf(!(await ollamaReachable()))(
       expect(result.length).toBeGreaterThan(0);
     }, 300_000);
 
-    it("analyzeATS returns real scores/keywords for a real resume/job pair", async () => {
+    it("analyzeDocument returns real findings for a real resume/job pair", async () => {
       const { jobDetails, resume } = loadRealJobAndResume();
+      const baseProfile = loadRealBaseProfile();
       const provider = await getProvider();
 
-      const { result } = await analyzeATS(
+      const { result } = await analyzeDocument(
         provider,
-        { jobDetails, resume },
+        { resumeFull: resume, jobDetails, baseProfile },
         { model: MODEL }
       );
 
+      expect(result.v).toBe(2);
       expect(typeof result.summary).toBe("string");
       expect(result.summary.length).toBeGreaterThan(0);
-      expect(Array.isArray(result.keyword_analysis)).toBe(true);
-      expect(result.scores.composite_score).toBeGreaterThanOrEqual(0);
-      expect(result.scores.composite_score).toBeLessThanOrEqual(100);
+      expect(Array.isArray(result.findings)).toBe(true);
+      for (const finding of result.findings) {
+        expect(typeof finding.path).toBe("string");
+        expect(["lint", "llm"]).toContain(finding.source);
+      }
     }, 300_000);
 
     it("generateResume tailors a real base profile to a real job", async () => {
