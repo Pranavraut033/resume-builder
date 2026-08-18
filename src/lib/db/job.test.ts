@@ -4,7 +4,8 @@ import path from "node:path";
 
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 
-import { ATSAnalysisJSON, JobDetailsJSON, ResumeJSON } from "@/types/resume";
+import { DocumentAnalysisJSON } from "@/types/documentAnalysis";
+import { JobDetailsJSON, ResumeJSON } from "@/types/resume";
 
 // A dedicated on-disk SQLite file for this test suite, kept separate from the
 // dev/app database so we never touch real user data. Must be set before any
@@ -57,6 +58,7 @@ async function wipeAllTables() {
   await prisma.coverLetter.deleteMany();
   await prisma.resume.deleteMany();
   await prisma.aTSAnalysis.deleteMany();
+  await prisma.fitCheck.deleteMany();
   await prisma.customization.deleteMany();
   await prisma.contact.deleteMany();
   await prisma.company.deleteMany();
@@ -188,17 +190,19 @@ function makeResume(overrides: Partial<ResumeJSON> = {}): ResumeJSON {
   };
 }
 
-const atsAnalysis: ATSAnalysisJSON = {
-  keyword_analysis: [{ keyword: "Kafka", match_type: "exact" }],
-  scores: {
-    composite_score: 75,
-  },
-  improvements: [],
-  knockout_risks: [],
-  title_alignment: {
-    verdict: "below",
-    note: "One level below target.",
-  },
+const atsAnalysis: DocumentAnalysisJSON = {
+  v: 2,
+  findings: [
+    {
+      path: "/experience/0/achievements/0",
+      original: "Cut checkout latency 40%.",
+      suggestion: "Cut checkout latency 40% via Kafka-backed caching.",
+      kind: "keyword",
+      severity: "suggestion",
+      why: "Missing the primary technology keyword from the job description.",
+      source: "llm",
+    },
+  ],
   summary: "Strong coverage.",
 };
 

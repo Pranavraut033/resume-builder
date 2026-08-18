@@ -123,6 +123,8 @@ model Job {
   contact             Contact?     @relation(fields: [contactId], references: [id], onDelete: Cascade)
   baseProfileAnalysis ATSAnalysis? @relation(fields: [aTSAnalysisId], references: [id], onDelete: Cascade)
   aTSAnalysisId       Int?         @unique @map("ats_analysis_id")
+  fitCheck            FitCheck?    @relation(fields: [fitCheckId], references: [id], onDelete: Cascade)
+  fitCheckId          Int?         @unique @map("fit_check_id")
 
   // Profile this job was created from
   profileId Int?     @map("profile_id")
@@ -142,6 +144,8 @@ model Resume {
   jobs            Job?
   atsAnalysis     ATSAnalysis?     @relation(fields: [aTSAnalysisId], references: [id], onDelete: Cascade)
   aTSAnalysisId   Int?             @unique @map("ats_analysis_id")
+  fitCheck        FitCheck?        @relation(fields: [fitCheckId], references: [id], onDelete: Cascade)
+  fitCheckId      Int?             @unique @map("fit_check_id")
   snapshots       ResumeSnapshot[]
 
   @@map("resumes")
@@ -181,14 +185,14 @@ model Customization {
 
   // Customization fields
   template   String // template name
-  fontSize   String @map("font_size") // small, medium, large
-  pageFormat String @map("page_format") // A4, Letter
-  fontFamily String @map("font_family")
-  lineHeight String @map("line_height") // tight, normal, relaxed
-  marginSize String @map("margin_size") // CSV: top,right,bottom,left in inches (e.g. 1,1,1,1)
-  colors     String @default("#3b82f6,#64748b,#8b5cf6,#1f2937,#ffffff")
-  background String @default("none") // page background pattern id
-  dateFormat String @default("locale") @map("date_format") // locale, MMM yyyy, MM/yyyy, yyyy-MM, MM.yyyy
+  fontSize   String  @map("font_size") // small, medium, large
+  pageFormat String  @map("page_format") // A4, Letter
+  fontFamily String  @map("font_family")
+  lineHeight String  @map("line_height") // tight, normal, relaxed
+  marginSize String  @map("margin_size") // CSV: top,right,bottom,left in inches (e.g. 1,1,1,1)
+  colors     String  @default("#3b82f6,#64748b,#8b5cf6,#1f2937,#ffffff")
+  background String  @default("none") // page background pattern id
+  dateFormat String  @default("locale") @map("date_format") // locale, MMM yyyy, MM/yyyy, yyyy-MM, MM.yyyy
   fitToPage  Boolean @default(false) @map("fit_to_page") // shrink content (DOM zoom / PDF font+spacing scale) to force a single page
 
   // Cover-letter-specific template id, independent of `template` (which is
@@ -242,10 +246,26 @@ model TokenUsage {
   @@map("token_usage")
 }
 
+// Historical name: this table predates the Fit Check / Deep Analysis split
+// and originally stored ATSAnalysisJSON. It now stores DocumentAnalysisJSON
+// (the "Deep Analysis" result). Not renamed — a table rename is a
+// destructive migration and scripts/migrate-app-db.mjs is additive-only.
 model ATSAnalysis {
   id          Int      @id @default(autoincrement())
   createdAt   DateTime @default(now()) @map("created_at")
-  contentJson String   @map("content_json") // JSON string containing ATSAnalysisJSON structure
+  contentJson String   @map("content_json") // JSON string containing DocumentAnalysisJSON structure
+
+  jobs   Job?
+  resume Resume?
+}
+
+// "Fit Check" result — the decision layer ("should I apply, and what's
+// blocking me?"), as opposed to ATSAnalysis above (the edit layer). Mirrors
+// ATSAnalysis's shape exactly; contentJson holds a FitCheckJSON structure.
+model FitCheck {
+  id          Int      @id @default(autoincrement())
+  createdAt   DateTime @default(now()) @map("created_at")
+  contentJson String   @map("content_json") // JSON string containing FitCheckJSON structure
 
   jobs   Job?
   resume Resume?

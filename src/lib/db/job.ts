@@ -12,14 +12,12 @@ import {
   SanitizedCustomization,
   validateCustomization,
 } from "@/types/customization";
-import { JobStatus } from "@/types/job";
 import {
-  ResumeJSON,
-  JobDetailsJSON,
-  ATSAnalysisJSON,
-  ATSAnalysisSchema,
-  normalizeSkills,
-} from "@/types/resume";
+  DocumentAnalysisJSON,
+  DocumentAnalysisSchema,
+} from "@/types/documentAnalysis";
+import { JobStatus } from "@/types/job";
+import { ResumeJSON, JobDetailsJSON, normalizeSkills } from "@/types/resume";
 
 // Read functions used directly by the MCP server (src/mcp/server.ts), which
 // must never import anything that transitively pulls in next/cache — that's
@@ -30,7 +28,7 @@ import {
 
 export type JobData = Omit<Job, "baseProfileAnalysis"> & {
   details: JobDetailsJSON;
-  baseProfileAnalysis: ATSAnalysisJSON | null;
+  baseProfileAnalysis: DocumentAnalysisJSON | null;
   contact: Contact | null;
   company: Company;
 };
@@ -56,10 +54,10 @@ export async function getJob(jobId: number) {
     throw new Error(`Failed to parse jobDetailsJson for job ${jobId}`);
   }
 
-  let baseProfileAnalysis: ATSAnalysisJSON | null = null;
+  let baseProfileAnalysis: DocumentAnalysisJSON | null = null;
   if (job.baseProfileAnalysis?.contentJson) {
     try {
-      baseProfileAnalysis = ATSAnalysisSchema.parse(
+      baseProfileAnalysis = DocumentAnalysisSchema.parse(
         JSON.parse(job.baseProfileAnalysis.contentJson)
       );
     } catch {
@@ -82,7 +80,7 @@ export type ResumeWithDetails = Omit<
 > & {
   contentJson: ResumeJSON;
   customizations: Customization;
-  atsAnalysis: ATSAnalysisJSON | null;
+  atsAnalysis: DocumentAnalysisJSON | null;
 };
 export async function getResumeByJobId(
   jobId: number,
@@ -121,7 +119,7 @@ export async function getResumeByJobId(
           skills: normalizeSkills(contentJson.skills),
         },
         atsAnalysis: job.resume.atsAnalysis?.contentJson
-          ? ATSAnalysisSchema.parse(
+          ? DocumentAnalysisSchema.parse(
               JSON.parse(job.resume.atsAnalysis.contentJson)
             )
           : null,
@@ -200,7 +198,7 @@ export async function createJob(input: {
   jobDetails: JobDetailsJSON;
   tailoredResume?: ResumeJSON;
   coverLetterText?: string;
-  atsAnalysis?: ATSAnalysisJSON | null;
+  atsAnalysis?: DocumentAnalysisJSON | null;
   url?: string;
   profileId?: number;
   status?: JobStatus;
@@ -297,7 +295,7 @@ export async function attachGeneratedMaterials(
   input: {
     tailoredResume?: ResumeJSON;
     coverLetterText?: string;
-    atsAnalysis?: ATSAnalysisJSON | null;
+    atsAnalysis?: DocumentAnalysisJSON | null;
     status?: JobStatus;
   }
 ): Promise<{ success: true }> {
@@ -427,7 +425,7 @@ async function snapshotResume(
 
 export async function saveAtsAnalysis(
   jobId: number,
-  atsAnalysis: ATSAnalysisJSON
+  atsAnalysis: DocumentAnalysisJSON
 ) {
   const resume = await prisma.job
     .findFirstOrThrow({
@@ -493,7 +491,9 @@ export async function createResume(
       ...resume,
       contentJson: JSON.parse(resume.contentJson),
       atsAnalysis: resume.atsAnalysis?.contentJson
-        ? ATSAnalysisSchema.parse(JSON.parse(resume.atsAnalysis.contentJson))
+        ? DocumentAnalysisSchema.parse(
+            JSON.parse(resume.atsAnalysis.contentJson)
+          )
         : null,
     }));
 }
