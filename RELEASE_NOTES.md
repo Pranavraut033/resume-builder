@@ -1,3 +1,20 @@
+# v1.16.0 — 2026-08-19
+
+Three overlapping analysis passes become two that know what they're for: Fit Check decides, Deep Analysis edits.
+
+- **Fit Check tells you whether to bother applying.** Knockout risks, missing experience, seniority and domain gaps — the things no keyword scan catches. It has no "apply" button on purpose: none of those are closed by editing a line of your resume. It's now the first button in the action bar, ahead of Deep Analysis.
+- **Deep Analysis replaces both proofreading and the old document scan.** Every finding points at an exact line of your resume with the exact text it wants to change, so you review and apply them one by one instead of reading a wall of generic advice.
+- **New: lite/full analysis depth, per model.** Smaller local models get a shorter, more focused prompt; larger ones get the full document-wide pass. Same results format either way, so switching models never invalidates an analysis you already ran.
+- **Better proofreading checks:** brand-name casing (it's "GitHub", not "Github"), internal inconsistencies, duplicated skill entries, and US/UK spelling drift.
+- **Settings rebuilt:** add and remove AI providers directly from the settings page, export the MCP connector bundle in one click, and a new open-source licenses page.
+- **Fixed: a stale analysis could break the entire job editor.** An analysis saved before this release would crash the page on load instead of just showing "re-run this".
+- **Fixed: the one-click "align resume terms" action could delete text.** When a suggestion applied to part of a bullet, it replaced the whole bullet. It now edits only the words it meant to.
+- **Fixed: the app no longer flashes the wrong theme on launch**, and switching your system between light and dark now takes effect immediately.
+- **Fixed: several status colors failed accessible contrast in dark mode** — red, green, and rose text on the dark surface are now readable.
+- **Fixed: desktop restart** now waits for the previous background process to exit before starting the new one.
+
+**Note for MCP users:** the tool surface changed with no backward-compatible aliases. `analyze_ats`, `analyze_resume_gaps`, `proofread_resume`, and `fix_ats_issues` are replaced by `analyze_fit`, `analyze_document`, and the new `align_resume_terms`. Re-export the connector bundle from Settings to pick up the new tools.
+
 # v1.15.0 — 2026-08-17
 
 ATS analysis is now Recruiter Skim, and it stops pretending to score you — plus a new Fit Check.

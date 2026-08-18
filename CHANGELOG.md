@@ -2,6 +2,46 @@
 
 All notable changes to this project are documented in this file.
 
+## [1.16.0] - 2026-08-19
+
+### Added
+
+- **Fit Check** and **Deep Analysis** replace the three separate ATS / Gap / Proofread passes. Fit Check is the decision layer (knockout risks, missing experience, seniority and domain gaps, no apply step); Deep Analysis is the edit layer — one flat `findings[]` where every finding carries a verbatim `original` and a JSON Pointer `path` ([0872d47], [e182ea4], [07ecb7d])
+- A **lite/full prompt depth switch** per model (`promptDepthByModel` in `modelStore`, default `full`). Deep Analysis only — the full mode adds the document-wide work small models handle badly (cross-role duplicate detection, provenance diffing, keyword stuffing, job-mismatch); both modes emit the same schema, so nothing downstream branches ([e182ea4], [473ee30])
+- Four new table-driven lint checks: brand casing (22-entry table with explicit wrong-form lists), internal consistency, skill-entry merge, and spelling variant ([b6ed94a])
+- New `FitCheck` table; `/documents` ranks jobs by fit level instead of a numeric badge ([b798578])
+- **`align_resume_terms`** MCP tool — additive-only term alignment verified server-side by `guardAlignOps`, rather than trusting the model ([8aba5d2])
+- Settings: add/remove LLM providers from the settings page, export the MCP connector bundle, and a new `/settings/licenses` route ([6768be5])
+
+### Changed
+
+- MCP surface: `analyze_fit` and `analyze_document` replace `analyze_ats`, `analyze_resume_gaps`, `proofread_resume`, and `fix_ats_issues`; flows become `fit_check` and `document_fix`, and the `proofread` flow is deleted. Breaking by intent — no compatibility aliases ([8aba5d2])
+- `IntentLabel` enum: `DeepAnalysis`, `FitCheck`, `AlignTerms` replace `Ats`, `GapAnalysis`, `FixAts`; `Proofread` is deleted and its trigger words route to Deep Analysis ([473ee30])
+- Both analysis schemas carry `v: z.literal(2)` — stored blobs from before this change fail parse on purpose so the caller re-runs, instead of a `.default()` quietly papering over a shape the schema no longer understands ([0872d47])
+- Fit Check moves from the overflow menu into the main FloatingActionBar row, left of Deep Analysis ([bc32697])
+- Exported plugin bundles are named `udaan-<version>.plugin` instead of a bare `udaan.plugin`, so downloads across releases are distinguishable ([62b7510])
+
+### Fixed
+
+- A single stale pre-`v:2` analysis row took down the entire job-editor page load: `getResumeByJobId` and `createResume` parsed `atsAnalysis` with a throwing `.parse()` and no fallback. Factored into one shared `safeParseDocumentAnalysis` ([07ecb7d])
+- `align_resume_terms` could silently delete resume content: `findingToAlignOp` built a whole-leaf replace for every additive finding, but `DocumentFinding.original` is a verbatim *substring*. It now reads the current leaf, requires an exactly-one occurrence match, and splices only that substring — applied sequentially so two findings on the same leaf compose ([473ee30])
+- `guardAlignOps` keyed off the op name and skipped `add` as additive by construction. RFC 6902 `add` on an existing member *replaces* it, so `{op:"add", path:"/summary"}` performed exactly the rewrite the guard exists to reject. It now keys off what the path resolves to ([8aba5d2])
+- `saveFitCheck` write path was missing — the table and read path landed without a writer, so a Fit Check result was never persisted ([8aba5d2])
+- Deep Analysis no longer renders a card per no-op finding (`suggestion === original`); a one-line count replaces them, and the visible list is now the single source both the render and the default selection derive from, so a checkbox can't apply to the wrong finding ([bc32697])
+- Theme flash on launch eliminated, and live system-theme changes now apply immediately ([c7f2fb4])
+- Desktop restart waits for the old server process to exit before starting the new one ([8124527])
+- Contrast: `text-rose-700` measured 2.67:1 against the dark-mode surface, with `text-red-600` and `text-green-700` also under 4.5:1. Added `--color-agent-success` / `--color-agent-warning` tokens computed to clear 4.5:1 on both light and dark surfaces ([07ecb7d])
+- `migrate-app-db.mjs` never carried indexes — `sqlite_master`'s table SQL omits them and `ALTER TABLE ADD COLUMN` doesn't bring a column's UNIQUE index along, so new `@unique` fields looked correct on a fresh install while silently losing the constraint on every upgraded one ([b798578])
+- The brand-casing matcher required more than `\b`: a word boundary matches inside `docker-compose`, `github.com`, and `nodejs.org`, so the first cut would have rewritten a package name and two URLs unattended ([b6ed94a])
+- Deep Analysis's own worked example modeled a keyword finding as a bare string appended to `skills`, which is `Skill[]` — an op that would always fail the resume schema and land in `rejected` silently ([473ee30])
+
+### Internal
+
+- The `source: "lint" | "llm"` security property survives the refactor: `guardDocumentAnalysis` (formerly `guardProofreadResult`) re-stamps every client-submitted finding as `"llm"`, and only the server's own `lintResume()` output carries `"lint"` — the label consumers auto-apply without review ([0872d47], [8aba5d2], [473ee30])
+- Dropped the planned CEFR language-notation lint check: it contradicts `regionGuidance.ts`, which tells German/EU applicants to use CEFR and never a vague "fluent". Auto-applying an unattended rewrite on a contested question fails the false-positive bar ([b6ed94a])
+- Knowledge files, README, MCP skill runbook, `docs/MCP.md`, and the landing page synced to Fit Check / Deep Analysis and the settings redesign ([dfcb5da], [62b7510], [d2658fc])
+- Known gap, left as a follow-up: `ResumeWithDetails` doesn't select a persisted `fitCheck`, so the job editor reads back only the chat's transient result on reload ([07ecb7d])
+
 ## [1.15.0] - 2026-08-17
 
 ### Added
