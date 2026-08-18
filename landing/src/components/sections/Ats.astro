@@ -1,8 +1,19 @@
 ---
 import Media from '../Media.astro';
+
+// Mirrors DocumentFindingKindSchema in src/types/documentAnalysis.ts — keep
+// the two in sync.
+const findingKinds: [string, string][] = [
+  ['correctness', 'Grammar, tense, punctuation'],
+  ['impact', '"Improved performance," with no number behind it'],
+  ['keyword', 'A requirement the posting names and your resume never says'],
+  ['duplication', 'The same win claimed in two places'],
+  ['provenance', "A line your base profile doesn't back up"],
+  ['title', 'Your latest title against the one they posted'],
+];
 ---
 
-<!-- ============ Recruiter Skim ============ -->
+<!-- ============ Fit Check / Deep Analysis ============ -->
 <!-- id stays "ats" — it's a published anchor other pages and posts link to. -->
 
 <section id="ats" data-scroll class="border-t border-line px-5 py-24 md:py-32">
@@ -14,22 +25,21 @@ import Media from '../Media.astro';
       02
     </p>
     <p class="tint-eyebrow reveal flex w-fit items-center rounded-lg px-2.5 py-1 font-mono text-xs font-bold tracking-[0.18em]">
-      @@ recruiter skim @@
+      @@ fit check @@
     </p>
     <h2 class="reveal mt-5 max-w-2xl font-display text-4xl tracking-tight text-balance sm:text-5xl">
-      See where you actually stand.
+      Know if you're a fit, before you apply.
     </h2>
     <p class="reveal reveal-2 mt-4 max-w-[65ch] leading-relaxed text-ink-muted">
-      No algorithm scores your resume. An applicant tracking system is a database with a
-      search box, so what actually ends an application is a requirement you don't meet:
-      visa status, a license, a location. Udaan checks those first, then the words a
-      recruiter would search for, with a suggested rewrite for each issue it finds.
+      No algorithm scores your resume. Fit Check reads it against the job the way a hiring
+      manager would, then says plainly whether you're a strong fit, a stretch, a reach, or a
+      mismatch.
     </p>
 
     <div class="reveal reveal-2 mt-10">
       <Media
         name="ats-analysis"
-        alt="The Recruiter Skim panel, leading with knockout-risk flags, then a skim verdict, keyword coverage, and title alignment"
+        alt="The Fit Check panel, leading with knockout-risk flags, then a fit verdict, keyword coverage, and title alignment"
         ratio="aspect-[406/249]"
       />
     </div>
@@ -38,38 +48,60 @@ import Media from '../Media.astro';
       <div class="reveal flex gap-4">
         <span class="tint-icon mt-0.5 shrink-0 font-mono text-sm">01</span>
         <p class="leading-relaxed text-ink-muted">
-          <span class="font-semibold text-ink">Knockout risks.</span> Work authorization, a
-          required license, a location you can't work from. The things that genuinely end an
-          application, flagged on their own rather than buried in a keyword list.
+          <span class="font-semibold text-ink">The verdict.</span> Strong, stretch, reach, or
+          mismatch. A straight answer on whether to apply, not a percentage.
         </p>
       </div>
       <div class="reveal flex gap-4">
         <span class="tint-icon mt-0.5 shrink-0 font-mono text-sm">02</span>
         <p class="leading-relaxed text-ink-muted">
-          <span class="font-semibold text-ink">Keyword coverage.</span> Every requirement in
-          the posting checked against your resume and marked as an exact match, a close one,
-          or missing.
+          <span class="font-semibold text-ink">Knockout risks.</span> Work authorization, a
+          required license, a location you can't work from — the things that end an
+          application outright, rated by how likely each one is.
         </p>
       </div>
       <div class="reveal flex gap-4">
         <span class="tint-icon mt-0.5 shrink-0 font-mono text-sm">03</span>
         <p class="leading-relaxed text-ink-muted">
-          <span class="font-semibold text-ink">Title alignment.</span> Whether your most
-          recent title reads as the role they posted. Some systems weight job title heavily,
-          Workday among them.
+          <span class="font-semibold text-ink">Gaps, then strengths.</span> Missing
+          experience, a seniority stretch, a domain mismatch, each with a next step. It
+          closes with what you can actually back up.
         </p>
       </div>
     </div>
 
-    <p class="reveal mt-12 max-w-[65ch] leading-relaxed text-ink-muted">
-      All of that is about the document, and every finding comes with a button that fixes
-      it. The harder question sits next to it in <span class="font-semibold text-ink"
-        >Fit Check</span
-      >: whether you're actually a fit for the job. It reads your resume the way a hiring
-      manager would and says plainly where you're short on experience, seniority, or
-      evidence. Most of what it finds can't be fixed by editing a line, so it doesn't
-      pretend otherwise — a gap that needs a real credential is labelled as one instead of
-      being quietly reworded away.
-    </p>
+    <!-- Deep Analysis — the second beat of the same section, so the published
+         "ats" anchor and the 02 numeral still cover both halves. -->
+    <div class="mt-20 border-t border-line pt-16">
+      <p class="tint-eyebrow reveal flex w-fit items-center rounded-lg px-2.5 py-1 font-mono text-xs font-bold tracking-[0.18em]">
+        @@ deep analysis @@
+      </p>
+      <h3 class="reveal mt-5 font-display text-3xl tracking-tight text-balance sm:text-4xl">
+        Then fix what's fixable.
+      </h3>
+      <p class="reveal reveal-2 mt-4 max-w-[65ch] leading-relaxed text-ink-muted">
+        Fit Check answers whether to apply. <span class="font-semibold text-ink"
+          >Deep Analysis</span
+        > goes at the document itself, and every finding it returns points at the exact line
+        that caused it.
+      </p>
+
+      <div class="reveal reveal-2 mt-8 grid gap-px overflow-hidden rounded-2xl border border-line bg-line sm:grid-cols-2">
+        {
+          findingKinds.map(([kind, gloss]) => (
+            <div class="bg-raised px-4 py-3.5">
+              <p class="font-mono text-xs font-semibold text-accent">{kind}</p>
+              <p class="mt-1 text-sm leading-relaxed text-ink-muted">{gloss}</p>
+            </div>
+          ))
+        }
+      </div>
+
+      <p class="reveal mt-8 max-w-[65ch] leading-relaxed text-ink-muted">
+        The deterministic checks need no AI call and apply themselves. The rest arrive as a
+        suggested rewrite, sitting on the line it replaces, waiting for you to take it or
+        leave it.
+      </p>
+    </div>
   </div>
 </section>
