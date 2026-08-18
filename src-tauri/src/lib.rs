@@ -327,6 +327,12 @@ pub fn run() {
                 if let Ok(mut guard) = state.0.lock() {
                     if let Some(mut child) = guard.take() {
                         let _ = child.kill();
+                        // On restart (e.g. after an update install), a new process
+                        // spawns immediately and rebinds port 3009 — wait for the
+                        // old server to actually release it first, or the new
+                        // instance's bind can race a still-open socket and the
+                        // app exits before its window ever appears.
+                        let _ = child.wait();
                     }
                 }
             }
@@ -334,6 +340,7 @@ pub fn run() {
                 if let Ok(mut guard) = state.0.lock() {
                     if let Some(mut child) = guard.take() {
                         let _ = child.kill();
+                        let _ = child.wait();
                     }
                 }
             }
