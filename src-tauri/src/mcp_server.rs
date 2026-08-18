@@ -259,7 +259,7 @@ pub fn export_cowork_plugin(app: tauri::AppHandle, dest_path: String) -> Result<
     let plugin_json = serde_json::json!({
         "name": "udaan",
         "version": version,
-        "description": "Drive Udaan's resume/job flows (parse, tailor, ATS analysis, cover letters, proofreading, humanizing) via MCP, using your own model instead of an API key stored in the app."
+        "description": "Drive Udaan's resume/job flows (parse, tailor, Deep Analysis, Fit Check, term alignment, cover letters, humanizing) via MCP, using your own model instead of an API key stored in the app."
     });
 
     let mcp_json = serde_json::json!({
