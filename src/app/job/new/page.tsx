@@ -5,15 +5,15 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
 
-import { attachGeneratedMaterials, createJob, getJobById } from "@/actions/job";
+import { getJobById } from "@/actions/job";
 import { getAllProfiles } from "@/actions/profile";
 import { fetchJobDescriptionFromUrl } from "@/actions/urlFetcher";
 import { SelectedModelCard } from "@/components/SelectedModelCard";
-import { BackButton, StepProgressButton } from "@/components/ui";
+import { BackButton, Button } from "@/components/ui";
 import { useToast } from "@/components/ui/ToastProvider";
 import { useProfileQuery } from "@/hooks/useProfileQuery";
 import { useProfileSelection } from "@/hooks/useProfileSelection";
-import LLMService from "@/lib/llm/llmService";
+import { startJobCreation } from "@/lib/jobs/runJobCreation";
 import {
   COVER_LETTER_STYLES,
   CoverLetterStyleId,
@@ -21,30 +21,14 @@ import {
 } from "@/lib/llm/prompts/coverLetterStyles";
 import { createLogger } from "@/lib/logger";
 import { useModelStore } from "@/store/modelStore";
-import { JobDetailsJSON, JobDetailsSchema } from "@/types/resume";
 
 const logger = createLogger("NewJobPage");
-
-const GENERATION_STEPS = [
-  "Parsing job description…",
-  "Running Recruiter Skim…",
-  "Tailoring resume & cover letter…",
-  "Saving your application…",
-];
-
-const SKIP_TAILORING_STEPS = [
-  "Parsing job description…",
-  "Running Recruiter Skim…",
-  "Copying your base profile…",
-  "Saving your application…",
-];
 
 function NewJobPageInner() {
   const [description, setDescription] = useState("");
   const [url, setUrl] = useState("");
   const [inputMode, setInputMode] = useState<"text" | "url">("text");
   const [skipTailoring, setSkipTailoring] = useState(false);
-  const [activeStep, setActiveStep] = useState(-1);
   const [fetchingUrl, setFetchingUrl] = useState(false);
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [coverLetterStyle, setCoverLetterStyle] = useState<CoverLetterStyleId>(
@@ -117,154 +101,56 @@ function NewJobPageInner() {
   //   }
   // };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    try {
-      if (!currentSelectedModel || !currentSelectedProvider) {
-        pushToast({
-          title: "Model required",
-          description: "Please select a model first.",
-          variant: "error",
-        });
-        return;
-      }
 
-      if (!profile) {
-        pushToast({
-          title: "Profile unavailable",
-          description: "Profile not loaded.",
-          variant: "error",
-        });
-        return;
-      }
-
-      if (bookmarkId && !bookmarkJob) {
-        pushToast({
-          title: "Bookmark not loaded yet",
-          description: "Please wait a moment and try again.",
-          variant: "error",
-        });
-        return;
-      }
-
-      const modelOptions = {
-        model: currentSelectedModel,
-        provider: currentSelectedProvider,
-      };
-
-      // Bookmarks already have parsed job details persisted from the
-      // background queue — skip the parse call (and its step index) and
-      // jump straight to the ATS step.
-      let jobDetailsResult: JobDetailsJSON;
-      if (bookmarkId && bookmarkJob) {
-        jobDetailsResult = JobDetailsSchema.parse(
-          JSON.parse(bookmarkJob.jobDetailsJson)
-        );
-      } else {
-        setActiveStep(0);
-        const jobDetails = await LLMService.parseJob(description, modelOptions);
-        jobDetailsResult = jobDetails.result;
-      }
-
-      setActiveStep(bookmarkId ? 0 : 1);
-      // Deep Analysis, not Fit Check: this feeds generateTailoredResume as
-      // wording/ordering hints and gets persisted via attachGeneratedMaterials/
-      // createJob's `atsAnalysis` field, both of which expect a
-      // DocumentAnalysisJSON — same call LLMService.generateApplicationMaterials
-      // makes for the same reason.
-      const atsAnalysis = await LLMService.analyzeDocument(
-        profile,
-        jobDetailsResult,
-        modelOptions
-      );
-
-      if (skipTailoring) {
-        setActiveStep(bookmarkId ? 1 : 2);
-        const { label: _label, ...baseResume } = profile;
-
-        setActiveStep(bookmarkId ? 2 : 3);
-        if (bookmarkId) {
-          await attachGeneratedMaterials(Number(bookmarkId), {
-            tailoredResume: baseResume,
-            atsAnalysis: atsAnalysis.result,
-            status: "DRAFT",
-          });
-        } else {
-          await createJob({
-            jobDetails: jobDetailsResult,
-            url: inputMode === "url" && url.trim() ? url : undefined,
-            tailoredResume: baseResume,
-            atsAnalysis: atsAnalysis.result,
-            profileId: selectedProfileId ?? undefined,
-          });
-        }
-
-        router.push("/");
-        return;
-      }
-
-      setActiveStep(bookmarkId ? 1 : 2);
-      const [resume, coverLetter] = await Promise.all([
-        skipVerification
-          ? LLMService.generateTailoredResume(
-              profile,
-              jobDetailsResult,
-              atsAnalysis.result,
-              modelOptions
-            )
-          : LLMService.generateVerifiedTailoredResume(
-              profile,
-              jobDetailsResult,
-              atsAnalysis.result,
-              modelOptions
-            ),
-        LLMService.generateCoverLetter(
-          profile,
-          jobDetailsResult,
-          modelOptions,
-          undefined,
-          coverLetterStyle
-        ),
-      ]);
-
-      if ("flags" in resume && resume.flags.length > 0) {
-        pushToast({
-          title: "Fact-check found issues",
-          description: `Corrected ${resume.flags.length} unsupported claim${resume.flags.length === 1 ? "" : "s"} before saving. ATS score: ${resume.atsBefore} → ${resume.atsAfter}.`,
-          variant: "info",
-        });
-      }
-
-      setActiveStep(bookmarkId ? 2 : 3);
-      if (bookmarkId) {
-        await attachGeneratedMaterials(Number(bookmarkId), {
-          tailoredResume: resume.result,
-          coverLetterText: coverLetter.result,
-          atsAnalysis: atsAnalysis.result,
-          status: "DRAFT",
-        });
-      } else {
-        await createJob({
-          jobDetails: jobDetailsResult,
-          url: inputMode === "url" && url.trim() ? url : undefined,
-          tailoredResume: resume.result,
-          coverLetterText: coverLetter.result,
-          atsAnalysis: atsAnalysis.result,
-          profileId: selectedProfileId ?? undefined,
-        });
-      }
-
-      router.push("/");
-    } catch (error) {
-      logger.error("Error creating job", { error });
+    if (!currentSelectedModel || !currentSelectedProvider) {
       pushToast({
-        title: "Job creation failed",
-        description: "Error creating job.",
+        title: "Model required",
+        description: "Please select a model first.",
         variant: "error",
       });
-    } finally {
-      setActiveStep(-1);
+      return;
     }
+
+    if (!profile) {
+      pushToast({
+        title: "Profile unavailable",
+        description: "Profile not loaded.",
+        variant: "error",
+      });
+      return;
+    }
+
+    if (bookmarkId && !bookmarkJob) {
+      pushToast({
+        title: "Bookmark not loaded yet",
+        description: "Please wait a moment and try again.",
+        variant: "error",
+      });
+      return;
+    }
+
+    // Runs in the background and reports progress via the notification bell
+    // (runJobCreation.ts) — navigate away immediately instead of blocking
+    // the page for the whole pipeline.
+    startJobCreation({
+      profile,
+      description,
+      modelOptions: {
+        model: currentSelectedModel,
+        provider: currentSelectedProvider,
+      },
+      bookmarkJob,
+      bookmarkId: bookmarkId ? Number(bookmarkId) : undefined,
+      url: inputMode === "url" && url.trim() ? url : undefined,
+      profileId: selectedProfileId ?? undefined,
+      skipTailoring,
+      skipVerification,
+      coverLetterStyle,
+    });
+
+    router.push("/");
   };
 
   // ── No-profile guard ──────────────────────────────────────────────────────
@@ -554,38 +440,27 @@ function NewJobPageInner() {
             </div>
 
             {/* ── Submit button ── */}
-            <StepProgressButton
+            <Button
               type="submit"
-              steps={
-                skipTailoring
-                  ? bookmarkId
-                    ? SKIP_TAILORING_STEPS.slice(1)
-                    : SKIP_TAILORING_STEPS
-                  : bookmarkId
-                    ? GENERATION_STEPS.slice(1)
-                    : GENERATION_STEPS
-              }
-              activeStep={activeStep}
+              size="lg"
               disabled={!description.trim() || !currentSelectedModel}
-              idleLabel={
-                <>
-                  Analyze &amp; Start
-                  <svg
-                    className="h-4 w-4"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                    strokeWidth={2}
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3"
-                    />
-                  </svg>
-                </>
-              }
-            />
+              className="w-full"
+            >
+              Analyze &amp; Start
+              <svg
+                className="h-4 w-4"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth={2}
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3"
+                />
+              </svg>
+            </Button>
           </form>
         </div>
 

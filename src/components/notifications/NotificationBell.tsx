@@ -1,6 +1,7 @@
 "use client";
 
 import { Popover, PopoverButton, PopoverPanel } from "@headlessui/react";
+import Link from "next/link";
 import { useShallow } from "zustand/react/shallow";
 
 import {
@@ -84,17 +85,9 @@ export function NotificationBell() {
               No notifications yet
             </p>
           ) : (
-            history.map((notification) => (
-              <div
-                key={notification.id}
-                className={`border-agent-outline-variant flex items-start gap-2.5 border-b px-4 py-3 last:border-b-0 ${
-                  notification.read ? "" : "bg-agent-primary-fixed/20"
-                }`}
-              >
-                <span
-                  className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${STATUS_DOT_STYLES[notification.status]}`}
-                  aria-hidden="true"
-                />
+            history.map((notification) => {
+              const jobId = notification.meta?.jobId;
+              const body = (
                 <div className="min-w-0 flex-1">
                   <p className="text-agent-on-surface text-sm leading-tight font-medium">
                     {notification.title}
@@ -108,16 +101,37 @@ export function NotificationBell() {
                     {formatRelativeTime(notification.createdAt)}
                   </p>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => remove(notification.id)}
-                  className="text-agent-outline hover:text-agent-on-surface shrink-0 transition-colors"
-                  aria-label="Remove notification"
+              );
+
+              return (
+                <div
+                  key={notification.id}
+                  className={`border-agent-outline-variant flex items-start gap-2.5 border-b px-4 py-3 last:border-b-0 ${
+                    notification.read ? "" : "bg-agent-primary-fixed/20"
+                  }`}
                 >
-                  <Icon name="x" size={14} />
-                </button>
-              </div>
-            ))
+                  <span
+                    className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${STATUS_DOT_STYLES[notification.status]}`}
+                    aria-hidden="true"
+                  />
+                  {typeof jobId === "number" ? (
+                    <Link href={`/job/${jobId}`} className="min-w-0 flex-1">
+                      {body}
+                    </Link>
+                  ) : (
+                    body
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => remove(notification.id)}
+                    className="text-agent-outline hover:text-agent-on-surface shrink-0 transition-colors"
+                    aria-label="Remove notification"
+                  >
+                    <Icon name="x" size={14} />
+                  </button>
+                </div>
+              );
+            })
           )}
         </div>
       </PopoverPanel>
