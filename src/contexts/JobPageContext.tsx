@@ -73,6 +73,8 @@ export interface JobPageContextType {
   resume: ResumeJSON;
   atsAnalysis: DocumentAnalysisJSON | null;
   setAtsAnalysis: (analysis: DocumentAnalysisJSON) => void;
+  fitCheck: FitCheckJSON | null;
+  setFitCheck: (fitCheck: FitCheckJSON) => void;
   updateCoverLetterState: (text: string) => void;
   updateCustomizationState: (updates: Partial<Sanitize<Customization>>) => void;
   updateResumeState: (
@@ -173,6 +175,10 @@ export function JobPageProvider({
 
   const [atsAnalysis, setAtsAnalysis] = useState<DocumentAnalysisJSON | null>(
     data?.resume?.atsAnalysis ?? data?.job?.baseProfileAnalysis ?? null
+  );
+
+  const [fitCheck, setFitCheck] = useState<FitCheckJSON | null>(
+    data?.resume?.fitCheck ?? null
   );
 
   const { pushToast } = useToast();
@@ -518,6 +524,7 @@ export function JobPageProvider({
     contentType,
     coverLetter,
     customization,
+    fitCheck,
     historyRef,
     isDirtyCoverLetter,
     isDirtyResume,
@@ -534,6 +541,7 @@ export function JobPageProvider({
     saveStatus,
     saveToDb,
     setAtsAnalysis,
+    setFitCheck,
     setChatSnapPosition,
     setContentType: handleSetContentType,
     updateCoverLetterState,

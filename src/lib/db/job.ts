@@ -16,7 +16,7 @@ import {
   DocumentAnalysisJSON,
   DocumentAnalysisSchema,
 } from "@/types/documentAnalysis";
-import { FitCheckJSON } from "@/types/fitCheck";
+import { FitCheckJSON, FitCheckSchema } from "@/types/fitCheck";
 import { JobStatus } from "@/types/job";
 import { ResumeJSON, JobDetailsJSON, normalizeSkills } from "@/types/resume";
 
@@ -57,6 +57,25 @@ function safeParseDocumentAnalysis(
     console.error("Failed to parse atsAnalysis contentJson for job", jobId);
     return null;
   }
+}
+
+/**
+ * Same contract as safeParseDocumentAnalysis above, for FitCheck blobs.
+ * Uses safeParse (not parse+catch) because FitCheckSchema's `v: z.literal(2)`
+ * deliberately rejects pre-v:2 rows — that's an expected "predates the new
+ * format, re-run it" case, not a parse bug.
+ */
+function safeParseFitCheck(
+  contentJson: string | undefined,
+  jobId: number
+): FitCheckJSON | null {
+  if (!contentJson) return null;
+  const result = FitCheckSchema.safeParse(JSON.parse(contentJson));
+  if (!result.success) {
+    console.error("Failed to parse fitCheck contentJson for job", jobId);
+    return null;
+  }
+  return result.data;
 }
 
 export async function getJob(jobId: number) {
@@ -103,6 +122,7 @@ export type ResumeWithDetails = Omit<
   contentJson: ResumeJSON;
   customizations: Customization;
   atsAnalysis: DocumentAnalysisJSON | null;
+  fitCheck: FitCheckJSON | null;
 };
 export async function getResumeByJobId(
   jobId: number,
@@ -122,7 +142,9 @@ export async function getResumeByJobId(
     .findFirstOrThrow({
       where: { id: jobId },
       select: {
-        resume: { include: { customizations: true, atsAnalysis: true } },
+        resume: {
+          include: { customizations: true, atsAnalysis: true, fitCheck: true },
+        },
       },
     })
     .then((job) => {
@@ -148,6 +170,7 @@ export async function getResumeByJobId(
           job.resume.atsAnalysis?.contentJson,
           jobId
         ),
+        fitCheck: safeParseFitCheck(job.resume.fitCheck?.contentJson, jobId),
       };
     });
 }
@@ -190,6 +213,7 @@ export type JobRecord = Job & {
   company: Company;
   contact: Contact | null;
   status: JobStatus;
+  fitCheck: { contentJson: string } | null;
 };
 
 export async function getAllJob(
@@ -198,7 +222,7 @@ export async function getAllJob(
   const jobList = await prisma.job.findMany({
     where: profileId ? { profileId } : undefined,
     orderBy: { createdAt: "desc" },
-    include: { company: true, contact: true },
+    include: { company: true, contact: true, fitCheck: true },
   });
 
   return jobList as JobRecord[];
@@ -517,6 +541,35 @@ export async function saveFitCheck(jobId: number, fitCheck: FitCheckJSON) {
 }
 
 /**
+ * Persist a bookmark-stage "quick fit check" — run against the base
+ * Profile (no Resume exists yet for a BOOKMARKED job). Same
+ * upsert-through-the-relation shape as saveFitCheck above, but keyed off
+ * Job.fitCheckId directly since there is no Resume to hang it off.
+ */
+export async function saveFitCheckForJob(
+  jobId: number,
+  fitCheck: FitCheckJSON
+) {
+  const job = await prisma.job.findUniqueOrThrow({
+    where: { id: jobId },
+    select: { id: true, fitCheckId: true },
+  });
+
+  await prisma.job.update({
+    where: { id: job.id },
+    data: {
+      fitCheck: {
+        ...(job.fitCheckId
+          ? { update: { contentJson: JSON.stringify(fitCheck) } }
+          : { create: { contentJson: JSON.stringify(fitCheck) } }),
+      },
+    },
+  });
+
+  return { success: true };
+}
+
+/**
  * Update cover letter for a job
  */
 export async function updateCoverLetter(
@@ -555,5 +608,6 @@ export async function createResume(
         resume.atsAnalysis?.contentJson,
         jobId
       ),
+      fitCheck: null,
     }));
 }

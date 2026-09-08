@@ -4,16 +4,20 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
-import { getAllJob, JobRecord } from "@/actions/job";
+import { getAllJob, JobRecord, saveFitCheckForJob } from "@/actions/job";
+import { FIT_LEVEL_META } from "@/components/job-v2/FitCheckDrawer";
 import { Icon } from "@/components/ui/Icon";
 import { useToast } from "@/components/ui/ToastProvider";
+import { useLLMPageChrome } from "@/contexts/LLMPageChromeContext";
 import useDeleteJob from "@/hooks/useDeleteJob";
+import useFitCheck from "@/hooks/useFitCheck";
 import { useProfileQuery } from "@/hooks/useProfileQuery";
 import { useProfileSelection } from "@/hooks/useProfileSelection";
 import { createLogger } from "@/lib/logger";
 import { useBookmarkQueueStore } from "@/store/bookmarkQueueStore";
 import { useModelStore } from "@/store/modelStore";
-import { JobDetailsSchema } from "@/types/resume";
+import { FitCheckSchema } from "@/types/fitCheck";
+import { JobDetailsSchema, ResumeJSON } from "@/types/resume";
 
 const logger = createLogger("BookmarksPage");
 
@@ -58,9 +62,110 @@ const QUEUE_STATUS_LABEL: Record<string, string> = {
   error: "Failed",
 };
 
-export default function BookmarksPage() {
-  const [urlInput, setUrlInput] = useState("");
+// FitCheck's `v: 2` schema deliberately rejects a pre-format blob — same
+// "predates the new format, re-run it" contract used everywhere else this
+// data is read (see safeParseFitCheck in src/lib/db/job.ts).
+function parseBookmarkFitCheck(job: JobRecord) {
+  if (!job.fitCheck?.contentJson) return null;
+  const result = FitCheckSchema.safeParse(JSON.parse(job.fitCheck.contentJson));
+  return result.success ? result.data : null;
+}
+
+interface BookmarkRowProps {
+  job: JobRecord;
+  profile: (ResumeJSON & { label: string }) | null | undefined;
+  onDelete: (jobId: number) => void;
+  isDeleting: boolean;
+}
+
+function BookmarkRow({ job, profile, onDelete, isDeleting }: BookmarkRowProps) {
   const router = useRouter();
+  const queryClient = useQueryClient();
+  const { selectedProfileId } = useProfileSelection();
+  const { pushToast } = useToast();
+  const fitCheck = parseBookmarkFitCheck(job);
+
+  const { mutate: checkFit, status } = useFitCheck({
+    onSuccess: async (result) => {
+      await saveFitCheckForJob(job.id, result.result);
+      queryClient.invalidateQueries({ queryKey: ["jobs", selectedProfileId] });
+    },
+    onError: (error) => {
+      pushToast({
+        title: "Fit check failed",
+        description: error instanceof Error ? error.message : undefined,
+        variant: "error",
+      });
+    },
+  });
+
+  const handleCheckFit = () => {
+    if (!profile) return;
+    const jobDetails = JobDetailsSchema.parse(JSON.parse(job.jobDetailsJson));
+    checkFit({ resume: profile, jobDetails });
+  };
+
+  const isChecking = status === "pending";
+
+  return (
+    <div className="border-agent-outline-variant bg-agent-surface-lowest flex items-center justify-between gap-3 rounded-xl border px-4 py-3">
+      <BookmarkTitle job={job} />
+      <div className="flex shrink-0 items-center gap-3">
+        {fitCheck ? (
+          <span
+            className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[11px] font-medium ${FIT_LEVEL_META[fitCheck.fit_level].classes}`}
+          >
+            {FIT_LEVEL_META[fitCheck.fit_level].label}
+          </span>
+        ) : (
+          <button
+            type="button"
+            onClick={handleCheckFit}
+            disabled={isChecking || !profile}
+            className="text-agent-on-surface-variant hover:text-agent-primary flex items-center gap-1 text-xs font-medium disabled:opacity-40"
+          >
+            <Icon
+              name={isChecking ? "spinner" : "target"}
+              size={13}
+              className={isChecking ? "animate-spin" : undefined}
+            />
+            {isChecking ? "Checking…" : "Check fit"}
+          </button>
+        )}
+        {job.url && (
+          <a
+            href={job.url}
+            target="_blank"
+            rel="noreferrer"
+            className="text-agent-on-surface-variant hover:text-agent-primary text-xs font-medium"
+          >
+            <Icon name="link" size={14} />
+          </a>
+        )}
+        <button
+          type="button"
+          onClick={() => router.push(`/job/new?bookmark=${job.id}`)}
+          className="bg-agent-primary rounded-lg px-3 py-1.5 text-xs font-semibold text-white transition hover:opacity-90"
+        >
+          Start tracking
+        </button>
+        <button
+          type="button"
+          onClick={() => onDelete(job.id)}
+          disabled={isDeleting}
+          className="text-agent-on-surface-variant rounded-lg px-2 py-1.5 text-xs font-medium hover:text-red-500 disabled:opacity-40"
+        >
+          <Icon name="trash" size={14} />
+        </button>
+      </div>
+    </div>
+  );
+}
+
+export default function BookmarksPage() {
+  useLLMPageChrome(true);
+
+  const [urlInput, setUrlInput] = useState("");
   const queryClient = useQueryClient();
   const { pushToast } = useToast();
 
@@ -218,39 +323,13 @@ export default function BookmarksPage() {
           </div>
         ) : (
           bookmarks.map((job) => (
-            <div
+            <BookmarkRow
               key={job.id}
-              className="border-agent-outline-variant bg-agent-surface-lowest flex items-center justify-between gap-3 rounded-xl border px-4 py-3"
-            >
-              <BookmarkTitle job={job} />
-              <div className="flex shrink-0 items-center gap-3">
-                {job.url && (
-                  <a
-                    href={job.url}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="text-agent-on-surface-variant hover:text-agent-primary text-xs font-medium"
-                  >
-                    <Icon name="link" size={14} />
-                  </a>
-                )}
-                <button
-                  type="button"
-                  onClick={() => router.push(`/job/new?bookmark=${job.id}`)}
-                  className="bg-agent-primary rounded-lg px-3 py-1.5 text-xs font-semibold text-white transition hover:opacity-90"
-                >
-                  Start tracking
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleDelete(job.id)}
-                  disabled={deleteJob.isPending}
-                  className="text-agent-on-surface-variant rounded-lg px-2 py-1.5 text-xs font-medium hover:text-red-500 disabled:opacity-40"
-                >
-                  <Icon name="trash" size={14} />
-                </button>
-              </div>
-            </div>
+              job={job}
+              profile={profile}
+              onDelete={handleDelete}
+              isDeleting={deleteJob.isPending}
+            />
           ))
         )}
       </div>

@@ -5,6 +5,7 @@ import path from "node:path";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 
 import { DocumentAnalysisJSON } from "@/types/documentAnalysis";
+import { FitCheckJSON } from "@/types/fitCheck";
 import { JobDetailsJSON, ResumeJSON } from "@/types/resume";
 
 // A dedicated on-disk SQLite file for this test suite, kept separate from the
@@ -27,6 +28,9 @@ let attachGeneratedMaterials: typeof import("./job").attachGeneratedMaterials;
 let getJob: typeof import("./job").getJob;
 let getResumeByJobId: typeof import("./job").getResumeByJobId;
 let getCoverLetterByJobId: typeof import("./job").getCoverLetterByJobId;
+let saveFitCheck: typeof import("./job").saveFitCheck;
+let saveFitCheckForJob: typeof import("./job").saveFitCheckForJob;
+let getAllJob: typeof import("./job").getAllJob;
 
 beforeAll(async () => {
   cleanupDbFiles();
@@ -43,6 +47,9 @@ beforeAll(async () => {
     getJob,
     getResumeByJobId,
     getCoverLetterByJobId,
+    saveFitCheck,
+    saveFitCheckForJob,
+    getAllJob,
   } = await import("./job"));
 }, 60_000);
 
@@ -206,6 +213,17 @@ const atsAnalysis: DocumentAnalysisJSON = {
   summary: "Strong coverage.",
 };
 
+const fitCheck: FitCheckJSON = {
+  v: 2,
+  fit_level: "stretch",
+  verdict: "Solid backend depth, thin on Kafka scale.",
+  knockout_risks: [],
+  gaps: [],
+  strengths: [
+    { requirement: "PostgreSQL", evidence: "6 years on payments platform" },
+  ],
+};
+
 describe("attachGeneratedMaterials", () => {
   beforeEach(async () => {
     await wipeAllTables();
@@ -276,5 +294,52 @@ describe("getResumeByJobId — stale analysis blob", () => {
     const resume = await getResumeByJobId(jobId);
     expect(resume.atsAnalysis).toBeNull();
     expect(job.id).toBe(jobId);
+  });
+});
+
+describe("saveFitCheck — persisted per resume", () => {
+  beforeEach(async () => {
+    await wipeAllTables();
+  });
+
+  it("round-trips through getResumeByJobId, and upserts on a second save", async () => {
+    const { jobId } = await createJob({ jobDetails, status: "BOOKMARKED" });
+    await attachGeneratedMaterials(jobId, {
+      tailoredResume: makeResume(),
+      status: "DRAFT",
+    });
+
+    await saveFitCheck(jobId, fitCheck);
+    const resume = await getResumeByJobId(jobId);
+    expect(resume.fitCheck).toEqual(fitCheck);
+
+    const updated: FitCheckJSON = { ...fitCheck, fit_level: "strong" };
+    await saveFitCheck(jobId, updated);
+    const resumeAfterUpdate = await getResumeByJobId(jobId);
+    expect(resumeAfterUpdate.fitCheck?.fit_level).toBe("strong");
+  });
+});
+
+describe("saveFitCheckForJob — bookmark-stage quick fit check", () => {
+  beforeEach(async () => {
+    await wipeAllTables();
+  });
+
+  it("persists against Job.fitCheckId (no Resume required) and surfaces via getAllJob", async () => {
+    const { jobId } = await createJob({ jobDetails, status: "BOOKMARKED" });
+
+    await saveFitCheckForJob(jobId, fitCheck);
+
+    const jobs = await getAllJob();
+    const saved = jobs.find((j) => j.id === jobId);
+    expect(saved?.fitCheck?.contentJson).toBe(JSON.stringify(fitCheck));
+
+    const updated: FitCheckJSON = { ...fitCheck, fit_level: "mismatch" };
+    await saveFitCheckForJob(jobId, updated);
+    const jobsAfterUpdate = await getAllJob();
+    const savedAfterUpdate = jobsAfterUpdate.find((j) => j.id === jobId);
+    expect(JSON.parse(savedAfterUpdate!.fitCheck!.contentJson).fit_level).toBe(
+      "mismatch"
+    );
   });
 });

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { ModelSelector } from "@/components/ModelSelector";
 import { Icon } from "@/components/ui/Icon";
@@ -29,6 +29,12 @@ interface FitCheckDrawerProps {
    * mutation. Takes precedence over any result the drawer's own Start
    * button produced. */
   externalResult?: FitCheckJSON | null;
+  /** The persisted result for this resume (JobPageContext's `fitCheck`,
+   * hydrated from the DB) — seeds the drawer's own result once so a page
+   * reload doesn't reset it back to the splash screen. Unlike
+   * `externalResult`, this only seeds initial state; it's not read live,
+   * so "Re-run" can still clear it and return to the splash screen. */
+  initialResult?: FitCheckJSON | null;
 }
 
 const SEVERITY_ORDER: GapSeverity[] = ["blocking", "major", "minor"];
@@ -50,7 +56,10 @@ const SEVERITY_META: Record<GapSeverity, { label: string; classes: string }> = {
 
 // Same 4-tier emerald/sky/amber/rose scale DeepAnalysisPanel uses for score
 // bands — strong reuses "good", mismatch reuses "bad".
-const FIT_LEVEL_META: Record<FitLevel, { label: string; classes: string }> = {
+export const FIT_LEVEL_META: Record<
+  FitLevel,
+  { label: string; classes: string }
+> = {
   strong: {
     label: "Strong fit",
     classes: "bg-emerald-100 text-emerald-800 border-emerald-200",
@@ -153,10 +162,19 @@ export function FitCheckDrawer({
   resume,
   jobDetails,
   externalResult,
+  initialResult,
 }: FitCheckDrawerProps) {
   const activeModelPair = useModelStore((s) => s.activeModelPair);
-  const { saveToDb } = useJobPageContext();
+  const { saveToDb, setFitCheck } = useJobPageContext();
   const [ownResult, setOwnResult] = useState<FitCheckJSON | null>(null);
+
+  // Seed once from the persisted result so a page reload doesn't reset the
+  // drawer back to the splash screen. Guarded by `!ownResult` so it never
+  // clobbers a result generated (or cleared via Re-run) this session.
+  useEffect(() => {
+    if (initialResult && !ownResult) setOwnResult(initialResult);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialResult]);
 
   const {
     mutate: analyze,
@@ -169,6 +187,7 @@ export function FitCheckDrawer({
       // comment in src/lib/db/job.ts) — mirrors DeepAnalysisPanel's own
       // save-on-generate pattern.
       saveToDb("fitCheck", result.result);
+      setFitCheck(result.result);
     },
   });
 
@@ -371,6 +390,17 @@ export function FitCheckDrawer({
                 ))}
               </ul>
             </div>
+
+            {!externalResult && (
+              <button
+                onClick={() => setOwnResult(null)}
+                disabled={!activeModelPair}
+                className="border-agent-outline-variant text-agent-on-surface-variant hover:bg-agent-surface-container flex items-center justify-center gap-1.5 rounded-lg border px-3 py-2 text-sm font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                <Icon name="refreshCw" className="h-4 w-4" />
+                Re-run
+              </button>
+            )}
           </div>
         )}
       </div>

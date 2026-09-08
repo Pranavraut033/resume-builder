@@ -245,6 +245,16 @@ export async function saveFitCheck(jobId: number, fitCheck: FitCheckJSON) {
   return result;
 }
 
+export async function saveFitCheckForJob(
+  jobId: number,
+  fitCheck: FitCheckJSON
+) {
+  const result = await dbJob.saveFitCheckForJob(jobId, fitCheck);
+
+  revalidatePath("/bookmarks");
+  return result;
+}
+
 export async function deleteJobById(id: number) {
   await prisma.job.delete({ where: { id } });
   revalidatePath("/");

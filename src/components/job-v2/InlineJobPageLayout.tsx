@@ -18,6 +18,7 @@ import {
 import CompanyAvatar from "@/components/CompanyAvatar";
 import PeekContent from "@/components/home/PeekContent";
 import { StatusSelector } from "@/components/home/StatusControls";
+import { ModelSelector } from "@/components/ModelSelector";
 import { Icon, BackButton, Modal, SaveButton } from "@/components/ui";
 import { useToast } from "@/components/ui/ToastProvider";
 import {
@@ -73,6 +74,7 @@ export function InlineJobPageLayout() {
     contentType,
     coverLetter,
     customization,
+    fitCheck,
     historyRef,
     isDirtyCoverLetter,
     isDirtyResume,
@@ -375,6 +377,10 @@ export function InlineJobPageLayout() {
               )}
             </div>
 
+            <div className="hidden shrink-0 md:block">
+              <ModelSelector variant="compact" />
+            </div>
+
             <div className="shrink-0">
               <SaveButton
                 onClick={onSave}
@@ -465,6 +471,7 @@ export function InlineJobPageLayout() {
                       onClose={() => setActiveDrawer(null)}
                       resume={resume}
                       jobDetails={job?.details}
+                      initialResult={fitCheck}
                     />
                   )}
 

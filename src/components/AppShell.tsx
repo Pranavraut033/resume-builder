@@ -4,8 +4,13 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
+import { ModelSelector } from "@/components/ModelSelector";
 import Sidebar from "@/components/Nav";
 import { AppUpdaterProvider } from "@/contexts/AppUpdaterContext";
+import {
+  LLMPageChromeProvider,
+  useLLMPageChromeContext,
+} from "@/contexts/LLMPageChromeContext";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 
 import { CacheInitializer } from "./CacheInitializer";
@@ -28,7 +33,9 @@ export default function AppShell({ children }: AppShellProps) {
       <ThemeProvider>
         <ToastProvider>
           <AppUpdaterProvider>
-            <AppShellContent>{children}</AppShellContent>
+            <LLMPageChromeProvider>
+              <AppShellContent>{children}</AppShellContent>
+            </LLMPageChromeProvider>
             <CacheInitializer />
             <DevKeySeeder />
             <ExternalLinkGuard />
@@ -43,6 +50,7 @@ export default function AppShell({ children }: AppShellProps) {
 
 function AppShellContent({ children }: AppShellProps) {
   const pathname = usePathname();
+  const { showModelSelector } = useLLMPageChromeContext();
   const isFullScreenRoute =
     pathname.startsWith("/job/") || pathname.startsWith("/find-jobs");
 
@@ -97,6 +105,7 @@ function AppShellContent({ children }: AppShellProps) {
           }
           right={
             <>
+              {showModelSelector && <ModelSelector variant="compact" />}
               <UpdatePrompt />
               <Link
                 href="/docs"
