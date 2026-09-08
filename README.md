@@ -17,7 +17,7 @@ More screenshots and demo clips (Fit Check, chat editing, cover letters, customi
 ## Features
 
 - **Base profile**: one reusable profile (experience, skills, projects, education) stored locally in SQLite
-- **Bookmarks**: save a job URL without generating a resume yet — JD parsing runs in a background queue (up to 5 concurrent), so you can keep pasting URLs and promote a bookmark to a tracked job later from `/bookmarks`
+- **Bookmarks**: save a job URL without generating a resume yet — JD parsing runs in a background queue (up to 5 concurrent), so you can keep pasting URLs; run a quick Fit Check against your base profile right from the list, and promote a bookmark to a tracked job later from `/bookmarks`
 - **Job tracking**: manage applications with status (Bookmarked, Draft, Applied, Interview, Offer, Rejected)
 - **AI job parsing**: paste a job description and extract structured requirements client-side via your chosen LLM
 - **AI resume & cover letter tailoring**: generate content tailored to each job from your base profile
@@ -28,7 +28,7 @@ More screenshots and demo clips (Fit Check, chat editing, cover letters, customi
 - **Fit Check**: a blunt, substantive fit assessment against the job description — missing experience, seniority, and domain gaps a keyword scan can't see, plus knockout risks (work authorization, a license, a location), each with a concrete next step, closing with your real strengths; no invented "ATS score"
 - **EU/German CVs**: optional profile photo, nationality, date of birth, and hobbies section; DE/EU region prompt guidance; an Anschreiben cover letter style
 - **Documents view**: browse all generated resumes and cover letters across jobs (`/documents`)
-- **Notifications**: a bell in the sidebar shows background task progress and results (e.g. bookmark parsing), with history and a clear-all action
+- **Notifications**: a bell in the sidebar shows background task progress and results (e.g. bookmark parsing, job creation — which now runs off the page and links back to the finished job), with history and a clear-all action
 - **PDF & TXT export**: generate application-ready documents
 - **10 LLM providers**: OpenAI, Google Gemini, Anthropic (Claude), xAI Grok, Groq, DeepSeek, Mistral, OpenRouter, Perplexity, local Ollama — or a managed pay-as-you-go gateway (no key required); switch per job
 - **MCP server (optional)**: drive the same job-parsing/tailoring/fit-check/deep-analysis/humanizing flows, plus reading and editing your base profile with a diff preview before anything saves, from Claude Desktop or another MCP host on your own chat subscription — no API key configured in this app required. Opt-in toggle + one-click connector download in **Settings**, off by default; see [docs/MCP.md](./docs/MCP.md)

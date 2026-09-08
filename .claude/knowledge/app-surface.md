@@ -9,7 +9,7 @@ notifications, bookmarks.
 | -------------------- | ------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
 | `/`                  | `page.tsx`                            | Home / job list (`JobTableClient.tsx`, components in `src/components/home/`).                                                   |
 | `/profile`           | `profile/page.tsx`                    | Base profile editor (`src/components/profile/`). Multi-profile via `Profile.label`.                                             |
-| `/job/new`           | `job/new/page.tsx`                    | Create flow: paste JD or URL → parse → tailor → generate. Has a **bookmark mode**, below.                                       |
+| `/job/new`           | `job/new/page.tsx`                    | Create flow: paste JD or URL → parse → tailor → generate. Submitting fires `src/lib/jobs/runJobCreation.ts` and returns to `/` immediately — see below. Has a **bookmark mode**, below. |
 | `/job/[jobId]`       | `job/[jobId]/page.tsx` + `layout.tsx` | The Inline Editor — the only job detail implementation. See below.                                                              |
 | `/documents`         | `documents/page.tsx`                  | All generated resumes/cover letters with version history, across jobs (`getAllDocuments`).                                      |
 | `/bookmarks`         | `bookmarks/page.tsx`                  | Saved job URLs not yet turned into applications.                                                                                |
@@ -38,7 +38,7 @@ route — both were removed.
 | `FloatingActionBar.tsx`        | Inline actions (PDF, Undo/Redo, Customize, Fit Check, Deep Analysis, Humanize, Chat) + a `⋯` overflow (Sections, History, Download JSON). Fit Check sits left of Deep Analysis in the main row — the primary "should I apply" read, Deep Analysis the secondary line-editing pass. Exports `DrawerName` — the source of truth for openable drawers. |
 | `SideDrawer.tsx`               | Shared drawer shell.                                                                                                                                                                                                                                                                                                                                |
 | `DeepAnalysisDrawer.tsx`       | Wraps `DeepAnalysisPanel` (`src/components/job/`) — renders `DocumentAnalysisJSON`'s flat `findings[]` grouped by kind. A finding where `suggestion === original` (model confirming a field needs no change) is filtered out at render time to a one-line count instead of a card — nothing persisted changes.                                      |
-| `FitCheckDrawer.tsx`           | Substantive resume-vs-JD fit (not keyword scoring), plus `knockout_risks`. No apply pill — `FitCheckSchema` gaps carry no `resume_fix` any more, so there's nothing left for a pill to apply.                                                                                                                                                       |
+| `FitCheckDrawer.tsx`           | Substantive resume-vs-JD fit (not keyword scoring), plus `knockout_risks`. No apply pill — `FitCheckSchema` gaps carry no `resume_fix` any more, so there's nothing left for a pill to apply. Persists via `saveFitCheck`/`JobPageContext.setFitCheck`; seeds itself once from `initialResult` (the hydrated `JobPageContext.fitCheck`) so a page reload doesn't drop back to the splash screen — "Re-run" clears it back to that splash regardless.                                                                                                                                                       |
 | `HumanizerDrawer.tsx`          | AI-humanizing pass (`HumanizerDrawer.test.tsx`).                                                                                                                                                                                                                                                                                                    |
 | `HistoryDrawer.tsx`            | `ResumeSnapshot` version history.                                                                                                                                                                                                                                                                                                                   |
 | `CustomizationDrawer.tsx`      | Colors/fonts/layout for this job's `Customization` — including the template picker grid (`job/TemplateSelector.tsx`, no longer a separate toolbar control) and, for cover letters, an independent template picker. See [rendering.md](rendering.md) for how templates and cover-letter template decoupling actually work.                           |
@@ -80,6 +80,25 @@ is no separate table.
   (details are already persisted) and finishes with `attachGeneratedMaterials()` instead of `createJob()`,
   flipping status to `"DRAFT"`.
 - URL dedupe goes through `findJobByUrl`.
+- Each row has a **"Check fit"** button — a quick `useFitCheck` run against the base `Profile` (no `Resume`
+  exists yet for a bookmarked job), persisted via `saveFitCheckForJob()` straight onto `Job.fitCheckId`
+  (there's no `Resume` row to hang it off, unlike the in-editor `saveFitCheck`). Once present it renders as a
+  `FIT_LEVEL_META`-styled badge instead of the button.
+- `useLLMPageChrome(true)` on this page opts the app header into showing the compact `ModelSelector` — see
+  "State management" below.
+
+## Job creation pipeline
+
+Both `/job/new` and the bookmarks' "Check fit"-adjacent "Start tracking" flow ultimately submit through
+`src/lib/jobs/runJobCreation.ts`'s `startJobCreation()` — a fire-and-forget call that runs parse → analyze →
+tailor/copy → save **off the page** and reports progress through `notificationStore` (same
+progress→success/error pattern as `bookmarkQueueStore.ts`). The page itself returns to `/` immediately instead
+of showing an inline step progress bar; `GENERATION_STEPS`/`SKIP_TAILORING_STEPS` describe the steps shown in
+the notification text. On success the notification carries `meta: { jobId }`, which is how `NotificationBell`
+links back to the created job.
+
+ponytail (from the source): the in-flight run lives only in this module's promise chain — a hard reload
+mid-generation loses it silently. Fine for one job in flight at a time on a local desktop app.
 
 ## Notifications
 
@@ -88,7 +107,8 @@ is no separate table.
 
 - `src/components/ui/ToastProvider.tsx` — transient toasts; `useToast()`/`pushToast()`.
 - `src/components/notifications/NotificationBell.tsx` — persistent sidebar history popover with unread count
-  and "Clear all".
+  and "Clear all". A notification whose `meta.jobId` is set (e.g. from `runJobCreation.ts`) renders as a link
+  to `/job/[jobId]`; others render as plain rows.
 
 ## State management
 
@@ -97,7 +117,9 @@ is no separate table.
   `JobTableClient.tsx`).
 - **Zustand** (`src/store/`): `modelStore.ts` (selected provider/model + per-model reasoning-effort,
   temperature, top-p), `notificationStore.ts`, `bookmarkQueueStore.ts`, `mcpServerStore.ts`.
-- **React context** (`src/contexts/`): `JobPageContext.tsx`, `ThemeContext.tsx`, `AppUpdaterContext.tsx`.
+- **React context** (`src/contexts/`): `JobPageContext.tsx`, `ThemeContext.tsx`, `AppUpdaterContext.tsx`,
+  `LLMPageChromeContext.tsx` — lets a page opt into the app header's compact `ModelSelector` by calling
+  `useLLMPageChrome(true)` (auto-resets on unmount); provider wraps `AppShellContent` in `AppShell.tsx`.
 - **Hooks** (`src/hooks/`): data — `useProfileQuery`, `useJobPageDataQuery`, `useProfileSelection`,
   `useDeleteJob`; LLM actions — `useGenerateCoverLetter`, `useHumanizeContent`, `useDeepAnalysis`,
   `useFitCheck`; rendering — `useBlockPaginator`, `useResolveCustomization`; UI — `useEscapeKey`,

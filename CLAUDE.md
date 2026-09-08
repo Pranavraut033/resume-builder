@@ -23,7 +23,8 @@ step, in the main thread** — do not spawn an agent to re-derive what it alread
 | [`.claude/knowledge/chat-mcp.md`](.claude/knowledge/chat-mcp.md)           | The chat assistant (`src/lib/llm/chat-bot/`) and MCP server (`src/mcp/`) surface |
 
 Project docs for humans: `docs/MCP.md`, `docs/MCP_ARCHITECTURE.md`, `docs/SECURITY_AUDIT.md`,
-`docs/DISTRIBUTION.md`, `docs/UI_COMPONENTS_GUIDE.md`.
+`docs/DISTRIBUTION.md`, `docs/UI_COMPONENTS_GUIDE.md`, `docs/PUBLIC_RELEASE_AUDIT.md` (point-in-time findings
+from a public-release readiness pass — signing, crash risks, support burden — not living guidance).
 
 **Only after** the matching file turns out not to cover what's needed (a specific symbol it doesn't mention, a
 detail that's since changed) — or the task has no matching row at all — fall back to the tools below.
@@ -106,4 +107,4 @@ own file when it has tools or a model the main thread lacks.
   feature on the `feature/mock-interview` branch. Not wired in on `main`; see
   [`.claude/knowledge/llm-runtime.md`](.claude/knowledge/llm-runtime.md).
 
-<!-- last-sync-docs: 2f616056c0ba9f69ed8e6d7548cdbf855239e6f9 -->
+<!-- last-sync-docs: 7688b09db39c3000078203716156f69f1310cc75 -->
