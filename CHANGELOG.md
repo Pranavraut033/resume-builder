@@ -2,6 +2,18 @@
 
 All notable changes to this project are documented in this file.
 
+## [1.17.0] - 2026-09-09
+
+### Added
+
+- Fit Check for bookmarks: run a quick fit assessment against your base profile straight from `/bookmarks`, before a resume exists — persisted via `Job.fitCheckId` and shown as a badge on the row ([73d3030])
+- Fit Check results now persist and hydrate on reload: the drawer seeds itself from the saved result so a page refresh doesn't reset it back to the splash screen; "Re-run" still clears it deliberately ([73d3030])
+
+### Changed
+
+- Creating a job (`/job/new`) no longer blocks the page on the parse → analyze → tailor pipeline — it now runs in the background (`runJobCreation.ts`) and reports progress/completion through the notification bell, which returns you to `/` immediately ([203de2b])
+- Notifications for a finished job now link straight to `/job/[jobId]` ([203de2b])
+
 ## [1.16.0] - 2026-08-19
 
 ### Added

@@ -1,3 +1,11 @@
+# v1.17.0 — 2026-09-09
+
+Fit Check goes to bookmarks, and creating a job no longer makes you wait.
+
+- **Check your fit before you even start tracking a job.** Bookmarked a listing? Run Fit Check straight from `/bookmarks` against your base profile — no resume required yet — and see the verdict as a badge on the row.
+- **Fit Check now remembers its result.** Reload the job page and your last Fit Check is still there instead of resetting to the start screen. Hit "Re-run" if you want a fresh one.
+- **Creating a job no longer locks you to a loading screen.** Submit a job description and you're back on the home page immediately — the notification bell tracks progress and takes you straight to the finished job when it's ready.
+
 # v1.16.0 — 2026-08-19
 
 Three overlapping analysis passes become two that know what they're for: Fit Check decides, Deep Analysis edits.
