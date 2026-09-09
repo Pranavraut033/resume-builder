@@ -67,8 +67,15 @@ export default function SettingsPage() {
   const [isRestoring, setIsRestoring] = useState(false);
   const [backupError, setBackupError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const { state: updaterState, checkForUpdates } = useAppUpdaterContext();
+  const {
+    state: updaterState,
+    checkForUpdates,
+    downloadInstaller,
+  } = useAppUpdaterContext();
   const [checkingForUpdates, setCheckingForUpdates] = useState(false);
+  // The updater compares tauri.conf.json's version, not package.json's — read
+  // the real running build's version so this can never disagree with it.
+  const [appVersion, setAppVersion] = useState(packageJson.version);
 
   const { setEnabled: setMcpEnabled } = useMcpServerStore();
   const [mcpRunning, setMcpRunning] = useState(false);
@@ -86,6 +93,14 @@ export default function SettingsPage() {
     new Set()
   );
   const [providerPickerOpen, setProviderPickerOpen] = useState(false);
+
+  useEffect(() => {
+    if (!isTauriContext()) return;
+    import("@tauri-apps/api/app")
+      .then(({ getVersion }) => getVersion())
+      .then(setAppVersion)
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     if (!isTauriContext()) return;
@@ -109,6 +124,16 @@ export default function SettingsPage() {
       cancelled = true;
     };
   }, []);
+
+  // Known-newer version to offer a manual DMG/installer download for, when
+  // one exists — undefined otherwise (e.g. still idle/checking, or a plain
+  // network-error check with no version attached).
+  const availableUpdateVersion =
+    updaterState.status === "available"
+      ? updaterState.update.version
+      : updaterState.status === "error"
+        ? updaterState.version
+        : undefined;
 
   const handleCheckForUpdates = async () => {
     setCheckingForUpdates(true);
@@ -895,7 +920,7 @@ export default function SettingsPage() {
             {/* Version */}
             <div className="bg-agent-surface-container flex items-center justify-between rounded-xl px-4 py-3">
               <span className="text-agent-on-surface-variant text-sm">
-                Version {packageJson.version}{" "}
+                Version {appVersion}{" "}
                 <a
                   href={`${REPO_URL}/blob/main/CHANGELOG.md`}
                   className="text-agent-primary hover:underline"
@@ -903,18 +928,29 @@ export default function SettingsPage() {
                   What&apos;s new
                 </a>
               </span>
-              <Button
-                variant="secondary"
-                size="sm"
-                onClick={handleCheckForUpdates}
-                disabled={
-                  checkingForUpdates || updaterState.status === "checking"
-                }
-              >
-                {checkingForUpdates || updaterState.status === "checking"
-                  ? "Checking..."
-                  : "Check for Updates"}
-              </Button>
+              <div className="flex items-center gap-2">
+                {availableUpdateVersion && (
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => downloadInstaller(availableUpdateVersion)}
+                  >
+                    Download installer
+                  </Button>
+                )}
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={handleCheckForUpdates}
+                  disabled={
+                    checkingForUpdates || updaterState.status === "checking"
+                  }
+                >
+                  {checkingForUpdates || updaterState.status === "checking"
+                    ? "Checking..."
+                    : "Check for Updates"}
+                </Button>
+              </div>
             </div>
 
             {/* About / Legal */}

@@ -1,33 +1,15 @@
 "use client";
 
 import { relaunch } from "@tauri-apps/plugin-process";
-import { useEffect } from "react";
 
 import { Modal } from "@/components/ui/Modal";
-import { useToast } from "@/components/ui/ToastProvider";
 import { useAppUpdaterContext } from "@/contexts/AppUpdaterContext";
 
 export function UpdatePrompt() {
-  const { state, downloadAndInstall, dismiss } = useAppUpdaterContext();
-  const { pushToast } = useToast();
+  const { state, downloadAndInstall, downloadInstaller, dismiss } =
+    useAppUpdaterContext();
 
-  useEffect(() => {
-    if (state.status !== "error") return;
-
-    pushToast({
-      title: "Update check failed",
-      description: state.message || "Failed to check for updates",
-      variant: "error",
-    });
-
-    dismiss();
-  }, [dismiss, pushToast, state]);
-
-  if (
-    state.status === "idle" ||
-    state.status === "checking" ||
-    state.status === "error"
-  ) {
+  if (state.status === "idle" || state.status === "checking") {
     return null;
   }
 
@@ -36,23 +18,39 @@ export function UpdatePrompt() {
       ? "Update available"
       : state.status === "downloading"
         ? "Downloading update"
-        : "Update ready";
+        : state.status === "installing"
+          ? "Installing update"
+          : state.status === "ready"
+            ? "Update ready"
+            : "Update failed";
 
   return (
     <Modal
       isOpen
       onClose={dismiss}
       title={title}
-      cancelLabel={state.status === "downloading" ? "Hide" : "Later"}
+      cancelLabel={
+        state.status === "downloading" || state.status === "installing"
+          ? "Hide"
+          : "Later"
+      }
       primaryAction={
         state.status === "available"
           ? downloadAndInstall
           : state.status === "ready"
             ? () => relaunch()
-            : undefined
+            : state.status === "error"
+              ? state.version
+                ? () => downloadInstaller(state.version!)
+                : undefined
+              : undefined
       }
       primaryActionLabel={
-        state.status === "available" ? "Update now" : "Restart now"
+        state.status === "available"
+          ? "Update now"
+          : state.status === "error"
+            ? "Download installer"
+            : "Restart now"
       }
       primaryActionButtonType={
         state.status === "ready" ? "secondary" : "primary"
@@ -60,10 +58,18 @@ export function UpdatePrompt() {
       size="sm"
     >
       {state.status === "available" && (
-        <p className="text-agent-on-surface-variant text-sm">
-          Version {state.update.version} is available. Update now to install the
-          latest improvements.
-        </p>
+        <div className="space-y-3">
+          <p className="text-agent-on-surface-variant text-sm">
+            Version {state.update.version} is available. Update now to install
+            the latest improvements.
+          </p>
+          <button
+            onClick={() => downloadInstaller(state.update.version)}
+            className="text-agent-primary text-sm underline"
+          >
+            Or download the installer manually
+          </button>
+        </div>
       )}
 
       {state.status === "downloading" && (
@@ -81,10 +87,26 @@ export function UpdatePrompt() {
         </div>
       )}
 
+      {state.status === "installing" && (
+        <p className="text-agent-on-surface-variant text-sm">
+          Installing the update — this can take a minute. Don&apos;t quit the
+          app.
+        </p>
+      )}
+
       {state.status === "ready" && (
         <p className="text-agent-on-surface-variant text-sm">
           The update has been downloaded and is ready to install. Restart now to
           apply it.
+        </p>
+      )}
+
+      {state.status === "error" && (
+        <p className="text-agent-on-surface-variant text-sm">
+          {state.message || "Failed to check for updates"}
+          {state.version
+            ? " You can download and run the installer manually instead."
+            : ""}
         </p>
       )}
     </Modal>

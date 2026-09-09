@@ -216,6 +216,93 @@ fn clear_quarantine() -> Result<(), String> {
     Ok(())
 }
 
+/// Manual fallback for when the in-place updater fails or the user would
+/// rather do it by hand: fetch the GitHub release for `version`, download the
+/// asset matching this platform to a temp dir, strip quarantine on macOS, and
+/// open it (mounts the DMG / runs the installer / reveals the AppImage).
+/// Queries the GitHub API for the asset list rather than reconstructing the
+/// filename, so a bundler naming change can't silently 404 this path.
+#[tauri::command]
+async fn download_installer(app: tauri::AppHandle, version: String) -> Result<String, String> {
+    use tauri_plugin_opener::OpenerExt;
+
+    let repo = env!("CARGO_PKG_REPOSITORY")
+        .trim_start_matches("https://github.com/")
+        .trim_end_matches(".git")
+        .trim_end_matches('/');
+
+    let api_url = format!("https://api.github.com/repos/{repo}/releases/tags/v{version}");
+
+    let output = Command::new("curl")
+        .args(["-fsSL", "-H", "User-Agent: Udaan-updater", &api_url])
+        .output()
+        .map_err(|e| format!("failed to run curl: {e}"))?;
+    if !output.status.success() {
+        return Err(format!(
+            "failed to fetch release info: {}",
+            String::from_utf8_lossy(&output.stderr)
+        ));
+    }
+
+    let release: serde_json::Value =
+        serde_json::from_slice(&output.stdout).map_err(|e| format!("bad release JSON: {e}"))?;
+    let assets = release["assets"]
+        .as_array()
+        .ok_or("release has no assets")?;
+
+    // ponytail: substring match on the asset name, same approach the release
+    // workflow uses to tell macOS x86_64 apart from aarch64 ("x64" vs
+    // "aarch64" in the filename, not the Rust target triple).
+    let want: &[&str] = if cfg!(all(target_os = "macos", target_arch = "aarch64")) {
+        &[".dmg", "aarch64"]
+    } else if cfg!(target_os = "macos") {
+        &[".dmg", "x64"]
+    } else if cfg!(target_os = "windows") {
+        &["-setup.exe"]
+    } else {
+        &[".AppImage"]
+    };
+
+    let asset = assets
+        .iter()
+        .find(|a| {
+            let name = a["name"].as_str().unwrap_or("");
+            want.iter().all(|needle| name.contains(needle))
+        })
+        .ok_or_else(|| format!("no matching installer asset found for v{version}"))?;
+
+    let name = asset["name"].as_str().ok_or("asset has no name")?;
+    let download_url = asset["browser_download_url"]
+        .as_str()
+        .ok_or("asset has no download URL")?;
+
+    let dest = std::env::temp_dir().join(name);
+
+    let status = Command::new("curl")
+        .args(["-fL", "--retry", "2", "-o"])
+        .arg(&dest)
+        .arg(download_url)
+        .status()
+        .map_err(|e| format!("failed to run curl: {e}"))?;
+    if !status.success() {
+        return Err(format!("download failed: curl exited with {status}"));
+    }
+
+    #[cfg(target_os = "macos")]
+    {
+        let _ = Command::new("/usr/bin/xattr")
+            .args(["-dr", "com.apple.quarantine"])
+            .arg(&dest)
+            .status();
+    }
+
+    app.opener()
+        .open_path(dest.to_string_lossy().to_string(), None::<&str>)
+        .map_err(|e| format!("failed to open installer: {e}"))?;
+
+    Ok(dest.to_string_lossy().to_string())
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     let app = tauri::Builder::default()
@@ -224,6 +311,19 @@ pub fn run() {
         .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_process::init())
         .plugin(tauri_plugin_opener::init())
+        // Captures tauri-plugin-updater's own log::debug!/error! output (e.g.
+        // "app installation needs admin privileges", install IO errors) which
+        // was previously going nowhere — see the Finished-vs-installed trap
+        // documented on clear_quarantine/download_installer.
+        .plugin(
+            tauri_plugin_log::Builder::new()
+                .target(tauri_plugin_log::Target::new(
+                    tauri_plugin_log::TargetKind::LogDir {
+                        file_name: Some("rust".into()),
+                    },
+                ))
+                .build(),
+        )
         .setup(|app| {
             let mut next_server_child = None;
 
@@ -308,6 +408,7 @@ pub fn run() {
             browser::browser_set_bounds,
             browser::browser_destroy_all,
             clear_quarantine,
+            download_installer,
             keychain::get_or_create_master_key,
             mcp_server::mcp_server_start,
             mcp_server::mcp_server_stop,

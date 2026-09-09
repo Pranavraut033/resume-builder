@@ -41,6 +41,7 @@ export default function AppShell({ children }: AppShellProps) {
             <ExternalLinkGuard />
             <KeychainNoticeGate />
             <McpServerAutostart />
+            <UpdatePrompt />
           </AppUpdaterProvider>
         </ToastProvider>
       </ThemeProvider>
@@ -106,7 +107,6 @@ function AppShellContent({ children }: AppShellProps) {
           right={
             <>
               {showModelSelector && <ModelSelector variant="compact" />}
-              <UpdatePrompt />
               <Link
                 href="/docs"
                 className="text-sm font-medium transition-opacity hover:opacity-70"
