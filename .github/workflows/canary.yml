@@ -1,0 +1,206 @@
+name: Canary
+
+# Builds "Udaan Canary" — a side-by-side app (own bundle id, own DB, own
+# updater endpoint; see src-tauri/canary.conf.json) so the self-update path
+# can be exercised end-to-end without cutting a real release or touching the
+# live install. Every push moves the single `canary` tag/release forward, so
+# installing today's canary and pushing again gives you a real update to
+# test against.
+
+on:
+  push:
+    branches:
+      - canary
+  workflow_dispatch: {}
+
+jobs:
+  create-release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    outputs:
+      release_id: ${{ steps.create_release.outputs.result }}
+
+    steps:
+      - name: Delete previous canary release + tag
+        uses: actions/github-script@v8
+        continue-on-error: true
+        with:
+          script: |
+            const release = await github.rest.repos.getReleaseByTag({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              tag: "canary",
+            }).catch(() => null);
+            if (release) {
+              await github.rest.repos.deleteRelease({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                release_id: release.data.id,
+              });
+            }
+            await github.rest.git.deleteRef({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              ref: "tags/canary",
+            }).catch(() => null);
+
+      - name: Create GitHub release (draft, prerelease)
+        id: create_release
+        uses: actions/github-script@v8
+        with:
+          script: |
+            const { data } = await github.rest.repos.createRelease({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              tag_name: "canary",
+              target_commitish: context.sha,
+              name: `Udaan Canary (run ${{ github.run_number }})`,
+              body: `Canary build from ${context.sha}. Not for general use — installs alongside the real app as "Udaan Canary".`,
+              draft: true,
+              prerelease: true,
+            });
+            return data.id;
+
+  build:
+    needs: create-release
+    permissions:
+      contents: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # macOS aarch64 only, to keep the canary loop fast — widen if a
+          # Windows/Linux-specific update bug ever needs reproducing here.
+          - platform: macos-latest
+            arch: aarch64
+            args: "--target aarch64-apple-darwin"
+            rust-targets: "aarch64-apple-darwin"
+    runs-on: ${{ matrix.platform }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+        with:
+          submodules: true
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+
+      - name: Setup Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.rust-targets }}
+
+      - name: Cache Rust dependencies
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+
+      - name: Build llm-core submodule
+        working-directory: packages/llm-core
+        run: |
+          npm ci
+          npm run build
+
+      - name: Build ats-checker submodule
+        working-directory: packages/ats-checker
+        run: |
+          npm ci
+          npm run build
+
+      - name: Install Node.js dependencies
+        run: npm ci
+
+      - name: Generate Prisma client
+        run: npx prisma generate
+        env:
+          DATABASE_URL: "file:./dev.db"
+
+      - name: Set canary version
+        run: |
+          VERSION="$(node -p "require('./package.json').version")-canary.${{ github.run_number }}"
+          jq --arg v "$VERSION" '.version = $v' src-tauri/canary.conf.json > tmp.json
+          mv tmp.json src-tauri/canary.conf.json
+          echo "CANARY_VERSION=$VERSION" >> "$GITHUB_ENV"
+
+      - name: Build and publish Tauri app
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY || '-' }}
+          NODE_OPTIONS: --max-old-space-size=8192
+        with:
+          releaseId: ${{ needs.create-release.outputs.release_id }}
+          args: "--config src-tauri/canary.conf.json ${{ matrix.args }}"
+          includeUpdaterJson: false
+
+      - name: Collect updater info
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          ARCHIVE=$(find "src-tauri/target/${{ matrix.rust-targets }}/release/bundle/macos" -name "*.app.tar.gz" | head -1)
+          SIGNATURE=$(cat "${ARCHIVE}.sig")
+          FILENAME=$(gh api "repos/${{ github.repository }}/releases/${{ needs.create-release.outputs.release_id }}/assets" \
+            --jq '.[].name' | grep -E '\.app\.tar\.gz$' | grep -F "aarch64")
+          if [ -z "$FILENAME" ]; then
+            echo "::error::No .app.tar.gz asset found on release ${{ needs.create-release.outputs.release_id }}"
+            exit 1
+          fi
+          URL="https://github.com/${{ github.repository }}/releases/download/canary/${FILENAME}"
+          DATE=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+          jq -n \
+            --arg version "$CANARY_VERSION" \
+            --arg notes "Canary build, run ${{ github.run_number }}." \
+            --arg pub_date "$DATE" \
+            --arg url "$URL" \
+            --arg sig "$SIGNATURE" \
+            '{version: $version, notes: $notes, pub_date: $pub_date, platforms: {"darwin-aarch64": {url: $url, signature: $sig}}}' \
+            > update.json
+
+      - name: Upload update manifest to release
+        uses: actions/github-script@v8
+        with:
+          script: |
+            const fs = require('fs');
+            await github.rest.repos.uploadReleaseAsset({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              release_id: ${{ needs.create-release.outputs.release_id }},
+              name: 'update.json',
+              data: fs.readFileSync('update.json'),
+            });
+
+      - name: Publish release
+        uses: actions/github-script@v8
+        with:
+          script: |
+            await github.rest.repos.updateRelease({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              release_id: ${{ needs.create-release.outputs.release_id }},
+              draft: false,
+            });
+
+  cleanup-failed-release:
+    needs: [create-release, build]
+    if: always() && needs.create-release.result == 'success' && needs.build.result != 'success'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Delete orphaned draft release
+        uses: actions/github-script@v8
+        with:
+          script: |
+            await github.rest.repos.deleteRelease({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              release_id: ${{ needs.create-release.outputs.release_id }},
+            });

@@ -1,0 +1,12 @@
+{
+  "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
+  "productName": "Udaan Canary",
+  "identifier": "com.resumebuilder.canary",
+  "plugins": {
+    "updater": {
+      "endpoints": [
+        "https://github.com/Pranavraut033/resume-builder/releases/download/canary/update.json"
+      ]
+    }
+  }
+}
