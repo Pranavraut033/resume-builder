@@ -177,12 +177,12 @@ base64 -i udaan.p12 | pbcopy
 
 ### Workflows
 
-| Workflow                    | File                             | Trigger                                                                                                                                                          |
-| ---------------------------- | -------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Build (manual smoke build)  | `.github/workflows/build.yml`   | Manual (`workflow_dispatch`) — matrix builds macOS, Windows, and Linux                                                                                          |
-| CI (type-check + lint)      | `.github/workflows/ci.yml`      | Push, pull requests — no build or signing, just `type-check`/`lint`                                                                                             |
-| Release                     | `.github/workflows/release.yml` | Push of a version tag (e.g. `v1.0.0`), or manual dispatch with a `tag` input                                                                                    |
-| Canary                      | `.github/workflows/canary.yml`  | Push to the `canary` branch — builds "Udaan Canary", a side-by-side app with its own bundle id/endpoint for testing self-updates end-to-end (macOS aarch64 only) |
+| Workflow                   | File                            | Trigger                                                                                                                                                          |
+| -------------------------- | ------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Build (manual smoke build) | `.github/workflows/build.yml`   | Manual (`workflow_dispatch`) — matrix builds macOS, Windows, and Linux                                                                                           |
+| CI (type-check + lint)     | `.github/workflows/ci.yml`      | Push, pull requests — no build or signing, just `type-check`/`lint`                                                                                              |
+| Release                    | `.github/workflows/release.yml` | Push of a version tag (e.g. `v1.0.0`), or manual dispatch with a `tag` input                                                                                     |
+| Canary                     | `.github/workflows/canary.yml`  | Push to the `canary` branch — builds "Udaan Canary", a side-by-side app with its own bundle id/endpoint for testing self-updates end-to-end (macOS aarch64 only) |
 
 ### Publishing a Release
 
