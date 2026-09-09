@@ -50,6 +50,65 @@ Left alone, the updated app launches as "damaged" and forces a manual reinstall.
 bundle. It is called once at launch and again from `src/hooks/useAppUpdater.ts` immediately after an update
 installs. No-op on non-macOS.
 
+## The updater's `Finished` event fires before install is done
+
+`tauri-plugin-updater`'s `downloadAndInstall(onEvent)` reports `Finished` when the **download** stream ends
+— not when the app is actually installed. The install (gunzip + untar the whole bundle, `rename` the old
+`.app` aside, `rename` the new one into place) runs afterwards, still inside the same `await`. The bundled
+app is 442 MB, so that extract alone takes tens of seconds. `useAppUpdater.ts` tracks this with a distinct
+`installing` state between `Finished` and the `await` actually resolving — **never** treat `Finished` as
+"safe to relaunch". `UpdatePrompt.tsx` only offers the Restart button once `status === "ready"`, which is
+set after `downloadAndInstall()` returns and `clear_quarantine` has run. Getting this wrong is why updates
+used to "succeed" and silently leave the app on the old version — relaunching mid-extract exec's back into
+whichever bundle happened to be on disk at that instant.
+
+## Updater logging
+
+Both sides now log every step — before this, a failed update left literally no trace anywhere, which is why
+past fixes were guesses:
+
+- JS: `useAppUpdater.ts` logs through `src/lib/logger.ts` (tag `updater`) into `$APPDATA/logs/client.log` —
+  check start/result, download start (with size), install finish, quarantine-clear result, every error.
+- Rust: `tauri_plugin_log` is registered in `lib.rs` with a `LogDir` target (`file_name: "rust"`), which
+  captures `tauri-plugin-updater`'s own internal `log::` calls (e.g. the admin-privileges AppleScript
+  branch, install IO errors) that were previously discarded. Written to the OS log dir, **not**
+  `$APPDATA/logs`: `~/Library/Logs/<bundle id>/rust.log` on macOS, `%LOCALAPPDATA%\<bundle id>\logs\` on
+  Windows, `$XDG_DATA_HOME/<bundle id>/logs/` on Linux.
+
+## DMG/installer fallback
+
+`download_installer(version)` (`src-tauri/src/lib.rs`) is the manual escape hatch: queries the GitHub API
+for the named release's assets (rather than reconstructing the filename — a bundler naming change can't
+silently 404 this), downloads the platform-matching one to `std::env::temp_dir()`, strips quarantine on
+macOS, and opens it via `tauri_plugin_opener` (mounts the DMG, runs the NSIS installer, or reveals the
+AppImage). `useAppUpdater.ts`'s `downloadInstaller()` wraps this and then `exit(0)`s so the old copy isn't
+still holding port 3009 when the user replaces it. Wired into `UpdatePrompt` (secondary action on
+`available`, primary on `error`) and Settings (next to "Check for Updates", shown only when a newer
+version is known).
+
+## Canary channel
+
+Push to the `canary` branch and `.github/workflows/canary.yml` builds "Udaan Canary" — a separate app that
+installs alongside the real one, for exercising the self-update path (including the trap above) without
+cutting a real release or risking the live install/DB:
+
+- **Separate everything except code**: `src-tauri/canary.conf.json` (merged via `--config`, same pattern
+  `windows-signing.conf.json` uses in `release.yml`) overrides only `productName` → "Udaan Canary",
+  `identifier` → `com.resumebuilder.canary`, and `plugins.updater.endpoints`. Different identifier means a
+  different `$APPDATA` (own `app.db`, own logs) — a canary bug can't touch real data.
+- **Version**: the workflow computes `<package.json version>-canary.<run number>` and patches it into
+  `canary.conf.json` before building. Semver prerelease ordering makes each push a valid update over the
+  last (`…canary.2 > …canary.1`) while staying below the real release version (irrelevant anyway — it's a
+  separate app with a separate endpoint).
+- **Distribution**: a single moving `canary` tag/release (deleted and recreated every run) at
+  `releases/download/canary/update.json` — the endpoint canary.conf.json points at. Can't use
+  `releases/latest/download/` the way the real endpoint does, since GitHub's "latest" skips prereleases and
+  this release is marked `prerelease: true`.
+- **Known ceilings, left as-is**: canary shares stable's keychain service name (`keychain.rs`'s
+  `SERVICE_NAME`), so it reads the same encrypted API keys — convenient, and safe since the key is only
+  read, never rotated, when one already exists. Port 3009 is hardcoded (`lib.rs`), so canary and stable
+  can't run at the same time.
+
 ## Rust sources (`src-tauri/src/`)
 
 | File            | Purpose                                                                                                                                                                                                                                                                                                                                             |
