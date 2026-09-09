@@ -128,7 +128,7 @@ The optional **MCP server** (`src/mcp/`) is a third, purely additive way to driv
 
 ### Prerequisites
 
-- Node.js 22 (pinned in `.nvmrc`; run `nvm use`)
+- Node.js 24 (pinned in `.nvmrc`; run `nvm use`)
 - Rust + the Tauri CLI prerequisites ([tauri.app/start/prerequisites](https://tauri.app/start/prerequisites/)) — only needed for the desktop build
 
 ### Installation
