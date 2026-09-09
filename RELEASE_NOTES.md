@@ -1,3 +1,10 @@
+# v1.18.0 — 2026-09-09
+
+The auto-updater no longer strands you on an old version — plus a manual fallback if you'd rather install by hand.
+
+- **Fixed: updates could silently fail to finish installing**, leaving you on the old version with no error shown. The app now waits until the update is actually installed before offering to restart, instead of racing ahead the moment the download finished.
+- **New: a "Download installer" option** for when you'd rather install an update yourself, or auto-update doesn't work for you — grabs the right installer for your platform and opens it.
+
 # v1.17.0 — 2026-09-09
 
 Fit Check goes to bookmarks, and creating a job no longer makes you wait.

@@ -2,6 +2,16 @@
 
 All notable changes to this project are documented in this file.
 
+## [1.18.0] - 2026-09-09
+
+### Added
+
+- A manual "Download installer" fallback for when in-place self-update isn't wanted or fails: fetches the matching platform installer to a temp dir and opens it, from the update modal or Settings ([9165a78])
+
+### Fixed
+
+- Auto-update could silently leave the app on the old version with no error shown: the updater treated the download finishing as "safe to restart", but install (extracting and swapping the ~442MB app bundle) still ran afterward inside the same call — restarting mid-install could relaunch into a half-swapped bundle. The update modal now waits for install to actually finish before offering Restart, and every step is logged on both the client and native side (previously nothing was, which is why this kept resurfacing) ([9165a78])
+
 ## [1.17.0] - 2026-09-09
 
 ### Added
