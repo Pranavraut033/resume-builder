@@ -177,11 +177,12 @@ base64 -i udaan.p12 | pbcopy
 
 ### Workflows
 
-| Workflow                   | File                            | Trigger                                                                      |
-| -------------------------- | ------------------------------- | ---------------------------------------------------------------------------- |
-| Build (manual smoke build) | `.github/workflows/build.yml`   | Manual (`workflow_dispatch`) — matrix builds macOS, Windows, and Linux       |
-| CI (type-check + lint)     | `.github/workflows/ci.yml`      | Push, pull requests — no build or signing, just `type-check`/`lint`          |
-| Release                    | `.github/workflows/release.yml` | Push of a version tag (e.g. `v1.0.0`), or manual dispatch with a `tag` input |
+| Workflow                    | File                             | Trigger                                                                                                                                                          |
+| ---------------------------- | -------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Build (manual smoke build)  | `.github/workflows/build.yml`   | Manual (`workflow_dispatch`) — matrix builds macOS, Windows, and Linux                                                                                          |
+| CI (type-check + lint)      | `.github/workflows/ci.yml`      | Push, pull requests — no build or signing, just `type-check`/`lint`                                                                                             |
+| Release                     | `.github/workflows/release.yml` | Push of a version tag (e.g. `v1.0.0`), or manual dispatch with a `tag` input                                                                                    |
+| Canary                      | `.github/workflows/canary.yml`  | Push to the `canary` branch — builds "Udaan Canary", a side-by-side app with its own bundle id/endpoint for testing self-updates end-to-end (macOS aarch64 only) |
 
 ### Publishing a Release
 
@@ -211,7 +212,21 @@ The app checks for updates 5 seconds after launch by querying:
 https://github.com/Pranavraut033/resume-builder/releases/latest/download/update.json
 ```
 
-If a newer version is found, a banner appears in the top-right header allowing the user to update in-place and restart.
+If a newer version is found, a modal (mounted at the app root, so it renders on every route) walks through
+Available → Downloading → Installing → Ready to restart. The Installing step exists because the download
+finishing is not the same as the install finishing — installing the app bundle (gunzip + untar + swap in
+place) still takes tens of seconds after the download completes, so the Restart button is deliberately held
+back until that's actually done. Every step is logged, both client-side (`$APPDATA/logs/client.log`) and
+Rust-side (the OS log dir — `~/Library/Logs/<bundle id>/rust.log` on macOS). The modal also offers a manual
+"download installer" fallback that fetches the matching platform installer to a temp dir and opens it,
+for when in-place update isn't wanted or fails. See
+[`.claude/knowledge/desktop-tauri.md`](../.claude/knowledge/desktop-tauri.md) for the full mechanics.
+
+To verify a self-update end-to-end without cutting a release, run `npm run test:local-update` — it builds
+the app twice locally (current version pointed at a throwaway local server, and one version up as the
+signed payload) and serves the update from `localhost`. There's also a `canary` branch
+(`.github/workflows/canary.yml`) that builds a side-by-side "Udaan Canary" app against a real, moving
+prerelease on GitHub, for testing platforms other than macOS aarch64.
 
 ---
 
@@ -235,11 +250,15 @@ As of v1.11.0, the app clears `com.apple.quarantine` off its own bundle at launc
 
 The packaged app starts a local Next server at `127.0.0.1:3009` (distinct from the `3008` used by `npm run dev`), using a Node runtime bundled into the app by `scripts/prepareTauriServer.mjs` — the end user does not need Node.js installed. Check `$APPDATA/logs/server.log` for the actual startup error (see the project's `CLAUDE.md` for the exact path per OS).
 
-### Updater doesn't detect new versions
+### Updater doesn't detect new versions, or update install doesn't seem to apply
 
 - Confirm `update.json` was uploaded to the GitHub release
 - Confirm the `pubkey` in `tauri.conf.json` matches your Ed25519 public key
 - Check the version in `update.json` is greater than the installed version
+- Check both logs for the actual failure — `$APPDATA/logs/client.log` (JS side) and
+  `~/Library/Logs/<bundle id>/rust.log` (macOS Rust side; OS-specific path elsewhere) — the updater used to
+  log nothing at all on either side, so a silent failure was previously undiagnosable
+- Reproduce locally with `npm run test:local-update` rather than guessing against a real release
 
 ### CI build succeeds but `.dmg` is not signed
 

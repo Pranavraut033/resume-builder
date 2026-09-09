@@ -86,11 +86,23 @@ still holding port 3009 when the user replaces it. Wired into `UpdatePrompt` (se
 `available`, primary on `error`) and Settings (next to "Check for Updates", shown only when a newer
 version is known).
 
+## Local update testing
+
+`npm run test:local-update` (`scripts/test-local-update.sh`) is the fastest way to exercise the race above —
+no CI, no cut release. It builds the app twice under a throwaway `com.resumebuilder.localtest` identifier
+(isolated from real `$APPDATA`, but still binds the real port 3009 — quit any running Udaan/Udaan Canary
+first): once at the current version with its updater endpoint pointed at a local `python3 -m http.server`,
+and once one version up as the signed payload that server serves. A plain `http://` endpoint needs
+`dangerousInsecureTransportProtocol: true` in the overlay config — without it `tauri-plugin-updater` rejects
+the endpoint during plugin init and the app fails to open a window at all, silently, unless launched from a
+terminal that shows stderr (this cost real debugging time before the flag was added).
+
 ## Canary channel
 
 Push to the `canary` branch and `.github/workflows/canary.yml` builds "Udaan Canary" — a separate app that
-installs alongside the real one, for exercising the self-update path (including the trap above) without
-cutting a real release or risking the live install/DB:
+installs alongside the real one, for exercising the self-update path (including the trap above) against a
+real GitHub release — not a local server, so this also covers platforms other than macOS aarch64 — without
+touching the live install/DB:
 
 - **Separate everything except code**: `src-tauri/canary.conf.json` (merged via `--config`, same pattern
   `windows-signing.conf.json` uses in `release.yml`) overrides only `productName` → "Udaan Canary",

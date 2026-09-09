@@ -82,7 +82,8 @@ npm run mcp              # Run the MCP server over stdio
 ```
 
 Also available: `test`/`test:ui`/`test:coverage`, `lint`, `format:check`, `desktop:build:{mac,mac:x64,mac:universal,windows,linux}`,
-`build:mcp`, `prepare:tauri-server`, `landing:{dev,build,preview,install}`.
+`build:mcp`, `prepare:tauri-server`, `landing:{dev,build,preview,install}`, `test:local-update` (verify a
+self-update end-to-end against a local server — no CI/release needed, see desktop-tauri.md).
 
 Before committing: `npm run lint:fix && npm run format && npm run type-check`.
 After editing `prisma/schema.prisma`: `npm run db:generate && npm run db:push` (plus hard rule 5).
@@ -107,4 +108,4 @@ own file when it has tools or a model the main thread lacks.
   feature on the `feature/mock-interview` branch. Not wired in on `main`; see
   [`.claude/knowledge/llm-runtime.md`](.claude/knowledge/llm-runtime.md).
 
-<!-- last-sync-docs: 7688b09db39c3000078203716156f69f1310cc75 -->
+<!-- last-sync-docs: 1b6b3a256d82ffcb91bcf2e1365ab47feec681b7 -->
