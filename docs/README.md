@@ -2,6 +2,7 @@
 
 ## Guides
 
+- [FREE_SETUP.md](./FREE_SETUP.md) — how to run the whole app for free (OpenRouter free tier, Ollama, MCP)
 - [UI_COMPONENTS_GUIDE.md](./UI_COMPONENTS_GUIDE.md) — UI component patterns and usage
 - [DISTRIBUTION.md](./DISTRIBUTION.md) — packaging and distributing the Tauri desktop app
 - [MCP.md](./MCP.md) — the MCP server's tool surface, for an external MCP host driving this app
