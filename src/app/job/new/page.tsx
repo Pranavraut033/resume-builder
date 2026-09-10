@@ -143,7 +143,10 @@ function NewJobPageInner() {
       },
       bookmarkJob,
       bookmarkId: bookmarkId ? Number(bookmarkId) : undefined,
-      url: inputMode === "url" && url.trim() ? url : undefined,
+      // `url` is only ever populated by the URL tab, so keep it even after
+      // switching to the Job Description tab to edit the fetched text —
+      // the inputMode guard used to drop the source link there.
+      url: url.trim() || undefined,
       profileId: selectedProfileId ?? undefined,
       skipTailoring,
       skipVerification,
