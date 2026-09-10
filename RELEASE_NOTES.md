@@ -1,3 +1,15 @@
+# v1.19.0 — 2026-09-10
+
+Simpler sizing controls, bring-your-own endpoint, and a tidier bookmarks/dashboard.
+
+- **New: one Size control for your whole document.** Compact through Spacious replaces the separate margin and font-size pickers — pick one preset and font size, margins, line height, and spacing all move together.
+- **New: connect any OpenAI-compatible provider.** Not using one of the built-in options? Point Settings at your own endpoint (self-hosted, NVIDIA NIM, a local proxy — anything OpenAI-compatible) with a Base URL field.
+- **Profile page reorganized into collapsible sections**, with a heads-up if you try to navigate away with unsaved edits. Also added an optional headline field.
+- **Bookmarks got a redesign:** a fit-detail panel right on each row, and a one-click cleanup for bookmarks you never followed up on (30/60/90 days).
+- **Dashboard: hide jobs you're done with** without deleting them, plus quick filters for fit level and status.
+- **Fixed: Ollama's model list no longer lies about being connected.** If Ollama isn't actually reachable, Settings now shows that honestly instead of a fake canned model list.
+- **Fixed:** `/job/new` no longer drops the job's fetched URL when you switch to the description tab.
+
 # v1.18.0 — 2026-09-09
 
 The auto-updater no longer strands you on an old version — plus a manual fallback if you'd rather install by hand.

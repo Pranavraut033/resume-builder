@@ -2,6 +2,27 @@
 
 All notable changes to this project are documented in this file.
 
+## [1.19.0] - 2026-09-10
+
+### Added
+
+- A unified Document Size preset (Compact → Spacious) replaces the separate Margins and Font Size pickers — one control drives font size, margins, line height, and spacing together across both the DOM and PDF render engines ([ba40372])
+- Support for a custom OpenAI-compatible LLM endpoint (`ProviderType.CUSTOM`) — point the app at any compatible API (e.g. NVIDIA NIM, a local proxy) not on the built-in provider list, configured with a Base URL field in Settings ([5cff59c])
+- Dashboard: hide/unhide jobs from the `/` grid without deleting them (a view preference, not a status change — hidden jobs still count toward the stat cards), plus quick fit-level and status filters ([f6ee904], [098b22b])
+- Bookmarks: bulk-delete stale bookmarks older than 30/60/90 days ([43a4ee7], [098b22b])
+- `docs/FREE_SETUP.md` — a guide to running the whole app for free (OpenRouter free tier, Ollama, MCP) ([b262e19])
+
+### Changed
+
+- Profile page redesigned: fields are now grouped into collapsible accordion sections, and navigating away with unsaved edits prompts a confirmation ([e90cbc6])
+- Base profile gains an optional `headline` field ([e90cbc6])
+- Bookmarks page redesigned with a fit-detail panel per row and a dedicated toolbar; the fit-result rendering is now shared with the in-editor Fit Check drawer ([43a4ee7], [22abd78])
+
+### Fixed
+
+- `/job/new` no longer loses the fetched job-posting URL when switching to the description tab while editing ([c75ec9c])
+- Ollama's model list no longer falls back to a hardcoded guess (`llama2`/`llama3`/`mistral`/`neural-chat`) when Ollama isn't reachable — the Settings status badge previously claimed "Service Detected" even when nothing was running ([e669c4c])
+
 ## [1.18.0] - 2026-09-09
 
 ### Added
