@@ -14,15 +14,19 @@ export default function CardGrid({
   onPeek,
   onStatusChange,
   onDelete,
+  onToggleHidden,
   statusLoadingId,
   deleteLoadingId,
+  hideLoadingId,
 }: {
   jobs: JobRecord[];
   onPeek: (job: JobRecord) => void;
   onStatusChange: (jobId: number, status: JobStatus) => Promise<void> | void;
   onDelete: (jobId: number) => Promise<void> | void;
+  onToggleHidden: (jobId: number) => Promise<void> | void;
   statusLoadingId: number | null;
   deleteLoadingId: number | null;
+  hideLoadingId: number | null;
 }) {
   const router = useRouter();
 
@@ -37,6 +41,7 @@ export default function CardGrid({
             background: "var(--color-agent-surface-lowest)",
             boxShadow: "var(--shadow-agent-card)",
             border: "1px solid var(--color-agent-outline-variant)",
+            opacity: job.hiddenAt ? 0.55 : 1,
           }}
         >
           <div className="flex items-start gap-3">
@@ -98,6 +103,17 @@ export default function CardGrid({
           >
             <IconButton label="Peek job" onClick={() => onPeek(job)}>
               <Icon name="eye" size={18} />
+            </IconButton>
+            <IconButton
+              label={job.hiddenAt ? "Unhide job" : "Hide job"}
+              onClick={() => onToggleHidden(job.id)}
+              disabled={hideLoadingId === job.id}
+            >
+              {hideLoadingId === job.id ? (
+                <Icon name="spinner" size={18} className="animate-spin" />
+              ) : (
+                <Icon name="eyeOff" size={18} />
+              )}
             </IconButton>
             <IconButton
               label="Delete job"

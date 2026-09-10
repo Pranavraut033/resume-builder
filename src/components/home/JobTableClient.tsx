@@ -1,5 +1,6 @@
 "use client";
 
+import { useQueryClient } from "@tanstack/react-query";
 import {
   ColumnDef,
   FilterFn,
@@ -12,7 +13,12 @@ import {
 import { useRouter } from "next/navigation";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 
-import { deleteJob, JobRecord, updateJobStatus } from "@/actions/job";
+import {
+  deleteJob,
+  JobRecord,
+  setJobHidden,
+  updateJobStatus,
+} from "@/actions/job";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
 import { Icon } from "@/components/ui/Icon";
 import { Modal } from "@/components/ui/Modal";
@@ -26,6 +32,11 @@ import { IconButton } from "./Buttons";
 import CardGrid from "./CardGrid";
 import CompanyCell from "./CompanyCell";
 import EmptyState from "./EmptyState";
+import FilterBar, {
+  DEFAULT_FILTERS,
+  JobFilters,
+  matchesFilters,
+} from "./FilterBar";
 import JobsTable from "./JobsTable";
 import PeekContent from "./PeekContent";
 import SearchInput from "./SearchInput";
@@ -55,13 +66,16 @@ const jobDetailsCache = new Map<number, JobDetailsJSON>();
 
 const JobTableClient: React.FC<Props> = ({ jobs }) => {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const { pushToast } = useToast();
   const [viewMode, setViewMode] = useState<ViewMode>("card");
   const [globalFilter, setGlobalFilter] = useState("");
   const [sorting, setSorting] = useState<SortingState>([
     { id: "createdAt", desc: true },
   ]);
+  const [filters, setFilters] = useState<JobFilters>(DEFAULT_FILTERS);
   const [statusLoadingId, setStatusLoadingId] = useState<number | null>(null);
+  const [hideLoadingId, setHideLoadingId] = useState<number | null>(null);
   const [deleteLoadingId, setDeleteLoadingId] = useState<number | null>(null);
   const [pendingDeleteId, setPendingDeleteId] = useState<number | null>(null);
   const [peekJob, setPeekJob] = useState<JobRecord | null>(null);
@@ -123,6 +137,48 @@ const JobTableClient: React.FC<Props> = ({ jobs }) => {
     // keep existing semantics but open confirm modal instead
     setPendingDeleteId(jobId);
   }, []);
+
+  const handleToggleHidden = useCallback(
+    async (jobId: number) => {
+      const job = jobItems.find((j) => j.id === jobId);
+      if (!job) return;
+      const nextHidden = !job.hiddenAt;
+
+      setHideLoadingId(jobId);
+      setJobItems((prev) =>
+        prev.map((j) =>
+          j.id === jobId
+            ? { ...j, hiddenAt: nextHidden ? new Date() : null }
+            : j
+        )
+      );
+
+      try {
+        await setJobHidden(jobId, nextHidden);
+        // The optimistic update above is only ever this component's state —
+        // invalidate the underlying query too, or a background refetch that
+        // was already in flight can land after us and clobber it with the
+        // pre-mutation data (the useEffect below resyncs jobItems from the
+        // `jobs` prop on every reference change).
+        queryClient.invalidateQueries({ queryKey: ["jobs"] });
+        pushToast({
+          title: nextHidden ? "Job hidden" : "Job unhidden",
+          variant: "success",
+        });
+      } catch (error) {
+        setJobItems((prev) => prev.map((j) => (j.id === jobId ? job : j)));
+        pushToast({
+          title: "Unable to update job",
+          description:
+            error instanceof Error ? error.message : "Unexpected error",
+          variant: "error",
+        });
+      } finally {
+        setHideLoadingId(null);
+      }
+    },
+    [jobItems, pushToast, queryClient]
+  );
 
   const confirmDeleteJob = useCallback(async () => {
     const jobId = pendingDeleteId;
@@ -264,6 +320,17 @@ const JobTableClient: React.FC<Props> = ({ jobs }) => {
               <Icon name="eye" size={18} />
             </IconButton>
             <IconButton
+              label={row.original.hiddenAt ? "Unhide job" : "Hide job"}
+              onClick={() => handleToggleHidden(row.original.id)}
+              disabled={hideLoadingId === row.original.id}
+            >
+              {hideLoadingId === row.original.id ? (
+                <Icon name="spinner" size={18} className="animate-spin" />
+              ) : (
+                <Icon name="eyeOff" size={18} />
+              )}
+            </IconButton>
+            <IconButton
               label="Delete job"
               onClick={() => handleDeleteJob(row.original.id)}
               disabled={deleteLoadingId === row.original.id}
@@ -280,15 +347,22 @@ const JobTableClient: React.FC<Props> = ({ jobs }) => {
     ],
     [
       deleteLoadingId,
+      hideLoadingId,
       handleDeleteJob,
+      handleToggleHidden,
       handleStatusChange,
       openPeek,
       statusLoadingId,
     ]
   );
 
+  const filteredJobs = useMemo(
+    () => jobItems.filter((job) => matchesFilters(job, filters)),
+    [jobItems, filters]
+  );
+
   const table = useReactTable({
-    data: jobItems,
+    data: filteredJobs,
     columns,
     state: { sorting, globalFilter },
     onSortingChange: setSorting,
@@ -310,6 +384,8 @@ const JobTableClient: React.FC<Props> = ({ jobs }) => {
         <ViewToggle value={viewMode} onChange={setViewMode} />
       </div>
 
+      <FilterBar filters={filters} onChange={setFilters} />
+
       {visibleJobs.length === 0 ? (
         <EmptyState />
       ) : viewMode === "card" ? (
@@ -318,8 +394,10 @@ const JobTableClient: React.FC<Props> = ({ jobs }) => {
           onPeek={openPeek}
           onStatusChange={handleStatusChange}
           onDelete={handleDeleteJob}
+          onToggleHidden={handleToggleHidden}
           statusLoadingId={statusLoadingId}
           deleteLoadingId={deleteLoadingId}
+          hideLoadingId={hideLoadingId}
         />
       ) : (
         <JobsTable table={table} />
