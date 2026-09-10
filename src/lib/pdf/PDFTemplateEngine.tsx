@@ -387,13 +387,15 @@ export const PDFTemplateEngine: React.FC<PDFTemplateEngineProps> = ({
           fontSize: nameFontSize,
           fontWeight: nameFontWeight,
           color: backgroundColor,
-          marginBottom: 3,
+          marginBottom: s.sp(3),
         }}
       >
         {resume.header.name}
       </Text>
       {resume.header.headline ? (
-        <Text style={{ fontSize, color: backgroundColor, marginBottom: 3 }}>
+        <Text
+          style={{ fontSize, color: backgroundColor, marginBottom: s.sp(3) }}
+        >
           {resume.header.headline}
         </Text>
       ) : null}
@@ -410,13 +412,13 @@ export const PDFTemplateEngine: React.FC<PDFTemplateEngineProps> = ({
           fontSize: nameFontSize,
           fontWeight: nameFontWeight,
           color: textColor,
-          marginBottom: 3,
+          marginBottom: s.sp(3),
         }}
       >
         {resume.header.name}
       </Text>
       {resume.header.headline ? (
-        <Text style={{ fontSize, color: accentColor, marginBottom: 3 }}>
+        <Text style={{ fontSize, color: accentColor, marginBottom: s.sp(3) }}>
           {resume.header.headline}
         </Text>
       ) : null}
@@ -433,13 +435,13 @@ export const PDFTemplateEngine: React.FC<PDFTemplateEngineProps> = ({
           fontSize: nameFontSize,
           fontWeight: nameFontWeight,
           color: textColor,
-          marginBottom: 3,
+          marginBottom: s.sp(3),
         }}
       >
         {resume.header.name}
       </Text>
       {resume.header.headline ? (
-        <Text style={{ fontSize, color: accentColor, marginBottom: 3 }}>
+        <Text style={{ fontSize, color: accentColor, marginBottom: s.sp(3) }}>
           {resume.header.headline}
         </Text>
       ) : null}
@@ -456,7 +458,7 @@ export const PDFTemplateEngine: React.FC<PDFTemplateEngineProps> = ({
           fontSize: nameFontSize,
           fontWeight: nameFontWeight,
           color: textColor,
-          marginBottom: 2,
+          marginBottom: s.sp(2),
         }}
       >
         {resume.header.name}
@@ -480,13 +482,13 @@ export const PDFTemplateEngine: React.FC<PDFTemplateEngineProps> = ({
           fontSize: nameFontSize,
           fontWeight: nameFontWeight,
           color: textColor,
-          marginBottom: 3,
+          marginBottom: s.sp(3),
         }}
       >
         {resume.header.name}
       </Text>
       {resume.header.headline ? (
-        <Text style={{ fontSize, color: accentColor, marginBottom: 3 }}>
+        <Text style={{ fontSize, color: accentColor, marginBottom: s.sp(3) }}>
           {resume.header.headline}
         </Text>
       ) : null}
@@ -580,7 +582,7 @@ export const PDFTemplateEngine: React.FC<PDFTemplateEngineProps> = ({
           fontSize: nameFontSize,
           fontWeight: nameFontWeight,
           color: textColor,
-          marginBottom: 3,
+          marginBottom: s.sp(3),
           textAlign: "center",
         }}
       >
@@ -591,7 +593,7 @@ export const PDFTemplateEngine: React.FC<PDFTemplateEngineProps> = ({
           style={{
             fontSize,
             color: accentColor,
-            marginBottom: 3,
+            marginBottom: s.sp(3),
             textAlign: "center",
           }}
         >
@@ -654,7 +656,7 @@ export const PDFTemplateEngine: React.FC<PDFTemplateEngineProps> = ({
               fontSize: nameFontSize,
               fontWeight: nameFontWeight,
               color: textColor,
-              marginBottom: 3,
+              marginBottom: s.sp(3),
             }}
           >
             {resume.header.name}
@@ -709,7 +711,7 @@ export const PDFTemplateEngine: React.FC<PDFTemplateEngineProps> = ({
             fontSize: nameFontSize,
             fontWeight: nameFontWeight,
             color: backgroundColor,
-            marginBottom: 3,
+            marginBottom: s.sp(3),
           }}
         >
           {resume.header.name}
@@ -756,7 +758,7 @@ export const PDFTemplateEngine: React.FC<PDFTemplateEngineProps> = ({
             style={{
               fontSize: smallFontSize,
               color: accentColor,
-              marginBottom: 3,
+              marginBottom: s.sp(3),
               letterSpacing: 1.5,
               textTransform: "uppercase",
             }}
@@ -769,7 +771,7 @@ export const PDFTemplateEngine: React.FC<PDFTemplateEngineProps> = ({
             fontSize: nameFontSize,
             fontWeight: nameFontWeight,
             color: textColor,
-            marginBottom: 3,
+            marginBottom: s.sp(3),
           }}
         >
           {resume.header.name}

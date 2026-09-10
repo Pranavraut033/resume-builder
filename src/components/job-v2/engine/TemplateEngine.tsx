@@ -99,6 +99,7 @@ export const TemplateEngine: React.FC<TemplateEngineProps> = ({
     nameSize,
     background,
     colorsTuple,
+    spaceClass,
   } = theme;
 
   const { widthPx, heightPx, marginPx, contentHeightPx } = getPageDimensions(
@@ -754,7 +755,10 @@ export const TemplateEngine: React.FC<TemplateEngineProps> = ({
   // page regardless of column count, so this must not use the col0 width.
   const headerMeasurement = (
     <MeasurementContainer widthPx={widthPx}>
-      <div style={{ padding: marginPx, paddingBottom: 0 }}>
+      <div
+        className={spaceClass}
+        style={{ padding: marginPx, paddingBottom: 0 }}
+      >
         <div ref={headerRef}>{headerNode}</div>
       </div>
     </MeasurementContainer>
@@ -765,7 +769,7 @@ export const TemplateEngine: React.FC<TemplateEngineProps> = ({
       widthPx={config.columns === 2 ? colWidthPx(ratio0) : widthPx}
     >
       <div
-        className={justifyClass}
+        className={`${spaceClass} ${justifyClass ?? ""}`}
         style={
           config.columns === 2
             ? { paddingLeft: outerPadX, paddingRight: gutterX }
@@ -790,7 +794,7 @@ export const TemplateEngine: React.FC<TemplateEngineProps> = ({
     config.columns === 2 ? (
       <MeasurementContainer widthPx={colWidthPx(ratio1)}>
         <div
-          className={justifyClass}
+          className={`${spaceClass} ${justifyClass ?? ""}`}
           style={{ paddingLeft: gutterX, paddingRight: outerPadX }}
         >
           {col1Blocks.map((block, i) => (
@@ -832,7 +836,7 @@ export const TemplateEngine: React.FC<TemplateEngineProps> = ({
           colors={colorsTuple}
         >
           <div
-            className={justifyClass}
+            className={`${spaceClass} ${justifyClass ?? ""}`}
             style={{
               padding: marginPx,
               height: "100%",
@@ -931,12 +935,15 @@ export const TemplateEngine: React.FC<TemplateEngineProps> = ({
         colors={colorsTuple}
       >
         {!headerSpansMain && pageIndex === 0 && (
-          <div style={{ padding: marginPx, paddingBottom: 0 }}>
+          <div
+            className={spaceClass}
+            style={{ padding: marginPx, paddingBottom: 0 }}
+          >
             {headerNode}
           </div>
         )}
         <div
-          className="flex"
+          className={`flex ${spaceClass}`}
           style={{
             height:
               !headerSpansMain && pageIndex === 0

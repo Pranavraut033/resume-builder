@@ -286,7 +286,7 @@ export function htmlToPdfNodes(
             style={{
               borderLeftWidth: 2,
               borderLeftColor: s.secondaryColor,
-              paddingLeft: 8,
+              paddingLeft: s.sp(8),
               marginTop: base.fontSize * 0.5,
               marginBottom: base.fontSize * 0.5,
             }}

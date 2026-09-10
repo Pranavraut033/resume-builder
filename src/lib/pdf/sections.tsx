@@ -369,8 +369,8 @@ const pdfExperience: PDFSectionBuilder = ({ resume, styles: s, config }) => {
                       fontSize,
                       lineHeight,
                       color: s.textColor,
-                      marginTop: 2,
-                      marginBottom: 3,
+                      marginTop: s.sp(2),
+                      marginBottom: s.sp(3),
                     }}
                   >
                     {plain(exp.description)}
@@ -433,7 +433,7 @@ const pdfExperience: PDFSectionBuilder = ({ resume, styles: s, config }) => {
                 style={{
                   fontSize: smallFontSize,
                   color: s.secondaryColor,
-                  marginBottom: 2,
+                  marginBottom: s.sp(2),
                 }}
               >
                 {formatDateRange(exp.startDate, exp.endDate, dateFormat)}
@@ -454,8 +454,8 @@ const pdfExperience: PDFSectionBuilder = ({ resume, styles: s, config }) => {
                   fontSize,
                   lineHeight,
                   color: s.textColor,
-                  marginTop: 2,
-                  marginBottom: 3,
+                  marginTop: s.sp(2),
+                  marginBottom: s.sp(3),
                 }}
               >
                 {plain(exp.description)}
@@ -539,7 +539,7 @@ const pdfExperience: PDFSectionBuilder = ({ resume, styles: s, config }) => {
                   style={{
                     fontSize: smallFontSize,
                     lineHeight,
-                    marginBottom: 2,
+                    marginBottom: s.sp(2),
                   }}
                 >
                   {plain(exp.description)}
@@ -567,7 +567,7 @@ const pdfExperience: PDFSectionBuilder = ({ resume, styles: s, config }) => {
               justifyContent: isMultiColumn ? undefined : "space-between",
               alignItems: "flex-start",
               gap: isMultiColumn ? s.sp(2) : undefined,
-              marginBottom: 2,
+              marginBottom: s.sp(2),
             }}
           >
             {/* `flex: 1` only makes sense in row mode, to push the date to
@@ -600,7 +600,7 @@ const pdfExperience: PDFSectionBuilder = ({ resume, styles: s, config }) => {
                 fontSize,
                 lineHeight,
                 color: s.textColor,
-                marginBottom: 3,
+                marginBottom: s.sp(3),
                 textAlign: config.justifyText ? "justify" : undefined,
               }}
             >
@@ -715,8 +715,8 @@ const pdfProjects: PDFSectionBuilder = ({ resume, styles: s, config }) => {
                     fontSize,
                     lineHeight,
                     color: s.textColor,
-                    marginTop: 2,
-                    marginBottom: 3,
+                    marginTop: s.sp(2),
+                    marginBottom: s.sp(3),
                   }}
                 >
                   {plain(proj.description)}
@@ -776,7 +776,7 @@ const pdfProjects: PDFSectionBuilder = ({ resume, styles: s, config }) => {
                 style={{
                   fontSize: smallFontSize,
                   color: s.secondaryColor,
-                  marginBottom: 2,
+                  marginBottom: s.sp(2),
                 }}
               >
                 {formatDateRange(proj.startDate, proj.endDate, dateFormat)}
@@ -790,8 +790,8 @@ const pdfProjects: PDFSectionBuilder = ({ resume, styles: s, config }) => {
                 fontSize,
                 lineHeight,
                 color: s.textColor,
-                marginTop: 2,
-                marginBottom: 3,
+                marginTop: s.sp(2),
+                marginBottom: s.sp(3),
               }}
             >
               {plain(proj.description)}
@@ -925,7 +925,7 @@ const pdfProjects: PDFSectionBuilder = ({ resume, styles: s, config }) => {
               fontSize,
               lineHeight,
               color: s.textColor,
-              marginBottom: 3,
+              marginBottom: s.sp(3),
               textAlign: config.justifyText ? "justify" : undefined,
             }}
           >
@@ -1264,7 +1264,7 @@ const pdfEducation: PDFSectionBuilder = ({ resume, styles: s, config }) => {
                 style={{
                   fontSize: smallFontSize,
                   color: s.secondaryColor,
-                  marginBottom: 2,
+                  marginBottom: s.sp(2),
                 }}
               >
                 {formatDateRange(edu.startDate, edu.endDate, dateFormat)}
@@ -1552,7 +1552,7 @@ const pdfVolunteer: PDFSectionBuilder = ({ resume, styles: s, config }) => {
                       fontSize,
                       lineHeight,
                       color: s.textColor,
-                      marginTop: 2,
+                      marginTop: s.sp(2),
                     }}
                   >
                     {plain(v.description)}
@@ -1602,7 +1602,7 @@ const pdfVolunteer: PDFSectionBuilder = ({ resume, styles: s, config }) => {
                 style={{
                   fontSize: smallFontSize,
                   color: s.secondaryColor,
-                  marginBottom: 2,
+                  marginBottom: s.sp(2),
                 }}
               >
                 {formatDateRange(v.startDate, v.endDate, dateFormat)}
@@ -1623,7 +1623,7 @@ const pdfVolunteer: PDFSectionBuilder = ({ resume, styles: s, config }) => {
                   fontSize,
                   lineHeight,
                   color: s.textColor,
-                  marginTop: 2,
+                  marginTop: s.sp(2),
                 }}
               >
                 {plain(v.description)}

@@ -1,5 +1,6 @@
 import { BackgroundId, isBackgroundId } from "@/lib/backgrounds/types";
 import { DateFormat, VALID_DATE_FORMATS } from "@/lib/date";
+import { effectiveDocumentSize } from "@/lib/documentSize";
 import { fontFamilyCss } from "@/lib/fonts/registry";
 import {
   FontSize,
@@ -84,5 +85,10 @@ export default function useResolveCustomization(
     headingSize,
     nameSize: nameSizeMap[fontSize as FontSize] || nameSizeMap.medium,
     dateFormat,
+    // Overrides Tailwind's `--spacing` for the DOM engine's measurement +
+    // page containers, so every gap-*/mb-*/p-*/space-y-* utility used inside
+    // them scales with the Size preset (documentSize.ts) without touching
+    // each call site individually.
+    spaceClass: `doc-size-${effectiveDocumentSize(customization)}`,
   };
 }

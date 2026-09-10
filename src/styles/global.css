@@ -226,3 +226,26 @@ body {
 .cuboid-stage {
   perspective: 200px;
 }
+
+/* Document "Size" control (src/lib/documentSize.ts) — overriding --spacing
+   rescales every Tailwind spacing utility (gap-*, mb-*, p-*, space-y-*)
+   used inside the resume/cover-letter engines, so section gaps and entry
+   padding move with the size preset without touching each call site. Page
+   margins are unaffected (they come from marginPx, a numeric style — see
+   pageDimensions.ts) and font-size/line-height come from their own utility
+   classes, so this lever only ever moves the spacing between elements. */
+.doc-size-compact {
+  --spacing: 0.17rem;
+}
+.doc-size-snug {
+  --spacing: 0.21rem;
+}
+.doc-size-normal {
+  --spacing: 0.25rem;
+}
+.doc-size-relaxed {
+  --spacing: 0.3rem;
+}
+.doc-size-spacious {
+  --spacing: 0.34rem;
+}

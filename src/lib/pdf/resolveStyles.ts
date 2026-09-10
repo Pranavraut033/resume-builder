@@ -1,5 +1,6 @@
 import { BackgroundId, isBackgroundId } from "@/lib/backgrounds/types";
 import { DateFormat, VALID_DATE_FORMATS } from "@/lib/date";
+import { sizeConfigOf } from "@/lib/documentSize";
 import { SanitizedCustomization, ThemeColors } from "@/types/customization";
 
 import { getFitScale } from "./fitScale";
@@ -70,10 +71,17 @@ export interface ResolvedPDFStyles {
    * else.
    */
   fitScale: number;
-  /** Scales a raw point value by `fitScale` — use for spacing literals
-   * (margins, gaps, padding, border widths) that aren't already derived
-   * from `marginPt`. Do NOT use for `lineHeight`, which is a unitless
-   * ratio, not a point value. */
+  /** Size-preset spacing multiplier (documentSize.ts's `spaceScale`, 1 =
+   * today's literals) — the PDF-side twin of the DOM engine's `spaceClass`
+   * (`--spacing` override). Baked into `sp()`; only read directly if a call
+   * site needs the raw factor. */
+  spaceScale: number;
+  /** Scales a raw point value by `fitScale * spaceScale` — use for spacing
+   * literals (margins, gaps, padding) that aren't already derived from
+   * `marginPt`. Do NOT use for `lineHeight` (a unitless ratio, not a point
+   * value) or for `borderWidth`/`borderRadius` (the DOM engine derives those
+   * from `--border-width`/`--radius-*`, not `--spacing`, so scaling them
+   * here would break DOM↔PDF parity and make rules blurry). */
   sp: (n: number) => number;
 }
 
@@ -162,6 +170,7 @@ export function resolvePDFCustomization(
   // export. Not fixed here; a proper fix threads the measured scale through
   // the export call explicitly.
   const fitScale = customization.fitToPage ? getFitScale() : 1;
+  const { spaceScale } = sizeConfigOf(customization);
 
   return {
     primaryColor,
@@ -187,6 +196,7 @@ export function resolvePDFCustomization(
     colorsTuple,
     dateFormat,
     fitScale,
-    sp: (n: number) => n * fitScale,
+    spaceScale,
+    sp: (n: number) => n * fitScale * spaceScale,
   };
 }

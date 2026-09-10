@@ -9,6 +9,11 @@ import BackgroundSvg from "@/lib/backgrounds/BackgroundSvg";
 import { AVAILABLE_BACKGROUNDS, BackgroundId } from "@/lib/backgrounds/types";
 import { DateFormat, formatMonthYear, VALID_DATE_FORMATS } from "@/lib/date";
 import { debounce } from "@/lib/debounce";
+import {
+  DOCUMENT_SIZE_CONFIG,
+  DOCUMENT_SIZES,
+  documentSizeOf,
+} from "@/lib/documentSize";
 import { getPageDimensions } from "@/lib/pageDimensions";
 import { legacyToTheme } from "@/lib/theme/legacyToTheme";
 import {
@@ -272,19 +277,26 @@ const ThemeCustomizationPanel: React.FC<Props> = ({}) => {
             className="mb-2 text-xs font-medium"
             style={{ color: "var(--color-agent-on-surface-variant)" }}
           >
-            Margins
+            Size
           </p>
           <div
             className="flex rounded-lg p-0.5"
             style={{ background: "var(--color-agent-surface-container)" }}
           >
-            {VALID_MARGIN_SIZES.map((m) => (
+            {DOCUMENT_SIZES.map((size) => (
               <button
-                key={m}
-                onClick={() => updateCustomization({ marginSize: m })}
+                key={size}
+                onClick={() => {
+                  const preset = DOCUMENT_SIZE_CONFIG[size];
+                  updateCustomization({
+                    fontSize: preset.fontSize,
+                    marginSize: preset.marginSize,
+                    lineHeight: preset.lineHeight,
+                  });
+                }}
                 className="flex-1 rounded-md py-1.5 text-xs font-medium capitalize transition-all"
                 style={
-                  customization.marginSize === m
+                  documentSizeOf(customization) === size
                     ? {
                         background: "var(--color-agent-primary-container)",
                         color: "var(--color-agent-on-primary-container)",
@@ -292,10 +304,18 @@ const ThemeCustomizationPanel: React.FC<Props> = ({}) => {
                     : { color: "var(--color-agent-on-surface-variant)" }
                 }
               >
-                {m}
+                {size}
               </button>
             ))}
           </div>
+          <p
+            className="mt-1 text-[11px]"
+            style={{ color: "var(--color-agent-on-surface-variant)" }}
+          >
+            {documentSizeOf(customization) === null
+              ? "Custom (set via Advanced below)"
+              : "Sets font size, margins, line height, and spacing together"}
+          </p>
         </div>
 
         {isResume && (
@@ -334,67 +354,108 @@ const ThemeCustomizationPanel: React.FC<Props> = ({}) => {
           </div>
         )}
 
-        <div>
-          <p
-            className="mb-2 text-xs font-medium"
+        <details className="group">
+          <summary
+            className="mb-2 cursor-pointer text-xs font-medium select-none"
             style={{ color: "var(--color-agent-on-surface-variant)" }}
           >
-            Font Size
-          </p>
-          <div
-            className="flex rounded-lg p-0.5"
-            style={{ background: "var(--color-agent-surface-container)" }}
-          >
-            {VALID_FONT_SIZES.map((size) => (
-              <button
-                key={size}
-                onClick={() => updateCustomization({ fontSize: size })}
-                className="flex-1 rounded-md py-1.5 text-xs font-medium capitalize transition-all"
-                style={
-                  customization.fontSize === size
-                    ? {
-                        background: "var(--color-agent-primary-container)",
-                        color: "var(--color-agent-on-primary-container)",
-                      }
-                    : { color: "var(--color-agent-on-surface-variant)" }
-                }
+            Advanced (override Size individually)
+          </summary>
+          <div className="space-y-2 pt-1">
+            <div>
+              <p
+                className="mb-2 text-xs font-medium"
+                style={{ color: "var(--color-agent-on-surface-variant)" }}
               >
-                {size}
-              </button>
-            ))}
-          </div>
-        </div>
+                Margins
+              </p>
+              <div
+                className="flex rounded-lg p-0.5"
+                style={{ background: "var(--color-agent-surface-container)" }}
+              >
+                {VALID_MARGIN_SIZES.map((m) => (
+                  <button
+                    key={m}
+                    onClick={() => updateCustomization({ marginSize: m })}
+                    className="flex-1 rounded-md py-1.5 text-xs font-medium capitalize transition-all"
+                    style={
+                      customization.marginSize === m
+                        ? {
+                            background: "var(--color-agent-primary-container)",
+                            color: "var(--color-agent-on-primary-container)",
+                          }
+                        : { color: "var(--color-agent-on-surface-variant)" }
+                    }
+                  >
+                    {m}
+                  </button>
+                ))}
+              </div>
+            </div>
 
-        <div>
-          <p
-            className="mb-2 text-xs font-medium"
-            style={{ color: "var(--color-agent-on-surface-variant)" }}
-          >
-            Line Height
-          </p>
-          <div
-            className="flex rounded-lg p-0.5"
-            style={{ background: "var(--color-agent-surface-container)" }}
-          >
-            {VALID_LETTER_SPACINGS.map((spacing) => (
-              <button
-                key={spacing}
-                onClick={() => updateCustomization({ lineHeight: spacing })}
-                className="flex-1 rounded-md py-1.5 text-xs font-medium capitalize transition-all"
-                style={
-                  customization.lineHeight === spacing
-                    ? {
-                        background: "var(--color-agent-primary-container)",
-                        color: "var(--color-agent-on-primary-container)",
-                      }
-                    : { color: "var(--color-agent-on-surface-variant)" }
-                }
+            <div>
+              <p
+                className="mb-2 text-xs font-medium"
+                style={{ color: "var(--color-agent-on-surface-variant)" }}
               >
-                {spacing}
-              </button>
-            ))}
+                Font Size
+              </p>
+              <div
+                className="flex rounded-lg p-0.5"
+                style={{ background: "var(--color-agent-surface-container)" }}
+              >
+                {VALID_FONT_SIZES.map((size) => (
+                  <button
+                    key={size}
+                    onClick={() => updateCustomization({ fontSize: size })}
+                    className="flex-1 rounded-md py-1.5 text-xs font-medium capitalize transition-all"
+                    style={
+                      customization.fontSize === size
+                        ? {
+                            background: "var(--color-agent-primary-container)",
+                            color: "var(--color-agent-on-primary-container)",
+                          }
+                        : { color: "var(--color-agent-on-surface-variant)" }
+                    }
+                  >
+                    {size}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <p
+                className="mb-2 text-xs font-medium"
+                style={{ color: "var(--color-agent-on-surface-variant)" }}
+              >
+                Line Height
+              </p>
+              <div
+                className="flex rounded-lg p-0.5"
+                style={{ background: "var(--color-agent-surface-container)" }}
+              >
+                {VALID_LETTER_SPACINGS.map((spacing) => (
+                  <button
+                    key={spacing}
+                    onClick={() => updateCustomization({ lineHeight: spacing })}
+                    className="flex-1 rounded-md py-1.5 text-xs font-medium capitalize transition-all"
+                    style={
+                      customization.lineHeight === spacing
+                        ? {
+                            background: "var(--color-agent-primary-container)",
+                            color: "var(--color-agent-on-primary-container)",
+                          }
+                        : { color: "var(--color-agent-on-surface-variant)" }
+                    }
+                  >
+                    {spacing}
+                  </button>
+                ))}
+              </div>
+            </div>
           </div>
-        </div>
+        </details>
 
         <div>
           <p
