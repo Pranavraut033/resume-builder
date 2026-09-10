@@ -214,6 +214,7 @@ export type JobRecord = Job & {
   contact: Contact | null;
   status: JobStatus;
   fitCheck: { contentJson: string } | null;
+  resume: { fitCheck: { contentJson: string } | null } | null;
 };
 
 export async function getAllJob(
@@ -222,7 +223,12 @@ export async function getAllJob(
   const jobList = await prisma.job.findMany({
     where: profileId ? { profileId } : undefined,
     orderBy: { createdAt: "desc" },
-    include: { company: true, contact: true, fitCheck: true },
+    include: {
+      company: true,
+      contact: true,
+      fitCheck: true,
+      resume: { select: { fitCheck: { select: { contentJson: true } } } },
+    },
   });
 
   return jobList as JobRecord[];
@@ -237,6 +243,40 @@ export async function findJobByUrl(
   url: string
 ): Promise<{ id: number } | null> {
   return prisma.job.findFirst({ where: { url }, select: { id: true } });
+}
+
+/**
+ * Toggle a job's dashboard visibility. This is a view preference, not a
+ * status change — hidden jobs still count toward the stat cards on `/`.
+ */
+export async function setJobHidden(
+  id: number,
+  hidden: boolean
+): Promise<{ success: true }> {
+  await prisma.job.update({
+    where: { id },
+    data: { hiddenAt: hidden ? new Date() : null },
+  });
+  return { success: true };
+}
+
+/**
+ * Bulk-delete stale bookmarks. `status: "BOOKMARKED"` is load-bearing — it's
+ * what keeps a tracked application from ever being caught by this.
+ */
+export async function deleteBookmarksOlderThan(
+  days: number,
+  profileId?: number | null
+): Promise<{ count: number }> {
+  const cutoff = new Date(Date.now() - days * 86_400_000);
+  const { count } = await prisma.job.deleteMany({
+    where: {
+      status: "BOOKMARKED",
+      createdAt: { lt: cutoff },
+      ...(profileId ? { profileId } : {}),
+    },
+  });
+  return { count };
 }
 
 /**

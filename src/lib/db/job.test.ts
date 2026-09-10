@@ -31,6 +31,7 @@ let getCoverLetterByJobId: typeof import("./job").getCoverLetterByJobId;
 let saveFitCheck: typeof import("./job").saveFitCheck;
 let saveFitCheckForJob: typeof import("./job").saveFitCheckForJob;
 let getAllJob: typeof import("./job").getAllJob;
+let deleteBookmarksOlderThan: typeof import("./job").deleteBookmarksOlderThan;
 
 beforeAll(async () => {
   cleanupDbFiles();
@@ -50,6 +51,7 @@ beforeAll(async () => {
     saveFitCheck,
     saveFitCheckForJob,
     getAllJob,
+    deleteBookmarksOlderThan,
   } = await import("./job"));
 }, 60_000);
 
@@ -341,5 +343,38 @@ describe("saveFitCheckForJob — bookmark-stage quick fit check", () => {
     expect(JSON.parse(savedAfterUpdate!.fitCheck!.contentJson).fit_level).toBe(
       "mismatch"
     );
+  });
+});
+
+describe("deleteBookmarksOlderThan — the destructive bulk-cleanup path", () => {
+  beforeEach(async () => {
+    await wipeAllTables();
+  });
+
+  it("deletes only BOOKMARKED jobs older than the cutoff, sparing tracked jobs and recent bookmarks", async () => {
+    const oldBookmark = await createJob({ jobDetails, status: "BOOKMARKED" });
+    const recentBookmark = await createJob({
+      jobDetails,
+      status: "BOOKMARKED",
+    });
+    const oldTrackedJob = await createJob({ jobDetails, status: "DRAFT" });
+
+    const fortyDaysAgo = new Date(Date.now() - 40 * 86_400_000);
+    await prisma.job.update({
+      where: { id: oldBookmark.jobId },
+      data: { createdAt: fortyDaysAgo },
+    });
+    await prisma.job.update({
+      where: { id: oldTrackedJob.jobId },
+      data: { createdAt: fortyDaysAgo },
+    });
+
+    const result = await deleteBookmarksOlderThan(30);
+    expect(result).toEqual({ count: 1 });
+
+    const remainingIds = (await getAllJob()).map((j) => j.id);
+    expect(remainingIds).not.toContain(oldBookmark.jobId);
+    expect(remainingIds).toContain(recentBookmark.jobId);
+    expect(remainingIds).toContain(oldTrackedJob.jobId);
   });
 });

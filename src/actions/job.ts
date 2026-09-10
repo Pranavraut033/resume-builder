@@ -5,13 +5,14 @@ import { revalidatePath } from "next/cache";
 
 import * as dbJob from "@/lib/db/job";
 import { ResumeWithDetails } from "@/lib/db/job";
+import { resolveFitLevel } from "@/lib/jobs/fitLevel";
 import { prisma } from "@/lib/prisma";
 import {
   SanitizedCustomization,
   validateCustomization,
 } from "@/types/customization";
 import { DocumentAnalysisJSON } from "@/types/documentAnalysis";
-import { FitCheckJSON, FitCheckSchema, FitLevel } from "@/types/fitCheck";
+import { FitCheckJSON, FitLevel } from "@/types/fitCheck";
 import { JobStatus, JOB_STATUSES } from "@/types/job";
 import { ResumeJSON, normalizeSkills } from "@/types/resume";
 
@@ -95,6 +96,29 @@ export async function updateJobStatus(id: number, status: JobStatus) {
   revalidatePath("/");
   revalidatePath(`/job/${id}`);
   return { success: true };
+}
+
+/**
+ * Toggle a job's dashboard visibility. This is a view preference, not a
+ * status change — hidden jobs still count toward the stat cards on `/`.
+ */
+export async function setJobHidden(id: number, hidden: boolean) {
+  const result = await dbJob.setJobHidden(id, hidden);
+  revalidatePath("/");
+  return result;
+}
+
+/**
+ * Bulk-delete stale bookmarks — see dbJob.deleteBookmarksOlderThan for the
+ * load-bearing `status: "BOOKMARKED"` guard.
+ */
+export async function deleteBookmarksOlderThan(
+  days: number,
+  profileId?: number | null
+): Promise<{ count: number }> {
+  const result = await dbJob.deleteBookmarksOlderThan(days, profileId);
+  revalidatePath("/bookmarks");
+  return result;
 }
 
 /**
@@ -313,25 +337,12 @@ export async function getAllDocuments(
     };
 
     if (job.resume) {
-      let fitLevel: FitLevel | null = null;
-      if (job.resume.fitCheck?.contentJson) {
-        // A blob that predates the `v: 2` shape fails parse on purpose (see
-        // the version-check discipline in fitCheck.ts) — treated the same
-        // as "never run" rather than crashing the documents list.
-        try {
-          const result = FitCheckSchema.safeParse(
-            JSON.parse(job.resume.fitCheck.contentJson)
-          );
-          fitLevel = result.success ? result.data.fit_level : null;
-        } catch {
-          fitLevel = null;
-        }
-      }
-
       documents.push({
         ...base,
         docType: "resume",
-        fitLevel,
+        fitLevel: resolveFitLevel({
+          resume: { fitCheck: job.resume.fitCheck },
+        }),
         createdAt: job.resume.createdAt,
         updatedAt: job.resume.updatedAt,
       });

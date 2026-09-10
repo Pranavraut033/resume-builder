@@ -22,6 +22,7 @@ model Profile {
   // Header / Contact Info
   name     String
   email    String
+  headline String?
   phone    String?
   location String?
   linkedin String?
@@ -111,6 +112,7 @@ model Job {
   status         String  @default("DRAFT") // constrained at application level
   jobDetailsJson String  @map("job_details_json") // JSON string containing JobDetails structure
   url            String? @map("url") // Optional URL source for the job posting
+  hiddenAt       DateTime? @map("hidden_at") // Non-null = hidden from the dashboard grid (view preference, not a status)
 
   // Relations & Foreign Keys
   companyId           Int          @map("company_id")
