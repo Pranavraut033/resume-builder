@@ -155,6 +155,14 @@ Mirrors the DOM engine for `@react-pdf/renderer`.
   `validateCustomization`.
 - `src/hooks/useResolveCustomization.ts` — resolves the stored row (including the legacy-scalars →
   `themeJson` fallback described in [data-layer.md](data-layer.md)) into what the engines consume.
+- `src/lib/documentSize.ts` — the "Size" control (`ThemeCustomizationPanel.tsx`, replacing the old separate
+  Margins/Font Size pickers): five presets (`compact`→`spacious`) that set `fontSize`/`marginSize`/`lineHeight`
+  together, plus a `spaceScale` factor for spacing literals. `documentSizeOf()` reverse-maps a customization
+  back to a preset name (or `null` if the three values were overridden independently via "Advanced"). The DOM
+  engine gets it as `useResolveCustomization()`'s `spaceClass` (`doc-size-*`, a `--spacing` override defined in
+  `global.css` — see [app-surface.md](app-surface.md)'s Styling section for why `--spacing` and not inline
+  style); the PDF engine gets it as `resolveStyles.ts`'s `spaceScale`, baked into `sp()` alongside `fitScale`.
+  Both only ever move spacing between elements — page margins and font-size/line-height are set independently.
 - `src/lib/backgrounds/` — page background patterns (`Customization.background`).
 - `src/lib/colorUtils.ts`, `src/lib/fontLoader.ts`, `src/lib/fonts/`, `src/lib/theme/` — supporting resolution.
 

@@ -17,12 +17,12 @@ More screenshots and demo clips (Fit Check, chat editing, cover letters, customi
 ## Features
 
 - **Base profile**: one reusable profile (experience, skills, projects, education) stored locally in SQLite
-- **Bookmarks**: save a job URL without generating a resume yet — JD parsing runs in a background queue (up to 5 concurrent), so you can keep pasting URLs; run a quick Fit Check against your base profile right from the list, and promote a bookmark to a tracked job later from `/bookmarks`
-- **Job tracking**: manage applications with status (Bookmarked, Draft, Applied, Interview, Offer, Rejected)
+- **Bookmarks**: save a job URL without generating a resume yet — JD parsing runs in a background queue (up to 5 concurrent), so you can keep pasting URLs; run a quick Fit Check against your base profile right from the list, promote a bookmark to a tracked job later, and bulk-clear stale bookmarks (30/60/90 days) from `/bookmarks`
+- **Job tracking**: manage applications with status (Bookmarked, Draft, Applied, Interview, Offer, Rejected); hide finished/irrelevant jobs from the dashboard grid without deleting them, with quick fit-level and status filters
 - **AI job parsing**: paste a job description and extract structured requirements client-side via your chosen LLM
 - **AI resume & cover letter tailoring**: generate content tailored to each job from your base profile
 - **Inline WYSIWYG editor**: edit the generated resume directly on the rendered document, with zoom controls and version history (`/job/[jobId]`)
-- **13 templates**: per-job color/font/layout customization, rendered by a shared template engine so DOM/PDF/TXT output stay in sync
+- **13 templates**: per-job color/font/layout customization, plus a unified Document Size preset (compact→spacious) that scales font size, margins, line height, and spacing together, rendered by a shared template engine so DOM/PDF/TXT output stay in sync
 - **AI humanizer**: rewrite resume/cover letter content to read less like AI output, with reviewable before/after changes
 - **Deep Analysis**: deterministic lint checks plus an LLM pass catch grammar, consistency, keyword coverage, and unquantified-claim issues in a review drawer — each finding anchored to an editable line; lint-sourced fixes auto-apply
 - **Fit Check**: a blunt, substantive fit assessment against the job description — missing experience, seniority, and domain gaps a keyword scan can't see, plus knockout risks (work authorization, a license, a location), each with a concrete next step, closing with your real strengths; no invented "ATS score"
@@ -30,7 +30,7 @@ More screenshots and demo clips (Fit Check, chat editing, cover letters, customi
 - **Documents view**: browse all generated resumes and cover letters across jobs (`/documents`)
 - **Notifications**: a bell in the sidebar shows background task progress and results (e.g. bookmark parsing, job creation — which now runs off the page and links back to the finished job), with history and a clear-all action
 - **PDF & TXT export**: generate application-ready documents
-- **10 LLM providers**: OpenAI, Google Gemini, Anthropic (Claude), xAI Grok, Groq, DeepSeek, Mistral, OpenRouter, Perplexity, local Ollama — or a managed pay-as-you-go gateway (no key required); switch per job
+- **10 LLM providers**: OpenAI, Google Gemini, Anthropic (Claude), xAI Grok, Groq, DeepSeek, Mistral, OpenRouter, Perplexity, local Ollama — plus a custom OpenAI-compatible endpoint (e.g. NVIDIA NIM, a local proxy) for anything not on that list, or a managed pay-as-you-go gateway (no key required); switch per job. See [docs/FREE_SETUP.md](./docs/FREE_SETUP.md) for running entirely without paid API access.
 - **MCP server (optional)**: drive the same job-parsing/tailoring/fit-check/deep-analysis/humanizing flows, plus reading and editing your base profile with a diff preview before anything saves, from Claude Desktop or another MCP host on your own chat subscription — no API key configured in this app required. Opt-in toggle + one-click connector download in **Settings**, off by default; see [docs/MCP.md](./docs/MCP.md)
 - **Secure key storage**: API keys are AES-256-GCM encrypted on disk (desktop), keyed off a per-install master key held in the OS keychain, or `localStorage` (web) — never on the server
 - **Backup & restore**: export the entire local database to a JSON file and restore it later, from **Settings**
@@ -211,6 +211,7 @@ udaan/
     ├── UI_COMPONENTS_GUIDE.md
     ├── DISTRIBUTION.md
     ├── SECURITY_AUDIT.md
+    ├── FREE_SETUP.md               # Running the whole app for free (OpenRouter free tier, Ollama, MCP)
     ├── MCP.md                     # MCP server setup, security, troubleshooting
     └── MCP_ARCHITECTURE.md        # MCP server internals: tool surface, request lifecycle, add_job draft state machine
 ```

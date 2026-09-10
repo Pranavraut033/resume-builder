@@ -8,7 +8,7 @@ notifications, bookmarks.
 | Route                | File                                  | What it is                                                                                                                                                                              |
 | -------------------- | ------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `/`                  | `page.tsx`                            | Home / job list (`JobTableClient.tsx`, components in `src/components/home/`).                                                                                                           |
-| `/profile`           | `profile/page.tsx`                    | Base profile editor (`src/components/profile/`). Multi-profile via `Profile.label`.                                                                                                     |
+| `/profile`           | `profile/page.tsx`                    | Base profile editor (`src/components/profile/`), sections grouped into collapsible `AccordionSection`s (`src/components/ui/Accordion.tsx`). Multi-profile via `Profile.label`. Wrapped in `UnsavedChangesGuard` (`src/components/profile/`) to confirm before navigating away with unsaved edits. |
 | `/job/new`           | `job/new/page.tsx`                    | Create flow: paste JD or URL → parse → tailor → generate. Submitting fires `src/lib/jobs/runJobCreation.ts` and returns to `/` immediately — see below. Has a **bookmark mode**, below. |
 | `/job/[jobId]`       | `job/[jobId]/page.tsx` + `layout.tsx` | The Inline Editor — the only job detail implementation. See below.                                                                                                                      |
 | `/documents`         | `documents/page.tsx`                  | All generated resumes/cover letters with version history, across jobs (`getAllDocuments`).                                                                                              |
@@ -38,7 +38,7 @@ route — both were removed.
 | `FloatingActionBar.tsx`        | Inline actions (PDF, Undo/Redo, Customize, Fit Check, Deep Analysis, Humanize, Chat) + a `⋯` overflow (Sections, History, Download JSON). Fit Check sits left of Deep Analysis in the main row — the primary "should I apply" read, Deep Analysis the secondary line-editing pass. Exports `DrawerName` — the source of truth for openable drawers.                                                                                                  |
 | `SideDrawer.tsx`               | Shared drawer shell.                                                                                                                                                                                                                                                                                                                                                                                                                                 |
 | `DeepAnalysisDrawer.tsx`       | Wraps `DeepAnalysisPanel` (`src/components/job/`) — renders `DocumentAnalysisJSON`'s flat `findings[]` grouped by kind. A finding where `suggestion === original` (model confirming a field needs no change) is filtered out at render time to a one-line count instead of a card — nothing persisted changes.                                                                                                                                       |
-| `FitCheckDrawer.tsx`           | Substantive resume-vs-JD fit (not keyword scoring), plus `knockout_risks`. No apply pill — `FitCheckSchema` gaps carry no `resume_fix` any more, so there's nothing left for a pill to apply. Persists via `saveFitCheck`/`JobPageContext.setFitCheck`; seeds itself once from `initialResult` (the hydrated `JobPageContext.fitCheck`) so a page reload doesn't drop back to the splash screen — "Re-run" clears it back to that splash regardless. |
+| `FitCheckDrawer.tsx`           | Substantive resume-vs-JD fit (not keyword scoring), plus `knockout_risks`. No apply pill — `FitCheckSchema` gaps carry no `resume_fix` any more, so there's nothing left for a pill to apply. Persists via `saveFitCheck`/`JobPageContext.setFitCheck`; seeds itself once from `initialResult` (the hydrated `JobPageContext.fitCheck`) so a page reload doesn't drop back to the splash screen — "Re-run" clears it back to that splash regardless. Also exports `FIT_LEVEL_META`, the styling map other surfaces (bookmarks, dashboard filters) reuse. The result rendering itself lives in `FitCheckResult.tsx`, shared with `BookmarkCard.tsx` below. |
 | `HumanizerDrawer.tsx`          | AI-humanizing pass (`HumanizerDrawer.test.tsx`).                                                                                                                                                                                                                                                                                                                                                                                                     |
 | `HistoryDrawer.tsx`            | `ResumeSnapshot` version history.                                                                                                                                                                                                                                                                                                                                                                                                                    |
 | `CustomizationDrawer.tsx`      | Colors/fonts/layout for this job's `Customization` — including the template picker grid (`job/TemplateSelector.tsx`, no longer a separate toolbar control) and, for cover letters, an independent template picker. See [rendering.md](rendering.md) for how templates and cover-letter template decoupling actually work.                                                                                                                            |
@@ -70,7 +70,9 @@ rename labels, never ids.
 ## Bookmarks
 
 A bookmark is **just a `Job` row with `status: "BOOKMARKED"`** (`JOB_STATUSES` in `src/types/job.ts`) — there
-is no separate table.
+is no separate table. `/bookmarks` (`src/app/bookmarks/page.tsx`) composes `BookmarkCard.tsx`,
+`BookmarkToolbar.tsx` (search, fit-level chips, and the cleanup control), and `BookmarkQueueStrip.tsx`
+(in-flight parse queue) from `src/components/bookmarks/`.
 
 - `/bookmarks` accepts pasted URLs, parsed in the background by `src/store/bookmarkQueueStore.ts`: a Zustand
   queue **capped at 5 concurrent parses** running `fetchJobDescriptionFromUrl()` → `LLMService.parseJob()` →
@@ -80,12 +82,22 @@ is no separate table.
   (details are already persisted) and finishes with `attachGeneratedMaterials()` instead of `createJob()`,
   flipping status to `"DRAFT"`.
 - URL dedupe goes through `findJobByUrl`.
-- Each row has a **"Check fit"** button — a quick `useFitCheck` run against the base `Profile` (no `Resume`
-  exists yet for a bookmarked job), persisted via `saveFitCheckForJob()` straight onto `Job.fitCheckId`
-  (there's no `Resume` row to hang it off, unlike the in-editor `saveFitCheck`). Once present it renders as a
-  `FIT_LEVEL_META`-styled badge instead of the button.
+- Each `BookmarkCard` has a **"Check fit"** button — a quick `useFitCheck` run against the base `Profile` (no
+  `Resume` exists yet for a bookmarked job), persisted via `saveFitCheckForJob()` straight onto
+  `Job.fitCheckId` (there's no `Resume` row to hang it off, unlike the in-editor `saveFitCheck`). The result
+  renders via the shared `FitCheckResult.tsx` (extracted from `FitCheckDrawer.tsx` so both the drawer and the
+  bookmark card render the same fit summary).
+- The toolbar's cleanup control bulk-deletes stale bookmarks (default 30 days, `CLEANUP_AGE_OPTIONS` in
+  `BookmarkToolbar.tsx`) via `deleteBookmarksOlderThan()` — see [data-layer.md](data-layer.md).
 - `useLLMPageChrome(true)` on this page opts the app header into showing the compact `ModelSelector` — see
   "State management" below.
+
+## Dashboard (`/`)
+
+`JobTableClient.tsx` + `CardGrid.tsx` filter via `FilterBar.tsx` (`src/components/home/`): show/hide hidden
+jobs (`Job.hiddenAt`, toggled per-row through `setJobHidden`), hide-rejected, and fit-level chips
+(`JobFilters`/`DEFAULT_FILTERS`/`hasActiveFilters()`). Hiding a job is a view preference, not a status change —
+a hidden job still counts toward the stat cards; the filter just excludes it from the grid by default.
 
 ## Job creation pipeline
 

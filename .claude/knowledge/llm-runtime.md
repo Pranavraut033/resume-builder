@@ -32,9 +32,16 @@ instantiate a provider class directly, always go through the factory.
 - `managedProvider.ts` — `ManagedProvider`, an OpenAI-compatible provider pointed at the self-hosted LiteLLM
   gateway in `server/llm-gateway/`, for users without their own key (paid, prepaid credits). Same client-only
   call path as BYOK; the gateway only proxies upstream.
+- `customProvider.ts` — `ProviderType.CUSTOM`, a user-configurable OpenAI-compatible slot for any
+  compatible endpoint (e.g. NVIDIA NIM, a local proxy) the built-in provider list doesn't name. Its base URL
+  is stored client-side in `localStorage` via `src/lib/llm/customEndpoint.ts` (`getCustomBaseUrl`/
+  `setCustomBaseUrl`/`clearCustomBaseUrl`/`validateCustomBaseUrl`) — not the encrypted key store, since it's a
+  URL rather than a secret (the paired API key still goes through `keyStorage` like every other provider's).
+  `validateCustomBaseUrl` requires `https://`, except `http://` to loopback for self-hosted runtimes (vLLM, LM
+  Studio, llama.cpp). The Settings "Base URL" field (`ProviderCard.tsx`) only renders for this provider type.
 
 Known provider ids: `openai`, `anthropic`, `gemini`, `grok`, `perplexity`, `ollama`, `groq`, `mistral`,
-`deepseek`, `openrouter`, `managed`. Display metadata lives in `src/lib/llm/providerMetaInfo.ts`.
+`deepseek`, `openrouter`, `managed`, `custom`. Display metadata lives in `src/lib/llm/providerMetaInfo.ts`.
 
 ## API key storage (`src/lib/keyStorage.ts`)
 
