@@ -1,171 +1,36 @@
 "use client";
 
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 
-import { getAllJob, JobRecord, saveFitCheckForJob } from "@/actions/job";
-import { FIT_LEVEL_META } from "@/components/job-v2/FitCheckDrawer";
+import { deleteBookmarksOlderThan, getAllJob } from "@/actions/job";
+import BookmarkCard from "@/components/bookmarks/BookmarkCard";
+import BookmarkQueueStrip from "@/components/bookmarks/BookmarkQueueStrip";
+import BookmarkToolbar from "@/components/bookmarks/BookmarkToolbar";
+import ConfirmDialog from "@/components/ui/ConfirmDialog";
 import { Icon } from "@/components/ui/Icon";
 import { useToast } from "@/components/ui/ToastProvider";
 import { useLLMPageChrome } from "@/contexts/LLMPageChromeContext";
 import useDeleteJob from "@/hooks/useDeleteJob";
-import useFitCheck from "@/hooks/useFitCheck";
 import { useProfileQuery } from "@/hooks/useProfileQuery";
 import { useProfileSelection } from "@/hooks/useProfileSelection";
-import { createLogger } from "@/lib/logger";
 import { useBookmarkQueueStore } from "@/store/bookmarkQueueStore";
 import { useModelStore } from "@/store/modelStore";
-import { FitCheckSchema } from "@/types/fitCheck";
-import { JobDetailsSchema, ResumeJSON } from "@/types/resume";
+import { FitLevel } from "@/types/fitCheck";
+import { JobDetailsSchema } from "@/types/resume";
 
-const logger = createLogger("BookmarksPage");
-
-function parseBookmarkDetails(
-  job: JobRecord
-): { jobTitle: string; companyName: string } | null {
-  try {
-    const details = JobDetailsSchema.parse(JSON.parse(job.jobDetailsJson));
-    return {
-      jobTitle: details.job.job_title || job.role,
-      companyName: details.company.company_name,
-    };
-  } catch (error) {
-    logger.error("Failed to parse bookmark job details", {
-      jobId: job.id,
-      error,
-    });
-    return null;
-  }
-}
-
-function BookmarkTitle({ job }: { job: JobRecord }) {
-  const details = parseBookmarkDetails(job);
-
-  return (
-    <div className="min-w-0">
-      <p className="text-agent-on-surface truncate text-sm font-medium">
-        {details?.jobTitle || job.role}
-      </p>
-      {details?.companyName && (
-        <p className="text-agent-on-surface-variant truncate text-xs">
-          {details.companyName}
-        </p>
-      )}
-    </div>
-  );
-}
-
-const QUEUE_STATUS_LABEL: Record<string, string> = {
-  queued: "Queued",
-  running: "Parsing…",
-  error: "Failed",
-};
-
-// FitCheck's `v: 2` schema deliberately rejects a pre-format blob — same
-// "predates the new format, re-run it" contract used everywhere else this
-// data is read (see safeParseFitCheck in src/lib/db/job.ts).
-function parseBookmarkFitCheck(job: JobRecord) {
-  if (!job.fitCheck?.contentJson) return null;
-  const result = FitCheckSchema.safeParse(JSON.parse(job.fitCheck.contentJson));
-  return result.success ? result.data : null;
-}
-
-interface BookmarkRowProps {
-  job: JobRecord;
-  profile: (ResumeJSON & { label: string }) | null | undefined;
-  onDelete: (jobId: number) => void;
-  isDeleting: boolean;
-}
-
-function BookmarkRow({ job, profile, onDelete, isDeleting }: BookmarkRowProps) {
-  const router = useRouter();
-  const queryClient = useQueryClient();
-  const { selectedProfileId } = useProfileSelection();
-  const { pushToast } = useToast();
-  const fitCheck = parseBookmarkFitCheck(job);
-
-  const { mutate: checkFit, status } = useFitCheck({
-    onSuccess: async (result) => {
-      await saveFitCheckForJob(job.id, result.result);
-      queryClient.invalidateQueries({ queryKey: ["jobs", selectedProfileId] });
-    },
-    onError: (error) => {
-      pushToast({
-        title: "Fit check failed",
-        description: error instanceof Error ? error.message : undefined,
-        variant: "error",
-      });
-    },
-  });
-
-  const handleCheckFit = () => {
-    if (!profile) return;
-    const jobDetails = JobDetailsSchema.parse(JSON.parse(job.jobDetailsJson));
-    checkFit({ resume: profile, jobDetails });
-  };
-
-  const isChecking = status === "pending";
-
-  return (
-    <div className="border-agent-outline-variant bg-agent-surface-lowest flex items-center justify-between gap-3 rounded-xl border px-4 py-3">
-      <BookmarkTitle job={job} />
-      <div className="flex shrink-0 items-center gap-3">
-        {fitCheck ? (
-          <span
-            className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[11px] font-medium ${FIT_LEVEL_META[fitCheck.fit_level].classes}`}
-          >
-            {FIT_LEVEL_META[fitCheck.fit_level].label}
-          </span>
-        ) : (
-          <button
-            type="button"
-            onClick={handleCheckFit}
-            disabled={isChecking || !profile}
-            className="text-agent-on-surface-variant hover:text-agent-primary flex items-center gap-1 text-xs font-medium disabled:opacity-40"
-          >
-            <Icon
-              name={isChecking ? "spinner" : "target"}
-              size={13}
-              className={isChecking ? "animate-spin" : undefined}
-            />
-            {isChecking ? "Checking…" : "Check fit"}
-          </button>
-        )}
-        {job.url && (
-          <a
-            href={job.url}
-            target="_blank"
-            rel="noreferrer"
-            className="text-agent-on-surface-variant hover:text-agent-primary text-xs font-medium"
-          >
-            <Icon name="link" size={14} />
-          </a>
-        )}
-        <button
-          type="button"
-          onClick={() => router.push(`/job/new?bookmark=${job.id}`)}
-          className="bg-agent-primary rounded-lg px-3 py-1.5 text-xs font-semibold text-white transition hover:opacity-90"
-        >
-          Start tracking
-        </button>
-        <button
-          type="button"
-          onClick={() => onDelete(job.id)}
-          disabled={isDeleting}
-          className="text-agent-on-surface-variant rounded-lg px-2 py-1.5 text-xs font-medium hover:text-red-500 disabled:opacity-40"
-        >
-          <Icon name="trash" size={14} />
-        </button>
-      </div>
-    </div>
-  );
-}
+const CLEANUP_DEFAULT_DAYS = 30;
 
 export default function BookmarksPage() {
   useLLMPageChrome(true);
 
   const [urlInput, setUrlInput] = useState("");
+  const [search, setSearch] = useState("");
+  const [fitLevels, setFitLevels] = useState<FitLevel[]>([]);
+  const [cleanupDays, setCleanupDays] = useState(CLEANUP_DEFAULT_DAYS);
+  const [confirmingCleanup, setConfirmingCleanup] = useState(false);
+  const [isCleaningUp, setIsCleaningUp] = useState(false);
+
   const queryClient = useQueryClient();
   const { pushToast } = useToast();
 
@@ -185,6 +50,46 @@ export default function BookmarksPage() {
   });
 
   const bookmarks = jobList.filter((job) => job.status === "BOOKMARKED");
+
+  const filteredBookmarks = useMemo(() => {
+    const query = search.trim().toLowerCase();
+    return bookmarks.filter((job) => {
+      if (query) {
+        let matchesQuery = job.role.toLowerCase().includes(query);
+        if (!matchesQuery) {
+          try {
+            const details = JobDetailsSchema.parse(
+              JSON.parse(job.jobDetailsJson)
+            );
+            matchesQuery =
+              details.job.job_title?.toLowerCase().includes(query) ||
+              details.company.company_name?.toLowerCase().includes(query);
+          } catch {
+            matchesQuery = false;
+          }
+        }
+        if (!matchesQuery) return false;
+      }
+      if (fitLevels.length > 0) {
+        if (!job.fitCheck?.contentJson) return false;
+        try {
+          const parsed = JSON.parse(job.fitCheck.contentJson);
+          if (!fitLevels.includes(parsed.fit_level)) return false;
+        } catch {
+          return false;
+        }
+      }
+      return true;
+    });
+  }, [bookmarks, search, fitLevels]);
+
+  const cleanupCutoff = useMemo(
+    () => Date.now() - cleanupDays * 86_400_000,
+    [cleanupDays]
+  );
+  const cleanupCount = bookmarks.filter(
+    (job) => new Date(job.createdAt).getTime() < cleanupCutoff
+  ).length;
 
   const handleAdd = () => {
     if (!currentModel || !currentProvider) {
@@ -241,89 +146,92 @@ export default function BookmarksPage() {
     });
   };
 
+  const handleCleanup = async () => {
+    setIsCleaningUp(true);
+    try {
+      const { count } = await deleteBookmarksOlderThan(
+        cleanupDays,
+        selectedProfileId
+      );
+      queryClient.invalidateQueries({ queryKey: ["jobs"] });
+      pushToast({
+        title: `Deleted ${count} old bookmark${count === 1 ? "" : "s"}`,
+        variant: "success",
+      });
+    } catch (error) {
+      pushToast({
+        title: "Unable to clean up bookmarks",
+        description: error instanceof Error ? error.message : undefined,
+        variant: "error",
+      });
+    } finally {
+      setIsCleaningUp(false);
+      setConfirmingCleanup(false);
+    }
+  };
+
+  const toggleFitLevel = (level: FitLevel) => {
+    setFitLevels((prev) =>
+      prev.includes(level) ? prev.filter((l) => l !== level) : [...prev, level]
+    );
+  };
+
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-(--color-agent-on-surface)">
-          Bookmarks
-        </h1>
-        <p className="text-agent-on-surface-variant mt-1 text-sm">
-          Paste job posting URLs to save them for later — parsing happens in the
-          background so you can keep pasting.
-        </p>
-      </div>
-
-      <div className="border-agent-outline-variant bg-agent-surface-lowest rounded-2xl border p-5">
-        <textarea
-          value={urlInput}
-          onChange={(e) => setUrlInput(e.target.value)}
-          rows={3}
-          placeholder="https://example.com/job-posting (one per line, or comma-separated)"
-          className="border-agent-outline-variant placeholder:text-agent-on-surface-variant focus:border-agent-primary focus:ring-agent-primary w-full resize-none rounded-xl border bg-(--color-agent-surface-lowest) px-4 py-3 text-sm text-(--color-agent-on-surface) focus:ring-1 focus:outline-none"
-        />
-        <div className="mt-3 flex justify-end">
-          <button
-            type="button"
-            onClick={handleAdd}
-            disabled={!urlInput.trim()}
-            className="bg-agent-primary rounded-xl px-5 py-2.5 text-sm font-semibold text-white transition hover:opacity-90 disabled:opacity-40"
-          >
-            Add
-          </button>
-        </div>
-      </div>
-
-      {inFlight.length > 0 && (
-        <div className="space-y-2">
-          <p className="text-agent-outline text-xs font-medium tracking-widest uppercase">
-            In progress
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-(--color-agent-on-surface)">
+            Bookmarks
+          </h1>
+          <p className="text-agent-on-surface-variant mt-1 text-sm">
+            {bookmarks.length} saved
+            {inFlight.length > 0 ? ` · ${inFlight.length} parsing` : ""} —
+            pre-tracking jobs you might apply to.
           </p>
-          {inFlight.map((item) => (
-            <div
-              key={item.id}
-              className="border-agent-outline-variant bg-agent-surface-lowest flex items-center justify-between gap-3 rounded-xl border px-4 py-3"
-            >
-              <div className="min-w-0 flex-1">
-                <p className="text-agent-on-surface truncate text-sm">
-                  {item.url}
-                </p>
-                {item.status === "error" && item.error && (
-                  <p className="text-xs text-red-500">{item.error}</p>
-                )}
-              </div>
-              <span className="text-agent-on-surface-variant shrink-0 text-xs font-medium">
-                {QUEUE_STATUS_LABEL[item.status]}
-              </span>
-              {item.status === "error" && (
-                <button
-                  type="button"
-                  onClick={() =>
-                    useBookmarkQueueStore.getState().retry(item.id)
-                  }
-                  className="text-agent-primary shrink-0 text-xs font-semibold hover:opacity-80"
-                >
-                  Retry
-                </button>
-              )}
-            </div>
-          ))}
         </div>
-      )}
+      </div>
 
-      <div className="space-y-2">
-        <p className="text-agent-outline text-xs font-medium tracking-widest uppercase">
-          Saved
-        </p>
+      <BookmarkQueueStrip items={inFlight} />
 
-        {bookmarks.length === 0 && inFlight.length === 0 ? (
+      <BookmarkToolbar
+        urlInput={urlInput}
+        onUrlInputChange={setUrlInput}
+        onAdd={handleAdd}
+        canAdd={!!urlInput.trim()}
+        search={search}
+        onSearchChange={setSearch}
+        fitLevels={fitLevels}
+        onToggleFitLevel={toggleFitLevel}
+        cleanupDays={cleanupDays}
+        onCleanupDaysChange={setCleanupDays}
+        onCleanup={() => setConfirmingCleanup(true)}
+        cleanupCount={cleanupCount}
+      />
+
+      <div className="space-y-3">
+        {bookmarks.length === 0 ? (
+          <div className="border-agent-outline-variant bg-agent-surface-lowest rounded-2xl border-2 border-dashed p-10 text-center">
+            <Icon
+              name="bookmark"
+              size={32}
+              className="text-agent-outline mx-auto"
+            />
+            <p className="text-agent-on-surface mt-4 text-sm font-semibold">
+              No bookmarks yet
+            </p>
+            <p className="text-agent-on-surface-variant mt-1 text-sm">
+              Paste a job URL above to save it for later.
+            </p>
+          </div>
+        ) : filteredBookmarks.length === 0 ? (
           <div className="border-agent-outline-variant bg-agent-surface-lowest rounded-2xl border p-10 text-center">
             <p className="text-agent-on-surface-variant text-sm">
-              No bookmarks yet. Paste a job URL above to get started.
+              No bookmarks match the current filters.
             </p>
           </div>
         ) : (
-          bookmarks.map((job) => (
-            <BookmarkRow
+          filteredBookmarks.map((job) => (
+            <BookmarkCard
               key={job.id}
               job={job}
               profile={profile}
@@ -333,6 +241,16 @@ export default function BookmarksPage() {
           ))
         )}
       </div>
+
+      <ConfirmDialog
+        isOpen={confirmingCleanup}
+        title="Delete old bookmarks"
+        message={`Delete ${cleanupCount} bookmark${cleanupCount === 1 ? "" : "s"} older than ${cleanupDays} days? This can't be undone.`}
+        confirmLabel={isCleaningUp ? "Deleting…" : "Delete"}
+        cancelLabel="Cancel"
+        onConfirm={handleCleanup}
+        onCancel={() => setConfirmingCleanup(false)}
+      />
     </div>
   );
 }
