@@ -19,6 +19,7 @@ export const EMPTY_MODELS_MAPS = Object.freeze({
   [ProviderType.MISTRAL]: [],
   [ProviderType.OPENROUTER]: [],
   [ProviderType.MANAGED]: [],
+  [ProviderType.CUSTOM]: [],
 } as Record<ProviderType, string[]>);
 
 const logger = createLogger("ClientLLM");

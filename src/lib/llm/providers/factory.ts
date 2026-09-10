@@ -20,6 +20,8 @@ import { ProviderType } from "@/types/llm";
 import "@pranavraut033/llm-core/providers/register-builtins";
 // Side-effect import: registers the managed (paid) provider.
 import "./managedProvider";
+// Side-effect import: registers the user-configurable OpenAI-compatible slot.
+import "./customProvider";
 
 /**
  * Get a provider instance by type.

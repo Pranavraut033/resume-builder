@@ -22,13 +22,18 @@ const PROVIDER_ACCENT: Record<ProviderType, string> = {
   [ProviderType.DEEPSEEK]: "#4d6bfe",
   [ProviderType.MISTRAL]: "#ff7000",
   [ProviderType.OPENROUTER]: "#6467f2",
+  [ProviderType.CUSTOM]: "#6b7280",
 };
 
 export interface ProviderCardProps {
   apiKey: string;
+  /** Only meaningful for `ProviderType.CUSTOM`, which has no fixed endpoint. */
+  baseUrl?: string;
+  baseUrlError?: string | null;
   isSaving: boolean;
   isValidating?: boolean;
   onApiKeyChange: (v: string) => void;
+  onBaseUrlChange?: (v: string) => void;
   onDelete: () => void;
   onSave: () => void;
   onValidate: () => void;
@@ -39,9 +44,12 @@ export interface ProviderCardProps {
 
 export function ProviderCard({
   apiKey,
+  baseUrl = "",
+  baseUrlError = null,
   isSaving,
   isValidating = false,
   onApiKeyChange,
+  onBaseUrlChange,
   onDelete,
   onSave,
   onValidate,
@@ -49,6 +57,7 @@ export function ProviderCard({
   validationMessage = "",
   validationSuccess = null,
 }: ProviderCardProps) {
+  const isCustom = providerType === ProviderType.CUSTOM;
   const {
     selectedModelsByProvider,
     isLoading,
@@ -178,12 +187,58 @@ export function ProviderCard({
         </button>
       </div>
 
+      {/* Base URL row — custom endpoint only */}
+      {isCustom && (
+        <div className="flex flex-col gap-1.5">
+          <div
+            className="flex flex-1 items-center gap-2 rounded-xl px-3 py-2 text-sm"
+            style={{
+              background: "var(--color-agent-surface-container)",
+              border: `1px solid ${
+                baseUrlError
+                  ? "var(--color-agent-error)"
+                  : "var(--color-agent-outline-variant)"
+              }`,
+            }}
+          >
+            <span
+              className="shrink-0 text-xs font-medium"
+              style={{ color: "var(--color-agent-on-surface-variant)" }}
+            >
+              Base URL
+            </span>
+            <input
+              type="url"
+              value={baseUrl}
+              onChange={(e) => onBaseUrlChange?.(e.target.value)}
+              placeholder="https://integrate.api.nvidia.com/v1"
+              spellCheck={false}
+              className="min-w-0 flex-1 bg-transparent text-xs outline-none"
+              style={{ color: "var(--color-agent-on-surface)" }}
+            />
+          </div>
+          <p
+            className="text-xs"
+            style={{
+              color: baseUrlError
+                ? "var(--color-agent-error)"
+                : "var(--color-agent-on-surface-variant)",
+            }}
+          >
+            {baseUrlError ??
+              "The endpoint's OpenAI-compatible base URL — usually ends in /v1."}
+          </p>
+        </div>
+      )}
+
       {/* API Key row */}
       <p
         className="text-xs"
         style={{ color: "var(--color-agent-on-surface-variant)" }}
       >
-        Sent only to {meta.name} when you generate — never to Udaan.
+        {isCustom
+          ? "Sent only to the endpoint above when you generate — never to Udaan."
+          : `Sent only to ${meta.name} when you generate — never to Udaan.`}
       </p>
       <div className="flex items-center gap-2">
         <div
@@ -239,7 +294,7 @@ export function ProviderCard({
         </div>
         <button
           onClick={onSave}
-          disabled={isSaving || !apiKey}
+          disabled={isSaving || !apiKey || (isCustom && !!baseUrlError)}
           className="shrink-0 rounded-xl px-3 py-2 text-xs font-semibold transition-opacity hover:opacity-90 disabled:opacity-40"
           style={{
             background:
@@ -264,7 +319,7 @@ export function ProviderCard({
         </div>
         <button
           onClick={onValidate}
-          disabled={!apiKey || isValidating}
+          disabled={!apiKey || isValidating || (isCustom && !!baseUrlError)}
           className="shrink-0 rounded-xl border px-3 py-2 text-xs font-medium transition-colors disabled:opacity-40"
           style={{
             borderColor: "var(--color-agent-outline-variant)",

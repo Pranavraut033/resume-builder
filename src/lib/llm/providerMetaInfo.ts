@@ -26,6 +26,7 @@ export const PROVIDER_ICONS: Record<
   [ProviderType.DEEPSEEK]: CloudIcon,
   [ProviderType.MISTRAL]: CloudIcon,
   [ProviderType.OPENROUTER]: CloudIcon,
+  [ProviderType.CUSTOM]: CloudIcon,
 };
 
 // Build provider info map

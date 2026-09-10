@@ -45,6 +45,7 @@ export enum ProviderType {
   MISTRAL = "mistral",
   OPENROUTER = "openrouter",
   MANAGED = "managed",
+  CUSTOM = "custom",
 }
 
 export interface ResumePromptInput {

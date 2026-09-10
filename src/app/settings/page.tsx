@@ -28,6 +28,12 @@ import {
   isTauriContext,
 } from "@/lib/keyStorage";
 import { validateProviderConnection } from "@/lib/llm/clientLLM";
+import {
+  clearCustomBaseUrl,
+  getCustomBaseUrl,
+  setCustomBaseUrl,
+  validateCustomBaseUrl,
+} from "@/lib/llm/customEndpoint";
 import { PROVIDER_ICONS, PROVIDER_INFO } from "@/lib/llm/providerMetaInfo";
 import { getAvailableProviders } from "@/lib/llm/providers";
 import { createLogger } from "@/lib/logger";
@@ -61,6 +67,8 @@ export default function SettingsPage() {
     Record<string, { success: boolean; message: string }>
   >({});
   const [ollamaHost, setOllamaHost] = useState("http://localhost:11434");
+  const [savingOllamaHost, setSavingOllamaHost] = useState(false);
+  const [customBaseUrl, setCustomBaseUrlState] = useState("");
   const { theme, setTheme } = useTheme();
   const { pushToast } = useToast();
   const [isBackingUp, setIsBackingUp] = useState(false);
@@ -176,6 +184,10 @@ export default function SettingsPage() {
         if (key) loadedKeys[type] = key;
       }
       setKeys(loadedKeys);
+      setOllamaHost(
+        loadedKeys[ProviderType.OLLAMA] || "http://localhost:11434"
+      );
+      setCustomBaseUrlState(getCustomBaseUrl());
     } catch (err) {
       logger.error("Error loading data", { err });
     }
@@ -189,6 +201,9 @@ export default function SettingsPage() {
   const handleSaveKey = async (providerType: string) => {
     setSavingProvider(providerType);
     try {
+      if (providerType === ProviderType.CUSTOM) {
+        setCustomBaseUrl(customBaseUrl);
+      }
       await setApiKey(providerType, keys[providerType] || "");
       await refreshModels();
     } catch (err) {
@@ -215,6 +230,10 @@ export default function SettingsPage() {
     }
     try {
       if (keys[providerType]) await deleteApiKey(providerType);
+      if (providerType === ProviderType.CUSTOM) {
+        clearCustomBaseUrl();
+        setCustomBaseUrlState("");
+      }
       setKeys((prev) => {
         const next = { ...prev };
         delete next[providerType];
@@ -228,6 +247,21 @@ export default function SettingsPage() {
     } catch (err) {
       logger.error("Error deleting API key", { err });
       pushToast({ title: "Couldn't remove API key", variant: "error" });
+    }
+  };
+
+  const handleSaveOllamaHost = async () => {
+    const host = ollamaHost.trim() || "http://localhost:11434";
+    setOllamaHost(host);
+    setSavingOllamaHost(true);
+    try {
+      await setApiKey(ProviderType.OLLAMA, host);
+      await refreshModels(ProviderType.OLLAMA);
+    } catch (err) {
+      logger.error("Error saving Ollama host", { err });
+      pushToast({ title: "Couldn't save Ollama host", variant: "error" });
+    } finally {
+      setSavingOllamaHost(false);
     }
   };
 
@@ -581,6 +615,13 @@ export default function SettingsPage() {
                       onApiKeyChange={(v) =>
                         setKeys((prev) => ({ ...prev, [provider.type]: v }))
                       }
+                      baseUrl={customBaseUrl}
+                      baseUrlError={
+                        provider.type === ProviderType.CUSTOM && customBaseUrl
+                          ? validateCustomBaseUrl(customBaseUrl)
+                          : null
+                      }
+                      onBaseUrlChange={setCustomBaseUrlState}
                       onSave={() => handleSaveKey(provider.type)}
                       onValidate={() => handleValidate(provider.type)}
                       onDelete={() => handleDeleteProvider(provider.type)}
@@ -695,6 +736,9 @@ export default function SettingsPage() {
                   type="text"
                   value={ollamaHost}
                   onChange={(e) => setOllamaHost(e.target.value)}
+                  onBlur={handleSaveOllamaHost}
+                  disabled={savingOllamaHost}
+                  placeholder="http://localhost:11434"
                   className="text-agent-on-surface w-full bg-transparent text-sm outline-none"
                 />
               </div>
