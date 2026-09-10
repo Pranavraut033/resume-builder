@@ -5,12 +5,12 @@ import { useState } from "react";
 import { TagsEditor } from "@/components/form/TagsEditor";
 import { PageSection, SurfacePanel } from "@/components/ui";
 import { Button } from "@/components/ui/Button";
-import { Icon } from "@/components/ui/Icon";
 import { Skill } from "@/types/resume";
 
 interface SkillsSectionProps {
   skills: Skill[];
   onChange: (skills: Skill[]) => void;
+  hideTitle?: boolean;
 }
 
 /** Group skills by category, preserving first-seen category order. Skills
@@ -34,7 +34,11 @@ function groupByCategory(
   return order.map((category) => ({ category, skills: groups.get(category)! }));
 }
 
-export function SkillsSection({ skills, onChange }: SkillsSectionProps) {
+export function SkillsSection({
+  skills,
+  onChange,
+  hideTitle,
+}: SkillsSectionProps) {
   const [newCategory, setNewCategory] = useState("");
   // Categories the user has created locally but that don't have any skills
   // yet, so their (empty) TagsEditor stays visible until populated.
@@ -101,7 +105,7 @@ export function SkillsSection({ skills, onChange }: SkillsSectionProps) {
   };
 
   return (
-    <PageSection title="Skills">
+    <PageSection title="Skills" hideTitle={hideTitle}>
       <SurfacePanel>
         <div className="space-y-6">
           {allGroups.length === 0 && (
@@ -113,53 +117,23 @@ export function SkillsSection({ skills, onChange }: SkillsSectionProps) {
           {allGroups.map(({ category, skills: groupSkills }) => (
             <div
               key={category ?? "__uncategorized__"}
-              className="border-agent-outline-variant space-y-3 rounded-lg border p-4"
+              className="border-agent-outline-variant space-y-2 rounded-lg border p-3"
             >
               <TagsEditor
                 label={category ?? "Skills"}
                 tags={groupSkills.map((s) => s.name)}
                 onTagsChange={(names) => handleTagsChange(category, names)}
                 placeholder="Add a skill and press Enter"
+                helpText={
+                  groupSkills.length > 0
+                    ? "Click a skill to mark it as primary."
+                    : undefined
+                }
+                isPrimary={(name) =>
+                  groupSkills.find((s) => s.name === name)?.tier === "primary"
+                }
+                onTogglePrimary={(name) => toggleTier(category, name)}
               />
-
-              {groupSkills.length > 0 && (
-                <div className="space-y-1.5">
-                  <p className="text-agent-on-surface-variant text-xs">
-                    Click a skill to mark it as primary (bold, highlighted first
-                    on the resume).
-                  </p>
-                  <div className="flex flex-wrap gap-2">
-                    {groupSkills.map((skill) => {
-                      const isPrimary = skill.tier === "primary";
-                      return (
-                        <button
-                          key={skill.name}
-                          type="button"
-                          onClick={() => toggleTier(category, skill.name)}
-                          title={
-                            isPrimary
-                              ? "Primary skill (click to unmark)"
-                              : "Mark as primary"
-                          }
-                          className={
-                            isPrimary
-                              ? "bg-agent-primary text-agent-surface-lowest inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-semibold"
-                              : "border-agent-outline-variant text-agent-on-surface-variant inline-flex items-center gap-1 rounded-full border px-3 py-1 text-xs"
-                          }
-                        >
-                          {isPrimary && (
-                            <Icon
-                              name="star"
-                              className="h-3 w-3 fill-current"
-                            />
-                          )}
-                          {skill.name}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
             </div>
           ))}
 

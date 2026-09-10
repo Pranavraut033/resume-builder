@@ -5,7 +5,7 @@
 
 "use client";
 
-import React, { useState } from "react";
+import { useState } from "react";
 
 import { fromDateInputValue, toDateInputValue } from "@/lib/date";
 
@@ -22,6 +22,9 @@ interface DateRangeFieldProps {
   showPresentOption?: boolean;
 }
 
+const dateInputClasses =
+  "w-full rounded-lg border border-agent-outline-variant bg-agent-surface-lowest px-3 py-1.5 text-sm text-agent-on-surface caret-agent-primary transition-colors focus:ring-2 focus:ring-agent-primary focus:outline-none";
+
 export function DateRangeField({
   label,
   startDate = "",
@@ -36,13 +39,6 @@ export function DateRangeField({
     showPresentOption ? !endDate : false
   );
 
-  const handleEndDateChange = (value: string) => {
-    if (isPresent) {
-      setIsPresent(false);
-    }
-    onEndDateChange(value);
-  };
-
   const handlePresentToggle = (checked: boolean) => {
     setIsPresent(checked);
     if (checked) {
@@ -51,86 +47,64 @@ export function DateRangeField({
   };
 
   return (
-    <div className="space-y-2">
-      <label
-        className="block text-sm font-medium"
-        style={{ color: "var(--color-agent-on-surface)" }}
-      >
+    <div className="space-y-1">
+      <label className="text-agent-on-surface block text-sm font-medium">
         {label}
       </label>
 
-      <div className="space-y-3">
-        {/* Start Date */}
-        <div>
+      <div className="grid grid-cols-2 gap-3">
+        <input
+          type="date"
+          value={toDateInputValue(startDate)}
+          onChange={(e) =>
+            onStartDateChange(fromDateInputValue(e.target.value))
+          }
+          placeholder="Start Date"
+          className={dateInputClasses}
+        />
+
+        {showPresentOption && isPresent ? (
+          <label className="border-agent-outline-variant bg-agent-surface-lowest flex h-[34px] cursor-pointer items-center gap-2 rounded-lg border px-3 text-sm">
+            <input
+              type="checkbox"
+              checked={isPresent}
+              onChange={(e) => handlePresentToggle(e.target.checked)}
+              className="accent-agent-primary h-4 w-4 rounded"
+            />
+            <span className="text-agent-on-surface truncate">
+              Currently working here
+            </span>
+          </label>
+        ) : (
           <input
             type="date"
-            value={toDateInputValue(startDate)}
+            value={toDateInputValue(endDate)}
             onChange={(e) =>
-              onStartDateChange(fromDateInputValue(e.target.value))
+              onEndDateChange(fromDateInputValue(e.target.value))
             }
-            placeholder="Start Date"
-            className="w-full rounded-lg border px-3 py-2 text-sm transition-colors focus:ring-2 focus:outline-none"
-            style={{
-              borderColor: "var(--color-agent-outline-variant)",
-              background: "var(--color-agent-surface-lowest)",
-              color: "var(--color-agent-on-surface)",
-              caretColor: "var(--color-agent-primary)",
-            }}
+            placeholder="End Date"
+            className={dateInputClasses}
           />
-        </div>
-
-        {/* End Date or Present Toggle */}
-        <div className="space-y-2">
-          {(!showPresentOption || !isPresent) && (
-            <input
-              type="date"
-              value={toDateInputValue(endDate)}
-              onChange={(e) =>
-                handleEndDateChange(fromDateInputValue(e.target.value))
-              }
-              placeholder="End Date"
-              className="w-full rounded-lg border px-3 py-2 text-sm transition-colors focus:ring-2 focus:outline-none"
-              style={{
-                borderColor: "var(--color-agent-outline-variant)",
-                background: "var(--color-agent-surface-lowest)",
-                color: "var(--color-agent-on-surface)",
-                caretColor: "var(--color-agent-primary)",
-              }}
-            />
-          )}
-
-          {showPresentOption && (
-            <label className="flex cursor-pointer items-center gap-2">
-              <input
-                type="checkbox"
-                checked={isPresent}
-                onChange={(e) => handlePresentToggle(e.target.checked)}
-                className="h-4 w-4 rounded"
-                style={{ accentColor: "var(--color-agent-primary)" }}
-              />
-              <span
-                className="text-sm"
-                style={{ color: "var(--color-agent-on-surface)" }}
-              >
-                Currently working here
-              </span>
-            </label>
-          )}
-        </div>
+        )}
       </div>
 
+      {showPresentOption && !isPresent && (
+        <label className="text-agent-on-surface-variant flex cursor-pointer items-center gap-2 pt-0.5 text-xs">
+          <input
+            type="checkbox"
+            checked={isPresent}
+            onChange={(e) => handlePresentToggle(e.target.checked)}
+            className="accent-agent-primary h-3.5 w-3.5 rounded"
+          />
+          Currently working here
+        </label>
+      )}
+
       {error ? (
-        <p className="text-xs" style={{ color: "var(--color-agent-error)" }}>
-          {error}
-        </p>
+        <p className="text-agent-error text-xs">{error}</p>
       ) : (
         helpText && (
-          <p
-            className="text-xs"
-            style={{ color: "var(--color-agent-on-surface-variant)" }}
-          >
-            {helpText}
-          </p>
+          <p className="text-agent-on-surface-variant text-xs">{helpText}</p>
         )
       )}
     </div>

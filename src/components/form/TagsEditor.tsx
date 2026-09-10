@@ -10,6 +10,7 @@
 import { useState } from "react";
 
 import { Icon } from "@/components/ui/Icon";
+import { cn } from "@/lib/cn";
 
 interface TagsEditorProps {
   label: string;
@@ -17,6 +18,9 @@ interface TagsEditorProps {
   onTagsChange: (tags: string[]) => void;
   placeholder?: string;
   helpText?: string;
+  /** When provided, chips become clickable to toggle a "primary" state (e.g. skills). */
+  isPrimary?: (tag: string) => boolean;
+  onTogglePrimary?: (tag: string) => void;
 }
 
 export function TagsEditor({
@@ -25,6 +29,8 @@ export function TagsEditor({
   onTagsChange,
   placeholder = "Add a tag and press Enter",
   helpText,
+  isPrimary,
+  onTogglePrimary,
 }: TagsEditorProps) {
   const [newTag, setNewTag] = useState("");
 
@@ -53,11 +59,8 @@ export function TagsEditor({
   };
 
   return (
-    <div className="space-y-3">
-      <label
-        className="block text-sm font-medium"
-        style={{ color: "var(--color-agent-on-surface)" }}
-      >
+    <div className="space-y-2">
+      <label className="text-agent-on-surface block text-sm font-medium">
         {label}
       </label>
 
@@ -68,47 +71,58 @@ export function TagsEditor({
         onChange={(e) => setNewTag(e.target.value)}
         onKeyDown={handleKeyDown}
         placeholder={placeholder}
-        className="w-full rounded-lg border px-3 py-2 transition-colors focus:ring-2 focus:outline-none"
-        style={{
-          borderColor: "var(--color-agent-outline-variant)",
-          background: "var(--color-agent-surface-lowest)",
-          color: "var(--color-agent-on-surface)",
-          caretColor: "var(--color-agent-primary)",
-        }}
+        className="border-agent-outline-variant bg-agent-surface-lowest text-agent-on-surface caret-agent-primary w-full rounded-lg border px-3 py-1.5 text-sm transition-colors focus:ring-2 focus:outline-none"
       />
 
       {/* Tags display */}
       {tags.length > 0 && (
         <div className="flex flex-wrap gap-2">
-          {tags.map((tag, index) => (
-            <div
-              key={index}
-              className="inline-flex items-center gap-2 rounded-full px-3 py-1 text-sm font-medium"
-              style={{
-                background: "var(--color-agent-primary-container)",
-                color: "var(--color-agent-on-primary-container)",
-              }}
-            >
-              <span>{tag}</span>
-              <button
-                onClick={() => handleRemoveTag(index)}
-                className="transition-opacity hover:opacity-80"
-                title="Remove"
+          {tags.map((tag, index) => {
+            const primary = isPrimary?.(tag) ?? false;
+            return (
+              <div
+                key={index}
+                className={cn(
+                  "inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-sm font-medium",
+                  primary
+                    ? "bg-agent-primary text-agent-surface-lowest"
+                    : "bg-agent-primary-container text-agent-on-primary-container"
+                )}
               >
-                <Icon name="x" className="h-4 w-4" />
-              </button>
-            </div>
-          ))}
+                {onTogglePrimary ? (
+                  <button
+                    type="button"
+                    onClick={() => onTogglePrimary(tag)}
+                    className="inline-flex items-center gap-1.5"
+                    title={
+                      primary
+                        ? "Primary skill (click to unmark)"
+                        : "Mark as primary"
+                    }
+                  >
+                    {primary && (
+                      <Icon name="star" className="h-3 w-3 fill-current" />
+                    )}
+                    <span>{tag}</span>
+                  </button>
+                ) : (
+                  <span>{tag}</span>
+                )}
+                <button
+                  onClick={() => handleRemoveTag(index)}
+                  className="transition-opacity hover:opacity-80"
+                  title="Remove"
+                >
+                  <Icon name="x" className="h-3.5 w-3.5" />
+                </button>
+              </div>
+            );
+          })}
         </div>
       )}
 
       {helpText && (
-        <p
-          className="text-xs"
-          style={{ color: "var(--color-agent-on-surface-variant)" }}
-        >
-          {helpText}
-        </p>
+        <p className="text-agent-on-surface-variant text-xs">{helpText}</p>
       )}
     </div>
   );

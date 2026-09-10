@@ -4,11 +4,16 @@ import { FormField } from "@/components/ui/FormField";
 interface SummarySectionProps {
   summary: string;
   onChange: (summary: string) => void;
+  hideTitle?: boolean;
 }
 
-export function SummarySection({ summary, onChange }: SummarySectionProps) {
+export function SummarySection({
+  summary,
+  onChange,
+  hideTitle,
+}: SummarySectionProps) {
   return (
-    <PageSection title="Professional Summary">
+    <PageSection title="Professional Summary" hideTitle={hideTitle}>
       <SurfacePanel>
         <FormField
           type="textarea"

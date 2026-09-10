@@ -1,4 +1,5 @@
 export { Alert } from "./Alert";
+export { AccordionSection } from "./Accordion";
 export { Autocomplete } from "./Autocomplete";
 export type { AutocompleteOption, AutocompleteProps } from "./Autocomplete";
 export { Badge } from "./Badge";

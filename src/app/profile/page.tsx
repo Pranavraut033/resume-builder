@@ -15,12 +15,19 @@ import { ListSection } from "@/components/profile/ListSection";
 import { SECTION_CONFIGS } from "@/components/profile/sectionConfigs";
 import { SkillsSection } from "@/components/profile/SkillsSection";
 import { SummarySection } from "@/components/profile/SummarySection";
+import { UnsavedChangesGuard } from "@/components/profile/UnsavedChangesGuard";
 import { ProfileActionButtons } from "@/components/ProfileActionButtons";
-import { FallbackState, PageHeader, SurfacePanel } from "@/components/ui";
+import {
+  AccordionSection,
+  FallbackState,
+  PageHeader,
+  SurfacePanel,
+} from "@/components/ui";
 import { Button } from "@/components/ui/Button";
 import { useToast } from "@/components/ui/ToastProvider";
 import { useProfileQuery } from "@/hooks/useProfileQuery";
 import { useProfileSelection } from "@/hooks/useProfileSelection";
+import { areJsonValuesEqual } from "@/lib";
 import { downloadFile } from "@/lib/download";
 import { createLogger } from "@/lib/logger";
 import { generateResumeTXT } from "@/lib/txtExport";
@@ -30,9 +37,11 @@ const logger = createLogger("ProfilePage");
 
 export default function ProfilePage() {
   const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [showImportModal, setShowImportModal] = useState(false);
   const [showImportJsonModal, setShowImportJsonModal] = useState(false);
+  const [openSectionId, setOpenSectionId] = useState("contact");
   const { pushToast } = useToast();
   const queryClient = useQueryClient();
 
@@ -89,8 +98,13 @@ export default function ProfilePage() {
     if (data) setProfile(data);
   }, [data]);
 
+  const baseline = data ?? emptyProfile;
+  const isDirty = !areJsonValuesEqual(baseline, profile);
+  const saveStatus = saving ? "saving" : saveError ? "error" : "idle";
+
   const handleSave = async () => {
     setSaving(true);
+    setSaveError(false);
     try {
       if (selectedProfileId) {
         await updateProfile(selectedProfileId, profile);
@@ -107,6 +121,7 @@ export default function ProfilePage() {
       });
     } catch (error) {
       logger.error("Error saving profile", { error });
+      setSaveError(true);
       pushToast({
         title: "Save failed",
         description: "Error saving profile.",
@@ -205,7 +220,8 @@ export default function ProfilePage() {
             onExportJSON={handleExportJSON}
             onExportTXT={handleExportTXT}
             onSave={handleSave}
-            isSaving={saving}
+            saveStatus={saveStatus}
+            isDirty={isDirty}
           />
         }
       />
@@ -235,47 +251,100 @@ export default function ProfilePage() {
         <p className="text-agent-on-surface-variant">Loading...</p>
       ) : (
         <>
-          <ContactInfoSection
-            header={profile.header}
-            onChange={(header) => setProfile({ ...profile, header })}
-          />
-
-          <SummarySection
-            summary={profile.summary}
-            onChange={(summary) => setProfile({ ...profile, summary })}
-          />
-
-          <SkillsSection
-            skills={profile.skills}
-            onChange={(skills) => setProfile({ ...profile, skills })}
-          />
-
-          {SECTION_CONFIGS.map((config) => (
-            <ListSection
-              key={config.key}
-              title={config.title}
-              addLabel={config.addLabel}
-              emptyText={config.emptyText}
-              itemNoun={config.itemNoun}
-              blank={config.blank}
-              fields={config.fields}
-              items={(profile[config.key] as unknown[]) ?? []}
-              onChange={(items) =>
-                setProfile({ ...profile, [config.key]: items })
+          <div className="space-y-3">
+            <AccordionSection
+              title="Contact Information"
+              isOpen={openSectionId === "contact"}
+              onToggle={() =>
+                setOpenSectionId(openSectionId === "contact" ? "" : "contact")
               }
-            />
-          ))}
+              dirty={!areJsonValuesEqual(baseline.header, profile.header)}
+            >
+              <ContactInfoSection
+                hideTitle
+                header={profile.header}
+                onChange={(header) => setProfile({ ...profile, header })}
+              />
+            </AccordionSection>
+
+            <AccordionSection
+              title="Professional Summary"
+              isOpen={openSectionId === "summary"}
+              onToggle={() =>
+                setOpenSectionId(openSectionId === "summary" ? "" : "summary")
+              }
+              dirty={!areJsonValuesEqual(baseline.summary, profile.summary)}
+            >
+              <SummarySection
+                hideTitle
+                summary={profile.summary}
+                onChange={(summary) => setProfile({ ...profile, summary })}
+              />
+            </AccordionSection>
+
+            <AccordionSection
+              title="Skills"
+              isOpen={openSectionId === "skills"}
+              onToggle={() =>
+                setOpenSectionId(openSectionId === "skills" ? "" : "skills")
+              }
+              dirty={!areJsonValuesEqual(baseline.skills, profile.skills)}
+            >
+              <SkillsSection
+                hideTitle
+                skills={profile.skills}
+                onChange={(skills) => setProfile({ ...profile, skills })}
+              />
+            </AccordionSection>
+
+            {SECTION_CONFIGS.map((config) => (
+              <AccordionSection
+                key={config.key}
+                title={config.title}
+                isOpen={openSectionId === config.key}
+                onToggle={() =>
+                  setOpenSectionId(
+                    openSectionId === config.key ? "" : config.key
+                  )
+                }
+                dirty={
+                  !areJsonValuesEqual(
+                    baseline[config.key] as never,
+                    profile[config.key] as never
+                  )
+                }
+              >
+                <ListSection
+                  hideTitle
+                  title={config.title}
+                  addLabel={config.addLabel}
+                  emptyText={config.emptyText}
+                  itemNoun={config.itemNoun}
+                  blank={config.blank}
+                  fields={config.fields}
+                  items={(profile[config.key] as unknown[]) ?? []}
+                  onChange={(items) =>
+                    setProfile({ ...profile, [config.key]: items })
+                  }
+                />
+              </AccordionSection>
+            ))}
+          </div>
 
           {/* Save Actions */}
-          <SurfacePanel>
-            <div className="flex items-center justify-end gap-3">
-              <Button variant="secondary" onClick={handleReset}>
-                Reset
-              </Button>
-            </div>
-          </SurfacePanel>
+          {isDirty && (
+            <SurfacePanel>
+              <div className="flex items-center justify-end gap-3">
+                <Button variant="secondary" onClick={handleReset}>
+                  Reset
+                </Button>
+              </div>
+            </SurfacePanel>
+          )}
         </>
       )}
+
+      <UnsavedChangesGuard isDirty={isDirty} />
 
       <ImportResumeModal
         isOpen={showImportModal}

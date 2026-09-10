@@ -32,7 +32,7 @@ export function FormField({
   const inputType = isPasswordField && showPassword ? "text" : type;
 
   const inputClasses =
-    "w-full px-3 py-2 border border-agent-outline-variant rounded-lg focus:ring-agent-primary focus:border-transparent transition-colors bg-agent-surface-lowest text-agent-on-surface placeholder-(--color-agent-on-surface-variant)";
+    "w-full px-3 py-1.5 border border-agent-outline-variant rounded-lg focus:ring-agent-primary focus:border-transparent transition-colors bg-agent-surface-lowest text-agent-on-surface placeholder-(--color-agent-on-surface-variant)";
 
   return (
     <div className={`space-y-1 ${className}`}>

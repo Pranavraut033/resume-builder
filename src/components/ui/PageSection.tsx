@@ -8,6 +8,8 @@ interface PageSectionProps {
   icon?: ReactNode;
   children: ReactNode;
   className?: string;
+  /** Skip rendering the heading — used when a parent (e.g. an accordion) already shows the title. */
+  hideTitle?: boolean;
 }
 
 /**
@@ -29,17 +31,20 @@ export function PageSection({
   icon,
   children,
   className,
+  hideTitle,
 }: PageSectionProps) {
   return (
     <section className={cn("space-y-4", className)}>
-      <h2 className="text-agent-on-surface flex items-center gap-2 text-base font-semibold">
-        {icon && (
-          <span className="text-agent-primary flex shrink-0 items-center">
-            {icon}
-          </span>
-        )}
-        {title}
-      </h2>
+      {!hideTitle && (
+        <h2 className="text-agent-on-surface flex items-center gap-2 text-base font-semibold">
+          {icon && (
+            <span className="text-agent-primary flex shrink-0 items-center">
+              {icon}
+            </span>
+          )}
+          {title}
+        </h2>
+      )}
       {children}
     </section>
   );

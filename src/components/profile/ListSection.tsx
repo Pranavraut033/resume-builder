@@ -46,6 +46,7 @@ interface ListSectionProps<T> {
   emptyText: string;
   itemNoun: string;
   fields: FieldConfig<T>[];
+  hideTitle?: boolean;
 }
 
 /** Fields are rendered in their configured order, one row per field, except
@@ -165,6 +166,7 @@ export function ListSection<T>({
   emptyText,
   itemNoun,
   fields,
+  hideTitle,
 }: ListSectionProps<T>) {
   const add = () => {
     onChange([...items, blank()]);
@@ -183,7 +185,7 @@ export function ListSection<T>({
   const rows = groupFields(fields);
 
   return (
-    <PageSection title={title}>
+    <PageSection title={title} hideTitle={hideTitle}>
       <SurfacePanel>
         <div className="mb-4 flex justify-end">
           <Button variant="secondary" size="sm" onClick={add}>
@@ -193,11 +195,11 @@ export function ListSection<T>({
         {items.length === 0 ? (
           <p className="text-agent-on-surface-variant text-sm">{emptyText}</p>
         ) : (
-          <div className="space-y-6">
+          <div className="space-y-4">
             {items.map((item, index) => (
               <div
                 key={index}
-                className="border-agent-outline-variant space-y-3 rounded-lg border p-4"
+                className="border-agent-outline-variant space-y-3 rounded-lg border p-3"
               >
                 <div className="flex items-start justify-between">
                   <h4 className="font-medium">

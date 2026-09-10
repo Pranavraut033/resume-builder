@@ -5,14 +5,16 @@ import { ContactInfo } from "@/types/resume";
 interface ContactInfoSectionProps {
   header: ContactInfo;
   onChange: (header: ContactInfo) => void;
+  hideTitle?: boolean;
 }
 
 export function ContactInfoSection({
   header,
   onChange,
+  hideTitle,
 }: ContactInfoSectionProps) {
   return (
-    <PageSection title="Contact Information">
+    <PageSection title="Contact Information" hideTitle={hideTitle}>
       <SurfacePanel>
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           <FormField
@@ -20,6 +22,13 @@ export function ContactInfoSection({
             value={header.name}
             onChange={(v) => onChange({ ...header, name: v })}
             placeholder="John Doe"
+          />
+
+          <FormField
+            label="Headline"
+            value={header.headline || ""}
+            onChange={(v) => onChange({ ...header, headline: v })}
+            placeholder="Full-Stack & AI Engineer"
           />
 
           <FormField

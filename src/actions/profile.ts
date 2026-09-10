@@ -51,6 +51,7 @@ export async function createProfile(
       label: label.trim() || "New Profile",
       name: resumeJson?.header?.name ?? "",
       email: resumeJson?.header?.email ?? "",
+      headline: resumeJson?.header?.headline ?? null,
       phone: resumeJson?.header?.phone ?? null,
       location: resumeJson?.header?.location ?? null,
       linkedin: resumeJson?.header?.linkedin ?? null,
@@ -126,7 +127,7 @@ function profileDataToResumeJson(
     header: {
       name: profile.name,
       email: profile.email,
-      headline: "",
+      headline: profile.headline || "",
       phone: profile.phone || null,
       location: profile.location || null,
       linkedin: profile.linkedin || null,
@@ -161,6 +162,7 @@ function resumeJsonToProfileData(
   return {
     name: resumeJson.header.name,
     email: resumeJson.header.email,
+    headline: resumeJson.header.headline || null,
     phone: resumeJson.header.phone || null,
     location: resumeJson.header.location || null,
     linkedin: resumeJson.header.linkedin || null,

@@ -3,7 +3,10 @@
 import { Menu, MenuButton, MenuItems, MenuItem } from "@headlessui/react";
 
 import { Button } from "@/components/ui/Button";
+import { SaveButton } from "@/components/ui/SaveButton";
 import { cn } from "@/lib/cn";
+
+type MutationStatus = "idle" | "saving" | "saved" | "error";
 
 interface ProfileActionButtonsProps {
   onImportResume: () => void;
@@ -11,7 +14,8 @@ interface ProfileActionButtonsProps {
   onExportJSON: () => void;
   onExportTXT: () => void;
   onSave: () => void;
-  isSaving?: boolean;
+  saveStatus: MutationStatus;
+  isDirty: boolean;
 }
 
 export function ProfileActionButtons({
@@ -20,7 +24,8 @@ export function ProfileActionButtons({
   onExportJSON,
   onExportTXT,
   onSave,
-  isSaving = false,
+  saveStatus,
+  isDirty,
 }: ProfileActionButtonsProps) {
   return (
     <div className="flex gap-2">
@@ -95,9 +100,12 @@ export function ProfileActionButtons({
         </MenuItems>
       </Menu>
 
-      <Button onClick={onSave} disabled={isSaving} variant="primary">
-        {isSaving ? "Saving..." : "Save Profile"}
-      </Button>
+      <SaveButton
+        status={saveStatus}
+        isDirty={isDirty}
+        onClick={onSave}
+        className="w-auto"
+      />
     </div>
   );
 }
