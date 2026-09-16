@@ -6,7 +6,7 @@
     "node": ">=22.14.0"
   },
   "scripts": {
-    "predev": "npm run build --prefix packages/llm-core && npm run build --prefix packages/ats-checker",
+    "predev": "npm run build --prefix packages/llm-core && npm run build --prefix packages/ats-checker && node scripts/gen-release-notes.mjs",
     "dev": "next dev -p 3008",
     "tauri": "npx -y dotenv-cli -e .env -- tauri",
     "desktop": "npm run tauri -- dev",
@@ -17,7 +17,7 @@
     "desktop:build:windows": "npm run tauri -- build --target x86_64-pc-windows-msvc",
     "desktop:build:linux": "npm run tauri -- build --target x86_64-unknown-linux-gnu",
     "test:local-update": "bash scripts/test-local-update.sh",
-    "prebuild": "npm run build --prefix packages/llm-core && npm run build --prefix packages/ats-checker && npm run build:mcp",
+    "prebuild": "npm run build --prefix packages/llm-core && npm run build --prefix packages/ats-checker && npm run build:mcp && node scripts/gen-release-notes.mjs",
     "build": "next build",
     "prepare:tauri-server": "node scripts/prepareTauriServer.mjs",
     "start": "next start",

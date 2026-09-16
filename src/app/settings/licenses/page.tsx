@@ -3,12 +3,11 @@ import path from "path";
 
 import {
   BackButton,
+  MarkdownBlock,
   PageHeader,
   PageSection,
   SurfacePanel,
 } from "@/components/ui";
-
-import { MarkdownBlock } from "./MarkdownBlock";
 
 // Statically prerendered: the two files below are read once at build time
 // and inlined into the route, so the packaged Tauri app (which serves Next

@@ -21,6 +21,7 @@ import { McpServerAutostart } from "./McpServerAutostart";
 import { Header } from "./ui";
 import { ToastProvider } from "./ui/ToastProvider";
 import { UpdatePrompt } from "./UpdatePrompt";
+import { WhatsNewGate } from "./WhatsNewGate";
 
 interface AppShellProps {
   children: React.ReactNode;
@@ -42,6 +43,7 @@ export default function AppShell({ children }: AppShellProps) {
             <KeychainNoticeGate />
             <McpServerAutostart />
             <UpdatePrompt />
+            <WhatsNewGate />
           </AppUpdaterProvider>
         </ToastProvider>
       </ThemeProvider>
