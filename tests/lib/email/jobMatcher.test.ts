@@ -1,22 +1,9 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
-import { matchEmailToJob } from "@/lib/email/jobMatcher";
-import { prisma } from "@/lib/prisma";
-
-vi.mock("@/lib/prisma", () => ({
-  prisma: {
-    job: {
-      findMany: vi.fn(),
-    },
-  },
-}));
+import { describe, it, expect } from "vitest";
+import { matchEmailToJob, JobCandidate } from "@/lib/email/jobMatcher";
 
 describe("matchEmailToJob", () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-  });
-
-  it("matches email when classified company matches job company name", async () => {
-    vi.mocked(prisma.job.findMany).mockResolvedValue([
+  it("matches email when classified company matches job company name", () => {
+    const jobs: JobCandidate[] = [
       {
         id: 42,
         role: "Frontend Engineer",
@@ -24,9 +11,9 @@ describe("matchEmailToJob", () => {
         companyId: 10,
         company: { id: 10, name: "Stripe" },
       },
-    ] as unknown as Awaited<ReturnType<typeof prisma.job.findMany>>);
+    ];
 
-    const match = await matchEmailToJob(
+    const match = matchEmailToJob(
       {
         sender: "recruiter@stripe.com",
         subject: "Regarding your application",
@@ -40,7 +27,8 @@ describe("matchEmailToJob", () => {
         confidence: 0.9,
         nextSteps: null,
         actionRequired: true,
-      }
+      },
+      jobs
     );
 
     expect(match).not.toBeNull();
@@ -48,8 +36,8 @@ describe("matchEmailToJob", () => {
     expect(match?.companyId).toBe(10);
   });
 
-  it("matches email by sender domain against job posting url", async () => {
-    vi.mocked(prisma.job.findMany).mockResolvedValue([
+  it("matches email by sender domain against job posting url", () => {
+    const jobs: JobCandidate[] = [
       {
         id: 101,
         role: "Backend Engineer",
@@ -57,9 +45,9 @@ describe("matchEmailToJob", () => {
         companyId: 20,
         company: { id: 20, name: "Datadog" },
       },
-    ] as unknown as Awaited<ReturnType<typeof prisma.job.findMany>>);
+    ];
 
-    const match = await matchEmailToJob(
+    const match = matchEmailToJob(
       {
         sender: "recruiting@datadoghq.com",
         subject: "Datadog updates",
@@ -73,15 +61,16 @@ describe("matchEmailToJob", () => {
         confidence: 0.6,
         nextSteps: null,
         actionRequired: false,
-      }
+      },
+      jobs
     );
 
     expect(match).not.toBeNull();
     expect(match?.jobId).toBe(101);
   });
 
-  it("returns null if no job matches the email criteria", async () => {
-    vi.mocked(prisma.job.findMany).mockResolvedValue([
+  it("returns null if no job matches the email criteria", () => {
+    const jobs: JobCandidate[] = [
       {
         id: 7,
         role: "Product Manager",
@@ -89,9 +78,9 @@ describe("matchEmailToJob", () => {
         companyId: 5,
         company: { id: 5, name: "Netflix" },
       },
-    ] as unknown as Awaited<ReturnType<typeof prisma.job.findMany>>);
+    ];
 
-    const match = await matchEmailToJob(
+    const match = matchEmailToJob(
       {
         sender: "hr@unknownstartup.xyz",
         subject: "Random inquiry",
@@ -105,7 +94,26 @@ describe("matchEmailToJob", () => {
         confidence: 0.5,
         nextSteps: null,
         actionRequired: false,
-      }
+      },
+      jobs
+    );
+
+    expect(match).toBeNull();
+  });
+
+  it("returns null when there are no candidate jobs", () => {
+    const match = matchEmailToJob(
+      { sender: "a@b.com", subject: "x", snippet: "y" },
+      {
+        isRecruitingEmail: true,
+        companyName: "Anything",
+        role: null,
+        stage: null,
+        confidence: 0.5,
+        nextSteps: null,
+        actionRequired: false,
+      },
+      []
     );
 
     expect(match).toBeNull();

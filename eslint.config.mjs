@@ -67,6 +67,49 @@ const eslintConfig = defineConfig([
       eqeqeq: ["error", "always", { null: "ignore" }],
     },
   },
+  {
+    // Server = database only (CLAUDE.md hard rule 1): a Server Action or
+    // route handler must never import client-only modules — keyStorage,
+    // any LLM/provider code, Zustand stores, or the Tauri SDK. This is the
+    // regression guard for the class of bug that broke the email tracker:
+    // those modules fail differently outside a browser (some throw, some
+    // silently return null), so without this the breakage is invisible
+    // until you actually run the server path.
+    files: ["src/actions/**/*.{ts,tsx}", "src/app/api/**/*.{ts,tsx}"],
+    rules: {
+      "@typescript-eslint/no-restricted-imports": [
+        "error",
+        {
+          paths: [
+            {
+              name: "@/lib/keyStorage",
+              message: "Server = database only. keyStorage is client-only.",
+            },
+            {
+              name: "@/lib/email/gmailClient",
+              message: "Server = database only. gmailClient is client-only.",
+            },
+          ],
+          patterns: [
+            {
+              group: ["@/lib/llm/*", "@/lib/llm"],
+              message: "LLM calls are client-only (CLAUDE.md hard rule 1).",
+              allowTypeImports: true,
+            },
+            {
+              group: ["@/store/*", "@/store"],
+              message: "Zustand stores don't hydrate server-side.",
+              allowTypeImports: true,
+            },
+            {
+              group: ["@tauri-apps/*"],
+              message: "Tauri APIs are client/webview-only.",
+            },
+          ],
+        },
+      ],
+    },
+  },
   // Override default ignores of eslint-config-next.
   globalIgnores([
     // Default ignores of eslint-config-next:

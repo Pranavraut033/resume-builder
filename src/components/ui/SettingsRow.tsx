@@ -4,7 +4,7 @@ import { cn } from "@/lib/cn";
 
 interface SettingsRowProps {
   label: string;
-  description?: string;
+  description?: ReactNode;
   /** The control element rendered on the right (toggle, button, select, etc.) */
   control: ReactNode;
   className?: string;

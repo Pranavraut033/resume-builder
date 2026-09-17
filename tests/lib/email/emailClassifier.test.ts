@@ -1,8 +1,14 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import {
+  classifyEmail,
   classifyEmailHeuristically,
   EmailToClassify,
 } from "@/lib/llm/emailClassifier";
+import { useModelStore } from "@/store/modelStore";
+
+vi.mock("@/store/modelStore", () => ({
+  useModelStore: { getState: vi.fn() },
+}));
 
 describe("classifyEmailHeuristically", () => {
   it("detects interview invitation emails", () => {
@@ -78,11 +84,46 @@ describe("classifyEmailHeuristically", () => {
     const email: EmailToClassify = {
       sender: "newsletter@medium.com",
       subject: "Weekly Top Stories in Tech",
-      snippet: "Here are the top trending articles recommended for you this week.",
+      snippet:
+        "Here are the top trending articles recommended for you this week.",
     };
 
     const result = classifyEmailHeuristically(email);
     expect(result.isRecruitingEmail).toBe(false);
     expect(result.stage).toBeNull();
+  });
+});
+
+describe("classifyEmail", () => {
+  it("trusts a confident heuristic result without consulting the model store", async () => {
+    const getState = vi.mocked(useModelStore.getState);
+
+    const email: EmailToClassify = {
+      sender: "talent@airbnb.com",
+      subject: "Congratulations! Airbnb Offer Letter",
+      snippet:
+        "We are pleased to offer you the position of Senior Frontend Engineer.",
+    };
+
+    const result = await classifyEmail(email);
+    expect(result.stage).toBe("OFFER");
+    // Confident heuristic short-circuits before ever reading the model pair.
+    expect(getState).not.toHaveBeenCalled();
+  });
+
+  it("falls back to heuristics when the heuristic is low-confidence and no model is configured", async () => {
+    vi.mocked(useModelStore.getState).mockReturnValue({
+      getEmailModelPair: () => null,
+    } as unknown as ReturnType<typeof useModelStore.getState>);
+
+    const email: EmailToClassify = {
+      sender: "newsletter@medium.com",
+      subject: "Weekly Top Stories in Tech",
+      snippet:
+        "Here are the top trending articles recommended for you this week.",
+    };
+
+    const result = await classifyEmail(email);
+    expect(result.isRecruitingEmail).toBe(false);
   });
 });

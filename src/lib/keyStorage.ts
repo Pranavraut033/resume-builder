@@ -20,6 +20,23 @@ import { hasSeenForVersion, markSeenForVersion } from "@/lib/versionFlag";
 
 const logger = createLogger("KeyStorage");
 
+/**
+ * Thrown when keyStorage is called with no `window` at all — a server/Node
+ * context (a Server Action, a route handler). keyStorage is client-only by
+ * design (Tauri encrypted store or browser localStorage); a server caller is
+ * a bug in the caller, not a "key not found" case, so this must propagate
+ * rather than be swallowed into a misleading `null`.
+ */
+export class NotInBrowserError extends Error {
+  constructor() {
+    super(
+      "keyStorage was called outside a browser context (no `window`). " +
+        "keyStorage is client-only — move this call to client code."
+    );
+    this.name = "NotInBrowserError";
+  }
+}
+
 // The OS keychain prompt for `get_or_create_master_key` resurfaces after
 // every app update (each build has a distinct ad-hoc code signature, so
 // macOS treats it as a new app and forgets any prior "Always Allow"). Track
@@ -277,6 +294,8 @@ export async function setApiKey(
   provider: string,
   apiKey: string
 ): Promise<void> {
+  if (typeof window === "undefined") throw new NotInBrowserError();
+
   if (!isTauriContext()) {
     logger.warn("Not in Tauri context, using localStorage fallback", {
       provider,
@@ -333,6 +352,8 @@ async function storeApiKeyWithNewMasterKey(
  * Falls back to localStorage in web mode (development)
  */
 export async function getApiKey(provider: string): Promise<string | null> {
+  if (typeof window === "undefined") throw new NotInBrowserError();
+
   if (!isTauriContext()) {
     // Fallback to localStorage for web mode development
     try {
@@ -417,6 +438,8 @@ export async function getApiKey(provider: string): Promise<string | null> {
  * Falls back to localStorage in web mode (development)
  */
 export async function deleteApiKey(provider: string): Promise<void> {
+  if (typeof window === "undefined") throw new NotInBrowserError();
+
   if (!isTauriContext()) {
     // Fallback to localStorage for web mode development
     try {

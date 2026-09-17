@@ -56,16 +56,16 @@ Never store a key anywhere else, never put one in SQLite, and never include one 
 
 ## Operation layer
 
-| File                            | Purpose                                                                                                                                                                                                 |
-| ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `src/lib/llm/domainOps.ts`      | Free functions per resume-domain operation: parsing, tailoring, ATS analysis (incl. knockout-risk and title-alignment), humanizer, proofreading, gap analysis. Provider-agnostic.                       |
-| `src/lib/llm/llmService.ts`     | High-level entry points built on `domainOps`: `parseJobDescription()`, `generateResume()`, `generateCoverLetter()`, ATS analysis, `humanizeContent()`, resume proofreading.                             |
-| `src/lib/llm/clientLLM.ts`      | Client-side call plumbing.                                                                                                                                                                              |
-| `src/lib/llm/atsLLMClient.ts`   | ATS-specific client wrapper.                                                                                                                                                                            |
-| `src/lib/llm/verifiedResume.ts` | Post-generation verification pass (`verifiedResume.test.ts`).                                                                                                                                           |
-| `src/lib/llm/ResumeHistory.ts`  | In-memory resume undo/redo history backing the chat `undo` intent.                                                                                                                                      |
-| `src/lib/llm/tokenTracker.ts`   | Records usage per call, persisted through the `tokenUsage` server action. Understands cache-read/cache-creation and reasoning tokens per provider (see `TokenUsage` in [data-layer.md](data-layer.md)). |
-| `src/lib/llm/emailClassifier.ts` | Client-side classification of a synced email into `EmailClassificationSchema` (recruiting email? company, stage, etc.) for the email tracker — see `JobEmail` in [data-layer.md](data-layer.md). |
+| File                             | Purpose                                                                                                                                                                                                 |
+| -------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `src/lib/llm/domainOps.ts`       | Free functions per resume-domain operation: parsing, tailoring, ATS analysis (incl. knockout-risk and title-alignment), humanizer, proofreading, gap analysis. Provider-agnostic.                       |
+| `src/lib/llm/llmService.ts`      | High-level entry points built on `domainOps`: `parseJobDescription()`, `generateResume()`, `generateCoverLetter()`, ATS analysis, `humanizeContent()`, resume proofreading.                             |
+| `src/lib/llm/clientLLM.ts`       | Client-side call plumbing.                                                                                                                                                                              |
+| `src/lib/llm/atsLLMClient.ts`    | ATS-specific client wrapper.                                                                                                                                                                            |
+| `src/lib/llm/verifiedResume.ts`  | Post-generation verification pass (`verifiedResume.test.ts`).                                                                                                                                           |
+| `src/lib/llm/ResumeHistory.ts`   | In-memory resume undo/redo history backing the chat `undo` intent.                                                                                                                                      |
+| `src/lib/llm/tokenTracker.ts`    | Records usage per call, persisted through the `tokenUsage` server action. Understands cache-read/cache-creation and reasoning tokens per provider (see `TokenUsage` in [data-layer.md](data-layer.md)). |
+| `src/lib/llm/emailClassifier.ts` | Client-side classification of a synced email into `EmailClassificationSchema` (recruiting email? company, stage, etc.) for the email tracker — see `JobEmail` in [data-layer.md](data-layer.md).        |
 
 ## Prompts (`src/lib/llm/prompts/`)
 

@@ -1,11 +1,45 @@
-import { EmailClassification, EmailToClassify } from "@/lib/llm/emailClassifier";
 import { prisma } from "@/lib/prisma";
+
+import type {
+  EmailClassification,
+  EmailToClassify,
+} from "@/lib/llm/emailClassifier";
 
 export interface JobMatchResult {
   jobId: number;
   companyId: number;
   confidence: number;
   reason: string;
+}
+
+export interface JobCandidate {
+  id: number;
+  role: string;
+  url: string | null;
+  companyId: number;
+  company: { id: number; name: string };
+}
+
+/**
+ * Loads every job as a matching candidate. Call once per sync run and reuse
+ * across every email — `matchEmailToJob` used to re-run this full scan per
+ * email, which multiplies with the per-email LLM classification cost.
+ */
+export async function loadJobCandidates(): Promise<JobCandidate[]> {
+  return prisma.job.findMany({
+    select: {
+      id: true,
+      role: true,
+      url: true,
+      companyId: true,
+      company: {
+        select: {
+          id: true,
+          name: true,
+        },
+      },
+    },
+  });
 }
 
 function normalize(str: string): string {
@@ -42,33 +76,21 @@ function extractEmailDomain(emailStr: string): string | null {
 }
 
 /**
- * Matches an email to a Job record in the database.
+ * Matches an email against a pre-fetched list of candidate jobs (see
+ * `loadJobCandidates`). Pure/synchronous scoring — no DB access here.
  */
-export async function matchEmailToJob(
+export function matchEmailToJob(
   email: EmailToClassify,
-  classification: EmailClassification
-): Promise<JobMatchResult | null> {
-  // Fetch candidate jobs with company
-  const jobs = await prisma.job.findMany({
-    select: {
-      id: true,
-      role: true,
-      url: true,
-      companyId: true,
-      company: {
-        select: {
-          id: true,
-          name: true,
-        },
-      },
-    },
-  });
-
+  classification: EmailClassification,
+  jobs: JobCandidate[]
+): JobMatchResult | null {
   if (!jobs || jobs.length === 0) return null;
 
   const emailSenderDomain = extractEmailDomain(email.sender);
   const normalizedSubject = normalize(email.subject);
-  const normalizedBody = normalize(email.snippet + " " + (email.bodyText || ""));
+  const normalizedBody = normalize(
+    email.snippet + " " + (email.bodyText || "")
+  );
   const classifiedCompany = classification.companyName
     ? normalize(classification.companyName)
     : null;
@@ -133,7 +155,8 @@ export async function matchEmailToJob(
       }
     } else if (
       normJobRole.length > 4 &&
-      (normalizedSubject.includes(normJobRole) || normalizedBody.includes(normJobRole))
+      (normalizedSubject.includes(normJobRole) ||
+        normalizedBody.includes(normJobRole))
     ) {
       score += 0.2;
       reasons.push(`Role '${job.role}' found in email content`);

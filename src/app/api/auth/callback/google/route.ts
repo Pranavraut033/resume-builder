@@ -1,92 +1,76 @@
 import { NextRequest, NextResponse } from "next/server";
 
-import { exchangeCodeForTokens, getGoogleUserInfo } from "@/lib/email/gmailClient";
+import { stashAuthCode } from "@/lib/email/authCodeStore";
 import { createLogger } from "@/lib/logger";
-import { prisma } from "@/lib/prisma";
 
 const logger = createLogger("GoogleOAuthCallback");
 
+function escapeHtml(value: string): string {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+function page(title: string, body: string, status = 200): NextResponse {
+  return new NextResponse(
+    `<!DOCTYPE html>
+    <html>
+      <head>
+        <title>${title}</title>
+        <style>
+          body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; background: #0d1117; color: #fff; }
+          .card { text-align: center; background: #161b22; padding: 2.5rem; border-radius: 1rem; border: 1px solid #30363d; box-shadow: 0 8px 24px rgba(0,0,0,0.4); max-width: 28rem; }
+          h2 { margin: 0 0 0.5rem; color: #58a6ff; }
+          p { margin: 0; color: #8b949e; }
+        </style>
+      </head>
+      <body>
+        <div class="card">${body}</div>
+      </body>
+    </html>`,
+    { status, headers: { "Content-Type": "text/html" } }
+  );
+}
+
+/**
+ * Dumb relay: this is the only server-side surface in the Google OAuth flow
+ * (documented exception to hard rule 1 in CLAUDE.md — Google requires a
+ * fixed redirect URI). It does no token exchange, no Prisma writes, and
+ * touches no secrets — it only hands the authorization `code` back to the
+ * client that started the flow via `src/lib/email/authCodeStore.ts`.
+ *
+ * The consent screen runs in the system browser, not the app's embedded
+ * webview (Google blocks OAuth inside embedded webviews), so there is no
+ * `window.opener` here to postMessage to — see connectGmail.ts for the
+ * polling hand-off on the other end.
+ */
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const code = searchParams.get("code");
+  const state = searchParams.get("state");
   const error = searchParams.get("error");
 
-  if (error || !code) {
-    logger.error("OAuth callback received error", { error });
-    return new NextResponse(
-      `<html><body><h3>Authentication failed</h3><p>${error || "No code received"}</p><script>setTimeout(() => window.close(), 3000);</script></body></html>`,
-      { headers: { "Content-Type": "text/html" }, status: 400 }
+  if (error || !code || !state) {
+    logger.error("OAuth callback received error or missing params", {
+      error,
+      hasCode: Boolean(code),
+      hasState: Boolean(state),
+    });
+    return page(
+      "Authentication failed",
+      `<h2>Authentication failed</h2><p>${escapeHtml(error || "Missing authorization code.")}</p>`,
+      400
     );
   }
 
-  try {
-    const redirectUri = new URL("/api/auth/callback/google", request.url).toString();
-    const tokens = await exchangeCodeForTokens(code, redirectUri);
-    const userInfo = await getGoogleUserInfo(tokens.accessToken);
+  stashAuthCode(state, code);
+  logger.info("Stashed OAuth authorization code for client pickup");
 
-    // Save EmailAccount in Prisma
-    await prisma.emailAccount.upsert({
-      where: { email: userInfo.email },
-      update: {
-        provider: "GMAIL",
-        accessToken: tokens.accessToken,
-        refreshToken: tokens.refreshToken ?? undefined,
-        tokenExpiry: new Date(Date.now() + tokens.expiresIn * 1000),
-        isActive: true,
-      },
-      create: {
-        email: userInfo.email,
-        provider: "GMAIL",
-        accessToken: tokens.accessToken,
-        refreshToken: tokens.refreshToken,
-        tokenExpiry: new Date(Date.now() + tokens.expiresIn * 1000),
-        isActive: true,
-      },
-    });
-
-    logger.info("Successfully connected Google email account", {
-      email: userInfo.email,
-    });
-
-    return new NextResponse(
-      `<!DOCTYPE html>
-      <html>
-        <head>
-          <title>Authentication Successful</title>
-          <style>
-            body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; background: #0d1117; color: #fff; }
-            .card { text-align: center; background: #161b22; padding: 2.5rem; border-radius: 1rem; border: 1px solid #30363d; box-shadow: 0 8px 24px rgba(0,0,0,0.4); }
-            h2 { margin: 0 0 0.5rem; color: #58a6ff; }
-            p { margin: 0; color: #8b949e; }
-          </style>
-        </head>
-        <body>
-          <div class="card">
-            <h2>✓ Gmail Connected Successfully</h2>
-            <p>Signed in as <strong>${userInfo.email}</strong>. You can close this window now.</p>
-          </div>
-          <script>
-            try {
-              if (window.opener) {
-                window.opener.postMessage({ type: 'GOOGLE_AUTH_SUCCESS', email: '${userInfo.email}' }, '*');
-                setTimeout(() => window.close(), 1200);
-              } else {
-                setTimeout(() => { window.location.href = '/settings?email_connected=true'; }, 1500);
-              }
-            } catch (e) {
-              window.location.href = '/settings?email_connected=true';
-            }
-          </script>
-        </body>
-      </html>`,
-      { headers: { "Content-Type": "text/html" } }
-    );
-  } catch (err) {
-    const errorMsg = err instanceof Error ? err.message : String(err);
-    logger.error("Failed to complete OAuth token exchange", { error: errorMsg });
-    return new NextResponse(
-      `<html><body><h3>Authentication failed</h3><p>${errorMsg}</p><script>setTimeout(() => window.close(), 4000);</script></body></html>`,
-      { headers: { "Content-Type": "text/html" }, status: 500 }
-    );
-  }
+  return page(
+    "Authentication successful",
+    `<h2>✓ Almost done</h2><p>You can close this window and return to Udaan.</p>`
+  );
 }

@@ -1,3 +1,5 @@
+"use client";
+
 import { z } from "zod";
 
 import { getProviderInstance } from "@/lib/llm/providers/factory";
@@ -175,18 +177,33 @@ export function classifyEmailHeuristically(
   };
 }
 
+// Below this, the keyword heuristic didn't recognize the email at all
+// (fixed 0.2 confidence for a non-match) — escalate to the LLM for a second
+// look. At or above it, the heuristic matched real signal (fixed 0.7) and is
+// trusted as-is, so a sync run only pays for LLM calls on the ambiguous
+// cases instead of every message.
+const HEURISTIC_ESCALATION_THRESHOLD = 0.7;
+
 /**
- * Classifies an incoming email using the dedicated email LLM model configured in Settings.
- * Falls back to heuristic parsing if the LLM provider fails or is not configured.
+ * Classifies an incoming email. Runs the free keyword heuristic first; only
+ * escalates to the dedicated email LLM model (configured in Settings) when
+ * the heuristic result is low-confidence, so a sync run isn't one LLM call
+ * per fetched message. Falls back to the heuristic result if the LLM
+ * provider fails or is not configured.
  */
 export async function classifyEmail(
   email: EmailToClassify
 ): Promise<EmailClassification> {
+  const heuristic = classifyEmailHeuristically(email);
+  if (heuristic.confidence >= HEURISTIC_ESCALATION_THRESHOLD) {
+    return heuristic;
+  }
+
   const modelPair = useModelStore.getState().getEmailModelPair();
 
   if (!modelPair) {
     logger.info("No LLM model configured, using heuristic classification");
-    return classifyEmailHeuristically(email);
+    return heuristic;
   }
 
   const [providerType, modelName] = modelPair;
@@ -197,7 +214,7 @@ export async function classifyEmail(
       logger.warn(
         `Could not instantiate provider ${providerType}, falling back to heuristics`
       );
-      return classifyEmailHeuristically(email);
+      return heuristic;
     }
 
     const systemPrompt = `You are an AI assistant that inspects emails to identify recruiting and job application correspondence.
@@ -243,9 +260,12 @@ ${email.bodyText || email.snippet}`;
 
     return result;
   } catch (err) {
-    logger.error("LLM email classification failed, falling back to heuristics", {
-      error: err instanceof Error ? err.message : String(err),
-    });
-    return classifyEmailHeuristically(email);
+    logger.error(
+      "LLM email classification failed, falling back to heuristics",
+      {
+        error: err instanceof Error ? err.message : String(err),
+      }
+    );
+    return heuristic;
   }
 }
