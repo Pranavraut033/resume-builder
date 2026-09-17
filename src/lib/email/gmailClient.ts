@@ -1,5 +1,5 @@
-import { createLogger } from "@/lib/logger";
 import { getApiKey, setApiKey, deleteApiKey } from "@/lib/keyStorage";
+import { createLogger } from "@/lib/logger";
 
 const logger = createLogger("GmailClient");
 
@@ -191,7 +191,7 @@ export async function exchangeCodeForTokens(
  * Refreshes an expired access token using the stored refresh token.
  */
 export async function refreshAccessToken(): Promise<string> {
-  let refreshToken = await getApiKey(KEY_GOOGLE_REFRESH_TOKEN);
+  const refreshToken = await getApiKey(KEY_GOOGLE_REFRESH_TOKEN);
   if (!refreshToken) {
     throw new Error("No Google refresh token found. User must re-authenticate.");
   }

@@ -1,17 +1,16 @@
 "use server";
 
-import { prisma } from "@/lib/prisma";
+import { syncEmails, SyncResult } from "@/lib/email/emailSyncService";
 import {
   clearGoogleAuthTokens,
   generateAuthUrl,
   getValidAccessToken,
   setCustomGoogleCredentials,
   getActiveClientId,
-  getActiveClientSecret,
   DEFAULT_GOOGLE_CLIENT_ID,
 } from "@/lib/email/gmailClient";
-import { syncEmails, SyncResult } from "@/lib/email/emailSyncService";
 import { createLogger } from "@/lib/logger";
+import { prisma } from "@/lib/prisma";
 
 const logger = createLogger("EmailSyncActions");
 

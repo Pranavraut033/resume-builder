@@ -1,5 +1,5 @@
-import { prisma } from "@/lib/prisma";
 import { EmailClassification, EmailToClassify } from "@/lib/llm/emailClassifier";
+import { prisma } from "@/lib/prisma";
 
 export interface JobMatchResult {
   jobId: number;

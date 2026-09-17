@@ -233,6 +233,20 @@ export const BUILTIN_SECTION_IDS = [
 
 export type BuiltinSectionId = (typeof BUILTIN_SECTION_IDS)[number];
 
+// Built-ins small enough to move between the side and main column of a
+// 2-column template without leaving that column looking sparse. Experience/
+// summary/projects/volunteer stay pinned to the main column — see
+// SectionOutlinePanel.tsx, the only place that reads this for UI purposes.
+export const COLUMN_MOVABLE_SECTION_IDS = [
+  "skills",
+  "education",
+  "certifications",
+  "languages",
+  "awards",
+  "hobbies",
+  "publications",
+] as const;
+
 export const BUILTIN_SECTION_LABELS: Record<BuiltinSectionId, string> = {
   header: "Personal Info",
   summary: "Summary",
@@ -267,6 +281,14 @@ export const SectionLayoutSchema = z.object({
   order: z.array(z.string()),
   hidden: z.array(z.string()).default([]),
   custom: z.array(CustomSectionSchema).default([]),
+  // Per-section column override (0 = side/sidebar, 1 = main), keyed by
+  // section id so each custom section gets its own slot instead of sharing
+  // TemplateConfig.sectionColumn's single "custom" key. Only consulted by
+  // buildSections() for ids in COLUMN_MOVABLE_SECTION_IDS (or custom
+  // sections) on a 2-column template — see buildSections.ts.
+  columns: z
+    .record(z.string(), z.union([z.literal(0), z.literal(1)]))
+    .default({}),
 });
 
 export type SectionLayout = z.infer<typeof SectionLayoutSchema>;
@@ -288,6 +310,7 @@ export function getSectionLayout(resume: ResumeJSON): SectionLayout {
       order: [...BUILTIN_SECTION_IDS],
       hidden: [],
       custom: [],
+      columns: {},
     }
   );
 }
@@ -297,6 +320,14 @@ export function missingBuiltinSections(
   layout: SectionLayout
 ): BuiltinSectionId[] {
   return BUILTIN_SECTION_IDS.filter((id) => !layout.order.includes(id));
+}
+
+/** Whether a section id may be dragged between the side and main column. */
+export function canMoveColumn(id: string, layout: SectionLayout): boolean {
+  return (
+    (COLUMN_MOVABLE_SECTION_IDS as readonly string[]).includes(id) ||
+    layout.custom.some((c) => c.id === id)
+  );
 }
 
 export const SkillSchema = z.object({

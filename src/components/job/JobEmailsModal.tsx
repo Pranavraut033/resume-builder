@@ -2,9 +2,10 @@
 
 import { useQuery } from "@tanstack/react-query";
 import React, { useState } from "react";
+
 import { getEmailsForJob } from "@/actions/emailSync";
-import { Modal } from "@/components/ui/Modal";
 import { Icon } from "@/components/ui/Icon";
+import { Modal } from "@/components/ui/Modal";
 import { formatTimestamp } from "@/lib";
 
 interface JobEmailsModalProps {

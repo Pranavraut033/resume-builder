@@ -64,7 +64,12 @@ function makeResume(overrides: Partial<ResumeJSON> = {}): ResumeJSON {
     volunteer: null,
     awards: null,
     hobbies: null,
-    sectionLayout: { order: ["header", "summary"], hidden: [], custom: [] },
+    sectionLayout: {
+      order: ["header", "summary"],
+      hidden: [],
+      custom: [],
+      columns: {},
+    },
     ...overrides,
   };
 }
@@ -90,10 +95,11 @@ describe("guardTailoredResume", () => {
         order: ["header", "experience"],
         hidden: ["hobbies"],
         custom: [],
+        columns: {},
       },
     });
     const tailored = makeResume({
-      sectionLayout: { order: ["header"], hidden: [], custom: [] },
+      sectionLayout: { order: ["header"], hidden: [], custom: [], columns: {} },
     });
 
     const result = guardTailoredResume(base, tailored);

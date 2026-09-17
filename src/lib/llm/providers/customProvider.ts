@@ -8,10 +8,10 @@
  * is read from storage at construction time rather than baked into the class.
  */
 import { LLMProvider } from "@pranavraut033/llm-core";
+import { OpenAICompatibleProvider } from "@pranavraut033/llm-core/providers/openai-compatible";
 
 import { getCustomBaseUrl } from "@/lib/llm/customEndpoint";
 import { createLogger } from "@/lib/logger";
-import { OpenAICompatibleProvider } from "@pranavraut033/llm-core/providers/openai-compatible";
 
 declare module "@pranavraut033/llm-core" {
   interface ProviderIdRegistry {

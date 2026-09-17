@@ -24,7 +24,7 @@ describe("matchEmailToJob", () => {
         companyId: 10,
         company: { id: 10, name: "Stripe" },
       },
-    ] as any);
+    ] as unknown as Awaited<ReturnType<typeof prisma.job.findMany>>);
 
     const match = await matchEmailToJob(
       {
@@ -57,7 +57,7 @@ describe("matchEmailToJob", () => {
         companyId: 20,
         company: { id: 20, name: "Datadog" },
       },
-    ] as any);
+    ] as unknown as Awaited<ReturnType<typeof prisma.job.findMany>>);
 
     const match = await matchEmailToJob(
       {
@@ -89,7 +89,7 @@ describe("matchEmailToJob", () => {
         companyId: 5,
         company: { id: 5, name: "Netflix" },
       },
-    ] as any);
+    ] as unknown as Awaited<ReturnType<typeof prisma.job.findMany>>);
 
     const match = await matchEmailToJob(
       {

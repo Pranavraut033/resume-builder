@@ -19,10 +19,12 @@ import {
   setJobHidden,
   updateJobStatus,
 } from "@/actions/job";
+import { JobEmailsModal } from "@/components/job/JobEmailsModal";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
 import { Icon } from "@/components/ui/Icon";
 import { Modal } from "@/components/ui/Modal";
 import { useToast } from "@/components/ui/ToastProvider";
+import { useEmailSync } from "@/hooks/useEmailSync";
 import { formatTimestamp } from "@/lib";
 import logger from "@/lib/logger";
 import { isJobStatus, JobStatus } from "@/types/job";
@@ -37,8 +39,6 @@ import FilterBar, {
   JobFilters,
   matchesFilters,
 } from "./FilterBar";
-import { JobEmailsModal } from "@/components/job/JobEmailsModal";
-import { useEmailSync } from "@/hooks/useEmailSync";
 import JobsTable from "./JobsTable";
 import PeekContent from "./PeekContent";
 import SearchInput from "./SearchInput";

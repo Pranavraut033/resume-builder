@@ -125,7 +125,7 @@ describe("generateResume", () => {
     // therefore never trip assertResumeNotGutted.
     const baseProfile = makeResume();
     const tailored = makeResume({
-      sectionLayout: { order: ["header"], hidden: [], custom: [] },
+      sectionLayout: { order: ["header"], hidden: [], custom: [], columns: {} },
     });
     const provider = providerReturning(tailored);
 

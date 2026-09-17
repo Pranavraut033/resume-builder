@@ -1,6 +1,8 @@
 "use client";
 
 import React, { useState } from "react";
+
+import { saveGoogleCredentials } from "@/actions/emailSync";
 import {
   Badge,
   Button,
@@ -11,12 +13,11 @@ import {
   SurfacePanel,
   Toggle,
 } from "@/components/ui";
+import { useToast } from "@/components/ui/ToastProvider";
 import { useEmailSync } from "@/hooks/useEmailSync";
+import { formatTimestamp } from "@/lib";
 import { useModelStore } from "@/store/modelStore";
 import { ProviderType } from "@/types/llm";
-import { saveGoogleCredentials } from "@/actions/emailSync";
-import { useToast } from "@/components/ui/ToastProvider";
-import { formatTimestamp } from "@/lib";
 
 export function EmailTrackingSettings() {
   const { pushToast } = useToast();

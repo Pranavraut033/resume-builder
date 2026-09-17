@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
+
 import { exchangeCodeForTokens, getGoogleUserInfo } from "@/lib/email/gmailClient";
-import { prisma } from "@/lib/prisma";
 import { createLogger } from "@/lib/logger";
+import { prisma } from "@/lib/prisma";
 
 const logger = createLogger("GoogleOAuthCallback");
 

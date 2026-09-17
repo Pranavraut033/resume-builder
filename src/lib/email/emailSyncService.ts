@@ -1,11 +1,12 @@
-import { prisma } from "@/lib/prisma";
+import { classifyEmail } from "@/lib/llm/emailClassifier";
 import { createLogger } from "@/lib/logger";
+import { prisma } from "@/lib/prisma";
+
 import {
   fetchRecruitingEmails,
   getGoogleUserInfo,
   getValidAccessToken,
 } from "./gmailClient";
-import { classifyEmail } from "@/lib/llm/emailClassifier";
 import { matchEmailToJob } from "./jobMatcher";
 
 const logger = createLogger("EmailSyncService");

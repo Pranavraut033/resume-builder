@@ -50,7 +50,7 @@ describe("syncEmails", () => {
       email: "candidate@example.com",
       lastSyncedAt: new Date(Date.now() - 3600 * 1000),
       isActive: true,
-    } as any);
+    } as Awaited<ReturnType<typeof prisma.emailAccount.findFirst>>);
 
     vi.mocked(gmailClient.fetchRecruitingEmails).mockResolvedValue([
       {
@@ -73,8 +73,10 @@ describe("syncEmails", () => {
         companyId: 5,
         company: { id: 5, name: "Stripe" },
       },
-    ] as any);
-    vi.mocked(prisma.job.findUnique).mockResolvedValue({ status: "APPLIED" } as any);
+    ] as unknown as Awaited<ReturnType<typeof prisma.job.findMany>>);
+    vi.mocked(prisma.job.findUnique).mockResolvedValue({
+      status: "APPLIED",
+    } as Awaited<ReturnType<typeof prisma.job.findUnique>>);
 
     const result = await syncEmails();
 
