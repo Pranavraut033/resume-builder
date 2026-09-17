@@ -12,319 +12,312 @@ export interface ReleaseNoteEntry {
 
 export const RELEASE_NOTES: ReleaseNoteEntry[] = [
   {
-    version: "1.19.0",
-    date: "2026-09-10",
-    summary:
-      "Simpler sizing controls, bring-your-own endpoint, and a tidier bookmarks/dashboard.",
-    bullets: [
+    "version": "1.20.0",
+    "date": "2026-09-17",
+    "summary": "Email job tracking arrives — connect Gmail and let recruiting emails find their job automatically.",
+    "bullets": [
+      "**New: Email job tracking.** Connect a Gmail account read-only and Udaan classifies incoming recruiting emails and links them to the matching job for you. Most builds need no setup to connect — click and go; you can always swap in your own Google OAuth client from Settings instead.",
+      "**New: a \"What's New\" panel** shows what changed after each update, right in the app.",
+      "**Fixed: email tracking actually works now.** The first version of this feature ran its Gmail/OAuth pipeline in a place that could never succeed — connecting silently failed every time. It's fixed, along with stronger auth (PKCE + CSRF protection).",
+      "**Fixed: a garbled checkmark** on the \"you're connected\" page after signing in with Google.",
+      "**Fixed: the MCP server could get stuck** behind a leftover process from a previous crash on startup."
+    ]
+  },
+  {
+    "version": "1.19.0",
+    "date": "2026-09-10",
+    "summary": "Simpler sizing controls, bring-your-own endpoint, and a tidier bookmarks/dashboard.",
+    "bullets": [
       "**New: one Size control for your whole document.** Compact through Spacious replaces the separate margin and font-size pickers — pick one preset and font size, margins, line height, and spacing all move together.",
       "**New: connect any OpenAI-compatible provider.** Not using one of the built-in options? Point Settings at your own endpoint (self-hosted, NVIDIA NIM, a local proxy — anything OpenAI-compatible) with a Base URL field.",
       "**Profile page reorganized into collapsible sections**, with a heads-up if you try to navigate away with unsaved edits. Also added an optional headline field.",
       "**Bookmarks got a redesign:** a fit-detail panel right on each row, and a one-click cleanup for bookmarks you never followed up on (30/60/90 days).",
       "**Dashboard: hide jobs you're done with** without deleting them, plus quick filters for fit level and status.",
       "**Fixed: Ollama's model list no longer lies about being connected.** If Ollama isn't actually reachable, Settings now shows that honestly instead of a fake canned model list.",
-      "**Fixed:** `/job/new` no longer drops the job's fetched URL when you switch to the description tab.",
-    ],
+      "**Fixed:** `/job/new` no longer drops the job's fetched URL when you switch to the description tab."
+    ]
   },
   {
-    version: "1.18.0",
-    date: "2026-09-09",
-    summary:
-      "The auto-updater no longer strands you on an old version — plus a manual fallback if you'd rather install by hand.",
-    bullets: [
+    "version": "1.18.0",
+    "date": "2026-09-09",
+    "summary": "The auto-updater no longer strands you on an old version — plus a manual fallback if you'd rather install by hand.",
+    "bullets": [
       "**Fixed: updates could silently fail to finish installing**, leaving you on the old version with no error shown. The app now waits until the update is actually installed before offering to restart, instead of racing ahead the moment the download finished.",
-      "**New: a \"Download installer\" option** for when you'd rather install an update yourself, or auto-update doesn't work for you — grabs the right installer for your platform and opens it.",
-    ],
+      "**New: a \"Download installer\" option** for when you'd rather install an update yourself, or auto-update doesn't work for you — grabs the right installer for your platform and opens it."
+    ]
   },
   {
-    version: "1.17.0",
-    date: "2026-09-09",
-    summary:
-      "Fit Check goes to bookmarks, and creating a job no longer makes you wait.",
-    bullets: [
+    "version": "1.17.0",
+    "date": "2026-09-09",
+    "summary": "Fit Check goes to bookmarks, and creating a job no longer makes you wait.",
+    "bullets": [
       "**Check your fit before you even start tracking a job.** Bookmarked a listing? Run Fit Check straight from `/bookmarks` against your base profile — no resume required yet — and see the verdict as a badge on the row.",
-      '**Fit Check now remembers its result.** Reload the job page and your last Fit Check is still there instead of resetting to the start screen. Hit "Re-run" if you want a fresh one.',
-      "**Creating a job no longer locks you to a loading screen.** Submit a job description and you're back on the home page immediately — the notification bell tracks progress and takes you straight to the finished job when it's ready.",
-    ],
+      "**Fit Check now remembers its result.** Reload the job page and your last Fit Check is still there instead of resetting to the start screen. Hit \"Re-run\" if you want a fresh one.",
+      "**Creating a job no longer locks you to a loading screen.** Submit a job description and you're back on the home page immediately — the notification bell tracks progress and takes you straight to the finished job when it's ready."
+    ]
   },
   {
-    version: "1.16.0",
-    date: "2026-08-19",
-    summary:
-      "Three overlapping analysis passes become two that know what they're for: Fit Check decides, Deep Analysis edits.",
-    bullets: [
-      '**Fit Check tells you whether to bother applying.** Knockout risks, missing experience, seniority and domain gaps — the things no keyword scan catches. It has no "apply" button on purpose: none of those are closed by editing a line of your resume. It\'s now the first button in the action bar, ahead of Deep Analysis.',
+    "version": "1.16.0",
+    "date": "2026-08-19",
+    "summary": "Three overlapping analysis passes become two that know what they're for: Fit Check decides, Deep Analysis edits.",
+    "bullets": [
+      "**Fit Check tells you whether to bother applying.** Knockout risks, missing experience, seniority and domain gaps — the things no keyword scan catches. It has no \"apply\" button on purpose: none of those are closed by editing a line of your resume. It's now the first button in the action bar, ahead of Deep Analysis.",
       "**Deep Analysis replaces both proofreading and the old document scan.** Every finding points at an exact line of your resume with the exact text it wants to change, so you review and apply them one by one instead of reading a wall of generic advice.",
       "**New: lite/full analysis depth, per model.** Smaller local models get a shorter, more focused prompt; larger ones get the full document-wide pass. Same results format either way, so switching models never invalidates an analysis you already ran.",
-      '**Better proofreading checks:** brand-name casing (it\'s "GitHub", not "Github"), internal inconsistencies, duplicated skill entries, and US/UK spelling drift.',
+      "**Better proofreading checks:** brand-name casing (it's \"GitHub\", not \"Github\"), internal inconsistencies, duplicated skill entries, and US/UK spelling drift.",
       "**Settings rebuilt:** add and remove AI providers directly from the settings page, export the MCP connector bundle in one click, and a new open-source licenses page.",
-      '**Fixed: a stale analysis could break the entire job editor.** An analysis saved before this release would crash the page on load instead of just showing "re-run this".',
-      '**Fixed: the one-click "align resume terms" action could delete text.** When a suggestion applied to part of a bullet, it replaced the whole bullet. It now edits only the words it meant to.',
+      "**Fixed: a stale analysis could break the entire job editor.** An analysis saved before this release would crash the page on load instead of just showing \"re-run this\".",
+      "**Fixed: the one-click \"align resume terms\" action could delete text.** When a suggestion applied to part of a bullet, it replaced the whole bullet. It now edits only the words it meant to.",
       "**Fixed: the app no longer flashes the wrong theme on launch**, and switching your system between light and dark now takes effect immediately.",
       "**Fixed: several status colors failed accessible contrast in dark mode** — red, green, and rose text on the dark surface are now readable.",
-      "**Fixed: desktop restart** now waits for the previous background process to exit before starting the new one.",
-    ],
+      "**Fixed: desktop restart** now waits for the previous background process to exit before starting the new one."
+    ]
   },
   {
-    version: "1.15.0",
-    date: "2026-08-17",
-    summary:
-      "ATS analysis is now Recruiter Skim, and it stops pretending to score you — plus a new Fit Check.",
-    bullets: [
-      '**Recruiter Skim replaces the ATS analysis panel.** No more invented "match score" — no applicant tracking system shows one to anyone on the hiring team, so Udaan doesn\'t either. It now leads with what actually ends an application (work authorization, a license, a location), then keyword coverage and title alignment, each with a suggested rewrite.',
+    "version": "1.15.0",
+    "date": "2026-08-17",
+    "summary": "ATS analysis is now Recruiter Skim, and it stops pretending to score you — plus a new Fit Check.",
+    "bullets": [
+      "**Recruiter Skim replaces the ATS analysis panel.** No more invented \"match score\" — no applicant tracking system shows one to anyone on the hiring team, so Udaan doesn't either. It now leads with what actually ends an application (work authorization, a license, a location), then keyword coverage and title alignment, each with a suggested rewrite.",
       "**New: Fit Check.** A blunt, honest read on whether you're actually a fit for the role — missing experience, seniority, and domain gaps a keyword scan can't catch — separate from Recruiter Skim's document-level checks, and closing with your real strengths.",
-      '**Fixed:** the Documents page\'s score badge said "No analysis" under a column already relabeled "Skim"; it now says "Not run" consistently, and drops the "/ 100" framing since that column ranks jobs against each other, not grades them.',
-      "**Fixed:** a Recruiter Skim row in the chat view could be announced by a screen reader as a disabled button when it wasn't disabled at all, just non-clickable in that context.",
-    ],
+      "**Fixed:** the Documents page's score badge said \"No analysis\" under a column already relabeled \"Skim\"; it now says \"Not run\" consistently, and drops the \"/ 100\" framing since that column ranks jobs against each other, not grades them.",
+      "**Fixed:** a Recruiter Skim row in the chat view could be announced by a screen reader as a disabled button when it wasn't disabled at all, just non-clickable in that context."
+    ]
   },
   {
-    version: "1.14.0",
-    date: "2026-08-16",
-    summary:
-      "Three new European templates, and cover letters get their own look.",
-    bullets: [
+    "version": "1.14.0",
+    "date": "2026-08-16",
+    "summary": "Three new European templates, and cover letters get their own look.",
+    "bullets": [
       "**New templates: European Modern, Europass Classic, and French Elegant.** More options tuned for European-format resumes and CVs.",
       "**Cover letters no longer have to match your resume's template.** Pick a cover-letter design independently — mix and match however you like.",
-      "**Redesigned template picker.** Browse templates in a grid with background pattern previews and each template's accent color, instead of a plain list.",
-    ],
+      "**Redesigned template picker.** Browse templates in a grid with background pattern previews and each template's accent color, instead of a plain list."
+    ]
   },
   {
-    version: "1.13.2",
-    date: "2026-08-16",
-    summary:
-      "Mostly documentation and website accuracy, plus a debug-logging fix.",
-    bullets: [
+    "version": "1.13.2",
+    "date": "2026-08-16",
+    "summary": "Mostly documentation and website accuracy, plus a debug-logging fix.",
+    "bullets": [
       "**Landing page corrected and expanded.** The ATS section no longer implies a \"score\" — there isn't one, an ATS is a database, not a judge — and there's a new section on how Udaan follows German/EU CV conventions for jobs based there.",
       "**README and docs brought up to date.** The provider list, template count, and platform/download details now match what's actually shipped.",
-      "**Fixed: error logs in the installed app pointed at the wrong place.** `client.log` now shows the real call site instead of logger internals, making bug reports easier to diagnose.",
-    ],
+      "**Fixed: error logs in the installed app pointed at the wrong place.** `client.log` now shows the real call site instead of logger internals, making bug reports easier to diagnose."
+    ]
   },
   {
-    version: "1.13.1",
-    date: "2026-08-15",
-    summary: "Windows and Linux desktop builds are now available.",
-    bullets: [
+    "version": "1.13.1",
+    "date": "2026-08-15",
+    "summary": "Windows and Linux desktop builds are now available.",
+    "bullets": [
       "**New: Windows and Linux installers.** Udaan now ships `.exe` (Windows) and `.AppImage`/`.deb` (Linux) builds alongside macOS, both for the manual test build and every tagged release.",
       "**Fixed: release publishing now reliably updates the download page**, so the website picks up new releases right away instead of needing a manual trigger.",
-      "**Landing page polish:** corrected screenshot proportions, the official Apple logo on the download page, and updated footer copy now that all three platforms are supported.",
-    ],
+      "**Landing page polish:** corrected screenshot proportions, the official Apple logo on the download page, and updated footer copy now that all three platforms are supported."
+    ]
   },
   {
-    version: "1.13.0",
-    date: "2026-08-14",
-    summary: "Smarter macOS downloads, and an MCP fix.",
-    bullets: [
+    "version": "1.13.0",
+    "date": "2026-08-14",
+    "summary": "Smarter macOS downloads, and an MCP fix.",
+    "bullets": [
       "**macOS downloads are now arch-specific.** Instead of one universal dmg, you'll pick the Apple Silicon or Intel build on the download page — smaller to download and install.",
-      "**Fixed: MCP job URLs.** A job's URL could get dropped partway through `add_job` if your MCP host didn't re-send it on the final call; it's now carried through automatically.",
-    ],
+      "**Fixed: MCP job URLs.** A job's URL could get dropped partway through `add_job` if your MCP host didn't re-send it on the final call; it's now carried through automatically."
+    ]
   },
   {
-    version: "1.12.2",
-    date: "2026-08-14",
-    summary: "A small tuning pass on AI resume tailoring.",
-    bullets: [
-      "**Tighter skill grouping in tailored resumes.** The AI now keeps skill categories to a maximum of 5, each with at least 4 skills — smaller, fragmented categories get merged into the closest matching one instead of cluttering the resume.",
-    ],
+    "version": "1.12.2",
+    "date": "2026-08-14",
+    "summary": "A small tuning pass on AI resume tailoring.",
+    "bullets": [
+      "**Tighter skill grouping in tailored resumes.** The AI now keeps skill categories to a maximum of 5, each with at least 4 skills — smaller, fragmented categories get merged into the closest matching one instead of cluttering the resume."
+    ]
   },
   {
-    version: "1.12.1",
-    date: "2026-08-14",
-    summary:
-      "Cover letter polish: smarter dates and styles, more reliable PDF export.",
-    bullets: [
-      '**Cover letter dates and styles now adapt to the job\'s region.** German/EU applications get German-format dates and can auto-default to the formal "Anschreiben" style when the job ad itself is in German — no manual toggling needed, still fully overridable.',
+    "version": "1.12.1",
+    "date": "2026-08-14",
+    "summary": "Cover letter polish: smarter dates and styles, more reliable PDF export.",
+    "bullets": [
+      "**Cover letter dates and styles now adapt to the job's region.** German/EU applications get German-format dates and can auto-default to the formal \"Anschreiben\" style when the job ad itself is in German — no manual toggling needed, still fully overridable.",
       "**Generate and Humanize are now one shared toolbar** for both resumes and cover letters — Humanize was previously resume-only.",
       "**Fixed: PDF export reliability.** Full-bleed backgrounds and solid sidebar fills (Tech Sidebar, Euro Sidebar templates) now render correctly to the page edges, the Euro Sidebar template exports a matching cover letter instead of the wrong one, and a CSP issue that could block PDF export entirely on some setups is resolved.",
-      "**Fixed: switching between resume and cover letter** in the customization panel now shows the right saved settings for each, and resume-only controls no longer show up while editing a cover letter.",
-    ],
+      "**Fixed: switching between resume and cover letter** in the customization panel now shows the right saved settings for each, and resume-only controls no longer show up while editing a cover letter."
+    ]
   },
   {
-    version: "1.12.0",
-    date: "2026-08-12",
-    summary:
-      "More European CV fields, a friendlier font picker, and PDF/editor fixes.",
-    bullets: [
+    "version": "1.12.0",
+    "date": "2026-08-12",
+    "summary": "More European CV fields, a friendlier font picker, and PDF/editor fixes.",
+    "bullets": [
       "**New: Nationality and Date of Birth fields.** Two more optional fields for German/EU-style CVs, alongside the existing Work Authorization and photo — fill them in once on your profile and they show up on the resume header and in exports.",
       "**A better font picker.** Fonts now preview with a real specimen of themselves right in the dropdown, so you can see exactly what you're picking.",
-      '**Simpler theme customization.** Per-section color/heading overrides are gone in favor of one global "Heading Style" control that applies everywhere at once.',
+      "**Simpler theme customization.** Per-section color/heading overrides are gone in favor of one global \"Heading Style\" control that applies everywhere at once.",
       "**Fixed: PDF export now matches the on-screen editor more closely** — skill category labels, section descriptions, and sidebar heading borders that were missing or misaligned in exported PDFs are fixed.",
       "**Fixed: a brief layout glitch and white flash on desktop app launch/navigation.**",
-      "**Fixed: local Ollama connections were being blocked** by the app's security policy.",
-    ],
+      "**Fixed: local Ollama connections were being blocked** by the app's security policy."
+    ]
   },
   {
-    version: "1.11.2",
-    date: "2026-08-11",
-    summary: "A bug fix for MCP profile edits.",
-    bullets: [
-      '**Fixed: MCP profile edits no longer get rejected outright.** Every edit made through the `preview_profile_edit`/`apply_profile_edit` MCP tools (and the same underlying editor used by chat edits, proofread, humanizer, and tailoring) was being falsely rejected as "not part of the resume schema" due to an internal key-ordering bug — valid edits now apply correctly.',
-    ],
+    "version": "1.11.2",
+    "date": "2026-08-11",
+    "summary": "A bug fix for MCP profile edits.",
+    "bullets": [
+      "**Fixed: MCP profile edits no longer get rejected outright.** Every edit made through the `preview_profile_edit`/`apply_profile_edit` MCP tools (and the same underlying editor used by chat edits, proofread, humanizer, and tailoring) was being falsely rejected as \"not part of the resume schema\" due to an internal key-ordering bug — valid edits now apply correctly."
+    ]
   },
   {
-    version: "1.11.1",
-    date: "2026-08-11",
-    summary: "A dedicated field for work authorization status.",
-    bullets: [
-      '**State your work authorization once, use it everywhere.** A new "Work Authorization" field on your profile (e.g. "EU Blue Card", "Requires sponsorship") shows up on your resume header and in ATS knockout-risk analysis, so a job requiring EU work authorization no longer gets flagged as a silent gap once you\'ve filled it in.',
-    ],
+    "version": "1.11.1",
+    "date": "2026-08-11",
+    "summary": "A dedicated field for work authorization status.",
+    "bullets": [
+      "**State your work authorization once, use it everywhere.** A new \"Work Authorization\" field on your profile (e.g. \"EU Blue Card\", \"Requires sponsorship\") shows up on your resume header and in ATS knockout-risk analysis, so a job requiring EU work authorization no longer gets flagged as a silent gap once you've filled it in."
+    ]
   },
   {
-    version: "1.11.0",
-    date: "2026-08-11",
-    summary:
-      "A macOS autoupdate fix, a new European CV template, and German conventions on by default.",
-    bullets: [
+    "version": "1.11.0",
+    "date": "2026-08-11",
+    "summary": "A macOS autoupdate fix, a new European CV template, and German conventions on by default.",
+    "bullets": [
       "**Fixed: macOS autoupdate no longer breaks itself.** Previously, updating could leave the app \"damaged\" and force a manual reinstall — the app now clears the quarantine flag on its own bundle after every update, so autoupdate stays self-healing going forward. (If you're updating _from_ 1.10 or earlier, this one update still needs a manual reinstall — after that you're set.)",
       "**New: Euro Sidebar template.** A full-height solid sidebar with a banded name header, circular photo, and stacked skills/languages list — built for European/German-style CVs.",
       "**8 new color presets** for template customization: Crimson, Amber, Emerald, Cyan, Indigo, Fuchsia, Slate, and Brown.",
-      "**German/EU conventions are now the default** for resume, cover letter, and ATS guidance — format, reading order, telegraphic bullet style, gapless chronology, and degree-equivalence notes — reflecting that Germany is this app's primary market. An explicit instruction in the job ad still wins.",
-    ],
+      "**German/EU conventions are now the default** for resume, cover letter, and ATS guidance — format, reading order, telegraphic bullet style, gapless chronology, and degree-equivalence notes — reflecting that Germany is this app's primary market. An explicit instruction in the job ad still wins."
+    ]
   },
   {
-    version: "1.10.0",
-    date: "2026-08-10",
-    summary:
-      "MCP-connected chat clients can now read and edit your base profile.",
-    bullets: [
-      "**Edit your base profile from Claude Desktop (or any MCP-compatible chat client).** New `get_profile`, `preview_profile_edit`, and `apply_profile_edit` tools let a connected host update your profile — always previewing the change first and only saving once you confirm.",
-    ],
+    "version": "1.10.0",
+    "date": "2026-08-10",
+    "summary": "MCP-connected chat clients can now read and edit your base profile.",
+    "bullets": [
+      "**Edit your base profile from Claude Desktop (or any MCP-compatible chat client).** New `get_profile`, `preview_profile_edit`, and `apply_profile_edit` tools let a connected host update your profile — always previewing the change first and only saving once you confirm."
+    ]
   },
   {
-    version: "1.9.0",
-    date: "2026-08-09",
-    summary: "Bookmarks, gap analysis, and a notification center.",
-    bullets: [
+    "version": "1.9.0",
+    "date": "2026-08-09",
+    "summary": "Bookmarks, gap analysis, and a notification center.",
+    "bullets": [
       "**Save a job for later.** Paste a job URL on the new Bookmarks page to save it without generating a resume yet — it parses in the background so pasting several at once doesn't block you. MCP users get the same flow via `submit`'s new bookmark mode.",
       "**See exactly where your resume falls short.** A new gap-analysis flow compares your resume against a job description, available in chat and as an MCP tool.",
       "**Never miss a background update.** A new notification bell in the sidebar keeps a running, unread-counted history alongside the existing toasts.",
       "**Chat double-checks before a full rewrite.** Tailoring or regenerating your whole resume now asks for confirmation first instead of applying immediately.",
-      "**Fixed:** the job page now stays in sync after a resume or cover letter is written from outside the open page.",
-    ],
+      "**Fixed:** the job page now stays in sync after a resume or cover letter is written from outside the open page."
+    ]
   },
   {
-    version: "1.8.0",
-    date: "2026-08-07",
-    summary:
-      "Resume Builder is now **Udaan** — plus finer control over AI output and template layout.",
-    bullets: [
-      '**New name, new logo.** Resume Builder is now Udaan (उड़ान — "flight, takeoff"), with a refreshed sidebar logo.',
+    "version": "1.8.0",
+    "date": "2026-08-07",
+    "summary": "Resume Builder is now **Udaan** — plus finer control over AI output and template layout.",
+    "bullets": [
+      "**New name, new logo.** Resume Builder is now Udaan (उड़ान — \"flight, takeoff\"), with a refreshed sidebar logo.",
       "**Dial in your AI model's behavior.** The model picker now has per-model temperature and top-p controls, alongside reasoning effort.",
       "**Two new skills layouts.** A two-column grid and a borderless label/value columns style join the existing inline, chips, list, and table options.",
       "**Resumes and cover letters now fit the page automatically** instead of overflowing.",
       "**Retry a rejected AI edit** right from chat or the humanizer, instead of it failing silently.",
       "**MCP users:** a new `fetch_url` tool lets your connected chat client pull a job posting's text when the host's own fetch is blocked (e.g. LinkedIn).",
-      "**Fixed:** multi-column template layouts, PDF section borders and pagination, ATS panel contrast, and a couple of rendering/hydration edge cases.",
-    ],
+      "**Fixed:** multi-column template layouts, PDF section borders and pagination, ATS panel contrast, and a couple of rendering/hydration edge cases."
+    ]
   },
   {
-    version: "1.7.0",
-    date: "2026-07-31",
-    summary:
-      "Connect your own AI chat client to your resumes, and steadier AI editing under the hood.",
-    bullets: [
+    "version": "1.7.0",
+    "date": "2026-07-31",
+    "summary": "Connect your own AI chat client to your resumes, and steadier AI editing under the hood.",
+    "bullets": [
       "**Drive your resumes from Claude Desktop (or any MCP-compatible chat client).** A new optional MCP server exposes job parsing, tailoring, ATS analysis, cover letter generation, editing, proofreading, and humanizing as tools — using your own chat subscription instead of a configured API key. Off by default; turn it on in Settings.",
       "**More reliable AI edits.** Every AI-driven edit — tailoring, proofreading, chat edits, humanizing — now goes through the same underlying editor, so a single bad edit no longer risks the rest of the batch.",
-      "**Fixed:** chat-rewritten resume bullets are now checked against the right original bullet before being applied.",
-    ],
+      "**Fixed:** chat-rewritten resume bullets are now checked against the right original bullet before being applied."
+    ]
   },
   {
-    version: "1.6.0",
-    date: "2026-07-28",
-    summary:
-      "More accurate, more trustworthy AI output: proofreading, stricter fidelity to your real experience, and a rendering bug fix.",
-    bullets: [
+    "version": "1.6.0",
+    "date": "2026-07-28",
+    "summary": "More accurate, more trustworthy AI output: proofreading, stricter fidelity to your real experience, and a rendering bug fix.",
+    "bullets": [
       "**Proofread your resume before you export it.** A new proofread pass checks for errors, inconsistencies, and unquantified claims, auto-fixing the mechanical issues and surfacing the rest in a review drawer so you decide what to apply.",
       "**AI tailoring sticks closer to your real experience.** Dates, names, and metrics are never altered, your original job order is preserved, and stale or irrelevant experience, projects, certifications, and education get pruned automatically.",
       "**Broader fact-checking.** The hallucination check now also verifies projects, certifications, and education against your base profile, not just your summary and experience — and it runs by default.",
-      "**Fixed:** a tailored or parsed resume could silently hide entire sections; section layout is now preserved correctly.",
-    ],
+      "**Fixed:** a tailored or parsed resume could silently hide entire sections; section layout is now preserved correctly."
+    ]
   },
   {
-    version: "1.5.0",
-    date: "2026-07-27",
-    summary: "A chat upgrade and an update-notice fix.",
-    bullets: [
-      '**Fix every ATS issue in one click.** Chat now offers a "Fix all ATS issues" action that resolves every open recommendation in a single turn.',
-      "**Fixed:** the keychain access notice now reappears after each app update, instead of only showing once on first install.",
-    ],
+    "version": "1.5.0",
+    "date": "2026-07-27",
+    "summary": "A chat upgrade and an update-notice fix.",
+    "bullets": [
+      "**Fix every ATS issue in one click.** Chat now offers a \"Fix all ATS issues\" action that resolves every open recommendation in a single turn.",
+      "**Fixed:** the keychain access notice now reappears after each app update, instead of only showing once on first install."
+    ]
   },
   {
-    version: "1.4.1",
-    date: "2026-07-27",
-    summary: "A small polish release, mostly editor and chat fixes.",
-    bullets: [
+    "version": "1.4.1",
+    "date": "2026-07-27",
+    "summary": "A small polish release, mostly editor and chat fixes.",
+    "bullets": [
       "**Fixed:** chat now stays anchored to the latest message instead of drifting while it scrolls.",
       "**Fixed:** dates display consistently no matter your system's language/locale settings.",
       "**Fixed:** a scrollbar-related layout jitter in the inline editor canvas.",
-      "**Fixed:** a data-integrity check on saved ATS scores, and a dev-mode connection bug on desktop.",
-    ],
+      "**Fixed:** a data-integrity check on saved ATS scores, and a dev-mode connection bug on desktop."
+    ]
   },
   {
-    version: "1.4.0",
-    date: "2026-07-27",
-    summary:
-      "A smarter chat assistant, and a fix that keeps existing installs from breaking on update.",
-    bullets: [
+    "version": "1.4.0",
+    "date": "2026-07-27",
+    "summary": "A smarter chat assistant, and a fix that keeps existing installs from breaking on update.",
+    "bullets": [
       "**Ask chat to regenerate your cover letter, humanize text, or undo a change** — no more hopping to a separate button for those.",
       "**See what chat is doing in real time.** A status line now shows whether it's classifying your request, editing, regenerating, or checking ATS — plus token usage for every turn.",
       "**Copy or retry any chat message**, and a failed message can now be retried without retyping it.",
-      "**Fixed:** installed apps now automatically bring their local database up to date on launch, so people who update no longer risk hitting broken screens from a previous release's data-model changes.",
-    ],
+      "**Fixed:** installed apps now automatically bring their local database up to date on launch, so people who update no longer risk hitting broken screens from a previous release's data-model changes."
+    ]
   },
   {
-    version: "1.3.1",
-    date: "2026-07-26",
-    summary: "A small fix release for auto-updates.",
-    bullets: [
+    "version": "1.3.1",
+    "date": "2026-07-26",
+    "summary": "A small fix release for auto-updates.",
+    "bullets": [
       "**Fixed:** in-app auto-update downloads were failing outright due to a URL mismatch in the update manifest — updates now install correctly.",
-      '**Fixed:** the "Check for Updates" button in Settings now actually works.',
-    ],
+      "**Fixed:** the \"Check for Updates\" button in Settings now actually works."
+    ]
   },
   {
-    version: "1.3.0",
-    date: "2026-07-26",
-    summary:
-      "A release focused on EU/German-style resumes and sharper ATS feedback.",
-    bullets: [
+    "version": "1.3.0",
+    "date": "2026-07-26",
+    "summary": "A release focused on EU/German-style resumes and sharper ATS feedback.",
+    "bullets": [
       "**Build EU/German-style resumes.** Add a profile photo and a hobbies/interests section, styled to match your template, plus new Anschreiben cover-letter style and DE/EU-specific writing guidance.",
       "**See knockout risks before you apply.** ATS analysis now flags knockout-risk issues and title misalignment against the job posting, with coaching on how to rewrite around them.",
       "**Fixed:** background patterns in the customization drawer and PDF export now render correctly (true page proportions in the picker, no more clipping on two-column templates).",
-      '**Fixed:** "Fit" zoom now accounts for page height, and publications, volunteer, and awards sections are fully editable, including publication links.',
-    ],
+      "**Fixed:** \"Fit\" zoom now accounts for page height, and publications, volunteer, and awards sections are fully editable, including publication links."
+    ]
   },
   {
-    version: "1.2.0",
-    date: "2026-07-21",
-    summary:
-      "A security-hardening and workflow release: locked-down content security policy, safer API-key storage, and a more flexible tailoring flow.",
-    bullets: [
+    "version": "1.2.0",
+    "date": "2026-07-21",
+    "summary": "A security-hardening and workflow release: locked-down content security policy, safer API-key storage, and a more flexible tailoring flow.",
+    "bullets": [
       "**Skip AI tailoring when you just want your base profile.** A new option copies your base profile straight into a resume, with ATS scoring still available on that path.",
       "**Cover letters can now match a tone and style.** Pick from cover-letter style presets, and the resume tailoring pipeline now verifies its own output.",
       "**Skills can be grouped and prioritized.** Organize skills into categories (e.g. Languages, Frameworks) and mark the ones you want emphasized.",
       "**Back up and restore your data.** A new Settings section exports and re-imports your full app data as a portable file.",
       "**Humanizer moved into a sidebar drawer** for a cleaner editing flow, and AI chat edits now save immediately with clearer error messages when a provider call fails.",
       "**Security:** content security policy is now enforced at the server and per-request, rendered HTML is sanitized, link schemes are restricted, and API-key encryption now derives from your OS keychain rather than a weaker in-app scheme.",
-      "**Fixed:** the bundled desktop app now runs its own server on a separate port from `npm run dev`, so the two no longer collide.",
-    ],
+      "**Fixed:** the bundled desktop app now runs its own server on a separate port from `npm run dev`, so the two no longer collide."
+    ]
   },
   {
-    version: "1.1.0",
-    date: "2026-07-16",
-    summary:
-      "A polish release: more template flexibility, a smoother generation experience, and a couple of settings/chat fixes.",
-    bullets: [
+    "version": "1.1.0",
+    "date": "2026-07-16",
+    "summary": "A polish release: more template flexibility, a smoother generation experience, and a couple of settings/chat fixes.",
+    "bullets": [
       "**More control over resume layout.** New header and entry-style variants, plus configurable date formatting, give templates more flexibility.",
       "**Clearer generation progress.** AI-generation buttons now show an animated progress fill while a resume or cover letter is being drafted.",
       "**Fixed:** the Ollama model picker in Settings now actually saves your selection.",
-      "**Fixed:** chat messages render correctly instead of producing invalid markup.",
-    ],
+      "**Fixed:** chat messages render correctly instead of producing invalid markup."
+    ]
   },
   {
-    version: "1.0.0",
-    date: "2026-07-13",
-    summary:
-      "The first release of Udaan: a local-first desktop app that turns a job description into a tailored resume and cover letter, then lets you polish the result right on the page.",
-    bullets: [
+    "version": "1.0.0",
+    "date": "2026-07-13",
+    "summary": "The first release of Udaan: a local-first desktop app that turns a job description into a tailored resume and cover letter, then lets you polish the result right on the page.",
+    "bullets": [
       "**Paste a job description, get a tailored resume and cover letter.** AI drafts both from your base profile and the job posting — bring your own API key, or use the managed, prepaid-credit option if you don't have one.",
       "**Edit right on the document.** Bullets, links, and language proficiency fields can all be edited inline, directly on the rendered resume or cover letter — no separate form to hop between.",
       "**See exactly where your experience falls short.** The ATS panel scores your resume against the job and shows skill-by-skill gaps between what's asked for and what you have.",
@@ -332,7 +325,7 @@ export const RELEASE_NOTES: ReleaseNoteEntry[] = [
       "**Never lose an old draft.** The Documents page keeps full version history for every resume and cover letter you generate.",
       "**Faster job description capture.** Pasting in a job URL pulls the description straight from the in-app browser, with a step-by-step progress indicator while your materials are generated.",
       "**Nine resume templates** — including Compact, Two-Tone, and Academic — plus customizable page backgrounds (dots, waves, mesh, and more) and multi-profile support.",
-      "Small polish: step progress no longer sticks between editor steps, and custom section IDs no longer risk colliding.",
-    ],
-  },
+      "Small polish: step progress no longer sticks between editor steps, and custom section IDs no longer risk colliding."
+    ]
+  }
 ];
