@@ -56,20 +56,30 @@ export function JobEmailsModal({
       size="lg"
       cancelLabel="Close"
     >
-      <div className="space-y-4 text-left max-h-[70vh] overflow-y-auto pr-1">
+      <div className="max-h-[70vh] space-y-4 overflow-y-auto pr-1 text-left">
         {isLoading && (
-          <div className="flex items-center justify-center py-12 text-sm text-neutral-400 gap-2">
-            <Icon name="spinner" className="h-4 w-4 animate-spin text-agent-primary" />
+          <div className="flex items-center justify-center gap-2 py-12 text-sm text-neutral-400">
+            <Icon
+              name="spinner"
+              className="text-agent-primary h-4 w-4 animate-spin"
+            />
             Loading email activity…
           </div>
         )}
 
         {!isLoading && emails.length === 0 && (
-          <div className="text-center py-12 px-4 rounded-xl border border-dashed border-agent-outline-variant bg-agent-surface-lowest">
-            <Icon name="mail" className="h-8 w-8 mx-auto text-neutral-400 mb-2" />
-            <p className="text-sm font-medium text-neutral-200">No emails linked yet</p>
-            <p className="text-xs text-neutral-400 mt-1 max-w-sm mx-auto">
-              Incoming recruiting emails matching {companyName || "this company"} will appear here automatically when email sync runs.
+          <div className="border-agent-outline-variant bg-agent-surface-lowest rounded-xl border border-dashed px-4 py-12 text-center">
+            <Icon
+              name="mail"
+              className="mx-auto mb-2 h-8 w-8 text-neutral-400"
+            />
+            <p className="text-sm font-medium text-neutral-200">
+              No emails linked yet
+            </p>
+            <p className="mx-auto mt-1 max-w-sm text-xs text-neutral-400">
+              Incoming recruiting emails matching{" "}
+              {companyName || "this company"} will appear here automatically
+              when email sync runs.
             </p>
           </div>
         )}
@@ -81,17 +91,17 @@ export function JobEmailsModal({
               return (
                 <div
                   key={email.id}
-                  className="rounded-xl border border-agent-outline-variant bg-agent-surface-lowest p-4 transition-all hover:border-agent-outline"
+                  className="border-agent-outline-variant bg-agent-surface-lowest hover:border-agent-outline rounded-xl border p-4 transition-all"
                 >
                   <div className="flex items-start justify-between gap-3">
-                    <div className="space-y-1 min-w-0">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className="text-xs font-semibold text-neutral-200 truncate">
+                    <div className="min-w-0 space-y-1">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="truncate text-xs font-semibold text-neutral-200">
                           {email.sender}
                         </span>
                         {email.stage && (
                           <span
-                            className={`px-2 py-0.5 text-[11px] font-medium rounded-full border ${getStageBadgeColor(
+                            className={`rounded-full border px-2 py-0.5 text-[11px] font-medium ${getStageBadgeColor(
                               email.stage
                             )}`}
                           >
@@ -99,7 +109,7 @@ export function JobEmailsModal({
                           </span>
                         )}
                         {email.actionRequired && (
-                          <span className="px-2 py-0.5 text-[11px] font-medium rounded-full border bg-amber-500/20 text-amber-300 border-amber-500/40">
+                          <span className="rounded-full border border-amber-500/40 bg-amber-500/20 px-2 py-0.5 text-[11px] font-medium text-amber-300">
                             Action Needed
                           </span>
                         )}
@@ -108,30 +118,32 @@ export function JobEmailsModal({
                         {email.subject}
                       </h4>
                     </div>
-                    <span className="text-[11px] text-neutral-400 whitespace-nowrap">
+                    <span className="text-[11px] whitespace-nowrap text-neutral-400">
                       {formatTimestamp(email.receivedAt)}
                     </span>
                   </div>
 
                   {email.nextSteps && (
-                    <div className="mt-2.5 rounded-lg bg-agent-surface-container/60 border border-agent-outline-variant p-2.5 text-xs text-neutral-300">
-                      <strong className="text-neutral-100 font-semibold">Next Steps: </strong>
+                    <div className="bg-agent-surface-container/60 border-agent-outline-variant mt-2.5 rounded-lg border p-2.5 text-xs text-neutral-300">
+                      <strong className="font-semibold text-neutral-100">
+                        Next Steps:{" "}
+                      </strong>
                       {email.nextSteps}
                     </div>
                   )}
 
-                  <div className="mt-2 text-xs text-neutral-400 line-clamp-2">
+                  <div className="mt-2 line-clamp-2 text-xs text-neutral-400">
                     {email.snippet}
                   </div>
 
                   {email.bodyText && (
-                    <div className="mt-3 pt-2 border-t border-agent-outline-variant">
+                    <div className="border-agent-outline-variant mt-3 border-t pt-2">
                       <button
                         type="button"
                         onClick={() =>
                           setExpandedEmailId(isExpanded ? null : email.id)
                         }
-                        className="text-xs text-agent-primary hover:underline flex items-center gap-1"
+                        className="text-agent-primary flex items-center gap-1 text-xs hover:underline"
                       >
                         {isExpanded ? "Hide Full Message" : "View Full Message"}
                         <Icon
@@ -141,7 +153,7 @@ export function JobEmailsModal({
                       </button>
 
                       {isExpanded && (
-                        <pre className="mt-2 text-xs text-neutral-300 whitespace-pre-wrap font-sans bg-black/30 p-3 rounded-lg max-h-60 overflow-y-auto border border-agent-outline-variant">
+                        <pre className="border-agent-outline-variant mt-2 max-h-60 overflow-y-auto rounded-lg border bg-black/30 p-3 font-sans text-xs whitespace-pre-wrap text-neutral-300">
                           {email.bodyText}
                         </pre>
                       )}

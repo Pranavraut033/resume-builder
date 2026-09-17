@@ -247,10 +247,10 @@ export function EmailTrackingSettings() {
             ) : (
               <>
                 Required before connecting Gmail — there is no bundled client
-                ID. Create one in Google Cloud Console (Gmail API, OAuth
-                consent screen in Testing mode with yourself as a test user,
-                Web application credentials with the redirect URI below) and
-                paste it here.{" "}
+                ID. Create one in Google Cloud Console (Gmail API, OAuth consent
+                screen in Testing mode with yourself as a test user, Web
+                application credentials with the redirect URI below) and paste
+                it here.{" "}
                 <a
                   href={DOCS_URL}
                   target="_blank"

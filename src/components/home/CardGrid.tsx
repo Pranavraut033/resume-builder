@@ -111,7 +111,7 @@ export default function CardGrid({
                 <div className="relative">
                   <Icon name="mail" size={18} />
                   {(job.emails?.length ?? 0) > 0 && (
-                    <span className="absolute -top-1.5 -right-1.5 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-agent-primary text-[9px] font-bold text-black">
+                    <span className="bg-agent-primary absolute -top-1.5 -right-1.5 flex h-3.5 w-3.5 items-center justify-center rounded-full text-[9px] font-bold text-black">
                       {job.emails?.length}
                     </span>
                   )}

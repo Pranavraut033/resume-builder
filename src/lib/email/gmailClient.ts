@@ -124,7 +124,8 @@ export async function getActiveClientId(): Promise<string | null> {
 export async function getActiveClientSecret(): Promise<string | null> {
   const customId = await getApiKey(KEY_GOOGLE_CUSTOM_CLIENT_ID);
   const customSecret = await getApiKey(KEY_GOOGLE_CUSTOM_CLIENT_SECRET);
-  if (customSecret && customSecret.trim().length > 0) return customSecret.trim();
+  if (customSecret && customSecret.trim().length > 0)
+    return customSecret.trim();
   const hasCustomId = Boolean(customId && customId.trim().length > 0);
   return hasCustomId ? null : DEFAULT_GOOGLE_CLIENT_SECRET;
 }
