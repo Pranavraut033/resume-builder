@@ -83,7 +83,8 @@ model Company {
   locationCountry       String? @map("location_country")
   officeLocationDetails String? @map("office_location_details")
 
-  jobs Job[]
+  jobs   Job[]
+  emails JobEmail[]
 
   @@map("companies")
 }
@@ -131,6 +132,8 @@ model Job {
   // Profile this job was created from
   profileId Int?     @map("profile_id")
   profile   Profile? @relation(fields: [profileId], references: [id])
+
+  emails JobEmail[]
 
   @@map("jobs")
 }
@@ -272,3 +275,48 @@ model FitCheck {
   jobs   Job?
   resume Resume?
 }
+
+model EmailAccount {
+  id           Int       @id @default(autoincrement())
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @default(now()) @map("updated_at")
+  provider     String    @default("GMAIL")
+  email        String    @unique
+  accessToken  String?   @map("access_token")
+  refreshToken String?   @map("refresh_token")
+  tokenExpiry  DateTime? @map("token_expiry")
+  lastSyncedAt DateTime? @map("last_synced_at")
+  historyId    String?   @map("history_id")
+  isActive     Boolean   @default(true) @map("is_active")
+
+  @@map("email_accounts")
+}
+
+model JobEmail {
+  id             Int       @id @default(autoincrement())
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @default(now()) @map("updated_at")
+  messageId      String    @unique @map("message_id")
+  threadId       String?   @map("thread_id")
+  sender         String
+  recipient      String?
+  subject        String
+  snippet        String
+  bodyText       String?   @map("body_text")
+  receivedAt     DateTime  @map("received_at")
+  stage          String?   // APPLIED, ASSESSMENT, INTERVIEW, OFFER, REJECTED, INFO
+  confidence     Float?
+  nextSteps      String?   @map("next_steps")
+  actionRequired Boolean   @default(false) @map("action_required")
+
+  jobId          Int?      @map("job_id")
+  job            Job?      @relation(fields: [jobId], references: [id], onDelete: SetNull)
+  companyId      Int?      @map("company_id")
+  company        Company?  @relation(fields: [companyId], references: [id], onDelete: SetNull)
+
+  @@index([jobId])
+  @@index([companyId])
+  @@index([receivedAt])
+  @@map("job_emails")
+}
+

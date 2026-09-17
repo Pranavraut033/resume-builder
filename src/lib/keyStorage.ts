@@ -16,8 +16,7 @@ import {
 } from "@tauri-apps/plugin-fs";
 
 import { createLogger } from "@/lib/logger";
-
-import packageJson from "../../package.json";
+import { hasSeenForVersion, markSeenForVersion } from "@/lib/versionFlag";
 
 const logger = createLogger("KeyStorage");
 
@@ -41,14 +40,13 @@ export function setKeychainConsentHandler(
 }
 
 async function ensureKeychainConsent(): Promise<void> {
-  const version = packageJson.version;
-  if (localStorage.getItem(KEYCHAIN_NOTICE_SEEN_VERSION_KEY) === version) {
+  if (hasSeenForVersion(KEYCHAIN_NOTICE_SEEN_VERSION_KEY)) {
     return;
   }
   if (consentHandler) {
     await consentHandler();
   }
-  localStorage.setItem(KEYCHAIN_NOTICE_SEEN_VERSION_KEY, version);
+  markSeenForVersion(KEYCHAIN_NOTICE_SEEN_VERSION_KEY);
 }
 
 // Encryption configuration

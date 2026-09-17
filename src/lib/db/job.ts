@@ -215,6 +215,7 @@ export type JobRecord = Job & {
   status: JobStatus;
   fitCheck: { contentJson: string } | null;
   resume: { fitCheck: { contentJson: string } | null } | null;
+  emails?: { id: number; stage: string | null; actionRequired: boolean }[];
 };
 
 export async function getAllJob(
@@ -228,10 +229,11 @@ export async function getAllJob(
       contact: true,
       fitCheck: true,
       resume: { select: { fitCheck: { select: { contentJson: true } } } },
+      emails: { select: { id: true, stage: true, actionRequired: true } },
     },
   });
 
-  return jobList as JobRecord[];
+  return jobList as unknown as JobRecord[];
 }
 
 /**

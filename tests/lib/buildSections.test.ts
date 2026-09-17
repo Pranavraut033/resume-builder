@@ -61,6 +61,7 @@ describe("buildSections", () => {
         order: ["summary", "skills"],
         hidden: ["skills"],
         custom: [],
+        columns: {},
       },
     };
     const sections = buildSections(resume, CONFIG);
@@ -81,12 +82,88 @@ describe("buildSections", () => {
             items: ["A paper"],
           },
         ],
+        columns: {},
       },
     };
     const sections = buildSections(resume, CONFIG);
     expect(sections.map((s) => s.id)).toEqual(["custom-1", "summary"]);
     expect(sections[0].title).toBe("Publications List");
     expect(sections[0].type).toBe("custom");
+  });
+
+  describe("column overrides", () => {
+    const TWO_COL_CONFIG: TemplateConfig = {
+      columns: 2,
+      heading: "underline",
+      sectionColumn: {
+        skills: 0,
+        education: 0,
+        experience: 1,
+        summary: 1,
+        custom: 1,
+      },
+    };
+
+    it("moves a movable section from side to main via override", () => {
+      const resume: ResumeJSON = {
+        ...baseResume,
+        sectionLayout: {
+          order: ["skills", "experience"],
+          hidden: [],
+          custom: [],
+          columns: { skills: 1 },
+        },
+      };
+      const sections = buildSections(resume, TWO_COL_CONFIG);
+      expect(sections.find((s) => s.id === "skills")?.column).toBe(1);
+      expect(sections.find((s) => s.id === "experience")?.column).toBe(1);
+    });
+
+    it("ignores an override on a main-column-locked section", () => {
+      const resume: ResumeJSON = {
+        ...baseResume,
+        sectionLayout: {
+          order: ["experience"],
+          hidden: [],
+          custom: [],
+          columns: { experience: 0 },
+        },
+      };
+      const sections = buildSections(resume, TWO_COL_CONFIG);
+      expect(sections.find((s) => s.id === "experience")?.column).toBe(1);
+    });
+
+    it("ignores all column overrides when the template is 1-column", () => {
+      const resume: ResumeJSON = {
+        ...baseResume,
+        sectionLayout: {
+          order: ["skills"],
+          hidden: [],
+          custom: [],
+          columns: { skills: 1 },
+        },
+      };
+      const sections = buildSections(resume, CONFIG);
+      expect(sections.find((s) => s.id === "skills")?.column).toBe(0);
+    });
+
+    it("places different custom sections in different columns independently", () => {
+      const resume: ResumeJSON = {
+        ...baseResume,
+        sectionLayout: {
+          order: ["custom-a", "custom-b"],
+          hidden: [],
+          custom: [
+            { id: "custom-a", title: "A", type: "bullets", items: [] },
+            { id: "custom-b", title: "B", type: "bullets", items: [] },
+          ],
+          columns: { "custom-a": 0, "custom-b": 1 },
+        },
+      };
+      const sections = buildSections(resume, TWO_COL_CONFIG);
+      expect(sections.find((s) => s.id === "custom-a")?.column).toBe(0);
+      expect(sections.find((s) => s.id === "custom-b")?.column).toBe(1);
+    });
   });
 });
 

@@ -7,6 +7,7 @@ export { Button } from "./Button";
 export { Card } from "./Card";
 export { FormField } from "./FormField";
 export { Icon } from "./Icon";
+export { MarkdownBlock } from "./MarkdownBlock";
 export { Modal } from "./Modal";
 export { PageHeader } from "./PageHeader";
 export { ProgressFill } from "./ProgressFill";

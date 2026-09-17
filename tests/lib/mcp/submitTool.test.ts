@@ -463,7 +463,12 @@ describe("submitTool — validation and guards", () => {
       }),
       getProfileById: vi.fn().mockResolvedValue({
         ...makeResume({
-          sectionLayout: { order: ["header"], hidden: [], custom: [] },
+          sectionLayout: {
+            order: ["header"],
+            hidden: [],
+            custom: [],
+            columns: {},
+          },
         }),
         label: "Jamie",
       }),

@@ -19,6 +19,19 @@ use crate::wait_for_local_server;
 /// server).
 const MCP_SERVER_PORT: u16 = 39217;
 
+/// How long to wait for a freshly-spawned MCP server to accept connections.
+/// Generous because the first launch after an app update spawns a
+/// freshly-extracted, previously-unscanned bundled Node binary — macOS
+/// Gatekeeper can scan it before it's allowed to run, on top of the normal
+/// ~1s Node startup, same class of slowness `spawn_bundled_next_server`
+/// budgets tens of seconds for.
+const MCP_SERVER_START_TIMEOUT: Duration = Duration::from_secs(20);
+
+/// How long to probe the port before spawning, to detect something else
+/// already listening there (e.g. an MCP child from a previous instance that
+/// didn't get cleaned up by `RunEvent::Exit` — see `mcp_server_start`).
+const MCP_SERVER_PORT_PROBE: Duration = Duration::from_millis(300);
+
 /// Separate from `NextServerState` — this process is independently
 /// started/stopped by the user via the Settings toggle, never auto-started.
 pub struct McpServerState(pub Mutex<Option<Child>>);
@@ -119,7 +132,9 @@ fn spawn_mcp_server(
         // Release: the exact same file spawn_bundled_next_server points the
         // Next server at, so MCP-made changes show up in the app immediately.
         let database_url = format!("file:{}", app_data_dir.join("app.db").display());
-        command.current_dir(&mcp_dir).env("DATABASE_URL", &database_url);
+        command
+            .current_dir(&mcp_dir)
+            .env("DATABASE_URL", &database_url);
     }
 
     command.spawn().map_err(|e| {
@@ -147,6 +162,21 @@ pub fn mcp_server_start(app: tauri::AppHandle) -> Result<u16, String> {
         *guard = None;
     }
 
+    // We hold no child for this port (checked above), so anything already
+    // listening on it is a stranger — most plausibly an MCP child from a
+    // previous instance that `RunEvent::Exit` failed to clean up (e.g. a
+    // hard process replace during self-update). Fail loudly instead of
+    // spawning a second process that will lose the port race and silently
+    // die, which is what let this go unnoticed before: the readiness probe
+    // below would pass against the stranger while our own child had already
+    // exited, and the caller would report success for a server that wasn't
+    // actually running.
+    if wait_for_local_server("127.0.0.1", MCP_SERVER_PORT, MCP_SERVER_PORT_PROBE) {
+        return Err(format!(
+            "Port {MCP_SERVER_PORT} is already in use by another process. Quit any other Udaan window and try again."
+        ));
+    }
+
     let resource_dir = app.path().resource_dir().map_err(|e| e.to_string())?;
     let app_data_dir = app.path().app_data_dir().map_err(|e| e.to_string())?;
     fs::create_dir_all(&app_data_dir).map_err(|e| e.to_string())?;
@@ -156,10 +186,20 @@ pub fn mcp_server_start(app: tauri::AppHandle) -> Result<u16, String> {
 
     let mut child = spawn_mcp_server(resource_dir, &app_data_dir, &log_path)?;
 
-    if !wait_for_local_server("127.0.0.1", MCP_SERVER_PORT, Duration::from_secs(15)) {
+    if !wait_for_local_server("127.0.0.1", MCP_SERVER_PORT, MCP_SERVER_START_TIMEOUT) {
         let _ = child.kill();
         return Err(format!(
             "Timed out waiting for the MCP server on 127.0.0.1:{MCP_SERVER_PORT}. Check {} for details.",
+            log_path.display()
+        ));
+    }
+
+    // The readiness probe only proves *something* answers on the port — verify
+    // it's still our own child before trusting it, in case it bound the port
+    // and then immediately crashed.
+    if !matches!(child.try_wait(), Ok(None)) {
+        return Err(format!(
+            "The MCP server process exited immediately after starting. Check {} for details.",
             log_path.display()
         ));
     }

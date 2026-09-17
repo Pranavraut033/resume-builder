@@ -18,9 +18,11 @@ export default function CardGrid({
   statusLoadingId,
   deleteLoadingId,
   hideLoadingId,
+  onOpenEmails,
 }: {
   jobs: JobRecord[];
   onPeek: (job: JobRecord) => void;
+  onOpenEmails?: (job: JobRecord) => void;
   onStatusChange: (jobId: number, status: JobStatus) => Promise<void> | void;
   onDelete: (jobId: number) => Promise<void> | void;
   onToggleHidden: (jobId: number) => Promise<void> | void;
@@ -101,6 +103,21 @@ export default function CardGrid({
             className="mt-4 flex flex-wrap items-center gap-2"
             onClick={(event) => event.stopPropagation()}
           >
+            {onOpenEmails && (
+              <IconButton
+                label={`Emails (${job.emails?.length ?? 0})`}
+                onClick={() => onOpenEmails(job)}
+              >
+                <div className="relative">
+                  <Icon name="mail" size={18} />
+                  {(job.emails?.length ?? 0) > 0 && (
+                    <span className="absolute -top-1.5 -right-1.5 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-agent-primary text-[9px] font-bold text-black">
+                      {job.emails?.length}
+                    </span>
+                  )}
+                </div>
+              </IconButton>
+            )}
             <IconButton label="Peek job" onClick={() => onPeek(job)}>
               <Icon name="eye" size={18} />
             </IconButton>

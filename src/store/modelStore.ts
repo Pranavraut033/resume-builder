@@ -57,6 +57,9 @@ interface ModelState {
   // Currently selected model (single selection across all providers);
   activeModelPair: ModelProviderPair | null;
 
+  // Dedicated model for Email Tracking & Classification (falls back to activeModelPair if null)
+  emailModelPair: ModelProviderPair | null;
+
   // Selected models list by provider (for multi-select UIs)
   selectedModelsByProvider: SelectedModelsArray;
 
@@ -89,6 +92,7 @@ interface ModelState {
   initializeCache: () => Promise<void>;
   forceFetchModels: (...providers: ProviderType[]) => Promise<void>;
   setSelectedModel: (provider: ProviderType, model: string) => void;
+  setEmailModel: (provider: ProviderType | null, model: string | null) => void;
   setProviderModels: (provider: ProviderType, models: string[]) => void;
   setReasoningEffort: (
     provider: ProviderType,
@@ -113,6 +117,7 @@ interface ModelState {
   // Getters
   getSelectedModel: () => string | null;
   getSelectedProvider: () => ProviderType | null;
+  getEmailModelPair: () => ModelProviderPair | null;
   getSelectedModelsForProvider: (provider: ProviderType) => string[] | null;
   getAllSelectedModels: () => SelectedModelsArray;
   getReasoningEffort: (
@@ -146,6 +151,7 @@ export const useModelStore = create<ModelState>()(
       promptDepthByModel: {},
       cacheTimestamp: null,
       activeModelPair: null,
+      emailModelPair: null,
       isLoading: false,
       error: null,
       cacheTimerId: null,
@@ -220,6 +226,16 @@ export const useModelStore = create<ModelState>()(
         set({ activeModelPair: [provider, model] });
 
         logger.info("Selected model updated", { provider, model });
+      },
+
+      setEmailModel: (provider: ProviderType | null, model: string | null) => {
+        if (!provider || !model) {
+          set({ emailModelPair: null });
+          logger.info("Email model reset to default active model");
+        } else {
+          set({ emailModelPair: [provider, model] });
+          logger.info("Email dedicated model updated", { provider, model });
+        }
       },
 
       setProviderModels: (provider: ProviderType, models: string[]) => {
@@ -383,6 +399,11 @@ export const useModelStore = create<ModelState>()(
         return getPromptDepth(activeModelPair[0], activeModelPair[1]);
       },
 
+      getEmailModelPair: (): ModelProviderPair | null => {
+        const { emailModelPair, activeModelPair } = get();
+        return emailModelPair ?? activeModelPair;
+      },
+
       loadModels: async () => {
         await get().initializeCache();
       },
@@ -394,9 +415,10 @@ export const useModelStore = create<ModelState>()(
     {
       name: "model-store",
       storage: createJSONStorage(() => localStorage),
-      // Only persist activeModelPair and selectedModelsByProvider, not modelsByProvider or cacheTimerId
+      // Only persist selected models/settings, not runtime cache or timers
       partialize: (state) => ({
         activeModelPair: state.activeModelPair,
+        emailModelPair: state.emailModelPair,
         selectedModelsByProvider: state.selectedModelsByProvider,
         reasoningEffortByModel: state.reasoningEffortByModel,
         temperatureByModel: state.temperatureByModel,

@@ -18,6 +18,7 @@ import {
   Toggle,
 } from "@/components/ui";
 import { useToast } from "@/components/ui/ToastProvider";
+import { WhatsNewModal } from "@/components/WhatsNewModal";
 import { useAppUpdaterContext } from "@/contexts/AppUpdaterContext";
 import { useTheme } from "@/contexts/ThemeContext";
 import { downloadFile } from "@/lib/download";
@@ -46,16 +47,16 @@ import {
   MCP_SERVER_PORT,
   McpStdioCommand,
 } from "@/lib/mcpServer";
+import { RELEASE_NOTES } from "@/lib/releaseNotes.generated";
 import { useMcpServerStore } from "@/store/mcpServerStore";
 import { useModelStore } from "@/store/modelStore";
 import { ProviderType } from "@/types/llm";
 
 import packageJson from "../../../package.json";
+import { EmailTrackingSettings } from "../../components/settings/EmailTrackingSettings";
 import { ProviderCard } from "../../components/settings/ProviderCard";
 
 const logger = createLogger("SettingsPage");
-
-const REPO_URL = "https://github.com/Pranavraut033/resume-builder";
 
 export default function SettingsPage() {
   const [keys, setKeys] = useState<Record<string, string>>({});
@@ -84,8 +85,10 @@ export default function SettingsPage() {
   // The updater compares tauri.conf.json's version, not package.json's — read
   // the real running build's version so this can never disagree with it.
   const [appVersion, setAppVersion] = useState(packageJson.version);
+  const [whatsNewOpen, setWhatsNewOpen] = useState(false);
 
-  const { setEnabled: setMcpEnabled } = useMcpServerStore();
+  const { enabled: mcpEnabled, setEnabled: setMcpEnabled } =
+    useMcpServerStore();
   const [mcpRunning, setMcpRunning] = useState(false);
   const [mcpPending, setMcpPending] = useState(false);
   const [mcpConfigCopied, setMcpConfigCopied] = useState(false);
@@ -537,6 +540,29 @@ export default function SettingsPage() {
                 }
               />
 
+              {/* mcpEnabled (persisted intent) vs. mcpRunning (live process
+                  state) can disagree if autostart failed on launch — an
+                  update that stranded a port, a slow cold start, etc. Make
+                  that distinct from "the user turned it off", which looks
+                  identical if the toggle only reflects mcpRunning. */}
+              {mcpEnabled && !mcpRunning && !mcpPending && (
+                <div className="bg-agent-error-container flex items-center justify-between gap-3 rounded-xl px-4 py-3">
+                  <p className="text-agent-on-error-container text-sm">
+                    This is turned on but isn&apos;t currently running — likely
+                    a startup failure. Check{" "}
+                    <code className="font-mono">$APPDATA/logs/mcp.log</code> for
+                    details.
+                  </p>
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => handleMcpToggle(true)}
+                  >
+                    Retry
+                  </Button>
+                </div>
+              )}
+
               <SettingsRow
                 label="Connector file"
                 description="The easiest way to connect an assistant that supports plugin installs. Prefer typing a command instead, or need a different host? See the manual setup instructions."
@@ -696,6 +722,12 @@ export default function SettingsPage() {
           </div>
         </Modal>
 
+        <WhatsNewModal
+          isOpen={whatsNewOpen}
+          onClose={() => setWhatsNewOpen(false)}
+          entries={RELEASE_NOTES}
+        />
+
         {/* Local LLM — Ollama */}
         <PageSection title="Local LLM">
           <SurfacePanel>
@@ -787,6 +819,9 @@ export default function SettingsPage() {
             </div>
           </SurfacePanel>
         </PageSection>
+
+        {/* Email & Job Application Tracking */}
+        <EmailTrackingSettings />
 
         {/* Security Architecture */}
         <PageSection
@@ -965,12 +1000,13 @@ export default function SettingsPage() {
             <div className="bg-agent-surface-container flex items-center justify-between rounded-xl px-4 py-3">
               <span className="text-agent-on-surface-variant text-sm">
                 Version {appVersion}{" "}
-                <a
-                  href={`${REPO_URL}/blob/main/CHANGELOG.md`}
+                <button
+                  type="button"
+                  onClick={() => setWhatsNewOpen(true)}
                   className="text-agent-primary hover:underline"
                 >
                   What&apos;s new
-                </a>
+                </button>
               </span>
               <div className="flex items-center gap-2">
                 {availableUpdateVersion && (

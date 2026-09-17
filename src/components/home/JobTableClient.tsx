@@ -19,10 +19,12 @@ import {
   setJobHidden,
   updateJobStatus,
 } from "@/actions/job";
+import { JobEmailsModal } from "@/components/job/JobEmailsModal";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
 import { Icon } from "@/components/ui/Icon";
 import { Modal } from "@/components/ui/Modal";
 import { useToast } from "@/components/ui/ToastProvider";
+import { useEmailSync } from "@/hooks/useEmailSync";
 import { formatTimestamp } from "@/lib";
 import logger from "@/lib/logger";
 import { isJobStatus, JobStatus } from "@/types/job";
@@ -81,6 +83,20 @@ const JobTableClient: React.FC<Props> = ({ jobs }) => {
   const [peekJob, setPeekJob] = useState<JobRecord | null>(null);
   const [peekDetails, setPeekDetails] = useState<JobDetailsJSON | null>(null);
   const [isPeekOpen, setIsPeekOpen] = useState(false);
+  const [selectedEmailJob, setSelectedEmailJob] = useState<JobRecord | null>(null);
+  const [isEmailsOpen, setIsEmailsOpen] = useState(false);
+
+  const {
+    status: emailSyncStatus,
+    isSyncing: isEmailSyncing,
+    syncNow: syncEmailsNow,
+  } = useEmailSync();
+
+  const openEmails = useCallback((job: JobRecord) => {
+    setSelectedEmailJob(job);
+    setIsEmailsOpen(true);
+  }, []);
+
   const [jobItems, setJobItems] = useState<JobRecord[]>(() =>
     jobs.map((job) => ({
       ...job,
@@ -316,6 +332,19 @@ const JobTableClient: React.FC<Props> = ({ jobs }) => {
             className="flex items-center gap-2"
             onClick={(event) => event.stopPropagation()}
           >
+            <IconButton
+              label={`Emails (${row.original.emails?.length ?? 0})`}
+              onClick={() => openEmails(row.original)}
+            >
+              <div className="relative">
+                <Icon name="mail" size={18} />
+                {(row.original.emails?.length ?? 0) > 0 && (
+                  <span className="absolute -top-1.5 -right-1.5 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-agent-primary text-[9px] font-bold text-black">
+                    {row.original.emails?.length}
+                  </span>
+                )}
+              </div>
+            </IconButton>
             <IconButton label="Peek job" onClick={() => openPeek(row.original)}>
               <Icon name="eye" size={18} />
             </IconButton>
@@ -352,6 +381,7 @@ const JobTableClient: React.FC<Props> = ({ jobs }) => {
       handleToggleHidden,
       handleStatusChange,
       openPeek,
+      openEmails,
       statusLoadingId,
     ]
   );
@@ -381,7 +411,34 @@ const JobTableClient: React.FC<Props> = ({ jobs }) => {
         <div className="flex-1">
           <SearchInput value={globalFilter} onChange={setGlobalFilter} />
         </div>
-        <ViewToggle value={viewMode} onChange={setViewMode} />
+        <div className="flex items-center gap-2">
+          {emailSyncStatus?.isConnected && (
+            <button
+              type="button"
+              onClick={() => syncEmailsNow()}
+              disabled={isEmailSyncing}
+              className="flex items-center gap-2 rounded-xl border px-3 py-2 text-xs font-medium transition-colors hover:opacity-80"
+              style={{
+                borderColor: "var(--color-agent-outline-variant)",
+                color: "var(--color-agent-on-surface-variant)",
+                background: "var(--color-agent-surface-lowest)",
+              }}
+              title={
+                emailSyncStatus.lastSyncedAt
+                  ? `Last synced ${formatTimestamp(emailSyncStatus.lastSyncedAt)}`
+                  : "Sync recruiting emails"
+              }
+            >
+              <Icon
+                name={isEmailSyncing ? "spinner" : "mail"}
+                size={14}
+                className={isEmailSyncing ? "animate-spin text-agent-primary" : ""}
+              />
+              <span>{isEmailSyncing ? "Syncing…" : "Sync Emails"}</span>
+            </button>
+          )}
+          <ViewToggle value={viewMode} onChange={setViewMode} />
+        </div>
       </div>
 
       <FilterBar filters={filters} onChange={setFilters} />
@@ -392,6 +449,7 @@ const JobTableClient: React.FC<Props> = ({ jobs }) => {
         <CardGrid
           jobs={visibleJobs}
           onPeek={openPeek}
+          onOpenEmails={openEmails}
           onStatusChange={handleStatusChange}
           onDelete={handleDeleteJob}
           onToggleHidden={handleToggleHidden}
@@ -402,6 +460,14 @@ const JobTableClient: React.FC<Props> = ({ jobs }) => {
       ) : (
         <JobsTable table={table} />
       )}
+
+      <JobEmailsModal
+        isOpen={isEmailsOpen}
+        onClose={() => setIsEmailsOpen(false)}
+        jobId={selectedEmailJob?.id ?? null}
+        jobRole={selectedEmailJob?.role}
+        companyName={selectedEmailJob?.company?.name}
+      />
 
       <Modal
         isOpen={isPeekOpen}
