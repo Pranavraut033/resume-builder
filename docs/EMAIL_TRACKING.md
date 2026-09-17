@@ -1,9 +1,15 @@
 # Email Job Tracking — Google OAuth Setup
 
 The email tracker connects a Gmail account read-only, fetches recruiting-related emails, classifies
-them, and links them to your tracked jobs. There is **no bundled Google OAuth client** — Google ties a
-client ID to a specific project and redirect URI, so it can't be shipped generically. You provision your
-own, free, in a few minutes.
+them, and links them to your tracked jobs.
+
+A build can bake in a default Google OAuth client via `NEXT_PUBLIC_GOOGLE_CLIENT_ID`/
+`NEXT_PUBLIC_GOOGLE_CLIENT_SECRET` (`src/lib/email/gmailClient.ts`'s `DEFAULT_GOOGLE_CLIENT_ID`/
+`hasDefaultGoogleClient()`), letting most users click **Connect Gmail** with no setup — Settings'
+**Google OAuth Client** panel then becomes an optional override instead of a required field. These vars
+aren't currently wired into `.env.example` or a release workflow, so a self-built instance has none by
+default and needs the steps below. If you're provisioning your own client (self-built, or to override a
+bundled one), it's free and takes a few minutes.
 
 ## 1. Create a Google Cloud project
 

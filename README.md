@@ -34,7 +34,7 @@ More screenshots and demo clips (Fit Check, chat editing, cover letters, customi
 - **MCP server (optional)**: drive the same job-parsing/tailoring/fit-check/deep-analysis/humanizing flows, plus reading and editing your base profile with a diff preview before anything saves, from Claude Desktop or another MCP host on your own chat subscription — no API key configured in this app required. Opt-in toggle + one-click connector download in **Settings**, off by default; see [docs/MCP.md](./docs/MCP.md)
 - **Secure key storage**: API keys are AES-256-GCM encrypted on disk (desktop), keyed off a per-install master key held in the OS keychain, or `localStorage` (web) — never on the server
 - **Backup & restore**: export the entire local database to a JSON file and restore it later, from **Settings**
-- **Email job tracking (optional)**: connect Gmail read-only via your own Google OAuth client, and recruiting emails are classified and linked to the matching job automatically — see [docs/EMAIL_TRACKING.md](./docs/EMAIL_TRACKING.md) for the (required) setup
+- **Email job tracking (optional)**: connect Gmail read-only — a build can bundle a default OAuth client so this needs no setup, otherwise (or to override it) provision your own in a few minutes — and recruiting emails are classified and linked to the matching job automatically; see [docs/EMAIL_TRACKING.md](./docs/EMAIL_TRACKING.md)
 - **Local-first**: all data in a local SQLite database; no mandatory cloud dependency
 
 ## Download & Install
