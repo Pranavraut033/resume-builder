@@ -4,10 +4,9 @@
  * prepaid credits and paste the resulting virtual key here exactly like a
  * BYOK key; billing/budget enforcement is entirely server-side in LiteLLM.
  */
+import { createLogger } from "@/lib/logger";
 import { LLMProvider } from "@pranavraut033/llm-core";
 import { OpenAICompatibleProvider } from "@pranavraut033/llm-core/providers/openai-compatible";
-
-import { createLogger } from "@/lib/logger";
 
 declare module "@pranavraut033/llm-core" {
   interface ProviderIdRegistry {
