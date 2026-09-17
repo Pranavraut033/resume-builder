@@ -35,6 +35,7 @@ export function EmailTrackingSettings() {
     isConnected,
     isStatusLoading,
     isSyncing,
+    isConnecting,
     syncNow,
     connect,
     disconnect,
@@ -129,11 +130,13 @@ export function EmailTrackingSettings() {
         <SettingsRow
           label="Google Account (Gmail)"
           description={
-            isConnected
-              ? `Connected to ${status?.email}. Recruiting emails are automatically parsed and linked to jobs.`
-              : hasDefaultGoogleClient()
-                ? "Connect your Gmail with read-only permission."
-                : "Connect your Gmail with read-only permission. Requires a Google OAuth client you set up yourself — see below."
+            isConnecting
+              ? "Waiting for you to finish signing in in your browser — don't close or reload the app until this finishes."
+              : isConnected
+                ? `Connected to ${status?.email}. Recruiting emails are automatically parsed and linked to jobs.`
+                : hasDefaultGoogleClient()
+                  ? "Connect your Gmail with read-only permission."
+                  : "Connect your Gmail with read-only permission. Requires a Google OAuth client you set up yourself — see below."
           }
           control={
             <div className="flex items-center gap-3">
@@ -156,9 +159,15 @@ export function EmailTrackingSettings() {
                   variant="primary"
                   size="sm"
                   onClick={connect}
-                  icon={<Icon name="mail" className="h-4 w-4" />}
+                  disabled={isConnecting}
+                  icon={
+                    <Icon
+                      name={isConnecting ? "spinner" : "mail"}
+                      className={`h-4 w-4 ${isConnecting ? "animate-spin" : ""}`}
+                    />
+                  }
                 >
-                  Connect Gmail
+                  {isConnecting ? "Waiting for sign-in…" : "Connect Gmail"}
                 </Button>
               )}
             </div>

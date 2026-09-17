@@ -1,7 +1,7 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import {
   disconnectGoogleAccount,
@@ -24,6 +24,7 @@ export function useEmailSync() {
   const { pushToast } = useToast();
   const launchCheckedRef = useRef(false);
   const wipeCheckedRef = useRef(false);
+  const [isConnecting, setIsConnecting] = useState(false);
 
   // One-time cleanup for installs that connected on an older build, when
   // tokens were (incorrectly) written to SQLite. See
@@ -104,6 +105,7 @@ export function useEmailSync() {
   }, [isConnected, syncMutation]);
 
   const connect = useCallback(async () => {
+    setIsConnecting(true);
     try {
       const { email } = await connectGmail();
       pushToast({
@@ -121,6 +123,8 @@ export function useEmailSync() {
           err instanceof Error ? err.message : "Failed to connect Gmail",
         variant: "error",
       });
+    } finally {
+      setIsConnecting(false);
     }
   }, [pushToast, queryClient, refetchStatus, syncMutation]);
 
@@ -145,6 +149,7 @@ export function useEmailSync() {
     isConnected,
     isStatusLoading,
     isSyncing: syncMutation.isPending,
+    isConnecting,
     syncNow,
     connect,
     disconnect,
