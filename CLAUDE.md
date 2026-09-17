@@ -48,7 +48,10 @@ and call relationships.
 
 1. **Server = database only. LLM = client only.** `src/actions/*` (`'use server'`) do only Prisma/SQLite CRUD.
    No REST route handlers, no server-side `fetch` to internal endpoints, no LLM call on the server ever — API
-   keys must never leave the client / Tauri secure storage.
+   keys must never leave the client / Tauri secure storage. **One documented exception:**
+   `src/app/api/auth/callback/google/route.ts` — Google OAuth requires a fixed server redirect URI, so it's a
+   real route handler that exchanges the code server-side and writes tokens to `EmailAccount` in Prisma. See
+   [`.claude/knowledge/data-layer.md`](.claude/knowledge/data-layer.md) for a known gap this creates.
 2. **`applyResumeOps()` (`src/lib/resume/editor.ts`) is the only way a resume is ever mutated.** Never add a
    second mutation path.
 3. **Untrusted text is delimiter-wrapped before prompt interpolation** (`src/lib/llm/prompts/sanitize.ts`).
@@ -109,4 +112,4 @@ own file when it has tools or a model the main thread lacks.
   feature on the `feature/mock-interview` branch. Not wired in on `main`; see
   [`.claude/knowledge/llm-runtime.md`](.claude/knowledge/llm-runtime.md).
 
-<!-- last-sync-docs: 6a93445cd0f7e27c5cff5b78b6991d04cbbea4c7 -->
+<!-- last-sync-docs: ca974b03c632d59c8ab66e6d161fba69c81ee4e6 -->

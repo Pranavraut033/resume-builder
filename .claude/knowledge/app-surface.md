@@ -16,7 +16,7 @@ notifications, bookmarks.
 | `/find-jobs`         | `find-jobs/page.tsx`                  | Job-search entry point.                                                                                                                                                                                                                                                                           |
 | `/find-jobs/browse`  | `find-jobs/browse/page.tsx`           | In-app browser over job sites (`JobBrowserTabs.tsx`, `JobBrowserToolbar.tsx`).                                                                                                                                                                                                                    |
 | `/analytics/tokens`  | `analytics/tokens/page.tsx`           | Token-usage dashboard (`src/components/analytics/`: summary cards, filters, time series, breakdown charts, table).                                                                                                                                                                                |
-| `/settings`          | `settings/page.tsx`                   | API keys (add/remove per provider), model selection, MCP server toggle + connector download, Backup & Restore.                                                                                                                                                                                    |
+| `/settings`          | `settings/page.tsx`                   | API keys (add/remove per provider), model selection, MCP server toggle + connector download, Backup & Restore, email tracking (`EmailTrackingSettings.tsx` — connect Gmail via OAuth; see [data-layer.md](data-layer.md) for `EmailAccount`/`JobEmail` and a known token-refresh gap). A "What's New" modal (`WhatsNewModal.tsx`, gated once-per-version by `WhatsNewGate.tsx`/`versionFlag.ts`) replaced the old CHANGELOG-on-GitHub link, fed by `releaseNotes.generated.ts` (built from `CHANGELOG.md` by `scripts/gen-release-notes.mjs`, run in `predev`/`prebuild`).                                                                                                                                                                                    |
 | `/settings/mcp`      | `settings/mcp/page.tsx`               | Manual/CLI MCP setup instructions only (toggle + connector download live on `/settings`) — see `.claude/knowledge/chat-mcp.md`.                                                                                                                                                                   |
 | `/settings/licenses` | `settings/licenses/page.tsx`          | Third-party license attributions, rendered from a bundled markdown file via `MarkdownBlock.tsx`.                                                                                                                                                                                                  |
 
@@ -98,6 +98,9 @@ is no separate table. `/bookmarks` (`src/app/bookmarks/page.tsx`) composes `Book
 jobs (`Job.hiddenAt`, toggled per-row through `setJobHidden`), hide-rejected, and fit-level chips
 (`JobFilters`/`DEFAULT_FILTERS`/`hasActiveFilters()`). Hiding a job is a view preference, not a status change —
 a hidden job still counts toward the stat cards; the filter just excludes it from the grid by default.
+
+A per-row action opens `JobEmailsModal.tsx` (`src/components/job/`), listing the `JobEmail` rows matched to
+that job by `src/lib/email/jobMatcher.ts` — see [data-layer.md](data-layer.md) for the email tracker's models.
 
 ## Job creation pipeline
 
