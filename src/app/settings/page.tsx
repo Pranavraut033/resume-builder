@@ -53,6 +53,7 @@ import { useModelStore } from "@/store/modelStore";
 import { ProviderType } from "@/types/llm";
 
 import packageJson from "../../../package.json";
+import { EmailTrackingSettings } from "../../components/settings/EmailTrackingSettings";
 import { ProviderCard } from "../../components/settings/ProviderCard";
 
 const logger = createLogger("SettingsPage");
@@ -818,6 +819,9 @@ export default function SettingsPage() {
             </div>
           </SurfacePanel>
         </PageSection>
+
+        {/* Email & Job Application Tracking */}
+        <EmailTrackingSettings />
 
         {/* Security Architecture */}
         <PageSection
