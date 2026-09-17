@@ -1,3 +1,9 @@
+# v1.20.1 — 2026-09-17
+
+A small fix for the Connect Gmail flow.
+
+- **Fixed: Connect Gmail no longer looks frozen.** The button now shows a loading state while waiting for you to finish signing in, and reloading or quitting mid-sign-in no longer silently abandons the connection attempt.
+
 # v1.20.0 — 2026-09-17
 
 Email job tracking arrives — connect Gmail and let recruiting emails find their job automatically.

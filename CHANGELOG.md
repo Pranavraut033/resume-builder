@@ -2,6 +2,12 @@
 
 All notable changes to this project are documented in this file.
 
+## [1.20.1] - 2026-09-17
+
+### Fixed
+
+- The Connect Gmail button gave no feedback during the up-to-5-minute OAuth callback poll, so it looked frozen; reloading or quitting the app mid-poll also silently abandoned the connect attempt ([69b3614])
+
 ## [1.20.0] - 2026-09-17
 
 ### Added
