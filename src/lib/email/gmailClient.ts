@@ -1,3 +1,5 @@
+"use client";
+
 import { getApiKey, setApiKey, deleteApiKey } from "@/lib/keyStorage";
 import { createLogger } from "@/lib/logger";
 
@@ -8,10 +10,28 @@ export const GMAIL_SCOPES = [
   "https://www.googleapis.com/auth/userinfo.email",
 ].join(" ");
 
-// Default client ID bundled with the app (can be overridden via ENV or user Settings)
-export const DEFAULT_GOOGLE_CLIENT_ID =
-  process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID ||
-  "742189034561-udaan-desktop-app.apps.googleusercontent.com";
+// There is no bundled default: a Google OAuth client ID is tied to a
+// specific redirect URI and Google Cloud project, so it can't be shipped
+// generically. The user must provision their own — see docs/EMAIL_TRACKING.md
+// — and set it via Settings (or NEXT_PUBLIC_GOOGLE_CLIENT_ID at build time).
+export const DEFAULT_GOOGLE_CLIENT_ID: string | null =
+  process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || null;
+
+/** Thrown by any flow step that needs a client ID and none is configured. */
+export class GoogleClientNotConfiguredError extends Error {
+  constructor() {
+    super("No Google OAuth client ID configured. Add one in Settings.");
+    this.name = "GoogleClientNotConfiguredError";
+  }
+}
+
+/** Thrown when Google rejects a refresh token (revoked/expired) — the user must reconnect. */
+export class GoogleReauthRequiredError extends Error {
+  constructor() {
+    super("Google access was revoked or expired. Reconnect your account.");
+    this.name = "GoogleReauthRequiredError";
+  }
+}
 
 const KEY_GOOGLE_REFRESH_TOKEN = "google_oauth_refresh_token";
 const KEY_GOOGLE_ACCESS_TOKEN = "google_oauth_access_token";
@@ -72,7 +92,7 @@ export interface ParsedEmailMessage {
   date: Date;
 }
 
-export async function getActiveClientId(): Promise<string> {
+export async function getActiveClientId(): Promise<string | null> {
   const customId = await getApiKey(KEY_GOOGLE_CUSTOM_CLIENT_ID);
   return customId && customId.trim().length > 0
     ? customId.trim()
@@ -112,6 +132,8 @@ export async function generateAuthUrl(
   codeChallenge?: string
 ): Promise<string> {
   const clientId = await getActiveClientId();
+  if (!clientId) throw new GoogleClientNotConfiguredError();
+
   const url = new URL("https://accounts.google.com/o/oauth2/v2/auth");
   url.searchParams.set("client_id", clientId);
   url.searchParams.set("redirect_uri", redirectUri);
@@ -141,6 +163,7 @@ export async function exchangeCodeForTokens(
   codeVerifier?: string
 ): Promise<GoogleTokens> {
   const clientId = await getActiveClientId();
+  if (!clientId) throw new GoogleClientNotConfiguredError();
   const clientSecret = await getActiveClientSecret();
 
   const params = new URLSearchParams();
@@ -163,8 +186,13 @@ export async function exchangeCodeForTokens(
 
   if (!response.ok) {
     const errorText = await response.text();
-    logger.error("Token exchange failed", { status: response.status, errorText });
-    throw new Error(`Google token exchange failed: ${response.status} - ${errorText}`);
+    logger.error("Token exchange failed", {
+      status: response.status,
+      errorText,
+    });
+    throw new Error(
+      `Google token exchange failed: ${response.status} - ${errorText}`
+    );
   }
 
   const data = await response.json();
@@ -193,10 +221,13 @@ export async function exchangeCodeForTokens(
 export async function refreshAccessToken(): Promise<string> {
   const refreshToken = await getApiKey(KEY_GOOGLE_REFRESH_TOKEN);
   if (!refreshToken) {
-    throw new Error("No Google refresh token found. User must re-authenticate.");
+    throw new Error(
+      "No Google refresh token found. User must re-authenticate."
+    );
   }
 
   const clientId = await getActiveClientId();
+  if (!clientId) throw new GoogleClientNotConfiguredError();
   const clientSecret = await getActiveClientSecret();
 
   const params = new URLSearchParams();
@@ -215,7 +246,14 @@ export async function refreshAccessToken(): Promise<string> {
 
   if (!response.ok) {
     const errorText = await response.text();
-    logger.error("Token refresh failed", { status: response.status, errorText });
+    logger.error("Token refresh failed", {
+      status: response.status,
+      errorText,
+    });
+    if (errorText.includes("invalid_grant")) {
+      await clearGoogleAuthTokens();
+      throw new GoogleReauthRequiredError();
+    }
     throw new Error(`Google token refresh failed: ${response.status}`);
   }
 
@@ -246,6 +284,7 @@ export async function getValidAccessToken(): Promise<string | null> {
     try {
       return await refreshAccessToken();
     } catch (err) {
+      if (err instanceof GoogleReauthRequiredError) throw err;
       logger.error("Failed to auto-refresh access token", { err });
       return null;
     }
@@ -263,10 +302,15 @@ export async function clearGoogleAuthTokens(): Promise<void> {
 /**
  * Fetches basic profile info (email address) for the authenticated Google user.
  */
-export async function getGoogleUserInfo(accessToken: string): Promise<GoogleUserInfo> {
-  const response = await fetch("https://www.googleapis.com/oauth2/v2/userinfo", {
-    headers: { Authorization: `Bearer ${accessToken}` },
-  });
+export async function getGoogleUserInfo(
+  accessToken: string
+): Promise<GoogleUserInfo> {
+  const response = await fetch(
+    "https://www.googleapis.com/oauth2/v2/userinfo",
+    {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    }
+  );
 
   if (!response.ok) {
     throw new Error(`Failed to fetch user info: ${response.status}`);
@@ -278,7 +322,9 @@ export async function getGoogleUserInfo(accessToken: string): Promise<GoogleUser
 function decodeBase64Url(dataStr: string): string {
   try {
     const base64 = dataStr.replace(/-/g, "+").replace(/_/g, "/");
-    return Buffer.from(base64, "base64").toString("utf-8");
+    const binary = atob(base64);
+    const bytes = Uint8Array.from(binary, (c) => c.charCodeAt(0));
+    return new TextDecoder("utf-8").decode(bytes);
   } catch {
     return "";
   }
@@ -300,6 +346,11 @@ function extractTextFromBody(part: GmailMessagePart): string {
 /**
  * Fetches messages from Gmail matching a search query.
  */
+// Conservative ceiling on one sync run — a first-time connect can otherwise
+// pull hundreds of messages through per-message LLM classification.
+const MAX_MESSAGES_PER_SYNC = 250;
+const LIST_PAGE_SIZE = 100;
+
 export async function fetchRecruitingEmails(
   accessToken: string,
   options: {
@@ -317,20 +368,36 @@ export async function fetchRecruitingEmails(
     q += ` after:${epochSec}`;
   }
 
-  const listUrl = new URL("https://gmail.googleapis.com/gmail/v1/users/me/messages");
-  listUrl.searchParams.set("q", q);
-  listUrl.searchParams.set("maxResults", String(options.maxResults || 30));
+  const cap = Math.min(
+    options.maxResults || MAX_MESSAGES_PER_SYNC,
+    MAX_MESSAGES_PER_SYNC
+  );
+  const rawList: { id: string; threadId: string }[] = [];
+  let pageToken: string | undefined;
 
-  const listResp = await fetch(listUrl.toString(), {
-    headers: { Authorization: `Bearer ${accessToken}` },
-  });
+  do {
+    const listUrl = new URL(
+      "https://gmail.googleapis.com/gmail/v1/users/me/messages"
+    );
+    listUrl.searchParams.set("q", q);
+    listUrl.searchParams.set(
+      "maxResults",
+      String(Math.min(LIST_PAGE_SIZE, cap - rawList.length))
+    );
+    if (pageToken) listUrl.searchParams.set("pageToken", pageToken);
 
-  if (!listResp.ok) {
-    throw new Error(`Failed to list Gmail messages: ${listResp.status}`);
-  }
+    const listResp = await fetch(listUrl.toString(), {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
 
-  const listData = await listResp.json();
-  const rawList: { id: string; threadId: string }[] = listData.messages || [];
+    if (!listResp.ok) {
+      throw new Error(`Failed to list Gmail messages: ${listResp.status}`);
+    }
+
+    const listData = await listResp.json();
+    rawList.push(...(listData.messages || []));
+    pageToken = listData.nextPageToken;
+  } while (pageToken && rawList.length < cap);
 
   const parsedEmails: ParsedEmailMessage[] = [];
 
@@ -348,13 +415,16 @@ export async function fetchRecruitingEmails(
       const headers = msg.payload?.headers || [];
 
       const getHeader = (name: string) =>
-        headers.find((h) => h.name.toLowerCase() === name.toLowerCase())?.value || "";
+        headers.find((h) => h.name.toLowerCase() === name.toLowerCase())
+          ?.value || "";
 
       const subject = getHeader("Subject");
       const sender = getHeader("From");
       const recipient = getHeader("To");
       const dateStr = getHeader("Date");
-      const date = dateStr ? new Date(dateStr) : new Date(parseInt(msg.internalDate, 10));
+      const date = dateStr
+        ? new Date(dateStr)
+        : new Date(parseInt(msg.internalDate, 10));
 
       let bodyText = "";
       if (msg.payload) {

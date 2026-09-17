@@ -11,10 +11,10 @@
 
 import { TokenUsage } from "@prisma/client";
 
-import { PromptPurpose } from "@/lib/llm/prompts";
 import { prisma } from "@/lib/prisma";
 import { ProviderType } from "@/types/llm";
 
+import type { PromptPurpose } from "@/lib/llm/prompts";
 import type { LLMUsageInfo as CoreLLMUsageInfo } from "@pranavraut033/llm-core";
 
 export type MultiPurpose = PromptPurpose[]; // then join when you need the string

@@ -1,8 +1,8 @@
 "use client";
 
-import React, { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import React, { useEffect, useState } from "react";
 
-import { saveGoogleCredentials } from "@/actions/emailSync";
 import {
   Badge,
   Button,
@@ -16,13 +16,21 @@ import {
 import { useToast } from "@/components/ui/ToastProvider";
 import { useEmailSync } from "@/hooks/useEmailSync";
 import { formatTimestamp } from "@/lib";
+import {
+  getActiveClientId,
+  setCustomGoogleCredentials,
+} from "@/lib/email/gmailClient";
 import { useModelStore } from "@/store/modelStore";
 import { ProviderType } from "@/types/llm";
+
+const DOCS_URL =
+  "https://github.com/Pranavraut033/resume-builder/blob/main/docs/EMAIL_TRACKING.md";
 
 export function EmailTrackingSettings() {
   const { pushToast } = useToast();
   const {
     status,
+    isConnected,
     isStatusLoading,
     isSyncing,
     syncNow,
@@ -30,17 +38,26 @@ export function EmailTrackingSettings() {
     disconnect,
   } = useEmailSync();
 
-  const {
-    modelsByProvider,
-    emailModelPair,
-    activeModelPair,
-    setEmailModel,
-  } = useModelStore();
+  const { modelsByProvider, emailModelPair, activeModelPair, setEmailModel } =
+    useModelStore();
+
+  const { data: activeClientId, refetch: refetchClientId } = useQuery({
+    queryKey: ["gmailActiveClientId"],
+    queryFn: () => getActiveClientId(),
+    staleTime: 60 * 1000,
+  });
 
   const [showAdvanced, setShowAdvanced] = useState(false);
-  const [customClientId, setCustomClientId] = useState(status?.customClientId || "");
+  const [customClientId, setCustomClientId] = useState("");
   const [customClientSecret, setCustomClientSecret] = useState("");
   const [isSavingCreds, setIsSavingCreds] = useState(false);
+
+  // Seed the editable field whenever the resolved client ID changes (e.g.
+  // first load, or after a save) — not just once at mount, which would miss
+  // the async result entirely.
+  useEffect(() => {
+    if (activeClientId !== undefined) setCustomClientId(activeClientId ?? "");
+  }, [activeClientId]);
 
   // Build model options for selection
   const modelOptions = React.useMemo(() => {
@@ -71,17 +88,16 @@ export function EmailTrackingSettings() {
   const handleSaveCredentials = async () => {
     setIsSavingCreds(true);
     try {
-      await saveGoogleCredentials(
+      await setCustomGoogleCredentials(
         customClientId.trim() || null,
         customClientSecret.trim() || null
       );
-      pushToast({
-        title: "OAuth settings updated",
-        variant: "success",
-      });
-    } catch {
+      pushToast({ title: "OAuth settings updated", variant: "success" });
+      await refetchClientId();
+    } catch (err) {
       pushToast({
         title: "Failed to update OAuth settings",
+        description: err instanceof Error ? err.message : undefined,
         variant: "error",
       });
     } finally {
@@ -89,25 +105,30 @@ export function EmailTrackingSettings() {
     }
   };
 
+  const redirectUri =
+    typeof window !== "undefined"
+      ? `${window.location.origin}/api/auth/callback/google`
+      : "<app origin>/api/auth/callback/google";
+
   return (
     <PageSection
       title="Email & Job Application Tracking"
-      icon={<Icon name="mail" className="h-4 w-4 text-agent-primary" />}
+      icon={<Icon name="mail" className="text-agent-primary h-4 w-4" />}
     >
       <SurfacePanel stack>
         {/* Connection status */}
         <SettingsRow
           label="Google Account (Gmail)"
           description={
-            status?.isConnected
-              ? `Connected to ${status.email}. Recruiting emails are automatically parsed and linked to jobs.`
-              : "Connect your Gmail with read-only permission. No manual OAuth setup required."
+            isConnected
+              ? `Connected to ${status?.email}. Recruiting emails are automatically parsed and linked to jobs.`
+              : "Connect your Gmail with read-only permission. Requires a Google OAuth client you set up yourself — see below."
           }
           control={
             <div className="flex items-center gap-3">
               {isStatusLoading ? (
                 <span className="text-xs text-neutral-400">Checking…</span>
-              ) : status?.isConnected ? (
+              ) : isConnected ? (
                 <>
                   <Badge variant="success">Connected</Badge>
                   <Button
@@ -143,16 +164,17 @@ export function EmailTrackingSettings() {
           }
           control={
             <div className="flex items-center gap-3">
-              {status?.isConnected && (
-                <div className="text-xs text-neutral-400 mr-2">
-                  {status.totalEmails} emails tracked ({status.matchedEmails} linked)
+              {isConnected && (
+                <div className="mr-2 text-xs text-neutral-400">
+                  {status?.totalEmails} emails tracked ({status?.matchedEmails}{" "}
+                  linked)
                 </div>
               )}
               <Button
                 variant="secondary"
                 size="sm"
                 onClick={syncNow}
-                disabled={!status?.isConnected || isSyncing}
+                disabled={!isConnected || isSyncing}
                 icon={
                   <Icon
                     name={isSyncing ? "spinner" : "refreshCw"}
@@ -173,8 +195,8 @@ export function EmailTrackingSettings() {
             emailModelPair
               ? `${emailModelPair[0]} (${emailModelPair[1]})`
               : activeModelPair
-              ? `${activeModelPair[0]} (${activeModelPair[1]}) [inherited]`
-              : "Default"
+                ? `${activeModelPair[0]} (${activeModelPair[1]}) [inherited]`
+                : "Default"
           }.`}
           control={
             <div className="w-72">
@@ -188,42 +210,62 @@ export function EmailTrackingSettings() {
           }
         />
 
-        {/* Advanced Credentials Toggle */}
+        {/* Google OAuth Client (required — there is no bundled default) */}
         <SettingsRow
-          label="Custom Google OAuth Client (Optional)"
-          description="Use your own Google Cloud Client ID instead of the default native app client."
-          control={
-            <Toggle
-              checked={showAdvanced}
-              onChange={setShowAdvanced}
-            />
+          label="Google OAuth Client"
+          description={
+            <>
+              Required before connecting Gmail — there is no bundled client ID.
+              Create one in Google Cloud Console (Gmail API, OAuth consent
+              screen in Testing mode with yourself as a test user, Web
+              application credentials with the redirect URI below) and paste it
+              here.{" "}
+              <a
+                href={DOCS_URL}
+                target="_blank"
+                rel="noreferrer"
+                className="text-agent-primary underline"
+              >
+                Step-by-step guide
+              </a>
+              .
+            </>
           }
+          control={<Toggle checked={showAdvanced} onChange={setShowAdvanced} />}
         />
 
         {showAdvanced && (
-          <div className="p-4 rounded-xl bg-agent-surface-container/50 border border-agent-outline-variant space-y-3">
+          <div className="bg-agent-surface-container/50 border-agent-outline-variant space-y-3 rounded-xl border p-4">
             <div>
-              <label className="block text-xs font-medium text-neutral-300 mb-1">
-                Custom Google Client ID
+              <label className="mb-1 block text-xs font-medium text-neutral-300">
+                Redirect URI to register in Google Cloud Console
+              </label>
+              <code className="border-agent-outline-variant bg-agent-surface-lowest block w-full rounded-lg border px-3 py-2 text-xs text-neutral-300 select-all">
+                {redirectUri}
+              </code>
+            </div>
+            <div>
+              <label className="mb-1 block text-xs font-medium text-neutral-300">
+                Google Client ID
               </label>
               <input
                 type="text"
                 value={customClientId}
                 onChange={(e) => setCustomClientId(e.target.value)}
                 placeholder="e.g. 123456789-abc.apps.googleusercontent.com"
-                className="w-full text-xs px-3 py-2 rounded-lg border border-agent-outline-variant bg-agent-surface-lowest text-neutral-100 placeholder-neutral-500 focus:outline-none focus:border-agent-primary"
+                className="border-agent-outline-variant bg-agent-surface-lowest focus:border-agent-primary w-full rounded-lg border px-3 py-2 text-xs text-neutral-100 placeholder-neutral-500 focus:outline-none"
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-neutral-300 mb-1">
-                Custom Client Secret (Optional for Native PKCE)
+              <label className="mb-1 block text-xs font-medium text-neutral-300">
+                Client Secret
               </label>
               <input
                 type="password"
                 value={customClientSecret}
                 onChange={(e) => setCustomClientSecret(e.target.value)}
-                placeholder="Optional client secret"
-                className="w-full text-xs px-3 py-2 rounded-lg border border-agent-outline-variant bg-agent-surface-lowest text-neutral-100 placeholder-neutral-500 focus:outline-none focus:border-agent-primary"
+                placeholder="Google requires this at token exchange even with PKCE"
+                className="border-agent-outline-variant bg-agent-surface-lowest focus:border-agent-primary w-full rounded-lg border px-3 py-2 text-xs text-neutral-100 placeholder-neutral-500 focus:outline-none"
               />
             </div>
             <div className="flex justify-end">
@@ -233,7 +275,7 @@ export function EmailTrackingSettings() {
                 onClick={handleSaveCredentials}
                 disabled={isSavingCreds}
               >
-                {isSavingCreds ? "Saving…" : "Save Custom Credentials"}
+                {isSavingCreds ? "Saving…" : "Save Google OAuth Client"}
               </Button>
             </div>
           </div>

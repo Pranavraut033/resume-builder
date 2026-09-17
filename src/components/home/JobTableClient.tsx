@@ -83,11 +83,14 @@ const JobTableClient: React.FC<Props> = ({ jobs }) => {
   const [peekJob, setPeekJob] = useState<JobRecord | null>(null);
   const [peekDetails, setPeekDetails] = useState<JobDetailsJSON | null>(null);
   const [isPeekOpen, setIsPeekOpen] = useState(false);
-  const [selectedEmailJob, setSelectedEmailJob] = useState<JobRecord | null>(null);
+  const [selectedEmailJob, setSelectedEmailJob] = useState<JobRecord | null>(
+    null
+  );
   const [isEmailsOpen, setIsEmailsOpen] = useState(false);
 
   const {
     status: emailSyncStatus,
+    isConnected: isEmailConnected,
     isSyncing: isEmailSyncing,
     syncNow: syncEmailsNow,
   } = useEmailSync();
@@ -339,7 +342,7 @@ const JobTableClient: React.FC<Props> = ({ jobs }) => {
               <div className="relative">
                 <Icon name="mail" size={18} />
                 {(row.original.emails?.length ?? 0) > 0 && (
-                  <span className="absolute -top-1.5 -right-1.5 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-agent-primary text-[9px] font-bold text-black">
+                  <span className="bg-agent-primary absolute -top-1.5 -right-1.5 flex h-3.5 w-3.5 items-center justify-center rounded-full text-[9px] font-bold text-black">
                     {row.original.emails?.length}
                   </span>
                 )}
@@ -412,7 +415,7 @@ const JobTableClient: React.FC<Props> = ({ jobs }) => {
           <SearchInput value={globalFilter} onChange={setGlobalFilter} />
         </div>
         <div className="flex items-center gap-2">
-          {emailSyncStatus?.isConnected && (
+          {isEmailConnected && (
             <button
               type="button"
               onClick={() => syncEmailsNow()}
@@ -424,7 +427,7 @@ const JobTableClient: React.FC<Props> = ({ jobs }) => {
                 background: "var(--color-agent-surface-lowest)",
               }}
               title={
-                emailSyncStatus.lastSyncedAt
+                emailSyncStatus?.lastSyncedAt
                   ? `Last synced ${formatTimestamp(emailSyncStatus.lastSyncedAt)}`
                   : "Sync recruiting emails"
               }
@@ -432,7 +435,9 @@ const JobTableClient: React.FC<Props> = ({ jobs }) => {
               <Icon
                 name={isEmailSyncing ? "spinner" : "mail"}
                 size={14}
-                className={isEmailSyncing ? "animate-spin text-agent-primary" : ""}
+                className={
+                  isEmailSyncing ? "text-agent-primary animate-spin" : ""
+                }
               />
               <span>{isEmailSyncing ? "Syncing…" : "Sync Emails"}</span>
             </button>
