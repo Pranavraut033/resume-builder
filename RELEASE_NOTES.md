@@ -1,3 +1,13 @@
+# v1.20.0 — 2026-09-17
+
+Email job tracking arrives — connect Gmail and let recruiting emails find their job automatically.
+
+- **New: Email job tracking.** Connect a Gmail account read-only and Udaan classifies incoming recruiting emails and links them to the matching job for you. Most builds need no setup to connect — click and go; you can always swap in your own Google OAuth client from Settings instead.
+- **New: a "What's New" panel** shows what changed after each update, right in the app.
+- **Fixed: email tracking actually works now.** The first version of this feature ran its Gmail/OAuth pipeline in a place that could never succeed — connecting silently failed every time. It's fixed, along with stronger auth (PKCE + CSRF protection).
+- **Fixed: a garbled checkmark** on the "you're connected" page after signing in with Google.
+- **Fixed: the MCP server could get stuck** behind a leftover process from a previous crash on startup.
+
 # v1.19.0 — 2026-09-10
 
 Simpler sizing controls, bring-your-own endpoint, and a tidier bookmarks/dashboard.

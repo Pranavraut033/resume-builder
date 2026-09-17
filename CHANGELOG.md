@@ -2,6 +2,21 @@
 
 All notable changes to this project are documented in this file.
 
+## [1.20.0] - 2026-09-17
+
+### Added
+
+- Email job tracking: connect a Gmail account read-only, and recruiting emails are automatically classified and linked to the matching job ([6fae71f])
+- A build can bundle a default Google OAuth client so most users can connect Gmail with no per-user setup; Settings' OAuth Client panel becomes an optional override when one exists ([9f77980])
+- Privacy Policy and Terms of Service pages on the landing site, including a Google API Services User Data Policy / Limited Use disclosure for the Gmail integration ([9f77980])
+- An in-app "What's New" modal replaces the old CHANGELOG-on-GitHub link, shown once per version ([f9ab5cb])
+
+### Fixed
+
+- The email tracker's OAuth/Gmail/classification pipeline ran server-side and called client-only modules that don't exist in Node — connecting always failed silently. Moved the whole pipeline client-side (tokens live in encrypted key storage, never SQLite), per the server-is-database-only rule; also added PKCE + CSRF state, an ESLint import guard, and a boundary test ([cb46e85])
+- The OAuth callback page's checkmark rendered as mojibake in the browser due to a missing charset on the response ([9f77980])
+- MCP server startup on desktop no longer gets stuck behind a stale port from a prior crashed instance ([45c3ca8])
+
 ## [1.19.0] - 2026-09-10
 
 ### Added
