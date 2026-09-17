@@ -38,14 +38,13 @@ export { templateRegistry } from "./registry";
 
 // Convenience functions
 
-import { resolveTemplate } from "@pranavraut033/llm-core/prompts";
-
 import { resumePathLines } from "@/lib/resume/editor";
 import {
   resumeJsonToCompactPositional,
   jobDetailsToCompactPositional,
   documentAnalysisToCompactPositional,
 } from "@/types/resume";
+import { resolveTemplate } from "@pranavraut033/llm-core/prompts";
 
 import { resolveRegionGuidance } from "./regionGuidance";
 import { templateRegistry } from "./registry";

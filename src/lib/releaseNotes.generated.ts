@@ -12,6 +12,14 @@ export interface ReleaseNoteEntry {
 
 export const RELEASE_NOTES: ReleaseNoteEntry[] = [
   {
+    "version": "1.20.1",
+    "date": "2026-09-17",
+    "summary": "A small fix for the Connect Gmail flow.",
+    "bullets": [
+      "**Fixed: Connect Gmail no longer looks frozen.** The button now shows a loading state while waiting for you to finish signing in, and reloading or quitting mid-sign-in no longer silently abandons the connection attempt."
+    ]
+  },
+  {
     "version": "1.20.0",
     "date": "2026-09-17",
     "summary": "Email job tracking arrives — connect Gmail and let recruiting emails find their job automatically.",
