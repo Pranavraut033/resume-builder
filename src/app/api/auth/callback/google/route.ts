@@ -19,6 +19,7 @@ function page(title: string, body: string, status = 200): NextResponse {
     `<!DOCTYPE html>
     <html>
       <head>
+        <meta charset="utf-8" />
         <title>${title}</title>
         <style>
           body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; background: #0d1117; color: #fff; }
@@ -31,7 +32,7 @@ function page(title: string, body: string, status = 200): NextResponse {
         <div class="card">${body}</div>
       </body>
     </html>`,
-    { status, headers: { "Content-Type": "text/html" } }
+    { status, headers: { "Content-Type": "text/html; charset=utf-8" } }
   );
 }
 

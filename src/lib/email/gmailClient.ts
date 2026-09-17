@@ -10,12 +10,30 @@ export const GMAIL_SCOPES = [
   "https://www.googleapis.com/auth/userinfo.email",
 ].join(" ");
 
-// There is no bundled default: a Google OAuth client ID is tied to a
-// specific redirect URI and Google Cloud project, so it can't be shipped
-// generically. The user must provision their own — see docs/EMAIL_TRACKING.md
-// — and set it via Settings (or NEXT_PUBLIC_GOOGLE_CLIENT_ID at build time).
+// Official release builds bake in Udaan's own Google OAuth client (set as
+// NEXT_PUBLIC_GOOGLE_CLIENT_ID/_SECRET in the release workflow) so most
+// users can connect Gmail with no setup. A self-built/dev instance without
+// those env vars has none, and a user can always override with their own
+// client in Settings — see docs/EMAIL_TRACKING.md.
+//
+// ponytail: a "Web application" OAuth client's secret isn't meant to be
+// public, but it's inlined into the shipped client bundle like any
+// NEXT_PUBLIC_ var — extractable by anyone who downloads the app. Accepted
+// here the same way installed-app client secrets are treated by Google: it
+// only gates which app is asking, not what the user allows: readonly scope,
+// so a leaked secret can't do more than run the same gmail.readonly flow
+// with its own creds. Upgrade path if that ever stops being acceptable:
+// PKCE-only flow that drops the secret requirement (needs a Desktop-type
+// client instead of Web), or a thin token-exchange proxy.
 export const DEFAULT_GOOGLE_CLIENT_ID: string | null =
   process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || null;
+export const DEFAULT_GOOGLE_CLIENT_SECRET: string | null =
+  process.env.NEXT_PUBLIC_GOOGLE_CLIENT_SECRET || null;
+
+/** Whether this build has a bundled Google client — no per-user setup needed. */
+export function hasDefaultGoogleClient(): boolean {
+  return DEFAULT_GOOGLE_CLIENT_ID !== null;
+}
 
 /** Thrown by any flow step that needs a client ID and none is configured. */
 export class GoogleClientNotConfiguredError extends Error {
@@ -99,11 +117,16 @@ export async function getActiveClientId(): Promise<string | null> {
     : DEFAULT_GOOGLE_CLIENT_ID;
 }
 
+// The bundled default secret is only ever paired with the bundled default
+// client ID. If the user has set their own custom client ID, a blank secret
+// field means "this is a public/PKCE-only client" — it must NOT silently
+// fall back to Udaan's secret, which belongs to a different client entirely.
 export async function getActiveClientSecret(): Promise<string | null> {
+  const customId = await getApiKey(KEY_GOOGLE_CUSTOM_CLIENT_ID);
   const customSecret = await getApiKey(KEY_GOOGLE_CUSTOM_CLIENT_SECRET);
-  return customSecret && customSecret.trim().length > 0
-    ? customSecret.trim()
-    : null;
+  if (customSecret && customSecret.trim().length > 0) return customSecret.trim();
+  const hasCustomId = Boolean(customId && customId.trim().length > 0);
+  return hasCustomId ? null : DEFAULT_GOOGLE_CLIENT_SECRET;
 }
 
 export async function setCustomGoogleCredentials(

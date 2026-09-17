@@ -160,10 +160,16 @@ const resolvedOgImage = new URL(ogImage ?? `${base}og.png`, Astro.site).href;
         </nav>
       </div>
       <div class="border-t border-line px-5 py-5">
-        <p class="mx-auto max-w-6xl text-xs text-ink-muted">
-          Resume templates adapted from
-          <a href="https://github.com/Afif718/Resumify" rel="noopener" class="underline-offset-4 transition-colors hover:text-ink hover:underline">Resumify</a>.
-        </p>
+        <div class="mx-auto flex max-w-6xl flex-col gap-2 text-xs text-ink-muted sm:flex-row sm:items-center sm:justify-between">
+          <p>
+            Resume templates adapted from
+            <a href="https://github.com/Afif718/Resumify" rel="noopener" class="underline-offset-4 transition-colors hover:text-ink hover:underline">Resumify</a>.
+          </p>
+          <p class="flex gap-4">
+            <a href={`${base}privacy`} class="transition-colors hover:text-ink">Privacy Policy</a>
+            <a href={`${base}terms`} class="transition-colors hover:text-ink">Terms of Service</a>
+          </p>
+        </div>
       </div>
     </footer>
 

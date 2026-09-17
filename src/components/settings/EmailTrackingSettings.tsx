@@ -17,7 +17,9 @@ import { useToast } from "@/components/ui/ToastProvider";
 import { useEmailSync } from "@/hooks/useEmailSync";
 import { formatTimestamp } from "@/lib";
 import {
+  DEFAULT_GOOGLE_CLIENT_ID,
   getActiveClientId,
+  hasDefaultGoogleClient,
   setCustomGoogleCredentials,
 } from "@/lib/email/gmailClient";
 import { useModelStore } from "@/store/modelStore";
@@ -54,9 +56,16 @@ export function EmailTrackingSettings() {
 
   // Seed the editable field whenever the resolved client ID changes (e.g.
   // first load, or after a save) — not just once at mount, which would miss
-  // the async result entirely.
+  // the async result entirely. Leave it blank when the active id is just the
+  // bundled default (nothing custom to show) rather than pre-filling
+  // Udaan's own client ID into a "your custom client" field.
   useEffect(() => {
-    if (activeClientId !== undefined) setCustomClientId(activeClientId ?? "");
+    if (activeClientId === undefined) return;
+    setCustomClientId(
+      activeClientId && activeClientId !== DEFAULT_GOOGLE_CLIENT_ID
+        ? activeClientId
+        : ""
+    );
   }, [activeClientId]);
 
   // Build model options for selection
@@ -122,7 +131,9 @@ export function EmailTrackingSettings() {
           description={
             isConnected
               ? `Connected to ${status?.email}. Recruiting emails are automatically parsed and linked to jobs.`
-              : "Connect your Gmail with read-only permission. Requires a Google OAuth client you set up yourself — see below."
+              : hasDefaultGoogleClient()
+                ? "Connect your Gmail with read-only permission."
+                : "Connect your Gmail with read-only permission. Requires a Google OAuth client you set up yourself — see below."
           }
           control={
             <div className="flex items-center gap-3">
@@ -210,26 +221,47 @@ export function EmailTrackingSettings() {
           }
         />
 
-        {/* Google OAuth Client (required — there is no bundled default) */}
+        {/* Google OAuth Client — optional override when a bundled default exists */}
         <SettingsRow
-          label="Google OAuth Client"
+          label={
+            hasDefaultGoogleClient()
+              ? "Custom Google OAuth Client (Optional)"
+              : "Google OAuth Client"
+          }
           description={
-            <>
-              Required before connecting Gmail — there is no bundled client ID.
-              Create one in Google Cloud Console (Gmail API, OAuth consent
-              screen in Testing mode with yourself as a test user, Web
-              application credentials with the redirect URI below) and paste it
-              here.{" "}
-              <a
-                href={DOCS_URL}
-                target="_blank"
-                rel="noreferrer"
-                className="text-agent-primary underline"
-              >
-                Step-by-step guide
-              </a>
-              .
-            </>
+            hasDefaultGoogleClient() ? (
+              <>
+                Udaan ships with a working Google OAuth client, so this is
+                optional. Use your own instead (e.g. for a private/unlimited
+                quota) by creating one in Google Cloud Console — see the{" "}
+                <a
+                  href={DOCS_URL}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-agent-primary underline"
+                >
+                  step-by-step guide
+                </a>
+                .
+              </>
+            ) : (
+              <>
+                Required before connecting Gmail — there is no bundled client
+                ID. Create one in Google Cloud Console (Gmail API, OAuth
+                consent screen in Testing mode with yourself as a test user,
+                Web application credentials with the redirect URI below) and
+                paste it here.{" "}
+                <a
+                  href={DOCS_URL}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-agent-primary underline"
+                >
+                  Step-by-step guide
+                </a>
+                .
+              </>
+            )
           }
           control={<Toggle checked={showAdvanced} onChange={setShowAdvanced} />}
         />
