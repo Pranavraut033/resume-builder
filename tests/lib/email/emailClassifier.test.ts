@@ -10,6 +10,108 @@ vi.mock("@/store/modelStore", () => ({
   useModelStore: { getState: vi.fn() },
 }));
 
+describe("classifyEmailHeuristically — job alerts", () => {
+  it.each([
+    ["LinkedIn <jobalerts-noreply@linkedin.com>", "10 new jobs for you"],
+    ["Indeed <alert@indeed.com>", "React Developer: 5 new jobs in Berlin"],
+    ["StepStone <jobs@stepstone.de>", "Neue Jobs für Frontend Entwickler"],
+    ["Glassdoor <noreply@glassdoor.com>", "Jobs matching your search"],
+  ])("%s / '%s' → ALERT with no stage", (sender, subject) => {
+    const result = classifyEmailHeuristically({ sender, subject, snippet: "" });
+    expect(result.kind).toBe("ALERT");
+    expect(result.stage).toBeNull();
+    expect(result.actionRequired).toBe(false);
+    // 0.7 → trusted without an LLM call
+    expect(result.confidence).toBeGreaterThanOrEqual(0.7);
+  });
+
+  it("does not stage an alert whose subject says 'interview'", () => {
+    const result = classifyEmailHeuristically({
+      sender: "LinkedIn <jobalerts-noreply@linkedin.com>",
+      subject: "New jobs: Interview Coach at Acme",
+      snippet: "",
+    });
+    expect(result.kind).toBe("ALERT");
+    expect(result.stage).toBeNull();
+  });
+
+  it("keeps LinkedIn application-sent emails as APPLICATION", () => {
+    const result = classifyEmailHeuristically({
+      sender: "LinkedIn <jobs-noreply@linkedin.com>",
+      subject: "Pranav, your application was sent to Stripe",
+      snippet: "Your application was sent to Stripe",
+    });
+    expect(result.kind).toBe("APPLICATION");
+    expect(result.stage).toBe("APPLIED");
+  });
+});
+
+describe("classifyEmailHeuristically — LinkedIn relays", () => {
+  const applied = (company: string): EmailToClassify => ({
+    sender: "LinkedIn <jobs-noreply@linkedin.com>",
+    subject: `Pranav, your application was sent to ${company}`,
+    snippet: `Your application was sent to ${company}`,
+  });
+  const alert = (subject: string): EmailToClassify => ({
+    sender: "LinkedIn Job Alerts <jobalerts-noreply@linkedin.com>",
+    subject,
+    snippet: "Next steps: View job details and apply if interested",
+  });
+
+  it.each([
+    ["Jobgether", "Jobgether"],
+    ["FemTechConf®", "FemTechConf"],
+    ["SWAKIO™", "SWAKIO"],
+  ])("application sent to %s → company %s, APPLIED", (raw, company) => {
+    const result = classifyEmailHeuristically(applied(raw));
+
+    expect(result.companyName).toBe(company);
+    expect(result.stage).toBe("APPLIED");
+    expect(result.isRecruitingEmail).toBe(true);
+    // 0.7 means classifyEmail trusts it without an LLM call
+    expect(result.confidence).toBeGreaterThanOrEqual(0.7);
+  });
+
+  it.each([
+    [
+      "Working Student – Applied AI (all genders) at Boston Consulting Group (BCG)",
+      "Boston Consulting Group (BCG)",
+    ],
+    [
+      "2026 Applied Scientist Intern, Amazon University Talent Acquisition at Amazon",
+      "Amazon",
+    ],
+    [
+      "Student Service und Event Specialist Berlin (m/w/d) at IU International University of Applied Sciences",
+      "IU International University of Applied Sciences",
+    ],
+  ])("job alert subject '%s' → company %s", (subject, company) => {
+    expect(classifyEmailHeuristically(alert(subject)).companyName).toBe(
+      company
+    );
+  });
+
+  it("does not invent a company when the subject names none", () => {
+    const result = classifyEmailHeuristically({
+      sender: "LinkedIn <messages-noreply@linkedin.com>",
+      subject: "View Manisha Jain’s post and your next steps",
+      snippet: "Next steps: Explore and apply to job opportunities",
+    });
+
+    expect(result.companyName).toBeNull();
+  });
+
+  it("does not mistake a word ending in 'at' for the 'at <company>' marker", () => {
+    const result = classifyEmailHeuristically({
+      sender: "Format Lab <hello@formatlab.com>",
+      subject: "Your application",
+      snippet: "Thanks for applying",
+    });
+
+    expect(result.companyName).toBeNull();
+  });
+});
+
 describe("classifyEmailHeuristically", () => {
   it("detects interview invitation emails", () => {
     const email: EmailToClassify = {

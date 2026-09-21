@@ -305,9 +305,14 @@ model JobEmail {
   bodyText       String?   @map("body_text")
   receivedAt     DateTime  @map("received_at")
   stage          String?   // APPLIED, ASSESSMENT, INTERVIEW, OFFER, REJECTED, INFO
+  companyName    String?   @map("company_name") // Extracted from the email (senders like LinkedIn relay for the real employer)
+  role           String?
   confidence     Float?
   nextSteps      String?   @map("next_steps")
   actionRequired Boolean   @default(false) @map("action_required")
+  hiddenAt       DateTime? @map("hidden_at") // Non-null = hidden from /emails (view preference, mirrors Job.hiddenAt)
+  kind           String    @default("APPLICATION") // APPLICATION | ALERT (platform job-alert digest, feeds JobListing)
+  listings       JobListing[]
 
   jobId          Int?      @map("job_id")
   job            Job?      @relation(fields: [jobId], references: [id], onDelete: SetNull)
@@ -318,5 +323,25 @@ model JobEmail {
   @@index([companyId])
   @@index([receivedAt])
   @@map("job_emails")
+}
+
+// One posting pulled out of a job-alert digest (LinkedIn/Indeed/...). Deduped on the normalized url.
+model JobListing {
+  id          Int       @id @default(autoincrement())
+  createdAt   DateTime  @default(now()) @map("created_at")
+  title       String
+  companyName String?   @map("company_name")
+  location    String?
+  url         String    @unique // normalized, see src/lib/email/listingUrl.ts
+  source      String?   // linkedin | indeed | glassdoor | stepstone | xing | jobware | other
+  postedText  String?   @map("posted_text") // "2 days ago", verbatim from the digest
+  firstSeenAt DateTime  @map("first_seen_at")
+  hiddenAt    DateTime? @map("hidden_at") // Non-null = dismissed (view preference)
+  jobEmailId  Int       @map("job_email_id")
+  jobEmail    JobEmail  @relation(fields: [jobEmailId], references: [id], onDelete: Cascade)
+
+  @@index([firstSeenAt])
+  @@index([jobEmailId])
+  @@map("job_listings")
 }
 

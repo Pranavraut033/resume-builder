@@ -16,23 +16,30 @@
 import {
   ClassifiedEmailInput,
   filterNewMessageIds,
+  getMisfiledAlerts,
   getSyncCursor,
   persistClassifiedEmails,
+  promoteStoredAlerts,
 } from "@/actions/emailSync";
 import { queryClient } from "@/components/AppShell";
 import {
   fetchRecruitingEmails,
   getValidAccessToken,
+  JOB_ALERT_QUERY,
   GoogleReauthRequiredError,
 } from "@/lib/email/gmailClient";
+import { syncAfter } from "@/lib/email/syncWindow";
 import { classifyEmail } from "@/lib/llm/emailClassifier";
+import { extractJobListings } from "@/lib/llm/listingExtractor";
 import { createLogger } from "@/lib/logger";
+import {
+  describeSyncProgress,
+  useEmailSyncStore,
+  type SyncProgress,
+} from "@/store/emailSyncStore";
 import { useNotificationStore } from "@/store/notificationStore";
 
 const logger = createLogger("runEmailSync");
-
-const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
-const OVERLAP_MS = 5 * 60 * 1000;
 
 export type SyncStatus = "OK" | "NOT_CONNECTED" | "NEEDS_REAUTH" | "ERROR";
 
@@ -50,14 +57,47 @@ export function startEmailSync(manual = false): void {
   void runEmailSync(manual);
 }
 
-/** Runs a sync, or returns the already-running one if a sync is in flight. */
+/**
+ * Runs a sync, or joins the one already running. This is the single place
+ * `isSyncing` is set: true when a run starts, false in `finally` — so a throw,
+ * a NOT_CONNECTED bail-out or a reauth failure can never leave every button
+ * stuck on "Syncing…". A caller that joins a run doesn't start a second one
+ * (nor touch the flag); it just gets the same result.
+ */
 export function runEmailSync(manual = false): Promise<SyncResult> {
   if (inFlight) return inFlight;
+  useEmailSyncStore.setState({
+    isSyncing: true,
+    progress: { phase: "fetching", done: 0, total: 0 },
+  });
   const run = doRunEmailSync(manual).finally(() => {
     inFlight = null;
+    useEmailSyncStore.setState({ isSyncing: false, progress: null });
+    // Token state can change on any outcome (refreshed, or cleared on reauth).
+    void queryClient.invalidateQueries({ queryKey: ["emailSyncStatus"] });
+    void queryClient.invalidateQueries({ queryKey: ["gmailHasToken"] });
   });
   inFlight = run;
   return run;
+}
+
+/** Best-effort: converts digests stored before `kind` existed. Returns new listings. */
+async function promoteMisfiledAlerts(): Promise<number> {
+  try {
+    const stale = await getMisfiledAlerts();
+    if (stale.length === 0) return 0;
+    const items = [];
+    for (const email of stale) {
+      items.push({
+        emailId: email.id,
+        listings: await extractJobListings(email),
+      });
+    }
+    return (await promoteStoredAlerts(items)).listingsCreated;
+  } catch (err) {
+    logger.error("Converting stored job alerts failed", { err });
+    return 0;
+  }
 }
 
 async function doRunEmailSync(manual: boolean): Promise<SyncResult> {
@@ -100,6 +140,15 @@ async function doRunEmailSync(manual: boolean): Promise<SyncResult> {
       })
     : null;
 
+  // One place that says where the run is: the store feeds every Sync button,
+  // and a manual run's notification shows the same text.
+  const report = (progress: SyncProgress) => {
+    useEmailSyncStore.setState({ progress });
+    if (notificationId) {
+      update(notificationId, { description: describeSyncProgress(progress) });
+    }
+  };
+
   try {
     const cursor = await getSyncCursor();
     if (!cursor.accountId) {
@@ -110,13 +159,30 @@ async function doRunEmailSync(manual: boolean): Promise<SyncResult> {
       };
     }
 
-    const afterTimestamp = cursor.lastSyncedAt
-      ? new Date(new Date(cursor.lastSyncedAt).getTime() - OVERLAP_MS)
-      : new Date(Date.now() - THIRTY_DAYS_MS);
-
-    const messages = await fetchRecruitingEmails(accessToken, {
-      afterTimestamp,
+    // Both passes are floored at MAX_EMAIL_AGE_DAYS (see syncWindow.ts).
+    const applicationMessages = await fetchRecruitingEmails(accessToken, {
+      afterTimestamp: syncAfter(cursor.lastSyncedAt),
+      onProgress: (done, total) => report({ phase: "fetching", done, total }),
     });
+    // Best-effort: a failed digest pass must not lose the application emails.
+    const alertMessages = await fetchRecruitingEmails(accessToken, {
+      query: JOB_ALERT_QUERY,
+      maxResults: 150,
+      // Own cursor: lastSyncedAt would skip every alert older than this feature.
+      afterTimestamp: syncAfter(cursor.alertsAfter),
+      longBody: true,
+      onProgress: (done, total) => report({ phase: "fetching", done, total }),
+    }).catch((err) => {
+      logger.error("Job alert fetch failed, continuing without digests", {
+        err,
+      });
+      return [];
+    });
+    const seenIds = new Set<string>();
+    // Alert pass first: on a collision its copy has the longer body.
+    const messages = [...alertMessages, ...applicationMessages].filter((m) =>
+      seenIds.has(m.messageId) ? false : (seenIds.add(m.messageId), true)
+    );
     const newIds = new Set(
       await filterNewMessageIds(messages.map((m) => m.messageId))
     );
@@ -125,11 +191,7 @@ async function doRunEmailSync(manual: boolean): Promise<SyncResult> {
     const rows: ClassifiedEmailInput[] = [];
     for (let i = 0; i < newMessages.length; i++) {
       const msg = newMessages[i];
-      if (notificationId) {
-        update(notificationId, {
-          description: `Classifying email ${i + 1}/${newMessages.length}`,
-        });
-      }
+      report({ phase: "classifying", done: i + 1, total: newMessages.length });
       try {
         const classification = await classifyEmail({
           sender: msg.sender,
@@ -140,6 +202,10 @@ async function doRunEmailSync(manual: boolean): Promise<SyncResult> {
           date: msg.date,
         });
         if (!classification.isRecruitingEmail) continue;
+        const listings =
+          classification.kind === "ALERT"
+            ? await extractJobListings(msg)
+            : undefined;
         rows.push({
           messageId: msg.messageId,
           threadId: msg.threadId,
@@ -150,6 +216,7 @@ async function doRunEmailSync(manual: boolean): Promise<SyncResult> {
           bodyText: msg.bodyText,
           receivedAt: msg.date.toISOString(),
           classification,
+          listings,
         });
       } catch (err) {
         // One bad message must not abort the run — skip it and keep going.
@@ -160,16 +227,19 @@ async function doRunEmailSync(manual: boolean): Promise<SyncResult> {
       }
     }
 
+    report({ phase: "saving", done: 0, total: 0 });
     const result = await persistClassifiedEmails(cursor.accountId, rows);
+    // After the alert fetch: alertsAfter above was read before these rows became ALERTs.
+    result.listingsCreated += await promoteMisfiledAlerts();
 
-    void queryClient.invalidateQueries({ queryKey: ["emailSyncStatus"] });
     void queryClient.invalidateQueries({ queryKey: ["jobs"] });
     void queryClient.invalidateQueries({ queryKey: ["jobEmails"] });
+    void queryClient.invalidateQueries({ queryKey: ["jobListings"] });
 
     if (notificationId) {
       update(notificationId, {
         title: "Email sync complete",
-        description: `${result.created} new email${result.created === 1 ? "" : "s"}, ${result.matchedJobIds.length} job${result.matchedJobIds.length === 1 ? "" : "s"} updated`,
+        description: `${result.created} new email${result.created === 1 ? "" : "s"}, ${result.matchedJobIds.length} job${result.matchedJobIds.length === 1 ? "" : "s"} updated${result.listingsCreated > 0 ? `, ${result.listingsCreated} new listing${result.listingsCreated === 1 ? "" : "s"}` : ""}`,
         status: "success",
       });
     }

@@ -20,6 +20,7 @@ describe("matchEmailToJob", () => {
         snippet: "We would like to speak with you.",
       },
       {
+        kind: "APPLICATION",
         isRecruitingEmail: true,
         companyName: "Stripe",
         role: "Frontend Engineer",
@@ -54,6 +55,7 @@ describe("matchEmailToJob", () => {
         snippet: "Thanks for checking in.",
       },
       {
+        kind: "APPLICATION",
         isRecruitingEmail: true,
         companyName: null,
         role: "Backend Engineer",
@@ -87,6 +89,7 @@ describe("matchEmailToJob", () => {
         snippet: "Hello there",
       },
       {
+        kind: "APPLICATION",
         isRecruitingEmail: true,
         companyName: "Unknown Startup",
         role: "Account Executive",
@@ -105,6 +108,7 @@ describe("matchEmailToJob", () => {
     const match = matchEmailToJob(
       { sender: "a@b.com", subject: "x", snippet: "y" },
       {
+        kind: "APPLICATION",
         isRecruitingEmail: true,
         companyName: "Anything",
         role: null,

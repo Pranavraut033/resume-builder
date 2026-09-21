@@ -1,5 +1,6 @@
 "use client";
 
+import { shortenUrls } from "@/lib/email/listingUrl";
 import { getApiKey, setApiKey, deleteApiKey } from "@/lib/keyStorage";
 import { createLogger } from "@/lib/logger";
 
@@ -374,6 +375,12 @@ function extractTextFromBody(part: GmailMessagePart): string {
 // pull hundreds of messages through per-message LLM classification.
 const MAX_MESSAGES_PER_SYNC = 250;
 const LIST_PAGE_SIZE = 100;
+const BODY_LIMIT = 4000;
+// A 10-posting digest overflows the normal cap before the later postings appear.
+const ALERT_BODY_LIMIT = 12000;
+
+// Separate pass from the application query — see jobAlert.ts.
+export { JOB_ALERT_QUERY } from "@/lib/email/jobAlert";
 
 export async function fetchRecruitingEmails(
   accessToken: string,
@@ -381,6 +388,10 @@ export async function fetchRecruitingEmails(
     query?: string;
     maxResults?: number;
     afterTimestamp?: Date | null;
+    /** Keep more of each body — for digests that list many postings. */
+    longBody?: boolean;
+    /** Called with (current, total) as each message body starts downloading. */
+    onProgress?: (done: number, total: number) => void;
   } = {}
 ): Promise<ParsedEmailMessage[]> {
   const defaultQuery =
@@ -426,7 +437,8 @@ export async function fetchRecruitingEmails(
   const parsedEmails: ParsedEmailMessage[] = [];
 
   // Fetch full details for each message in batches of 5 to respect rate limits
-  for (const item of rawList) {
+  for (const [index, item] of rawList.entries()) {
+    options.onProgress?.(index + 1, rawList.length);
     try {
       const msgUrl = `https://gmail.googleapis.com/gmail/v1/users/me/messages/${item.id}?format=full`;
       const msgResp = await fetch(msgUrl, {
@@ -472,7 +484,12 @@ export async function fetchRecruitingEmails(
         recipient,
         subject,
         snippet: msg.snippet || "",
-        bodyText: bodyText.slice(0, 4000), // Limit body text length for prompt context
+        // Limit body text length for prompt context. Digest bodies drop their
+        // tracking params first so the cap covers many postings, not one.
+        bodyText: (options.longBody ? shortenUrls(bodyText) : bodyText).slice(
+          0,
+          options.longBody ? ALERT_BODY_LIMIT : BODY_LIMIT
+        ),
         date: isNaN(date.getTime()) ? new Date() : date,
       });
     } catch (err) {

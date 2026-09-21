@@ -2,6 +2,8 @@
 
 import { z } from "zod";
 
+import { extractCompanyName } from "@/lib/email/companyName";
+import { isJobAlert } from "@/lib/email/jobAlert";
 import { getProviderInstance } from "@/lib/llm/providers/factory";
 import { createLogger } from "@/lib/logger";
 import { useModelStore } from "@/store/modelStore";
@@ -10,6 +12,11 @@ import { LLMGenerationOptions } from "@/types/llm";
 const logger = createLogger("EmailClassifier");
 
 export const EmailClassificationSchema = z.object({
+  kind: z
+    .enum(["APPLICATION", "ALERT"])
+    .describe(
+      "ALERT = a job-board digest or recommendation (LinkedIn/Indeed/StepStone job alerts, 'jobs for you') listing postings the user has NOT applied to. APPLICATION = correspondence about a specific application."
+    ),
   isRecruitingEmail: z
     .boolean()
     .describe(
@@ -70,6 +77,21 @@ export function classifyEmailHeuristically(
   const body = (email.bodyText || email.snippet).toLowerCase();
   const sender = email.sender.toLowerCase();
 
+  if (isJobAlert(email)) {
+    return {
+      kind: "ALERT",
+      isRecruitingEmail: true,
+      // Single-job alerts ("Role at Company") still name the employer.
+      companyName: extractCompanyName(email),
+      role: null,
+      stage: null,
+      // At the escalation threshold, so a digest never costs an LLM call.
+      confidence: 0.7,
+      nextSteps: null,
+      actionRequired: false,
+    };
+  }
+
   const isATS =
     sender.includes("greenhouse") ||
     sender.includes("lever.co") ||
@@ -123,6 +145,7 @@ export function classifyEmailHeuristically(
     "application received",
     "received your application",
     "application confirmation",
+    "your application was sent to",
     "thanks for your interest",
   ];
 
@@ -159,14 +182,10 @@ export function classifyEmailHeuristically(
     stage = "APPLIED";
   }
 
-  // Attempt to extract company name from sender display name: "Recruiting at Figma <...>"
-  let companyName: string | null = null;
-  const matchAt = email.sender.match(/at\s+([A-Za-z0-9\s]+?)(?:<|$|\()/i);
-  if (matchAt && matchAt[1]) {
-    companyName = matchAt[1].trim();
-  }
+  const companyName = extractCompanyName(email);
 
   return {
+    kind: "APPLICATION",
     isRecruitingEmail: isRecruiting,
     companyName,
     role: null,
@@ -220,7 +239,7 @@ export async function classifyEmail(
     const systemPrompt = `You are an AI assistant that inspects emails to identify recruiting and job application correspondence.
 Analyze the email metadata and content to extract structured details about:
 1. Whether this is an email from a company, recruiter, or ATS regarding a job application.
-2. The company name and job title/role.
+2. The company name and job title/role. The sender may be a platform (LinkedIn, Indeed, an ATS) rather than the employer — take the hiring company from the subject/body, never the platform itself.
 3. The current stage:
    - "APPLIED": Application confirmation / received.
    - "ASSESSMENT": Coding test, take-home challenge, quiz, or automated assessment.
@@ -229,6 +248,7 @@ Analyze the email metadata and content to extract structured details about:
    - "REJECTED": Notification that the company is not moving forward.
    - "INFO": General update, recruiter outreach, or status inquiry.
 4. Next steps and whether applicant action is required.
+5. "kind": "ALERT" for a job-board digest or recommendation (LinkedIn/Indeed/StepStone "jobs for you", saved-search alerts) listing postings the applicant has NOT applied to — for these set stage to null and actionRequired to false. "APPLICATION" for anything about a specific application the applicant made or a recruiter reaching out about one.
 
 Return strictly conforming JSON matching the schema.`;
 

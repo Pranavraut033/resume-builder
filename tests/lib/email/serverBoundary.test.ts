@@ -20,7 +20,13 @@ vi.mock("@/lib/prisma", () => ({
     jobEmail: {
       count: vi.fn().mockResolvedValue(0),
       findMany: vi.fn().mockResolvedValue([]),
+      findFirst: vi.fn().mockResolvedValue(null),
       create: vi.fn().mockResolvedValue({}),
+    },
+    jobListing: {
+      count: vi.fn().mockResolvedValue(0),
+      findMany: vi.fn().mockResolvedValue([]),
+      createMany: vi.fn().mockResolvedValue({ count: 0 }),
     },
     job: {
       findMany: vi.fn().mockResolvedValue([]),
@@ -45,6 +51,12 @@ describe("emailSync server surface (node environment, no window)", () => {
     await expect(actions.consumeAuthCode("some-state")).resolves.toBeDefined();
     await expect(actions.wipeLegacyPlaintextTokens()).resolves.toBeUndefined();
     await expect(actions.persistClassifiedEmails(1, [])).resolves.toBeDefined();
+    await expect(actions.getJobListings()).resolves.toEqual([]);
+    await expect(actions.getMisfiledAlerts()).resolves.toEqual([]);
+    await expect(actions.promoteStoredAlerts([])).resolves.toEqual({
+      promoted: 0,
+      listingsCreated: 0,
+    });
   });
 
   it("imports the OAuth callback route without a browser global", async () => {
