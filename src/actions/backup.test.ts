@@ -46,6 +46,7 @@ async function wipeAllTables() {
   await prisma.coverLetter.deleteMany();
   await prisma.resume.deleteMany();
   await prisma.aTSAnalysis.deleteMany();
+  await prisma.fitCheck.deleteMany();
   await prisma.customization.deleteMany();
   await prisma.contact.deleteMany();
   await prisma.company.deleteMany();
@@ -147,6 +148,80 @@ describe("backup export/import", () => {
     expect(restoredJob?.companyId).toBe(company.id);
     expect(restoredJob?.resumeId).toBe(resume.id);
     expect(restoredJob?.profileId).toBe(profile.id);
+  });
+
+  async function seedJobWithFitCheck() {
+    const customization = await prisma.customization.create({
+      data: {
+        template: "modern-minimal",
+        fontSize: "medium",
+        pageFormat: "Letter",
+        fontFamily: "Inter",
+        lineHeight: "normal",
+        marginSize: "1,1,1,1",
+      },
+    });
+    const fitCheck = await prisma.fitCheck.create({
+      data: { contentJson: JSON.stringify({ level: "strong" }) },
+    });
+    const resume = await prisma.resume.create({
+      data: {
+        contentJson: "{}",
+        customizationId: customization.id,
+        fitCheckId: fitCheck.id,
+      },
+    });
+    const bookmarkFit = await prisma.fitCheck.create({
+      data: { contentJson: JSON.stringify({ level: "weak" }) },
+    });
+    const company = await prisma.company.create({ data: { name: "Acme" } });
+    const job = await prisma.job.create({
+      data: {
+        role: "Engineer",
+        description: "d",
+        jobDetailsJson: "{}",
+        companyId: company.id,
+        resumeId: resume.id,
+        fitCheckId: bookmarkFit.id,
+      },
+    });
+    return { fitCheck, bookmarkFit, resume, job };
+  }
+
+  it("round-trips FitCheck rows referenced by jobs and resumes", async () => {
+    const { fitCheck, bookmarkFit, resume, job } = await seedJobWithFitCheck();
+
+    const backup = JSON.parse(JSON.stringify(await exportAppData()));
+    expect(backup.data.fitChecks).toHaveLength(2);
+
+    await wipeAllTables();
+    expect(await importAppData(backup)).toEqual({ success: true });
+
+    expect(await prisma.fitCheck.count()).toBe(2);
+    expect(
+      (await prisma.resume.findUnique({ where: { id: resume.id } }))?.fitCheckId
+    ).toBe(fitCheck.id);
+    expect(
+      (await prisma.job.findUnique({ where: { id: job.id } }))?.fitCheckId
+    ).toBe(bookmarkFit.id);
+  });
+
+  it("restores a legacy backup with no fitChecks by nulling dangling fitCheckId FKs", async () => {
+    const { resume, job } = await seedJobWithFitCheck();
+
+    const backup = JSON.parse(JSON.stringify(await exportAppData()));
+    delete backup.data.fitChecks; // legacy shape: FKs present, table absent
+
+    await wipeAllTables();
+    expect(await importAppData(backup)).toEqual({ success: true });
+
+    expect(await prisma.fitCheck.count()).toBe(0);
+    expect(
+      (await prisma.resume.findUnique({ where: { id: resume.id } }))?.fitCheckId
+    ).toBeNull();
+    expect(
+      (await prisma.job.findUnique({ where: { id: job.id } }))?.fitCheckId
+    ).toBeNull();
   });
 
   it("rejects an invalid backup payload without deleting existing data", async () => {

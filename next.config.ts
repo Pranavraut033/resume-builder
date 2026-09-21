@@ -81,6 +81,9 @@ const nextConfig: NextConfig = {
     // this size (WYSIWYG + PDF + TXT render engines). Cap it so it evicts
     // instead of growing to 8-9GB+.
     turbopackMemoryLimit: 2 * 1024 * 1024 * 1024,
+    // Settings → Restore sends the whole backup JSON as one Server Action
+    // argument; a real backup is several MB, well past the 1MB default.
+    serverActions: { bodySizeLimit: "50mb" },
   },
   typescript: {
     // `npm run type-check` already gates every push/PR via

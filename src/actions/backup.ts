@@ -6,6 +6,7 @@ import {
   Contact,
   CoverLetter,
   Customization,
+  FitCheck,
   Job,
   Profile,
   Resume,
@@ -24,6 +25,8 @@ export type AppDataBackup = {
     contacts: Contact[];
     customizations: Customization[];
     atsAnalyses: ATSAnalysis[];
+    /** Absent in older backups that predate FitCheck coverage — see importAppData. */
+    fitChecks?: FitCheck[];
     resumes: Resume[];
     coverLetters: CoverLetter[];
     jobs: Job[];
@@ -44,6 +47,7 @@ export async function exportAppData(): Promise<AppDataBackup> {
     contacts,
     customizations,
     atsAnalyses,
+    fitChecks,
     resumes,
     coverLetters,
     jobs,
@@ -55,6 +59,7 @@ export async function exportAppData(): Promise<AppDataBackup> {
     prisma.contact.findMany(),
     prisma.customization.findMany(),
     prisma.aTSAnalysis.findMany(),
+    prisma.fitCheck.findMany(),
     prisma.resume.findMany(),
     prisma.coverLetter.findMany(),
     prisma.job.findMany(),
@@ -71,6 +76,7 @@ export async function exportAppData(): Promise<AppDataBackup> {
       contacts,
       customizations,
       atsAnalyses,
+      fitChecks,
       resumes,
       coverLetters,
       jobs,
@@ -122,6 +128,9 @@ function validateBackupShape(backup: unknown): string | null {
   return null;
 }
 
+// Re-inserting a multi-MB backup can outlast Prisma's 5s interactive-transaction default.
+const TX_OPTIONS = { timeout: 60_000, maxWait: 10_000 };
+
 /**
  * Replace ALL data in the database with the contents of the given backup.
  * Wipes every table and re-inserts the backup's rows (preserving ids so
@@ -139,6 +148,17 @@ export async function importAppData(
 
   const { data } = backup as AppDataBackup;
 
+  // Backups made before FitCheck was covered still carry fitCheckId FKs whose
+  // targets aren't in the file; null them (fit checks can be re-run) rather
+  // than fail the whole restore on an FK violation.
+  const hasFitChecks = Array.isArray(data.fitChecks);
+  const resumes = hasFitChecks
+    ? data.resumes
+    : data.resumes.map((r) => ({ ...r, fitCheckId: null }));
+  const jobs = hasFitChecks
+    ? data.jobs
+    : data.jobs.map((j) => ({ ...j, fitCheckId: null }));
+
   try {
     await prisma.$transaction(async (tx) => {
       // Delete in reverse FK order (children first)
@@ -148,6 +168,7 @@ export async function importAppData(
       await tx.coverLetter.deleteMany();
       await tx.resume.deleteMany();
       await tx.aTSAnalysis.deleteMany();
+      await tx.fitCheck.deleteMany();
       await tx.customization.deleteMany();
       await tx.contact.deleteMany();
       await tx.company.deleteMany();
@@ -169,14 +190,17 @@ export async function importAppData(
       if (data.atsAnalyses.length) {
         await tx.aTSAnalysis.createMany({ data: data.atsAnalyses });
       }
-      if (data.resumes.length) {
-        await tx.resume.createMany({ data: data.resumes });
+      if (data.fitChecks?.length) {
+        await tx.fitCheck.createMany({ data: data.fitChecks });
+      }
+      if (resumes.length) {
+        await tx.resume.createMany({ data: resumes });
       }
       if (data.coverLetters.length) {
         await tx.coverLetter.createMany({ data: data.coverLetters });
       }
-      if (data.jobs.length) {
-        await tx.job.createMany({ data: data.jobs });
+      if (jobs.length) {
+        await tx.job.createMany({ data: jobs });
       }
       if (data.resumeSnapshots.length) {
         await tx.resumeSnapshot.createMany({ data: data.resumeSnapshots });
@@ -184,7 +208,7 @@ export async function importAppData(
       if (data.tokenUsage.length) {
         await tx.tokenUsage.createMany({ data: data.tokenUsage });
       }
-    });
+    }, TX_OPTIONS);
 
     return { success: true };
   } catch (err) {
