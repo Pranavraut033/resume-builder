@@ -121,6 +121,25 @@ touching the live install/DB:
   read, never rotated, when one already exists. Port 3009 is hardcoded (`lib.rs`), so canary and stable
   can't run at the same time.
 
+## Deep link (OAuth success page → app)
+
+`tauri-plugin-deep-link` registers one URL scheme per build — `udaan` (`tauri.conf.json`) and `udaan-canary`
+(`canary.conf.json`), under `plugins.deep-link.desktop.schemes` — so the Gmail OAuth success page, which
+lives in the _system browser_, can launch the app. There is deliberately **no handler**: opening the URL
+just foregrounds the app, and the running app already picks up the sign-in by polling; it also raises its own
+window (`core:window:allow-set-focus`/`allow-unminimize` in `capabilities/default.json`) once the code arrives.
+
+- The page can't see which build started the flow, so `connectGmail.ts` tags the OAuth `state`
+  (`udaan~<random>` / `web~<random>`, `src/lib/email/appLink.ts`) and the route resolves it against an
+  allow-list — never echoing the raw value. The bundle-identifier → scheme map in `appLink.ts` must match the
+  two conf files.
+- **Not registered under `tauri dev` on macOS** — the scheme lives in the bundled app's `Info.plist`, so test
+  it in a built/installed app. Windows/Linux register at install.
+- **`tauri-plugin-single-instance` is intentionally absent.** Without it, on Windows/Linux the launch spawns a
+  second process (which loses the port-3009 race and exits, per the section above) instead of focusing the
+  first — the in-app focus covers that. Don't add it without testing the updater's restart path end to end:
+  `restart()` starts the new process while the old one still holds the single-instance lock.
+
 ## Rust sources (`src-tauri/src/`)
 
 | File            | Purpose                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
