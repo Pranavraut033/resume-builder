@@ -25,6 +25,8 @@
     "core:window:allow-create",
     "core:window:allow-hide",
     "core:window:allow-show",
+    "core:window:allow-set-focus",
+    "core:window:allow-unminimize",
     "fs:allow-appdata-read-recursive",
     "fs:allow-appdata-read",
     "fs:allow-appdata-write-recursive",

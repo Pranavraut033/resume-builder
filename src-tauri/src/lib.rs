@@ -311,6 +311,12 @@ pub fn run() {
         .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_process::init())
         .plugin(tauri_plugin_opener::init())
+        // Registers this build's URL scheme (tauri.conf.json / canary.conf.json
+        // `plugins.deep-link`) so the OAuth success page's "Open Udaan"
+        // button can launch the app. No handler on purpose: opening the URL
+        // just brings the app forward, and the running app already picks up
+        // the sign-in by polling — see src/lib/email/connectGmail.ts.
+        .plugin(tauri_plugin_deep_link::init())
         // Captures tauri-plugin-updater's own log::debug!/error! output (e.g.
         // "app installation needs admin privileges", install IO errors) which
         // was previously going nowhere — see the Finished-vs-installed trap

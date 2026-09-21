@@ -3,6 +3,11 @@
   "productName": "Udaan Canary",
   "identifier": "com.resumebuilder.canary",
   "plugins": {
+    "deep-link": {
+      "desktop": {
+        "schemes": ["udaan-canary"]
+      }
+    },
     "updater": {
       "endpoints": [
         "https://github.com/Pranavraut033/resume-builder/releases/download/canary/update.json"

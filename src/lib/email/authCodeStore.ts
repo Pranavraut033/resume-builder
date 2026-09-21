@@ -21,7 +21,15 @@ interface StashedCode {
 }
 
 const TTL_MS = 5 * 60 * 1000;
-const codesByState = new Map<string, StashedCode>();
+
+// Next bundles the callback route and the `consumeAuthCode` server action
+// separately, so each gets its own copy of this module — a plain module-level
+// Map would be two different Maps and the code would never arrive. Pinning it
+// on globalThis (same trick as src/lib/prisma.ts) makes every copy share one.
+const globalForStore = globalThis as unknown as {
+  __udaanAuthCodes?: Map<string, StashedCode>;
+};
+const codesByState = (globalForStore.__udaanAuthCodes ??= new Map());
 
 function purgeExpired(): void {
   const now = Date.now();
