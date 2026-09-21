@@ -56,16 +56,22 @@ Never store a key anywhere else, never put one in SQLite, and never include one 
 
 ## Operation layer
 
-| File                             | Purpose                                                                                                                                                                                                 |
-| -------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `src/lib/llm/domainOps.ts`       | Free functions per resume-domain operation: parsing, tailoring, ATS analysis (incl. knockout-risk and title-alignment), humanizer, proofreading, gap analysis. Provider-agnostic.                       |
-| `src/lib/llm/llmService.ts`      | High-level entry points built on `domainOps`: `parseJobDescription()`, `generateResume()`, `generateCoverLetter()`, ATS analysis, `humanizeContent()`, resume proofreading.                             |
-| `src/lib/llm/clientLLM.ts`       | Client-side call plumbing.                                                                                                                                                                              |
-| `src/lib/llm/atsLLMClient.ts`    | ATS-specific client wrapper.                                                                                                                                                                            |
-| `src/lib/llm/verifiedResume.ts`  | Post-generation verification pass (`verifiedResume.test.ts`).                                                                                                                                           |
-| `src/lib/llm/ResumeHistory.ts`   | In-memory resume undo/redo history backing the chat `undo` intent.                                                                                                                                      |
-| `src/lib/llm/tokenTracker.ts`    | Records usage per call, persisted through the `tokenUsage` server action. Understands cache-read/cache-creation and reasoning tokens per provider (see `TokenUsage` in [data-layer.md](data-layer.md)). |
-| `src/lib/llm/emailClassifier.ts` | Client-side classification of a synced email into `EmailClassificationSchema` (recruiting email? company, stage, etc.) for the email tracker — see `JobEmail` in [data-layer.md](data-layer.md).        |
+| File                              | Purpose                                                                                                                                                                                                                                                                                       |
+| --------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `src/lib/llm/domainOps.ts`        | Free functions per resume-domain operation: parsing, tailoring, ATS analysis (incl. knockout-risk and title-alignment), humanizer, proofreading, gap analysis. Provider-agnostic.                                                                                                             |
+| `src/lib/llm/llmService.ts`       | High-level entry points built on `domainOps`: `parseJobDescription()`, `generateResume()`, `generateCoverLetter()`, ATS analysis, `humanizeContent()`, resume proofreading.                                                                                                                   |
+| `src/lib/llm/clientLLM.ts`        | Client-side call plumbing.                                                                                                                                                                                                                                                                    |
+| `src/lib/llm/atsLLMClient.ts`     | ATS-specific client wrapper.                                                                                                                                                                                                                                                                  |
+| `src/lib/llm/verifiedResume.ts`   | Post-generation verification pass (`verifiedResume.test.ts`).                                                                                                                                                                                                                                 |
+| `src/lib/llm/ResumeHistory.ts`    | In-memory resume undo/redo history backing the chat `undo` intent.                                                                                                                                                                                                                            |
+| `src/lib/llm/tokenTracker.ts`     | Records usage per call, persisted through the `tokenUsage` server action. Understands cache-read/cache-creation and reasoning tokens per provider (see `TokenUsage` in [data-layer.md](data-layer.md)).                                                                                       |
+| `src/lib/llm/emailClassifier.ts`  | Client-side classification of a synced email into `EmailClassificationSchema` (recruiting email? company, stage, etc.) for the email tracker — see `JobEmail` in [data-layer.md](data-layer.md).                                                                                              |
+| `src/lib/llm/listingExtractor.ts` | Client-side extraction of the individual postings from a job-alert digest email (LinkedIn/Indeed/…) into `JobListing` rows; regex fallback when no model is configured or it returns nothing — see [data-layer.md](data-layer.md) and [docs/EMAIL_TRACKING.md](../../docs/EMAIL_TRACKING.md). |
+
+**Email AI model.** The email classifier and listing extractor both call `useModelStore.getState().getEmailModelPair()`
+(`src/store/modelStore.ts`), which returns the dedicated `emailModelPair` if set and otherwise the app-wide
+`activeModelPair`. It is edited via `ModelSelector scope="email"`; picking one never touches the primary model, and
+`setEmailModel(null, null)` resets it to inherit.
 
 ## Prompts (`src/lib/llm/prompts/`)
 

@@ -119,4 +119,4 @@ own file when it has tools or a model the main thread lacks.
   feature on the `feature/mock-interview` branch. Not wired in on `main`; see
   [`.claude/knowledge/llm-runtime.md`](.claude/knowledge/llm-runtime.md).
 
-<!-- last-sync-docs: 951d0d71274f0f8ccc4c5cfc902afcdf14acc209 -->
+<!-- last-sync-docs: d0f288ea9bbced3c7777a8bf4c0f9aebe7877a24 -->
