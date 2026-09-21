@@ -2,6 +2,25 @@
 
 All notable changes to this project are documented in this file.
 
+## [1.21.0] - 2026-09-21
+
+### Added
+
+- An Emails page listing every tracked email with stage, company and role, filters, hide/unhide, and manual linking to a job; email sync now also runs in the background on a schedule with progress shown in the Sync button ([bc0a92a])
+- A Job Opportunities page: job-alert digests (LinkedIn, Indeed, Glassdoor, StepStone, Xing, …) are split into individual postings with source, location and posted date, deduplicated by normalized URL, filterable, and dismissible ([0c70923], [bc0a92a])
+- Email classification now extracts the real employer and role (relayed mail such as LinkedIn no longer shows the platform as the company) ([0c70923])
+- A dedicated Email AI Model setting, so classification and posting extraction can use a cheaper model than the primary one; it inherits the primary model until chosen ([332d824])
+- After Gmail sign-in the success page counts down and launches back into the right app build (stable or canary) through a `udaan://` / `udaan-canary://` deep link, and the app window is raised once the code arrives ([50691bb])
+
+### Fixed
+
+- Backup and restore now include Fit Checks; restoring an older backup without them no longer fails on foreign keys, and multi-MB restores no longer hit the 5s transaction or 1MB Server Action body limits ([9b05dbb])
+- The OAuth authorization-code store was duplicated across Next's separate route and server-action bundles, so the code could never be picked up; it is now shared through `globalThis` ([50691bb])
+
+### Changed
+
+- Navigation gains Emails and Job Opportunities; the Find Jobs and Builder entries are hidden from the sidebar ([bc0a92a])
+
 ## [1.20.1] - 2026-09-17
 
 ### Fixed
