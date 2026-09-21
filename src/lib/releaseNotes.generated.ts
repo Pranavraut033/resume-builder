@@ -12,6 +12,21 @@ export interface ReleaseNoteEntry {
 
 export const RELEASE_NOTES: ReleaseNoteEntry[] = [
   {
+    "version": "1.21.0",
+    "date": "2026-09-21",
+    "summary": "Your inbox becomes a job pipeline: a dedicated Emails page, plus a Job Opportunities page built from your job-alert digests.",
+    "bullets": [
+      "**New: an Emails page.** Every tracked email in one place with its stage, company and role. Filter, hide what you don't need, and link an email to a job by hand when auto-matching missed it. Syncing now also runs in the background, and the Sync button shows its progress.",
+      "**New: a Job Opportunities page.** Job-alert digests from LinkedIn, Indeed, Glassdoor, StepStone, Xing and others are split into individual postings, with duplicates removed. Filter by source or location and dismiss the ones you don't want.",
+      "**Better: the right company and role.** Emails relayed through LinkedIn and similar senders now show the real employer, not the platform.",
+      "**New: pick a separate AI model for email.** Use a cheaper model for classification and reading alerts. It follows your main model until you choose one.",
+      "**Better: sign-in returns you to Udaan.** After Google sign-in the browser page counts down and opens the app for you.",
+      "**Fixed: backup and restore.** Fit Checks are now part of the backup, older backups restore cleanly, and large backups no longer fail partway through.",
+      "**Fixed: a sign-in code could get lost** between two parts of the app, so connecting Gmail hung until it timed out.",
+      "**Changed:** the sidebar now lists Emails and Job Opportunities; the Find Jobs and Builder shortcuts are hidden."
+    ]
+  },
+  {
     "version": "1.20.1",
     "date": "2026-09-17",
     "summary": "A small fix for the Connect Gmail flow.",
