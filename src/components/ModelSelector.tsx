@@ -42,6 +42,12 @@ interface ModelSelectorProps {
   label?: string;
   className?: string;
   variant?: "normal" | "compact" | "minimal";
+  /**
+   * Which model this picks. "primary" (default) is the app-wide model.
+   * "email" is the dedicated Email AI Model (`emailModelPair`): it falls back
+   * to the primary model when unset, and picking one never touches the primary.
+   */
+  scope?: "primary" | "email";
 }
 
 export function ModelSelector({
@@ -49,11 +55,14 @@ export function ModelSelector({
   label = "Select Model",
   className = "",
   variant = "normal",
+  scope = "primary",
 }: ModelSelectorProps) {
   const {
     selectedModelsByProvider,
     activeModelPair,
+    emailModelPair,
     setSelectedModel,
+    setEmailModel,
     getReasoningEffort,
     setReasoningEffort,
     getTemperature,
@@ -63,6 +72,14 @@ export function ModelSelector({
   } = useModelStore();
 
   const [isOpen, setIsOpen] = useState(false);
+
+  const isEmail = scope === "email";
+  // Email scope shows the inherited primary model until one is chosen.
+  const chosenPair = isEmail ? emailModelPair : activeModelPair;
+  const shownPair = isEmail
+    ? (emailModelPair ?? activeModelPair)
+    : activeModelPair;
+  const isInherited = isEmail && !emailModelPair;
 
   const activeReasoningEffort = activeModelPair
     ? getReasoningEffort(activeModelPair[0], activeModelPair[1])
@@ -98,15 +115,16 @@ export function ModelSelector({
   );
 
   const handleModelClick = (model: string, provider: ProviderType) => {
-    setSelectedModel(provider, model);
+    if (isEmail) setEmailModel(provider, model);
+    else setSelectedModel(provider, model);
     onModelSelected?.(model, provider);
     // Keep the modal open — advanced options (reasoning effort, temperature)
     // for the newly-picked model render right below, and closing here would
     // hide them before the user can see or adjust them.
   };
 
-  const selectedProviderInfo = activeModelPair
-    ? PROVIDER_INFO[activeModelPair[0]]
+  const selectedProviderInfo = shownPair
+    ? PROVIDER_INFO[shownPair[0]]
     : undefined;
 
   // Show error state if no models configured
@@ -130,9 +148,7 @@ export function ModelSelector({
     );
   }
 
-  const ActiveIcon = activeModelPair
-    ? PROVIDER_ICONS[activeModelPair[0]]
-    : undefined;
+  const ActiveIcon = shownPair ? PROVIDER_ICONS[shownPair[0]] : undefined;
 
   const getProviderIcon = (provider: ProviderType) => {
     const IconComponent = PROVIDER_ICONS[provider];
@@ -148,20 +164,21 @@ export function ModelSelector({
             onClick={() => setIsOpen(true)}
             className="bg-agent-surface-container border-agent-outline-variant mb-4 flex w-full gap-3 rounded-xl border p-3 text-left transition-all hover:shadow-sm active:scale-[0.99]"
           >
-            {activeModelPair ? (
+            {shownPair ? (
               <>
                 <div className="bg-agent-surface-low flex h-10 w-10 shrink-0 items-center justify-center rounded-lg">
                   {ActiveIcon && <ActiveIcon className="size-6" />}
                 </div>
                 <div className="min-w-0 flex-1">
                   <p className="text-agent-on-surface-variant text-xs font-semibold tracking-wide uppercase">
-                    {selectedProviderInfo?.name || activeModelPair[0]}
+                    {selectedProviderInfo?.name || shownPair[0]}
+                    {isInherited && " · primary model"}
                   </p>
                   <p
                     className="text-sm font-semibold"
                     style={{ color: "var(--color-agent-on-surface)" }}
                   >
-                    {activeModelPair[1]}
+                    {shownPair[1]}
                   </p>
                   {selectedProviderInfo?.description && (
                     <p className="text-agent-on-surface-variant mt-1 text-xs">
@@ -207,16 +224,16 @@ export function ModelSelector({
           <div className="flex items-center gap-2">
             <Icon name="slidersHorizontal" className="h-4 w-4" />
             <span>
-              {activeModelPair
-                ? `${activeModelPair[0]} - ${activeModelPair[1]}`
-                : label}
+              {isEmail && "Email AI: "}
+              {shownPair ? `${shownPair[0]} - ${shownPair[1]}` : label}
+              {isInherited && " (primary)"}
             </span>
           </div>
           <Icon name="chevronDown" className="h-4 w-4 opacity-60" />
         </button>
       ) : variant === "minimal" ? (
         <>
-          {activeModelPair?.[1]} [{activeModelPair?.[0]}]{" "}
+          {shownPair?.[1]} [{shownPair?.[0]}]{" "}
           <Button
             size="sm"
             onClick={() => setIsOpen(true)}
@@ -231,7 +248,7 @@ export function ModelSelector({
       <Modal
         isOpen={isOpen}
         onClose={() => setIsOpen(false)}
-        title="Select Model"
+        title={isEmail ? "Select Email AI Model" : "Select Model"}
         size="md"
       >
         <div className="space-y-5">
@@ -249,6 +266,29 @@ export function ModelSelector({
               Manage in Settings
             </Link>
           </p>
+
+          {isEmail && (
+            <div>
+              <p className="text-agent-on-surface-variant mb-2 text-xs">
+                Used to classify emails and read job alerts. Leave on the
+                primary model unless you want a cheaper one for this.
+              </p>
+              <button
+                type="button"
+                onClick={() => {
+                  setEmailModel(null, null);
+                }}
+                aria-pressed={isInherited}
+                className={`rounded-full border px-4 py-2 text-sm font-medium transition-all hover:shadow-sm active:scale-95 ${
+                  isInherited
+                    ? "border-agent-primary bg-agent-primary text-agent-on-primary"
+                    : "border-agent-outline-variant bg-agent-surface-container text-agent-on-surface"
+                }`}
+              >
+                Use primary model
+              </button>
+            </div>
+          )}
 
           {preselectedByProvider.map(({ provider, models }) => {
             const providerInfo = PROVIDER_INFO[provider];
@@ -272,8 +312,7 @@ export function ModelSelector({
                 <div className="flex flex-wrap gap-2">
                   {models.map((model) => {
                     const isSelected =
-                      activeModelPair?.[0] === provider &&
-                      activeModelPair?.[1] === model;
+                      chosenPair?.[0] === provider && chosenPair?.[1] === model;
 
                     return (
                       <button
@@ -305,7 +344,7 @@ export function ModelSelector({
               controls that model actually supports (e.g. reasoning models
               reject `temperature` outright, so it's hidden rather than sent
               and rejected by the API). */}
-          {activeModelPair && hasAdvancedOptions && (
+          {!isEmail && activeModelPair && hasAdvancedOptions && (
             <div
               className="border-t pt-4"
               style={{ borderColor: "var(--color-agent-outline-variant)" }}

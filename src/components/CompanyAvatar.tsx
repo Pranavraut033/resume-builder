@@ -9,6 +9,10 @@ import { cn } from "@/lib/cn";
 interface CompanyAvatarProps {
   name?: string | null;
   size?: number;
+  /** Rounded square (default) or a full circle. */
+  shape?: "square" | "circle";
+  /** Small element pinned to the bottom-right corner, e.g. a provider logo. */
+  badge?: React.ReactNode;
 }
 
 const COLORS = [
@@ -41,7 +45,12 @@ function buildLogoUrl(name?: string | null) {
   return `https://www.google.com/s2/favicons?domain=${domain}.com&sz=128`;
 }
 
-export function CompanyAvatar({ name, size = 48 }: CompanyAvatarProps) {
+export function CompanyAvatar({
+  name,
+  size = 48,
+  shape = "square",
+  badge,
+}: CompanyAvatarProps) {
   const [failed, setFailed] = useState(false);
   const initials = useMemo(() => getInitials(name), [name]);
   const logoUrl = useMemo(() => buildLogoUrl(name), [name]);
@@ -51,10 +60,11 @@ export function CompanyAvatar({ name, size = 48 }: CompanyAvatarProps) {
     return COLORS[seed % COLORS.length];
   }, [name]);
 
-  return (
+  const avatar = (
     <div
       className={cn(
-        "flex items-center justify-center overflow-hidden rounded-2xl border border-black/10 font-semibold uppercase shadow-sm",
+        "flex items-center justify-center overflow-hidden border border-black/10 font-semibold uppercase shadow-sm",
+        shape === "circle" ? "rounded-full" : "rounded-2xl",
         colorClass
       )}
       style={{ width: size, height: size }}
@@ -74,6 +84,14 @@ export function CompanyAvatar({ name, size = 48 }: CompanyAvatarProps) {
       ) : (
         <span className="text-sm font-bold tracking-wider">{initials}</span>
       )}
+    </div>
+  );
+
+  if (!badge) return avatar;
+  return (
+    <div className="relative inline-flex shrink-0">
+      {avatar}
+      <span className="absolute -right-1 -bottom-1">{badge}</span>
     </div>
   );
 }
