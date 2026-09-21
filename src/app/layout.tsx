@@ -2,6 +2,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import { headers } from "next/headers";
 
 import AppShell from "@/components/AppShell";
+import { EmailSyncScheduler } from "@/components/EmailSyncScheduler";
 
 import type { Metadata } from "next";
 
@@ -63,7 +64,11 @@ export default async function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
         style={{ background: "var(--color-agent-bg)" }}
       >
-        <AppShell>{children}</AppShell>
+        <AppShell>
+          {/* Inside AppShell so it sits under the QueryClientProvider. */}
+          <EmailSyncScheduler />
+          {children}
+        </AppShell>
       </body>
     </html>
   );

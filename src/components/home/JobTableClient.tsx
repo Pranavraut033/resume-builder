@@ -92,6 +92,7 @@ const JobTableClient: React.FC<Props> = ({ jobs }) => {
     status: emailSyncStatus,
     isConnected: isEmailConnected,
     isSyncing: isEmailSyncing,
+    progressLabel: emailSyncProgress,
     syncNow: syncEmailsNow,
   } = useEmailSync();
 
@@ -439,7 +440,11 @@ const JobTableClient: React.FC<Props> = ({ jobs }) => {
                   isEmailSyncing ? "text-agent-primary animate-spin" : ""
                 }
               />
-              <span>{isEmailSyncing ? "Syncing…" : "Sync Emails"}</span>
+              <span>
+                {isEmailSyncing
+                  ? (emailSyncProgress ?? "Syncing…")
+                  : "Sync Emails"}
+              </span>
             </button>
           )}
           <ViewToggle value={viewMode} onChange={setViewMode} />

@@ -1,12 +1,11 @@
 "use client";
 
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useCallback } from "react";
 
 import {
   disconnectGoogleAccount,
   getEmailSyncStatus,
-  wipeLegacyPlaintextTokens,
 } from "@/actions/emailSync";
 import { useToast } from "@/components/ui/ToastProvider";
 import { connectGmail } from "@/lib/email/connectGmail";
@@ -14,27 +13,17 @@ import {
   clearGoogleAuthTokens,
   getValidAccessToken,
 } from "@/lib/email/gmailClient";
-import { runEmailSync } from "@/lib/email/runEmailSync";
+import { runEmailSync, startEmailSync } from "@/lib/email/runEmailSync";
+import {
+  describeSyncProgress,
+  useEmailSyncStore,
+} from "@/store/emailSyncStore";
 
-const SIX_HOURS_MS = 6 * 60 * 60 * 1000;
-const TWELVE_HOURS_MS = 12 * 60 * 60 * 1000;
-
-export function useEmailSync() {
-  const queryClient = useQueryClient();
-  const { pushToast } = useToast();
-  const launchCheckedRef = useRef(false);
-  const wipeCheckedRef = useRef(false);
-  const [isConnecting, setIsConnecting] = useState(false);
-
-  // One-time cleanup for installs that connected on an older build, when
-  // tokens were (incorrectly) written to SQLite. See
-  // wipeLegacyPlaintextTokens's doc comment.
-  useEffect(() => {
-    if (wipeCheckedRef.current) return;
-    wipeCheckedRef.current = true;
-    void wipeLegacyPlaintextTokens();
-  }, []);
-
+/**
+ * Connection facts only (DB status + client-side token check). Safe to call
+ * from any number of components — react-query shares one fetch per key.
+ */
+export function useEmailSyncStatus() {
   const {
     data: status,
     isLoading: isStatusLoading,
@@ -60,52 +49,37 @@ export function useEmailSync() {
     enabled: Boolean(status?.hasAccount),
   });
 
-  const isConnected = Boolean(status?.hasAccount && hasToken);
+  return {
+    status,
+    isStatusLoading,
+    refetchStatus,
+    isConnected: Boolean(status?.hasAccount && hasToken),
+  };
+}
 
-  const syncMutation = useMutation({
-    mutationFn: (isManual: boolean) => runEmailSync(isManual),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["emailSyncStatus"] });
-      queryClient.invalidateQueries({ queryKey: ["gmailHasToken"] });
-    },
-  });
+/**
+ * Everything a component needs to show and drive email sync. Holds no state
+ * of its own: `isSyncing`/`isConnecting` come from `useEmailSyncStore`, so any
+ * number of components stay in agreement. The launch check and the 12-hour
+ * timer are NOT here — they run once, in `EmailSyncScheduler`.
+ */
+export function useEmailSync() {
+  const queryClient = useQueryClient();
+  const { pushToast } = useToast();
+  const isSyncing = useEmailSyncStore((s) => s.isSyncing);
+  const isConnecting = useEmailSyncStore((s) => s.isConnecting);
+  const progress = useEmailSyncStore((s) => s.progress);
+  const statusInfo = useEmailSyncStatus();
 
-  const syncNow = useCallback(
-    () => syncMutation.mutateAsync(true),
-    [syncMutation]
-  );
-
-  // Check on launch: if not synced for > 6 hours, trigger background sync
-  useEffect(() => {
-    if (launchCheckedRef.current || !isConnected || isStatusLoading) {
-      return;
-    }
-
-    launchCheckedRef.current = true;
-
-    const lastSyncTime = status?.lastSyncedAt
-      ? new Date(status.lastSyncedAt).getTime()
-      : 0;
-    const now = Date.now();
-
-    if (!lastSyncTime || now - lastSyncTime > SIX_HOURS_MS) {
-      syncMutation.mutate(false);
-    }
-  }, [isConnected, status, isStatusLoading, syncMutation]);
-
-  // Twice-a-day background sync interval (12 hours) while app is open
-  useEffect(() => {
-    if (!isConnected) return;
-
-    const interval = setInterval(() => {
-      syncMutation.mutate(false);
-    }, TWELVE_HOURS_MS);
-
-    return () => clearInterval(interval);
-  }, [isConnected, syncMutation]);
+  // A click while a sync is running joins it (runEmailSync dedupes) — the
+  // shared isSyncing already disables every Sync button.
+  const syncNow = useCallback(() => runEmailSync(true), []);
 
   const connect = useCallback(async () => {
-    setIsConnecting(true);
+    // One sign-in at a time, app-wide: a second click (or a second mounted
+    // Connect button) must not open a second browser flow.
+    if (useEmailSyncStore.getState().isConnecting) return;
+    useEmailSyncStore.setState({ isConnecting: true });
     try {
       const { email } = await connectGmail();
       pushToast({
@@ -113,9 +87,9 @@ export function useEmailSync() {
         description: `Connected account ${email}`,
         variant: "success",
       });
-      await refetchStatus();
-      queryClient.invalidateQueries({ queryKey: ["gmailHasToken"] });
-      syncMutation.mutate(false);
+      await queryClient.refetchQueries({ queryKey: ["emailSyncStatus"] });
+      void queryClient.invalidateQueries({ queryKey: ["gmailHasToken"] });
+      startEmailSync(false);
     } catch (err) {
       pushToast({
         title: "Connection failed",
@@ -124,9 +98,9 @@ export function useEmailSync() {
         variant: "error",
       });
     } finally {
-      setIsConnecting(false);
+      useEmailSyncStore.setState({ isConnecting: false });
     }
-  }, [pushToast, queryClient, refetchStatus, syncMutation]);
+  }, [pushToast, queryClient]);
 
   const disconnect = useCallback(async () => {
     try {
@@ -145,14 +119,13 @@ export function useEmailSync() {
   }, [pushToast, queryClient]);
 
   return {
-    status,
-    isConnected,
-    isStatusLoading,
-    isSyncing: syncMutation.isPending,
+    ...statusInfo,
+    isSyncing,
+    /** e.g. "Classifying 3/12" while a sync runs, else null. */
+    progressLabel: progress ? describeSyncProgress(progress) : null,
     isConnecting,
     syncNow,
     connect,
     disconnect,
-    refetchStatus,
   };
 }

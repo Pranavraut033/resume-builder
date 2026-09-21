@@ -1,14 +1,16 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
+import Link from "next/link";
 import React, { useEffect, useState } from "react";
 
+import { EmailSyncButton } from "@/components/emails/EmailSyncButton";
+import { ModelSelector } from "@/components/ModelSelector";
 import {
   Badge,
   Button,
   Icon,
   PageSection,
-  Select,
   SettingsRow,
   SurfacePanel,
   Toggle,
@@ -22,8 +24,6 @@ import {
   hasDefaultGoogleClient,
   setCustomGoogleCredentials,
 } from "@/lib/email/gmailClient";
-import { useModelStore } from "@/store/modelStore";
-import { ProviderType } from "@/types/llm";
 
 const DOCS_URL =
   "https://github.com/Pranavraut033/resume-builder/blob/main/docs/EMAIL_TRACKING.md";
@@ -34,15 +34,10 @@ export function EmailTrackingSettings() {
     status,
     isConnected,
     isStatusLoading,
-    isSyncing,
     isConnecting,
-    syncNow,
     connect,
     disconnect,
   } = useEmailSync();
-
-  const { modelsByProvider, emailModelPair, activeModelPair, setEmailModel } =
-    useModelStore();
 
   const { data: activeClientId, refetch: refetchClientId } = useQuery({
     queryKey: ["gmailActiveClientId"],
@@ -68,32 +63,6 @@ export function EmailTrackingSettings() {
         : ""
     );
   }, [activeClientId]);
-
-  // Build model options for selection
-  const modelOptions = React.useMemo(() => {
-    const list: string[] = ["Default (Use Primary Active Model)"];
-    Object.entries(modelsByProvider).forEach(([provider, models]) => {
-      (models || []).forEach((m) => {
-        list.push(`${provider}:${m}`);
-      });
-    });
-    return list;
-  }, [modelsByProvider]);
-
-  const currentModelValue = emailModelPair
-    ? `${emailModelPair[0]}:${emailModelPair[1]}`
-    : "Default (Use Primary Active Model)";
-
-  const handleModelChange = (value: string) => {
-    if (value === "Default (Use Primary Active Model)") {
-      setEmailModel(null, null);
-    } else {
-      const parts = value.split(":");
-      if (parts.length >= 2) {
-        setEmailModel(parts[0] as ProviderType, parts.slice(1).join(":"));
-      }
-    }
-  };
 
   const handleSaveCredentials = async () => {
     setIsSavingCreds(true);
@@ -185,25 +154,15 @@ export function EmailTrackingSettings() {
           control={
             <div className="flex items-center gap-3">
               {isConnected && (
-                <div className="mr-2 text-xs text-neutral-400">
+                <Link
+                  href="/emails"
+                  className="hover:text-agent-primary mr-2 text-xs text-neutral-400 underline-offset-2 hover:underline"
+                >
                   {status?.totalEmails} emails tracked ({status?.matchedEmails}{" "}
-                  linked)
-                </div>
+                  linked) →
+                </Link>
               )}
-              <Button
-                variant="secondary"
-                size="sm"
-                onClick={syncNow}
-                disabled={!isConnected || isSyncing}
-                icon={
-                  <Icon
-                    name={isSyncing ? "spinner" : "refreshCw"}
-                    className={`h-3.5 w-3.5 ${isSyncing ? "animate-spin" : ""}`}
-                  />
-                }
-              >
-                {isSyncing ? "Syncing…" : "Sync Now"}
-              </Button>
+              <EmailSyncButton label="Sync Now" />
             </div>
           }
         />
@@ -211,22 +170,13 @@ export function EmailTrackingSettings() {
         {/* Dedicated Email Classification Model */}
         <SettingsRow
           label="Email AI Model"
-          description={`Choose the dedicated model for parsing email updates. Currently active: ${
-            emailModelPair
-              ? `${emailModelPair[0]} (${emailModelPair[1]})`
-              : activeModelPair
-                ? `${activeModelPair[0]} (${activeModelPair[1]}) [inherited]`
-                : "Default"
-          }.`}
+          description="The model that classifies emails and reads job alerts. Uses your primary model unless you pick a dedicated one."
           control={
-            <div className="w-72">
-              <Select
-                value={currentModelValue}
-                onChange={handleModelChange}
-                options={modelOptions}
-                placeholder="Select Email Model"
-              />
-            </div>
+            <ModelSelector
+              scope="email"
+              variant="compact"
+              label="Email AI model"
+            />
           }
         />
 

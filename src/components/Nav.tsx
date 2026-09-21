@@ -17,9 +17,15 @@ import { Icon } from "./ui/Icon";
 
 const NAV_ITEMS = [
   { href: "/", label: "Dashboard", icon: "grid" as const },
-  { href: "/find-jobs", label: "Find Jobs", icon: "search" as const },
+  // { href: "/find-jobs", label: "Find Jobs", icon: "search" as const },
   { href: "/bookmarks", label: "Bookmarks", icon: "bookmark" as const },
-  { href: "/job/new", label: "Builder", icon: "edit" as const },
+  { href: "/emails", label: "Emails", icon: "mail" as const },
+  {
+    href: "/opportunities",
+    label: "Job Opportunities",
+    icon: "sparkles" as const,
+  },
+  // { href: "/job/new", label: "Builder", icon: "edit" as const },
   { href: "/documents", label: "Documents", icon: "folder" as const },
   { href: "/profile", label: "Profile", icon: "user" as const },
   { href: "/analytics/tokens", label: "Analytics", icon: "barChart" as const },
