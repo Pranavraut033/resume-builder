@@ -22,7 +22,7 @@ More screenshots and demo clips (Fit Check, chat editing, cover letters, customi
 - **AI job parsing**: paste a job description and extract structured requirements client-side via your chosen LLM
 - **AI resume & cover letter tailoring**: generate content tailored to each job from your base profile
 - **Inline WYSIWYG editor**: edit the generated resume directly on the rendered document, with zoom controls and version history (`/job/[jobId]`)
-- **13 templates**: per-job color/font/layout customization, plus a unified Document Size preset (compact→spacious) that scales font size, margins, line height, and spacing together, rendered by a shared template engine so DOM/PDF/TXT output stay in sync
+- **13 templates**: per-job color/font/layout customization, A4 or US Letter pages (A4 by default), plus a unified Document Size preset (compact→spacious) that scales font size, margins, line height, and spacing together; the on-screen preview and the exported PDF follow one shared size and spacing spec, so what you edit is what you download
 - **AI humanizer**: rewrite resume/cover letter content to read less like AI output, with reviewable before/after changes
 - **Deep Analysis**: deterministic lint checks plus an LLM pass catch grammar, consistency, keyword coverage, and unquantified-claim issues in a review drawer — each finding anchored to an editable line; lint-sourced fixes auto-apply
 - **Fit Check**: a blunt, substantive fit assessment against the job description — missing experience, seniority, and domain gaps a keyword scan can't see, plus knockout risks (work authorization, a license, a location), each with a concrete next step, closing with your real strengths; no invented "ATS score"
@@ -183,6 +183,8 @@ udaan/
 │   │   ├── job/new/              # Create job + AI generation (or promote a bookmark)
 │   │   ├── job/[jobId]/          # Job detail (Inline WYSIWYG editor)
 │   │   ├── documents/             # All generated resumes/cover letters + version history
+│   │   ├── emails/                # Tracked recruiting emails (optional Gmail connection)
+│   │   ├── opportunities/         # Postings split out of job-alert digests
 │   │   ├── profile/              # Base profile editor
 │   │   ├── find-jobs/            # Job search/browse
 │   │   ├── analytics/tokens/     # LLM token usage analytics

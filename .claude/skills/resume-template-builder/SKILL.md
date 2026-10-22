@@ -34,8 +34,10 @@ test coverage, and a mis-threaded branch silently breaks _other_ templates rathe
 1. **`src/types/customization.ts`** — add the id to `TemplateType` and a full `AVAILABLE_TEMPLATES` entry.
    `fontFamily` **must** be in `AVAILABLE_FONTS` (same file) or `validateCustomization()` throws
    `"Invalid font family selected."`, **and** must resolve in `src/lib/pdf/fonts.ts` or it silently becomes
-   Helvetica in the PDF only. Prefer a family an existing template already uses. `Verdana`/`Trebuchet MS` are
-   valid but map to Helvetica in PDF — never pick them for a template whose identity is its typeface.
+   Helvetica in the PDF only. Prefer a family an existing template already uses. System fonts (`Arial`, `Times New Roman`,
+   `Courier New`) export as PDF built-ins via `SYSTEM_FONT_MAP` — never pick them for a template whose
+   identity is its typeface. Georgia/Garamond/Verdana/Trebuchet MS are legacy names only (`LEGACY_FONT_MAP`
+   in `src/lib/fonts/registry.ts`), not picker options.
 2. **`src/components/job-v2/engine/templates.ts`** — add the `TEMPLATE_CONFIG[id]` entry. Confirm the id
    landed in **all three** of `TemplateType`, `AVAILABLE_TEMPLATES`, and `TEMPLATE_CONFIG` — miss the third
    and everything stays green while the template silently renders as Modern Minimal.
