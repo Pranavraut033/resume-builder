@@ -22,7 +22,7 @@ export function getPagePt(pageFormat: "A4" | "LETTER"): {
 const FONT_SIZE_PT: Record<string, number> = {
   small: 9,
   medium: 10,
-  large: 12,
+  large: 11,
 };
 const SMALL_SIZE_PT: Record<string, number> = {
   small: 8,
@@ -30,9 +30,9 @@ const SMALL_SIZE_PT: Record<string, number> = {
   large: 10,
 };
 const HEADING_SIZE_PT: Record<string, number> = {
-  small: 13,
-  medium: 15,
-  large: 18,
+  small: 12,
+  medium: 13.5,
+  large: 15,
 };
 const NAME_SIZE_PT: Record<string, number> = {
   small: 20,
@@ -41,9 +41,9 @@ const NAME_SIZE_PT: Record<string, number> = {
 };
 const MARGIN_PT: Record<string, number> = { narrow: 24, normal: 36, wide: 48 };
 const LINE_HEIGHT: Record<string, number> = {
-  small: 1.3,
+  small: 1.375,
   medium: 1.5,
-  large: 1.7,
+  large: 1.625,
 };
 
 export interface ResolvedPDFStyles {
@@ -83,6 +83,27 @@ export interface ResolvedPDFStyles {
    * from `--border-width`/`--radius-*`, not `--spacing`, so scaling them
    * here would break DOM↔PDF parity and make rules blurry). */
   sp: (n: number) => number;
+  /** Section → section gap (spec: 12pt via `sp`). Applied by the section
+   * wrapper in PDFTemplateEngine.tsx. */
+  sectionGap: number;
+}
+
+/**
+ * Shortens `label` with "…" so it fits `widthPt` at `fontSize`. react-pdf
+ * only breaks lines at spaces or hyphenation points (where it always prints a
+ * "-"), so an unbroken URL wider than its column would overflow into the
+ * neighbouring one. ponytail: 0.55em average-glyph estimate, not measured —
+ * measure with the font's advance widths if labels ever truncate too early.
+ */
+export function fitLabel(
+  label: string,
+  widthPt: number,
+  fontSize: number
+): string {
+  const max = Math.floor(widthPt / (fontSize * 0.55));
+  return label.length > max
+    ? `${label.slice(0, Math.max(max - 1, 1))}…`
+    : label;
 }
 
 /**
@@ -121,7 +142,10 @@ export function borderTint(hex: string, alphaHex: string): string {
 }
 
 export function resolvePDFCustomization(
-  customization: SanitizedCustomization
+  customization: SanitizedCustomization,
+  // `fit: false` (cover letters) ignores the module-global fit scale, which
+  // is measured from the resume preview and must not shrink other documents.
+  { fit = true }: { fit?: boolean } = {}
 ): ResolvedPDFStyles {
   const parts = (
     customization.colors ?? "#3b82f6,#64748b,#8b5cf6,#1f2937,#ffffff"
@@ -165,11 +189,10 @@ export function resolvePDFCustomization(
   //
   // NOTE: `getFitScale()` is a module-level global written by the DOM
   // engine's measurement pass and never reset — exporting before the
-  // preview has measured the current resume silently ignores fit-to-page,
-  // and a stale scale left over from a *different* resume can leak into an
-  // export. Not fixed here; a proper fix threads the measured scale through
-  // the export call explicitly.
-  const fitScale = customization.fitToPage ? getFitScale() : 1;
+  // preview has measured the current resume silently ignores fit-to-page.
+  // Cover-letter callers must pass `{ fit: false }` so the resume's scale
+  // doesn't leak into them.
+  const fitScale = fit && customization.fitToPage ? getFitScale() : 1;
   const { spaceScale } = sizeConfigOf(customization);
 
   return {
@@ -181,7 +204,7 @@ export function resolvePDFCustomization(
     fontFamily,
     fontSize: (FONT_SIZE_PT[sizeKey] ?? 10) * fitScale,
     smallFontSize: (SMALL_SIZE_PT[sizeKey] ?? 9) * fitScale,
-    headingFontSize: (HEADING_SIZE_PT[sizeKey] ?? 15) * fitScale,
+    headingFontSize: (HEADING_SIZE_PT[sizeKey] ?? 13.5) * fitScale,
     nameFontSize: (NAME_SIZE_PT[sizeKey] ?? 24) * fitScale,
     // `lineHeight` is a unitless ratio (CSS `line-height` multiplier), not a
     // point value — multiplying it by `fitScale` produced a quadratic
@@ -198,5 +221,6 @@ export function resolvePDFCustomization(
     fitScale,
     spaceScale,
     sp: (n: number) => n * fitScale * spaceScale,
+    sectionGap: 12 * fitScale * spaceScale,
   };
 }

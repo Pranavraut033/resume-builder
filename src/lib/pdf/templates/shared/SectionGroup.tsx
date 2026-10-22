@@ -11,21 +11,18 @@ export const SectionGroup: React.FC<{
   heading: React.ReactNode;
   children: React.ReactNode;
 }> = ({ heading, children }) => {
-  const raw = React.Children.toArray(children);
-  // Every PDF section builder returns a single <>…</> Fragment as its
-  // `children`, and React.Children.toArray() treats a Fragment as ONE child
-  // (verified against React 19.2.1: toArray(<>a b</>).length === 1 vs
-  // toArray([a, b]).length === 2). Without unwrapping it here, `first` below
-  // would be the whole section and the wrap={false} View would become
+  // PDF section builders return Fragments (often nested, e.g. `<>{entries()}</>`
+  // where entries() itself returns a Fragment), and React.Children.toArray()
+  // treats a Fragment as ONE child. Without flattening every level, `first`
+  // below would be the whole section and the wrap={false} View would become
   // atomic — the root cause of "everything pushed to page 2".
-  const items =
-    raw.length === 1 &&
-    React.isValidElement(raw[0]) &&
-    raw[0].type === React.Fragment
-      ? React.Children.toArray(
-          (raw[0].props as { children?: React.ReactNode }).children
-        )
-      : raw;
+  const flatten = (node: React.ReactNode): React.ReactNode[] =>
+    React.Children.toArray(node).flatMap((child) =>
+      React.isValidElement(child) && child.type === React.Fragment
+        ? flatten((child.props as { children?: React.ReactNode }).children)
+        : [child]
+    );
+  const items = flatten(children);
   if (items.length === 0) return <>{heading}</>;
 
   const [first, ...rest] = items;

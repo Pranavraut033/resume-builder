@@ -61,7 +61,7 @@ describe("resolvePDFCustomization", () => {
     expect(styles.backgroundColor).toBe("#ffffff");
     expect(styles.fontSize).toBe(10);
     expect(styles.smallFontSize).toBe(9);
-    expect(styles.headingFontSize).toBe(15);
+    expect(styles.headingFontSize).toBe(13.5);
     expect(styles.nameFontSize).toBe(24);
     expect(styles.lineHeight).toBe(1.5);
     expect(styles.marginPt).toBe(36);
@@ -110,7 +110,7 @@ describe("resolvePDFCustomization", () => {
 
     expect(styles.fontSize).toBe(10);
     expect(styles.smallFontSize).toBe(9);
-    expect(styles.headingFontSize).toBe(15);
+    expect(styles.headingFontSize).toBe(13.5);
     expect(styles.nameFontSize).toBe(24);
     expect(styles.marginPt).toBe(36);
     expect(styles.lineHeight).toBe(1.5);
