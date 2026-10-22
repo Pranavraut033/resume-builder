@@ -16,6 +16,8 @@
 
 import {
   Combobox,
+  ComboboxButton,
+  ComboboxInput,
   ComboboxOption,
   ComboboxOptions,
   Transition,
@@ -24,7 +26,11 @@ import { Fragment, useEffect, useMemo, useState } from "react";
 
 import { Icon } from "@/components/ui/Icon";
 import { loadGoogleFont } from "@/lib/fontLoader";
-import { fontCategory, isSystemFont } from "@/lib/fonts/registry";
+import {
+  fontCategory,
+  fontFamilyCss,
+  isSystemFont,
+} from "@/lib/fonts/registry";
 import { AVAILABLE_FONTS } from "@/types/customization";
 
 interface FontSelectorProps {
@@ -56,15 +62,17 @@ function FontOptionRow({
   }, [active, font, onActivePreview]);
 
   return (
-    <div className="flex items-center gap-3">
-      <span
-        className="text-agent-on-surface w-9 shrink-0 text-2xl leading-none"
-        style={{ fontFamily: font }}
-      >
+    // One runtime font-family site for the whole row; the name and badge
+    // opt back out to the UI font.
+    <div
+      className="flex items-center gap-3"
+      style={{ fontFamily: fontFamilyCss(font) }}
+    >
+      <span className="text-agent-on-surface w-9 shrink-0 text-2xl leading-none">
         Ag
       </span>
       <div className="min-w-0 flex-1">
-        <div className="flex items-center gap-1.5">
+        <div className="font-agent-body flex items-center gap-1.5">
           <span
             className={`text-agent-on-surface truncate text-sm ${
               selected ? "font-semibold" : "font-medium"
@@ -78,10 +86,7 @@ function FontOptionRow({
             </span>
           )}
         </div>
-        <div
-          className="text-agent-on-surface-variant truncate text-xs"
-          style={{ fontFamily: font }}
-        >
+        <div className="text-agent-on-surface-variant truncate text-xs">
           The quick brown fox jumps
         </div>
       </div>
@@ -139,7 +144,8 @@ export default function FontSelector({ value, onChange }: FontSelectorProps) {
       >
         <div className="relative">
           <div className="relative">
-            <Combobox.Input
+            <ComboboxInput
+              aria-label="Font family"
               className="border-agent-outline bg-agent-surface-lowest text-agent-on-surface shadow-agent-card w-full rounded-lg border py-2 pr-9 pl-3 text-sm placeholder-gray-400 transition-all focus:ring-2 focus:outline-none"
               displayValue={(font: string) => font}
               onChange={(event) => setQuery(event.target.value)}
@@ -148,14 +154,14 @@ export default function FontSelector({ value, onChange }: FontSelectorProps) {
                 event.target.select();
               }}
               placeholder="Search fonts…"
-              style={{ fontFamily: value }}
             />
-            <Combobox.Button
+            <ComboboxButton
+              aria-label="Show fonts"
               onClick={primeGroups}
               className="text-agent-on-surface-variant absolute inset-y-0 right-0 flex cursor-pointer items-center pr-3"
             >
               <Icon name="chevronDown" className="h-4 w-4" />
-            </Combobox.Button>
+            </ComboboxButton>
           </div>
 
           <Transition
@@ -228,7 +234,7 @@ export default function FontSelector({ value, onChange }: FontSelectorProps) {
                   </p>
                   <div
                     className="border-agent-outline-variant bg-agent-surface-highest text-agent-on-surface rounded-md border px-3 py-2"
-                    style={{ fontFamily: activeFont }}
+                    style={{ fontFamily: fontFamilyCss(activeFont) }}
                   >
                     <div className="truncate text-base font-semibold">
                       Jordan Alvarez

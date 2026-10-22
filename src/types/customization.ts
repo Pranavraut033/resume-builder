@@ -2,7 +2,7 @@ import { Customization } from "@prisma/client";
 
 import { BackgroundId, VALID_BACKGROUND_IDS } from "@/lib/backgrounds/types";
 import { DateFormat, VALID_DATE_FORMATS } from "@/lib/date";
-import { ALL_FONT_NAMES } from "@/lib/fonts/registry";
+import { ALL_FONT_NAMES, LEGACY_FONT_MAP } from "@/lib/fonts/registry";
 
 export type { DateFormat } from "@/lib/date";
 
@@ -72,7 +72,7 @@ export type SanitizedCustomization = PartiallyOptional<
 
 export const DEFAULT_CUSTOMIZATION: SanitizedCustomization = {
   template: "modern-minimal",
-  pageFormat: "letter",
+  pageFormat: "a4",
   fontSize: "medium",
   fontFamily: "Inter",
   lineHeight: "medium",
@@ -146,7 +146,7 @@ export const AVAILABLE_TEMPLATES: Array<Template> = [
     name: "Business Professional",
     description:
       "Left-aligned header with a right-side photo, uppercase rules, and justified body text",
-    fontFamily: "Georgia",
+    fontFamily: "Gelasio",
     features: [
       "Left-aligned header",
       "Justified text",
@@ -286,7 +286,11 @@ export const AVAILABLE_FONTS = ALL_FONT_NAMES;
 const VALID_TEMPLATE_IDS = new Set(
   AVAILABLE_TEMPLATES.map((template) => template.id)
 );
-export const VALID_FONT_FAMILIES = new Set(AVAILABLE_FONTS);
+// Legacy names stay valid so old rows still load (mapped at render time).
+export const VALID_FONT_FAMILIES = new Set([
+  ...AVAILABLE_FONTS,
+  ...Object.keys(LEGACY_FONT_MAP),
+]);
 export const VALID_PAGE_FORMATS: PageFormat[] = ["letter", "a4"];
 export const VALID_FONT_SIZES: FontSize[] = ["small", "medium", "large"];
 export const VALID_MARGIN_SIZES: MarginSize[] = ["narrow", "normal", "wide"];

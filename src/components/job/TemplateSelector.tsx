@@ -30,28 +30,19 @@ const TemplateSelector: React.FC<TemplateSelectorProps> = ({
 
   // Full mode for main template selection
   return (
-    <Card>
-      <h3
-        className="mb-1 text-sm font-semibold"
-        style={{ color: "var(--color-agent-on-surface)" }}
-      >
+    <Card padding="sm">
+      <h3 className="text-agent-on-surface mb-1 text-sm font-semibold">
         Template
       </h3>
       {/* Compact, dynamic — swaps to the selected template's own info so it
           reads correctly without needing to scroll the grid below. */}
       {selected ? (
-        <div
-          className="mb-3 flex flex-col gap-0.5 text-xs"
-          style={{ color: "var(--color-agent-on-surface-variant)" }}
-        >
+        <div className="text-agent-on-surface-variant mb-3 flex flex-col gap-0.5 text-xs">
           <span
             className="truncate"
             title={`${selected.fontFamily} — ${selected.features.join(" | ")}`}
           >
-            <span
-              className="font-semibold"
-              style={{ color: "var(--color-agent-on-surface)" }}
-            >
+            <span className="text-agent-on-surface font-semibold">
               {selected.fontFamily}
             </span>
             {" · "}
@@ -62,10 +53,7 @@ const TemplateSelector: React.FC<TemplateSelectorProps> = ({
           </span>
         </div>
       ) : (
-        <p
-          className="mb-3 text-xs"
-          style={{ color: "var(--color-agent-on-surface-variant)" }}
-        >
+        <p className="text-agent-on-surface-variant mb-3 text-xs">
           Pick a template style before exporting.
         </p>
       )}
@@ -78,6 +66,8 @@ const TemplateSelector: React.FC<TemplateSelectorProps> = ({
             return (
               <button
                 key={t.id}
+                aria-label={t.name}
+                aria-pressed={isSelected}
                 onClick={() => onSelectTemplate(t)}
                 className={cn(
                   "relative flex flex-col gap-1.5 rounded-lg border p-1.5 text-left transition-all",
@@ -88,7 +78,7 @@ const TemplateSelector: React.FC<TemplateSelectorProps> = ({
               >
                 {isSelected && (
                   <div className="absolute top-2 right-2 z-10">
-                    <div className="bg-blocky-500 flex h-5 w-5 items-center justify-center rounded-full">
+                    <div className="bg-agent-primary text-agent-on-primary flex h-5 w-5 items-center justify-center rounded-full">
                       <Icon name="check" className="h-3 w-3" />
                     </div>
                   </div>
