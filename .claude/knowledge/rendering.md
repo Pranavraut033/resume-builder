@@ -59,8 +59,8 @@ These fail green — no type error, no test failure, just wrong output. Know the
   `validateCustomization()` derives `VALID_TEMPLATE_IDS` from it and rejects anything else at the write
   boundary.
 - **A `fontFamily` not in `src/lib/pdf/fonts.ts` (`GOOGLE_FONTS`/`SYSTEM_FONT_MAP`) resolves to Helvetica in
-  the PDF only** — no error, so the export silently stops matching the preview. `Verdana` and `Trebuchet MS`
-  are valid `AVAILABLE_FONTS` entries that do exactly this.
+  the PDF only** — no error, so the export silently stops matching the preview. (Georgia/Garamond/Verdana/
+  Trebuchet MS used to do exactly this; they're now legacy names mapped to embedded fonts — see below.)
 - **TXT export is config-blind by design.** `TxtSectionBuilder` receives only `{ resume, instance }` — no
   style axis ever reaches it. TXT changes only when section order/column/visibility changes via
   `buildSections()`. Never widen that signature to make an axis reach TXT.
@@ -100,6 +100,33 @@ These fail green — no type error, no test failure, just wrong output. Know the
   `fixed`, absolutely-positioned, full-page-height `View` in `PDFTemplateEngine.tsx`**, not by the sidebar
   column's own `backgroundColor` plus `alignItems: "stretch"`. Flex-stretch fell short of the page bottom on
   short content and didn't repeat per page on multi-page exports.
+
+## DOM↔PDF numeric spec
+
+Both engines follow one spec (pt; DOM px = pt / 0.75, tokens `--text-doc-*` / `--spacing-page-*` in
+`global.css`). Body 9/10/11 · secondary (company, dates, contact, skills, table cells) body−1 · heading
+12/13.5/15 weight 600 · name 20/24/28 in `primaryColor` · line height 1.375/1.5/1.625 · page margin 24/36/48 on
+every page, never scaled by Size · header→first section 18 · section→section 12 · entry→entry 6, no trailing
+margin · bullets 10pt glyph column, 2pt apart. Change a value on both sides or neither.
+
+More silent failure modes (found while aligning the engines):
+
+- **react-pdf counts a View's `marginBottom` when deciding whether to break before it.** A section ending
+  within its bottom margin of the page end jumps whole to the next page, leaving page 1 near-empty. Put
+  inter-block gaps on `marginTop` (skip the first), as `renderSection`, `entries()` and the chip groups do.
+- **`SectionGroup` must flatten nested Fragments.** Builders return `<>{entries()}</>`; if only one level is
+  unwrapped, "heading + first item" becomes the whole section and is unbreakable.
+- **react-pdf can't wrap a long word cleanly**: textkit breaks only at ASCII spaces or hyphenation points, and
+  always prints "-" at the latter. Hyphenation is disabled globally (`fonts.ts`); zero-width spaces don't help.
+  Shorten over-wide URL labels with `fitLabel()` (`resolveStyles.ts`) and keep the full URL as the link `src`.
+- **A wrapping flex row inside an `alignItems: "center"` parent** is laid out at its unwrapped width; give it
+  `alignSelf: "stretch"` (see `ContactLine`).
+- **Pagination units must match**: a DOM paginator block is unbreakable, so the PDF counterpart is
+  `wrap={false}`. `chips`/`list`/`grid`/`columns` skills are one block per category in both engines;
+  `inline`/`table` stay one block (`SINGLE_BLOCK_SKILL_STYLES`).
+- **Legacy font names** (Georgia, Garamond, Verdana, Trebuchet MS) resolve through `resolveFontName()`
+  (`fonts/registry.ts`) in `fontFamilyCss`, `fontLoader` and `registerPDFFont` alike; every Google spec has an
+  italic face (Inter reuses upright, its v4 package has no italic).
 
 ## Files
 
