@@ -1,16 +1,12 @@
 import { Font } from "@react-pdf/renderer";
 
-import { GOOGLE_FONT_SPECS } from "@/lib/fonts/registry";
+import { GOOGLE_FONT_SPECS, resolveFontName } from "@/lib/fonts/registry";
 
 // System font → react-pdf built-in font aliases (no registration required)
 export const SYSTEM_FONT_MAP: Record<string, string> = {
   Arial: "Helvetica",
   Helvetica: "Helvetica",
-  Verdana: "Helvetica",
-  "Trebuchet MS": "Helvetica",
   "Times New Roman": "Times-Roman",
-  Georgia: "Times-Roman",
-  Garamond: "Times-Roman",
   "Courier New": "Courier",
 };
 
@@ -33,7 +29,9 @@ const registered = new Set<string>();
  * Returns the resolved font family name to use in styles (maps system fonts to
  * their react-pdf built-in equivalents).
  */
-export function registerPDFFont(fontFamily: string): string {
+export function registerPDFFont(requestedFamily: string): string {
+  // Legacy names (Georgia, Verdana, …) map to embedded fonts, same as the DOM.
+  const fontFamily = resolveFontName(requestedFamily);
   const systemAlias = SYSTEM_FONT_MAP[fontFamily];
   if (systemAlias) return systemAlias;
 
@@ -50,8 +48,10 @@ export function registerPDFFont(fontFamily: string): string {
         fontWeight: weight,
         fontStyle: "normal" as const,
       })),
-      ...(spec.italicWeights ?? []).map((weight) => ({
-        src: `${CDN}/${spec.pkg}${FONTSOURCE_V4}/files/${spec.name}-latin-${weight}-italic.woff`,
+      // No italic file (Inter's v4 package): reuse upright 400 so <em> text
+      // doesn't throw in react-pdf (it renders upright rather than slanted).
+      ...(spec.italicWeights ?? [400]).map((weight) => ({
+        src: `${CDN}/${spec.pkg}${FONTSOURCE_V4}/files/${spec.name}-latin-${weight}-${spec.italicWeights ? "italic" : "normal"}.woff`,
         fontWeight: weight,
         fontStyle: "italic" as const,
       })),
@@ -61,6 +61,10 @@ export function registerPDFFont(fontFamily: string): string {
   registered.add(fontFamily);
   return fontFamily;
 }
+
+// Never split words with a hyphen ("Adminis-trator"); react-pdf's default
+// hyphenation breaks words mid-syllable. Returning the whole word disables it.
+Font.registerHyphenationCallback((word) => [word]);
 
 // Always register Inter as the safe default
 registerPDFFont("Inter");

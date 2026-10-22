@@ -21,6 +21,9 @@ export interface FontSpec {
 
 // Google-hosted fonts, fetched from the fontsource CDN. Pinned to v4 (see
 // src/lib/pdf/fonts.ts) because v5+ only ships subsetted .woff2 files.
+// Every spec except Inter lists an italic 400 face: react-pdf throws on
+// <em> text when the family has no italic registered. Inter's v4 package
+// ships no italic file, so src/lib/pdf/fonts.ts reuses its upright 400.
 export const GOOGLE_FONT_SPECS: Record<string, FontSpec> = {
   Inter: {
     pkg: "inter",
@@ -32,24 +35,28 @@ export const GOOGLE_FONT_SPECS: Record<string, FontSpec> = {
     pkg: "poppins",
     name: "poppins",
     weights: [300, 400, 600, 700],
+    italicWeights: [400],
     category: "sans",
   },
   Montserrat: {
     pkg: "montserrat",
     name: "montserrat",
     weights: [300, 400, 600, 700],
+    italicWeights: [400],
     category: "sans",
   },
   Roboto: {
     pkg: "roboto",
     name: "roboto",
     weights: [300, 400, 700],
+    italicWeights: [400],
     category: "sans",
   },
   "Open Sans": {
     pkg: "open-sans",
     name: "open-sans",
     weights: [300, 400, 600, 700],
+    italicWeights: [400],
     category: "sans",
   },
   // Fontsource still ships this as "source-sans-pro"; Google renamed the
@@ -59,48 +66,56 @@ export const GOOGLE_FONT_SPECS: Record<string, FontSpec> = {
     pkg: "source-sans-pro",
     name: "source-sans-pro",
     weights: [300, 400, 600, 700],
+    italicWeights: [400],
     category: "sans",
   },
   Raleway: {
     pkg: "raleway",
     name: "raleway",
     weights: [300, 400, 600, 700],
+    italicWeights: [400],
     category: "sans",
   },
   Ubuntu: {
     pkg: "ubuntu",
     name: "ubuntu",
     weights: [300, 400, 700],
+    italicWeights: [400],
     category: "sans",
   },
   Nunito: {
     pkg: "nunito",
     name: "nunito",
     weights: [300, 400, 600, 700],
+    italicWeights: [400],
     category: "sans",
   },
   "IBM Plex Sans": {
     pkg: "ibm-plex-sans",
     name: "ibm-plex-sans",
     weights: [300, 400, 500, 600, 700],
+    italicWeights: [400],
     category: "sans",
   },
   "Work Sans": {
     pkg: "work-sans",
     name: "work-sans",
     weights: [300, 400, 500, 600, 700],
+    italicWeights: [400],
     category: "sans",
   },
   Lora: {
     pkg: "lora",
     name: "lora",
     weights: [400, 600, 700],
+    italicWeights: [400],
     category: "serif",
   },
   "Playfair Display": {
     pkg: "playfair-display",
     name: "playfair-display",
     weights: [400, 600, 700],
+    italicWeights: [400],
     category: "serif",
   },
   Merriweather: {
@@ -110,54 +125,76 @@ export const GOOGLE_FONT_SPECS: Record<string, FontSpec> = {
     italicWeights: [400, 700],
     category: "serif",
   },
+  // Georgia-metric substitute (see LEGACY_FONT_MAP).
+  Gelasio: {
+    pkg: "gelasio",
+    name: "gelasio",
+    weights: [400, 700],
+    italicWeights: [400],
+    category: "serif",
+  },
   "EB Garamond": {
     pkg: "eb-garamond",
     name: "eb-garamond",
     weights: [400, 500, 600, 700],
+    italicWeights: [400],
     category: "serif",
   },
   "Cormorant Garamond": {
     pkg: "cormorant-garamond",
     name: "cormorant-garamond",
     weights: [400, 500, 600, 700],
+    italicWeights: [400],
     category: "serif",
   },
   "Libre Baskerville": {
     pkg: "libre-baskerville",
     name: "libre-baskerville",
     weights: [400, 700],
+    italicWeights: [400],
     category: "serif",
   },
   "IBM Plex Serif": {
     pkg: "ibm-plex-serif",
     name: "ibm-plex-serif",
     weights: [300, 400, 500, 600, 700],
+    italicWeights: [400],
     category: "serif",
   },
 };
 
 // OS-provided fonts — no fetch needed, just a fallback stack.
 export const SYSTEM_FONTS: Record<string, string> = {
-  Georgia: 'Georgia, "Times New Roman", serif',
   Arial: "Arial, sans-serif",
   "Times New Roman": '"Times New Roman", serif',
   Helvetica: "Helvetica, Arial, sans-serif",
-  Verdana: "Verdana, sans-serif",
-  "Trebuchet MS": '"Trebuchet MS", sans-serif',
-  Garamond: "Garamond, serif",
   "Courier New": '"Courier New", monospace',
 };
 
 const SYSTEM_CATEGORY: Record<string, FontCategory> = {
-  Georgia: "serif",
   Arial: "sans",
   "Times New Roman": "serif",
   Helvetica: "sans",
-  Verdana: "sans",
-  "Trebuchet MS": "sans",
-  Garamond: "serif",
   "Courier New": "mono",
 };
+
+/**
+ * Fonts that used to be offered as OS fonts, which never matched between
+ * preview and PDF. Old rows keep validating and render as the mapped
+ * embedded font in both engines (resolved by `fontFamilyCss` and
+ * `registerPDFFont`).
+ */
+export const LEGACY_FONT_MAP: Record<string, string> = {
+  Georgia: "Gelasio",
+  Garamond: "EB Garamond",
+  Verdana: "Open Sans",
+  "Trebuchet MS": "Open Sans",
+};
+
+/** Maps a legacy persisted font name to its current replacement. */
+export function resolveFontName(name: string): string {
+  return LEGACY_FONT_MAP[name] ?? name;
+}
 
 export const ALL_FONT_NAMES = [
   ...Object.keys(GOOGLE_FONT_SPECS),
@@ -169,7 +206,10 @@ export function isSystemFont(name: string): boolean {
 }
 
 export function fontCategory(name: string): FontCategory {
-  return GOOGLE_FONT_SPECS[name]?.category ?? SYSTEM_CATEGORY[name] ?? "sans";
+  const resolved = resolveFontName(name);
+  return (
+    GOOGLE_FONT_SPECS[resolved]?.category ?? SYSTEM_CATEGORY[resolved] ?? "sans"
+  );
 }
 
 const GENERIC: Record<FontCategory, string> = {
@@ -181,6 +221,7 @@ const GENERIC: Record<FontCategory, string> = {
 /** CSS `font-family` value for a persisted font name, with a sane fallback. */
 export function fontFamilyCss(name: string | undefined): string {
   if (!name) return '"Inter", sans-serif';
-  if (SYSTEM_FONTS[name]) return SYSTEM_FONTS[name];
-  return `"${name}", ${GENERIC[fontCategory(name)]}`;
+  const resolved = resolveFontName(name);
+  if (SYSTEM_FONTS[resolved]) return SYSTEM_FONTS[resolved];
+  return `"${resolved}", ${GENERIC[fontCategory(resolved)]}`;
 }

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { AVAILABLE_FONTS } from "@/types/customization";
+import { AVAILABLE_FONTS, VALID_FONT_FAMILIES } from "@/types/customization";
 import { fontFamilyCss } from "@/lib/fonts/registry";
 import { SYSTEM_FONT_MAP, registerPDFFont } from "@/lib/pdf/fonts";
 
@@ -11,6 +11,17 @@ describe("font registry", () => {
   it.each(AVAILABLE_FONTS)("%s resolves to a usable CSS stack", (name) => {
     const stack = fontFamilyCss(name);
     expect(stack).toContain(name);
+  });
+
+  it("maps legacy fonts to embedded ones for both engines and still validates them", () => {
+    expect(registerPDFFont("Georgia")).toBe("Gelasio");
+    expect(registerPDFFont("Garamond")).toBe("EB Garamond");
+    expect(registerPDFFont("Verdana")).toBe("Open Sans");
+    expect(registerPDFFont("Trebuchet MS")).toBe("Open Sans");
+    expect(fontFamilyCss("Georgia")).toContain('"Gelasio"');
+    expect(fontFamilyCss("Trebuchet MS")).toContain('"Open Sans"');
+    expect(AVAILABLE_FONTS).not.toContain("Georgia");
+    expect(VALID_FONT_FAMILIES.has("Georgia")).toBe(true);
   });
 
   it.each(AVAILABLE_FONTS)("%s resolves to a real PDF font", (name) => {

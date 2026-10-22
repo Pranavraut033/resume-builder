@@ -14,7 +14,11 @@
  * Font metadata (which package/weights) lives in src/lib/fonts/registry.ts,
  * shared with the PDF export font loader (src/lib/pdf/fonts.ts).
  */
-import { FontSpec, GOOGLE_FONT_SPECS } from "@/lib/fonts/registry";
+import {
+  FontSpec,
+  GOOGLE_FONT_SPECS,
+  resolveFontName,
+} from "@/lib/fonts/registry";
 
 // Pinned to v4 of the fontsource packages — same CDN/version PDF export
 // uses, so a font that works in the picker also works in the exported PDF.
@@ -69,14 +73,16 @@ export function loadGoogleFont(
 ): Promise<void> {
   if (typeof document === "undefined") return Promise.resolve();
 
-  const spec = GOOGLE_FONT_SPECS[name];
+  // Legacy names (Georgia → Gelasio, …) load the face the CSS now asks for.
+  const resolved = resolveFontName(name);
+  const spec = GOOGLE_FONT_SPECS[resolved];
   if (!spec) return Promise.resolve();
 
   const weights = full
     ? spec.weights
     : [spec.weights.includes(400) ? 400 : spec.weights[0]];
 
-  return Promise.all(weights.map((w) => loadWeight(name, spec, w))).then(
+  return Promise.all(weights.map((w) => loadWeight(resolved, spec, w))).then(
     () => undefined
   );
 }
