@@ -121,6 +121,17 @@
   @apply m-0;
 }
 
+/* Cover-letter preview only (matches the PDF export): 14pt list indent, no
+   trailing gap after the last list. Scoped so the app's editor UI is unchanged. */
+.cover-letter-content .rte-content ul,
+.cover-letter-content .rte-content ol {
+  padding-left: 14pt;
+}
+.cover-letter-content .rte-content ul:last-child,
+.cover-letter-content .rte-content ol:last-child {
+  @apply mb-0;
+}
+
 .rte-content blockquote {
   @apply border-agent-surface-bright text-agent-on-surface my-2 border-l-[3px] px-3 py-1;
 }

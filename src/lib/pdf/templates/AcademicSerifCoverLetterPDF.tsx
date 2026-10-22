@@ -52,13 +52,19 @@ export const AcademicSerifCoverLetterPDF: React.FC<CoverLetterPDFProps> = ({
       >
         <BackgroundPdf styles={s} />
         {/* ── Header (centered, double-rule divider) ───────── */}
-        <View style={{ alignItems: "center", marginBottom: 16 }}>
+        <View
+          style={{
+            alignItems: "center",
+            paddingBottom: s.sp(18),
+            marginBottom: s.sp(24),
+          }}
+        >
           <Text
             style={{
               fontSize: s.nameFontSize,
               fontWeight: 700,
               color: s.primaryColor,
-              marginBottom: 4,
+              marginBottom: s.sp(6),
               textAlign: "center",
               letterSpacing: 1,
             }}
@@ -70,7 +76,7 @@ export const AcademicSerifCoverLetterPDF: React.FC<CoverLetterPDFProps> = ({
               fontSize: s.smallFontSize,
               color: s.secondaryColor,
               textAlign: "center",
-              marginBottom: 8,
+              marginBottom: s.sp(12),
             }}
           >
             {contactParts.join("  •  ")}
@@ -80,7 +86,7 @@ export const AcademicSerifCoverLetterPDF: React.FC<CoverLetterPDFProps> = ({
               style={{
                 height: 1,
                 backgroundColor: s.primaryColor,
-                marginBottom: 1,
+                marginBottom: s.sp(1.5),
               }}
             />
             <View style={{ height: 1, backgroundColor: s.secondaryColor }} />
@@ -92,7 +98,7 @@ export const AcademicSerifCoverLetterPDF: React.FC<CoverLetterPDFProps> = ({
           style={{
             fontSize: s.fontSize,
             color: s.secondaryColor,
-            marginBottom: 14,
+            marginBottom: s.sp(18),
           }}
         >
           {today}

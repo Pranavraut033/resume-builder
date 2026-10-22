@@ -4,7 +4,6 @@
  */
 
 export { ModernMinimalCoverLetter } from "./ModernMinimalCoverLetter";
-export { ProfessionalCoverLetter } from "./ProfessionalCoverLetter";
 export { TechSidebarCoverLetter } from "./TechSidebarCoverLetter";
 export { BusinessProfessionalCoverLetter } from "./BusinessProfessionalCoverLetter";
 export { ElegantTimelineCoverLetter } from "./ElegantTimelineCoverLetter";

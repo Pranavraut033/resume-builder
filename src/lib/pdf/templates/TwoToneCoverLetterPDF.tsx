@@ -43,17 +43,20 @@ export const TwoToneCoverLetterPDF: React.FC<CoverLetterPDFProps> = ({
           fontSize: s.fontSize,
           color: s.textColor,
           backgroundColor: s.backgroundColor,
+          // Margin on every page; the band below cancels the top padding
+          // with a negative margin so it stays full-bleed on page 1.
+          paddingTop: s.marginPt,
+          paddingBottom: s.marginPt,
         }}
       >
         <BackgroundPdf styles={s} />
         {/* ── Bold two-tone header band ─────────────────────── */}
-        <View style={{ flexDirection: "row" }}>
+        <View style={{ flexDirection: "row", marginTop: -s.marginPt }}>
           <View
             style={{
               flex: 1,
               backgroundColor: s.primaryColor,
               padding: s.marginPt,
-              paddingVertical: s.marginPt * 0.9,
             }}
           >
             <Text
@@ -66,7 +69,7 @@ export const TwoToneCoverLetterPDF: React.FC<CoverLetterPDFProps> = ({
                 // primaryColor band (invisible). Same pattern as the two-tone
                 // resume PDF's `bandContent` (PDFTemplateEngine.tsx).
                 color: s.backgroundColor,
-                marginBottom: 6,
+                marginBottom: s.sp(6),
               }}
             >
               {h.name}
@@ -86,7 +89,7 @@ export const TwoToneCoverLetterPDF: React.FC<CoverLetterPDFProps> = ({
                 style={{
                   fontSize: s.smallFontSize,
                   color: withAlpha(s.backgroundColor, "bb"),
-                  marginTop: 2,
+                  marginTop: s.sp(3),
                 }}
               >
                 {linkParts.join("  •  ")}
@@ -94,17 +97,17 @@ export const TwoToneCoverLetterPDF: React.FC<CoverLetterPDFProps> = ({
             )}
           </View>
           {/* Second tone: accent stripe */}
-          <View style={{ width: 8, backgroundColor: s.accentColor }} />
+          <View style={{ width: 9, backgroundColor: s.accentColor }} />
         </View>
 
         {/* ── Content ──────────────────────────────────────── */}
-        <View style={{ padding: s.marginPt }}>
+        <View style={{ paddingHorizontal: s.marginPt, paddingTop: s.marginPt }}>
           {/* Date */}
           <Text
             style={{
               fontSize: s.fontSize,
               color: s.secondaryColor,
-              marginBottom: 14,
+              marginBottom: s.sp(18),
             }}
           >
             {today}

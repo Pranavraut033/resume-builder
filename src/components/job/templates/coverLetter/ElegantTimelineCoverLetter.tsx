@@ -29,9 +29,12 @@ export const ElegantTimelineCoverLetter: React.FC<CoverLetterRendererProps> = ({
     textColor,
     backgroundColor,
     textSize,
+    metaSize,
+    nameSize,
     fontFamily,
     dateFormat,
     marginClass,
+    spaceClass,
     lineHeight,
     background,
     colorsTuple,
@@ -44,7 +47,7 @@ export const ElegantTimelineCoverLetter: React.FC<CoverLetterRendererProps> = ({
 
   return (
     <div
-      className={`relative ${marginClass}`}
+      className={`cover-letter-content relative ${marginClass} ${spaceClass}`}
       style={{
         fontFamily: fontFamily,
         color: textColor,
@@ -61,13 +64,13 @@ export const ElegantTimelineCoverLetter: React.FC<CoverLetterRendererProps> = ({
         {/* Elegant Header - Centered to match resume */}
         <header className="mb-8 text-center">
           <h1
-            className="mb-2 text-4xl font-light"
+            className={`mb-2 ${nameSize} font-light`}
             style={{ color: primaryColor }}
           >
             {resume?.header?.name || "[Your Name]"}
           </h1>
           <div
-            className={`${textSize} mb-2 flex flex-wrap justify-center gap-3`}
+            className={`${metaSize} mb-2 flex flex-wrap justify-center gap-3`}
             style={{ color: secondaryColor }}
           >
             {resume?.header?.email && <span>✉ {resume.header.email}</span>}
@@ -76,7 +79,7 @@ export const ElegantTimelineCoverLetter: React.FC<CoverLetterRendererProps> = ({
               <span>📍 {resume.header.location}</span>
             )}
           </div>
-          <div className={`${textSize} flex flex-wrap justify-center gap-3`}>
+          <div className={`${metaSize} flex flex-wrap justify-center gap-3`}>
             {resume?.header?.linkedin && (
               <a
                 href={resume.header.linkedin}

@@ -56,8 +56,8 @@ export const ModernMinimalCoverLetterPDF: React.FC<CoverLetterPDFProps> = ({
           style={{
             borderBottomWidth: 2,
             borderBottomColor: s.primaryColor,
-            paddingBottom: 8,
-            marginBottom: 14,
+            paddingBottom: s.sp(8),
+            marginBottom: s.sp(14),
           }}
         >
           <Text
@@ -65,7 +65,7 @@ export const ModernMinimalCoverLetterPDF: React.FC<CoverLetterPDFProps> = ({
               fontSize: s.nameFontSize,
               fontWeight: 700,
               color: s.primaryColor,
-              marginBottom: 4,
+              marginBottom: s.sp(4),
             }}
           >
             {h.name}
@@ -80,7 +80,7 @@ export const ModernMinimalCoverLetterPDF: React.FC<CoverLetterPDFProps> = ({
           style={{
             fontSize: s.fontSize,
             color: s.secondaryColor,
-            marginBottom: 14,
+            marginBottom: s.sp(14),
           }}
         >
           {today}

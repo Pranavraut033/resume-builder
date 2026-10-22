@@ -29,9 +29,12 @@ export const AcademicSerifCoverLetter: React.FC<CoverLetterRendererProps> = ({
     textColor,
     backgroundColor,
     textSize,
+    metaSize,
+    nameSize,
     fontFamily,
     dateFormat,
     marginClass,
+    spaceClass,
     lineHeight,
     background,
     colorsTuple,
@@ -49,7 +52,7 @@ export const AcademicSerifCoverLetter: React.FC<CoverLetterRendererProps> = ({
 
   return (
     <div
-      className={`relative ${marginClass}`}
+      className={`cover-letter-content relative ${marginClass} ${spaceClass}`}
       style={{
         fontFamily: fontFamily,
         color: textColor,
@@ -66,13 +69,13 @@ export const AcademicSerifCoverLetter: React.FC<CoverLetterRendererProps> = ({
         {/* Header - Centered, traditional double rule */}
         <header className="mb-8 pb-6 text-center">
           <h1
-            className="mb-2 font-serif text-3xl font-bold tracking-wide"
+            className={`mb-2 font-serif ${nameSize} font-bold tracking-wide`}
             style={{ color: primaryColor, fontVariant: "small-caps" }}
           >
             {resume?.header?.name || "[Your Name]"}
           </h1>
           <div
-            className={`${textSize} space-y-1`}
+            className={`${metaSize} space-y-1`}
             style={{ color: secondaryColor }}
           >
             <div className="flex justify-center gap-3">
@@ -97,7 +100,9 @@ export const AcademicSerifCoverLetter: React.FC<CoverLetterRendererProps> = ({
         </header>
 
         {/* Date */}
-        <div className={`${textSize} mb-6`}>{today}</div>
+        <div className={`${textSize} mb-6`} style={{ color: secondaryColor }}>
+          {today}
+        </div>
 
         {/* Cover Letter Content */}
         <CoverLetterBody

@@ -44,6 +44,10 @@ export const CreativeModernCoverLetterPDF: React.FC<CoverLetterPDFProps> = ({
           color: s.textColor,
           backgroundColor: s.backgroundColor,
           flexDirection: "row",
+          // Top/bottom margin on every page; the full-bleed stripe below is a
+          // fixed absolute layer, so it ignores this padding.
+          paddingTop: s.marginPt,
+          paddingBottom: s.marginPt,
         }}
       >
         <BackgroundPdf styles={s} />
@@ -57,25 +61,22 @@ export const CreativeModernCoverLetterPDF: React.FC<CoverLetterPDFProps> = ({
             position: "absolute",
             top: 0,
             left: 0,
-            width: 8,
+            width: 6,
             height: pagePtH,
             backgroundColor: s.accentColor,
           }}
         />
 
         {/* ── Main content ─────────────────────────────────── */}
-        {/* marginLeft: 8 reserves the space the stripe used to occupy as a
-            flex sibling, now that it's an absolutely-positioned overlay
-            instead (see above). */}
-        <View style={{ flex: 1, marginLeft: 8, padding: s.marginPt }}>
+        <View style={{ flex: 1, paddingHorizontal: s.marginPt }}>
           {/* Header */}
-          <View style={{ marginBottom: 16 }}>
+          <View style={{ marginBottom: s.sp(24) }}>
             <Text
               style={{
                 fontSize: s.nameFontSize,
                 fontWeight: 700,
                 color: s.primaryColor,
-                marginBottom: 4,
+                marginBottom: s.sp(3),
               }}
             >
               {h.name}
@@ -85,9 +86,9 @@ export const CreativeModernCoverLetterPDF: React.FC<CoverLetterPDFProps> = ({
             <View
               style={{
                 height: 3,
-                width: 64,
+                width: 54,
                 backgroundColor: s.accentColor,
-                marginBottom: 8,
+                marginBottom: s.sp(12),
               }}
             />
 
@@ -103,7 +104,7 @@ export const CreativeModernCoverLetterPDF: React.FC<CoverLetterPDFProps> = ({
                 style={{
                   fontSize: s.smallFontSize,
                   color: s.accentColor,
-                  marginTop: 2,
+                  marginTop: s.sp(3),
                 }}
               >
                 {linkParts.join("  •  ")}
@@ -116,7 +117,7 @@ export const CreativeModernCoverLetterPDF: React.FC<CoverLetterPDFProps> = ({
             style={{
               fontSize: s.fontSize,
               color: s.secondaryColor,
-              marginBottom: 14,
+              marginBottom: s.sp(18),
             }}
           >
             {today}
@@ -129,9 +130,9 @@ export const CreativeModernCoverLetterPDF: React.FC<CoverLetterPDFProps> = ({
           <View
             style={{
               height: 2,
-              width: 80,
+              width: 96,
               backgroundColor: s.accentColor,
-              marginTop: 16,
+              marginTop: s.sp(6),
             }}
           />
         </View>

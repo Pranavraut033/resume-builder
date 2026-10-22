@@ -30,9 +30,12 @@ export const BusinessProfessionalCoverLetter: React.FC<
     textColor,
     backgroundColor,
     textSize,
+    metaSize,
+    nameSize,
     fontFamily,
     dateFormat,
     marginClass,
+    spaceClass,
     lineHeight,
     background,
     colorsTuple,
@@ -50,7 +53,7 @@ export const BusinessProfessionalCoverLetter: React.FC<
 
   return (
     <div
-      className={`relative ${marginClass}`}
+      className={`cover-letter-content relative ${marginClass} ${spaceClass}`}
       style={{
         fontFamily: fontFamily,
         color: textColor,
@@ -70,13 +73,13 @@ export const BusinessProfessionalCoverLetter: React.FC<
           style={{ borderColor: secondaryColor }}
         >
           <h1
-            className="mb-2 font-serif text-3xl font-bold"
+            className={`mb-2 font-serif ${nameSize} font-bold`}
             style={{ color: primaryColor }}
           >
             {resume?.header?.name || "[Your Name]"}
           </h1>
           <div
-            className={`${textSize} space-y-1`}
+            className={`${metaSize} space-y-1`}
             style={{ color: secondaryColor }}
           >
             <div className="flex justify-center gap-3">
@@ -97,7 +100,9 @@ export const BusinessProfessionalCoverLetter: React.FC<
         </header>
 
         {/* Date */}
-        <div className={`${textSize} mb-6`}>{today}</div>
+        <div className={`${textSize} mb-6`} style={{ color: secondaryColor }}>
+          {today}
+        </div>
 
         {/* Cover Letter Content */}
         <CoverLetterBody

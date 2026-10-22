@@ -44,44 +44,48 @@ export const BusinessProfessionalCoverLetterPDF: React.FC<
       >
         <BackgroundPdf styles={s} />
         {/* ── Name + divider ───────────────────────────────── */}
-        <View style={{ marginBottom: 12 }}>
+        <View
+          style={{
+            marginBottom: s.sp(24),
+            paddingBottom: s.sp(18),
+            borderBottomWidth: 1,
+            borderBottomColor: s.secondaryColor,
+          }}
+        >
           <Text
             style={{
               fontSize: s.nameFontSize,
               fontWeight: 700,
               color: s.primaryColor,
-              marginBottom: 6,
+              marginBottom: s.sp(6),
+              textAlign: "center",
             }}
           >
             {h.name}
           </Text>
 
-          {/* Horizontal rule */}
-          <View
-            style={{
-              height: 1,
-              backgroundColor: s.secondaryColor,
-              marginBottom: 6,
-            }}
-          />
-
-          {/* Contact row */}
+          {/* Contact rows (centered, like the preview) */}
           {contactParts.length > 0 && (
             <Text
-              style={{ fontSize: s.smallFontSize, color: s.secondaryColor }}
+              style={{
+                fontSize: s.smallFontSize,
+                color: s.secondaryColor,
+                textAlign: "center",
+              }}
             >
-              {contactParts.join("   |   ")}
+              {contactParts.join("  •  ")}
             </Text>
           )}
           {linkParts.length > 0 && (
             <Text
               style={{
                 fontSize: s.smallFontSize,
-                color: s.accentColor,
-                marginTop: 2,
+                color: s.secondaryColor,
+                marginTop: s.sp(3),
+                textAlign: "center",
               }}
             >
-              {linkParts.join("   |   ")}
+              {linkParts.join("  •  ")}
             </Text>
           )}
         </View>
@@ -91,7 +95,7 @@ export const BusinessProfessionalCoverLetterPDF: React.FC<
           style={{
             fontSize: s.fontSize,
             color: s.secondaryColor,
-            marginBottom: 14,
+            marginBottom: s.sp(18),
           }}
         >
           {today}
@@ -99,16 +103,6 @@ export const BusinessProfessionalCoverLetterPDF: React.FC<
 
         {/* ── Body ─────────────────────────────────────────── */}
         {htmlToPdfNodes(coverLetter, s)}
-
-        {/* ── Closing accent ───────────────────────────────── */}
-        <View
-          style={{
-            height: 2,
-            width: 40,
-            backgroundColor: s.primaryColor,
-            marginTop: 18,
-          }}
-        />
       </Page>
     </Document>
   );

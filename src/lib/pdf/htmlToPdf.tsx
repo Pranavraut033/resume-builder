@@ -180,10 +180,7 @@ export function htmlToPdfNodes(
           );
         } else {
           results.push(
-            <Text
-              key={key}
-              style={{ ...base, marginBottom: base.fontSize * 0.4 }}
-            >
+            <Text key={key} style={{ ...base, marginBottom: s.sp(6) }}>
               {inlineChildren.length > 0
                 ? inlineChildren
                 : (el.textContent ?? "")}
@@ -262,7 +259,10 @@ export function htmlToPdfNodes(
               key={`${key}-li-${liIdx}`}
               style={{
                 flexDirection: "row",
-                marginBottom: base.fontSize * 0.25,
+                marginBottom:
+                  liIdx === listItems.length - 1
+                    ? s.sp(6)
+                    : base.fontSize * 0.25,
               }}
             >
               <Text style={{ ...base, width: 14, flexShrink: 0 }}>
@@ -323,5 +323,15 @@ export function htmlToPdfNodes(
   }
 
   doc.body.childNodes.forEach(block);
+
+  // No trailing gap after the last block (spec: 6pt between paragraphs only).
+  const last = results[results.length - 1] as
+    | React.ReactElement<{ style?: Record<string, unknown> }>
+    | undefined;
+  if (last) {
+    results[results.length - 1] = React.cloneElement(last, {
+      style: { ...last.props.style, marginBottom: 0 },
+    });
+  }
   return results;
 }

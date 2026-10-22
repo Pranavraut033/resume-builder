@@ -29,10 +29,13 @@ export const CreativeModernCoverLetter: React.FC<CoverLetterRendererProps> = ({
     textColor,
     backgroundColor,
     textSize,
+    metaSize,
+    nameSize,
     fontFamily,
     dateFormat,
     lineHeight,
     marginClass,
+    spaceClass,
     background,
     colorsTuple,
   } = useResolveCustomization(customization);
@@ -44,7 +47,7 @@ export const CreativeModernCoverLetter: React.FC<CoverLetterRendererProps> = ({
 
   return (
     <div
-      className={`${marginClass} relative overflow-hidden`}
+      className={`cover-letter-content ${marginClass} relative overflow-hidden ${spaceClass}`}
       style={{
         fontFamily: fontFamily,
         color: textColor,
@@ -60,26 +63,26 @@ export const CreativeModernCoverLetter: React.FC<CoverLetterRendererProps> = ({
 
       {/* Creative accent stripe */}
       <div
-        className="absolute top-0 left-0 z-1 h-full w-2"
+        className="absolute top-0 left-0 z-1 h-full w-[6pt]"
         style={{ backgroundColor: accentColor }}
       />
 
-      {/* Content with left margin for stripe */}
-      <div className="relative z-1 ml-8 p-12">
+      {/* Content (the page margin from the root clears the stripe) */}
+      <div className="relative z-1">
         {/* Header with creative styling */}
         <header className="mb-8">
           <h1
-            className="mb-1 text-4xl font-bold"
+            className={`mb-1 ${nameSize} font-bold`}
             style={{ color: primaryColor }}
           >
             {resume?.header?.name || "[Your Name]"}
           </h1>
           <div
-            className="mb-4 h-1 w-24"
+            className="mb-4 h-1 w-[54pt]"
             style={{ backgroundColor: accentColor }}
           />
           <div
-            className={`${textSize} space-y-1`}
+            className={`${metaSize} space-y-1`}
             style={{ color: secondaryColor }}
           >
             <div className="flex flex-wrap gap-4">
@@ -135,7 +138,7 @@ export const CreativeModernCoverLetter: React.FC<CoverLetterRendererProps> = ({
         />
 
         <div
-          className="mt-2 h-0.5 w-32"
+          className="mt-2 h-0.5 w-[96pt]"
           style={{ backgroundColor: accentColor }}
         />
       </div>

@@ -24,14 +24,17 @@ export const ModernMinimalCoverLetter: React.FC<CoverLetterRendererProps> = ({
 }) => {
   const {
     primaryColor,
-    secondaryColor: _,
+    secondaryColor,
     accentColor,
     textColor,
     backgroundColor,
     textSize,
+    metaSize,
+    nameSize,
     fontFamily,
     dateFormat,
     marginClass,
+    spaceClass,
     lineHeight,
     background,
     colorsTuple,
@@ -44,7 +47,7 @@ export const ModernMinimalCoverLetter: React.FC<CoverLetterRendererProps> = ({
 
   return (
     <div
-      className={`cover-letter-content relative p-12 ${marginClass}`}
+      className={`cover-letter-content relative ${marginClass} ${spaceClass}`}
       style={{
         fontFamily: fontFamily,
         color: textColor,
@@ -60,16 +63,19 @@ export const ModernMinimalCoverLetter: React.FC<CoverLetterRendererProps> = ({
       <div className="relative z-1">
         {/* Header */}
         <header
-          className="mb-8 border-b-2 pb-4"
+          className="mb-5 border-b-2 pb-2.5"
           style={{ borderColor: primaryColor }}
         >
           <h1
-            className="mb-2 text-3xl font-bold"
+            className={`mb-1.5 ${nameSize} font-bold`}
             style={{ color: primaryColor }}
           >
             {resume?.header?.name || "[Your Name]"}
           </h1>
-          <div className={`${textSize} space-y-1 text-gray-600`}>
+          <div
+            className={`${metaSize} space-y-1`}
+            style={{ color: secondaryColor }}
+          >
             <div className="flex flex-wrap gap-4">
               {resume?.header?.email && <span>✉ {resume.header.email}</span>}
               {resume?.header?.phone && <span>📞 {resume.header.phone}</span>}
@@ -110,7 +116,9 @@ export const ModernMinimalCoverLetter: React.FC<CoverLetterRendererProps> = ({
         </header>
 
         {/* Date */}
-        <div className={`${textSize} mb-6`}>{today}</div>
+        <div className={`${textSize} mb-5`} style={{ color: secondaryColor }}>
+          {today}
+        </div>
 
         <CoverLetterBody
           content={coverLetter}

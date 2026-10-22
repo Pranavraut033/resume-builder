@@ -29,9 +29,12 @@ export const TechSidebarCoverLetter: React.FC<CoverLetterRendererProps> = ({
     textColor,
     backgroundColor,
     textSize,
+    metaSize,
+    nameSize,
     fontFamily,
     dateFormat,
     marginClass,
+    spaceClass,
     lineHeight,
     background,
     colorsTuple,
@@ -42,9 +45,19 @@ export const TechSidebarCoverLetter: React.FC<CoverLetterRendererProps> = ({
     customization.marginSize
   );
 
+  const h = resume?.header;
+  const contactItems = [
+    { label: "Email", value: h?.email },
+    { label: "Phone", value: h?.phone },
+    { label: "Location", value: h?.location },
+    { label: "LinkedIn", value: h?.linkedin, link: true },
+    { label: "GitHub", value: h?.github, link: true },
+    { label: "Website", value: h?.website, link: true },
+  ].filter((item) => item.value);
+
   return (
     <div
-      className="relative flex h-full flex-col overflow-hidden"
+      className={`cover-letter-content relative flex h-full flex-col overflow-hidden ${spaceClass}`}
       style={{
         fontFamily: fontFamily,
         color: textColor,
@@ -59,12 +72,12 @@ export const TechSidebarCoverLetter: React.FC<CoverLetterRendererProps> = ({
       />
       <div className="relative z-1 flex flex-1 flex-col">
         {/* Header with colored background */}
-        <div className="p-8 pb-4" style={{ backgroundColor: primaryColor }}>
-          <h1 className="mb-1 text-3xl font-bold text-white">
-            {resume?.header?.name || "[Your Name]"}
+        <div className={marginClass} style={{ backgroundColor: primaryColor }}>
+          <h1 className={`mb-1 ${nameSize} font-bold text-white`}>
+            {h?.name || "[Your Name]"}
           </h1>
-          {resume?.header?.headline && (
-            <h2 className="text-lg text-white">{resume.header.headline}</h2>
+          {h?.headline && (
+            <h2 className={`${textSize} text-white`}>{h.headline}</h2>
           )}
         </div>
 
@@ -73,109 +86,56 @@ export const TechSidebarCoverLetter: React.FC<CoverLetterRendererProps> = ({
           {/* Left Sidebar - 35% */}
           <div
             className="h-full w-[35%] space-y-6 p-6"
-            style={{ backgroundColor: secondaryColor + "10" }}
+            style={{ backgroundColor: secondaryColor + "1a" }}
           >
             {/* Contact Information */}
             <section>
               <h2
-                className={`mb-3 text-lg font-bold`}
+                className={`mb-3 ${textSize} font-bold uppercase`}
                 style={{ color: primaryColor }}
               >
-                CONTACT
+                Contact
               </h2>
               <div className="space-y-2">
-                {resume?.header?.email && (
-                  <div className={`${textSize} flex items-start`}>
-                    <span
-                      className="mt-0.5 mr-2"
+                {contactItems.map((item) => (
+                  <div key={item.label}>
+                    <div
+                      className={`${metaSize} font-bold`}
                       style={{ color: accentColor }}
                     >
-                      ✉️
-                    </span>
-                    <span className="break-all">{resume.header.email}</span>
+                      {item.label}
+                    </div>
+                    {item.link ? (
+                      <a
+                        href={item.value ?? undefined}
+                        className={`${metaSize} break-all hover:underline`}
+                      >
+                        {item.value}
+                      </a>
+                    ) : (
+                      <div className={`${metaSize} break-all`}>
+                        {item.value}
+                      </div>
+                    )}
                   </div>
-                )}
-                {resume?.header?.phone && (
-                  <div className={`${textSize} flex items-start`}>
-                    <span
-                      className="mt-0.5 mr-2"
-                      style={{ color: accentColor }}
-                    >
-                      📞
-                    </span>
-                    <span>{resume.header.phone}</span>
-                  </div>
-                )}
-                {resume?.header?.location && (
-                  <div className={`${textSize} flex items-start`}>
-                    <span
-                      className="mt-0.5 mr-2"
-                      style={{ color: accentColor }}
-                    >
-                      📍
-                    </span>
-                    <span>{resume.header.location}</span>
-                  </div>
-                )}
-                {resume?.header?.linkedin && (
-                  <div className={`${textSize} flex items-start`}>
-                    <span
-                      className="mt-0.5 mr-2"
-                      style={{ color: accentColor }}
-                    >
-                      🔗
-                    </span>
-                    <a
-                      href={resume.header.linkedin}
-                      className="break-all hover:underline"
-                      style={{ color: accentColor }}
-                    >
-                      {resume.header.linkedin}
-                    </a>
-                  </div>
-                )}
-                {resume?.header?.github && (
-                  <div className={`${textSize} flex items-start`}>
-                    <span
-                      className="mt-0.5 mr-2"
-                      style={{ color: accentColor }}
-                    >
-                      💻
-                    </span>
-                    <a
-                      href={resume.header.github}
-                      className="break-all hover:underline"
-                      style={{ color: accentColor }}
-                    >
-                      {resume.header.github}
-                    </a>
-                  </div>
-                )}
-                {resume?.header?.website && (
-                  <div className={`${textSize} flex items-start`}>
-                    <span
-                      className="mt-0.5 mr-2"
-                      style={{ color: accentColor }}
-                    >
-                      🌐
-                    </span>
-                    <a
-                      href={resume.header.website}
-                      className="break-all hover:underline"
-                      style={{ color: accentColor }}
-                    >
-                      {resume.header.website}
-                    </a>
-                  </div>
-                )}
+                ))}
               </div>
+            </section>
+
+            {/* Date */}
+            <section>
+              <div
+                className={`${metaSize} font-bold`}
+                style={{ color: accentColor }}
+              >
+                Date
+              </div>
+              <div className={metaSize}>{today}</div>
             </section>
           </div>
 
           {/* Right Main Content - 65% */}
-          <div className={`w-[65%] space-y-6 ${marginClass}`}>
-            {/* Date */}
-            <div className={`${textSize} text-gray-600`}>{today}</div>
+          <div className={`w-[65%] ${marginClass}`}>
             {/* Cover Letter Content */}
             <CoverLetterBody
               content={coverLetter}

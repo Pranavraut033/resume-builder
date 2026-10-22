@@ -29,9 +29,11 @@ export const CompactModernCoverLetter: React.FC<CoverLetterRendererProps> = ({
     textColor,
     backgroundColor,
     textSize,
+    metaSize,
     fontFamily,
     dateFormat,
     marginClass,
+    spaceClass,
     lineHeight,
     background,
     colorsTuple,
@@ -55,7 +57,7 @@ export const CompactModernCoverLetter: React.FC<CoverLetterRendererProps> = ({
 
   return (
     <div
-      className={`cover-letter-content relative p-10 ${marginClass}`}
+      className={`cover-letter-content relative ${marginClass} ${spaceClass}`}
       style={{
         fontFamily: fontFamily,
         color: textColor,
@@ -80,18 +82,20 @@ export const CompactModernCoverLetter: React.FC<CoverLetterRendererProps> = ({
           >
             {resume?.header?.name || "[Your Name]"}
           </h1>
-          <div className={`${textSize} text-gray-600`}>
+          <div className={metaSize} style={{ color: secondaryColor }}>
             {contactParts.join(" | ")}
           </div>
           {linkParts.length > 0 && (
-            <div className={`${textSize} text-gray-600`}>
+            <div className={metaSize} style={{ color: secondaryColor }}>
               {linkParts.join(" | ")}
             </div>
           )}
         </header>
 
         {/* Date */}
-        <div className={`${textSize} mb-3`}>{today}</div>
+        <div className={`${textSize} mb-3`} style={{ color: secondaryColor }}>
+          {today}
+        </div>
 
         <CoverLetterBody
           content={coverLetter}

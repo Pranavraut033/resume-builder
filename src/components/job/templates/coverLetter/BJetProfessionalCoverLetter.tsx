@@ -30,9 +30,12 @@ export const BJetProfessionalCoverLetter: React.FC<
     textColor,
     backgroundColor,
     textSize,
+    metaSize,
+    nameSize,
     fontFamily,
     dateFormat,
     marginClass,
+    spaceClass,
     lineHeight,
     background,
     colorsTuple,
@@ -45,7 +48,7 @@ export const BJetProfessionalCoverLetter: React.FC<
 
   return (
     <div
-      className="cover-letter-content relative mx-auto bg-white shadow-lg"
+      className={`cover-letter-content relative mx-auto bg-white shadow-lg ${spaceClass}`}
       style={{
         fontFamily: fontFamily,
         color: textColor, // text color
@@ -61,22 +64,26 @@ export const BJetProfessionalCoverLetter: React.FC<
       <div className="relative z-1">
         {/* Professional Header with gradient effect */}
         <header
-          className="p-8 pb-6"
+          className={marginClass}
           style={{
             background: `linear-gradient(135deg, ${primaryColor} 0%, ${secondaryColor} 100%)`,
           }}
         >
-          <h1 className="mb-2 text-3xl font-bold text-white">
+          <h1 className={`mb-2 ${nameSize} font-bold text-white`}>
             {resume?.header?.name || "[Your Name]"}
           </h1>
-          <div className="flex flex-wrap gap-4 text-xs text-white opacity-95">
+          <div
+            className={`flex flex-wrap gap-4 ${metaSize} text-white opacity-95`}
+          >
             {resume?.header?.email && <span>✉ {resume.header.email}</span>}
             {resume?.header?.phone && <span>📞 {resume.header.phone}</span>}
             {resume?.header?.location && (
               <span>📍 {resume.header.location}</span>
             )}
           </div>
-          <div className="mt-2 flex flex-wrap gap-4 text-xs text-white opacity-90">
+          <div
+            className={`mt-2 flex flex-wrap gap-4 ${metaSize} text-white opacity-90`}
+          >
             {resume?.header?.linkedin && (
               <span className="hover:opacity-100">
                 🔗 {resume.header.linkedin}
@@ -111,7 +118,7 @@ export const BJetProfessionalCoverLetter: React.FC<
           />
 
           <div
-            className="mt-1 h-1 w-20"
+            className="mt-1 h-1 w-[60pt]"
             style={{
               background: `linear-gradient(90deg, ${primaryColor} 0%, ${accentColor} 100%)`,
             }}

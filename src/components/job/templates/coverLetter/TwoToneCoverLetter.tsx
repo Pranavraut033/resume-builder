@@ -25,15 +25,18 @@ export const TwoToneCoverLetter: React.FC<CoverLetterRendererProps> = ({
 }) => {
   const {
     primaryColor,
-    secondaryColor: _,
+    secondaryColor,
     accentColor,
     textColor,
     backgroundColor,
     textSize,
+    metaSize,
+    nameSize,
     fontFamily,
     dateFormat,
     lineHeight,
     marginClass,
+    spaceClass,
     background,
     colorsTuple,
   } = useResolveCustomization(customization);
@@ -45,7 +48,7 @@ export const TwoToneCoverLetter: React.FC<CoverLetterRendererProps> = ({
 
   return (
     <div
-      className={`${marginClass} relative overflow-hidden`}
+      className={`cover-letter-content relative overflow-hidden ${spaceClass}`}
       style={{
         fontFamily: fontFamily,
         color: textColor,
@@ -61,19 +64,23 @@ export const TwoToneCoverLetter: React.FC<CoverLetterRendererProps> = ({
 
       {/* Bold two-tone header band */}
       <div className="relative z-1 flex items-stretch">
-        <div className="flex-1 p-8" style={{ backgroundColor: primaryColor }}>
+        <div
+          className={`flex-1 ${marginClass}`}
+          style={{ backgroundColor: primaryColor }}
+        >
           {/* Inverted text on the band, matching the PDF export — a
               reversed-out "plate" (backgroundColor on the text itself)
               doesn't render reliably in the PDF, so both sides use the
               same inverted-color approach here. */}
           <h1
-            className="mb-2 text-3xl font-bold"
+            className={`mb-2 ${nameSize} font-bold`}
             style={{ color: backgroundColor }}
           >
             {resume?.header?.name || "[Your Name]"}
           </h1>
           <div
-            className={`${textSize} flex flex-wrap gap-4 text-white opacity-95`}
+            className={`${metaSize} flex flex-wrap gap-4 opacity-75`}
+            style={{ color: backgroundColor }}
           >
             {resume?.header?.email && <span>✉ {resume.header.email}</span>}
             {resume?.header?.phone && <span>📞 {resume.header.phone}</span>}
@@ -82,7 +89,8 @@ export const TwoToneCoverLetter: React.FC<CoverLetterRendererProps> = ({
             )}
           </div>
           <div
-            className={`${textSize} mt-1 flex flex-wrap gap-4 text-white opacity-95`}
+            className={`${metaSize} mt-1 flex flex-wrap gap-4 opacity-75`}
+            style={{ color: backgroundColor }}
           >
             {resume?.header?.linkedin && (
               <a href={resume.header.linkedin} className="hover:underline">
@@ -103,15 +111,17 @@ export const TwoToneCoverLetter: React.FC<CoverLetterRendererProps> = ({
         </div>
         {/* Second tone: accent stripe */}
         <div
-          className="w-3 flex-shrink-0"
+          className="w-[9pt] flex-shrink-0"
           style={{ backgroundColor: accentColor }}
         />
       </div>
 
       {/* Content */}
-      <div className="relative z-1 p-12">
+      <div className={`relative z-1 ${marginClass}`}>
         {/* Date */}
-        <div className={`${textSize} mb-6`}>{today}</div>
+        <div className={`${textSize} mb-6`} style={{ color: secondaryColor }}>
+          {today}
+        </div>
 
         <CoverLetterBody
           content={coverLetter}

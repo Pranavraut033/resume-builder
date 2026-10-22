@@ -46,6 +46,10 @@ export const BJetProfessionalCoverLetterPDF: React.FC<CoverLetterPDFProps> = ({
           fontSize: s.fontSize,
           color: s.textColor,
           backgroundColor: s.backgroundColor,
+          // Margin on every page; the header below cancels the top padding
+          // with a negative margin so it stays full-bleed on page 1.
+          paddingTop: s.marginPt,
+          paddingBottom: s.marginPt,
         }}
       >
         <BackgroundPdf styles={s} />
@@ -53,9 +57,8 @@ export const BJetProfessionalCoverLetterPDF: React.FC<CoverLetterPDFProps> = ({
         <View
           style={{
             backgroundColor: s.primaryColor,
+            marginTop: -s.marginPt,
             padding: s.marginPt,
-            paddingBottom: s.marginPt * 0.75,
-            marginBottom: 0,
           }}
         >
           <Text
@@ -63,7 +66,7 @@ export const BJetProfessionalCoverLetterPDF: React.FC<CoverLetterPDFProps> = ({
               fontSize: s.nameFontSize,
               fontWeight: 700,
               color: "#ffffff",
-              marginBottom: 4,
+              marginBottom: s.sp(6),
             }}
           >
             {h.name}
@@ -83,7 +86,7 @@ export const BJetProfessionalCoverLetterPDF: React.FC<CoverLetterPDFProps> = ({
               style={{
                 fontSize: s.smallFontSize,
                 color: "rgba(255,255,255,0.8)",
-                marginTop: 2,
+                marginTop: s.sp(6),
               }}
             >
               {linkParts}
@@ -92,13 +95,13 @@ export const BJetProfessionalCoverLetterPDF: React.FC<CoverLetterPDFProps> = ({
         </View>
 
         {/* ── Body ─────────────────────────────────────────── */}
-        <View style={{ padding: s.marginPt }}>
+        <View style={{ paddingHorizontal: s.marginPt, paddingTop: s.marginPt }}>
           {/* Date */}
           <Text
             style={{
               fontSize: s.fontSize,
               color: s.secondaryColor,
-              marginBottom: 14,
+              marginBottom: s.sp(18),
             }}
           >
             {today}
@@ -111,9 +114,9 @@ export const BJetProfessionalCoverLetterPDF: React.FC<CoverLetterPDFProps> = ({
           <View
             style={{
               height: 3,
-              width: 48,
+              width: 60,
               backgroundColor: s.accentColor,
-              marginTop: 14,
+              marginTop: s.sp(3),
             }}
           />
         </View>

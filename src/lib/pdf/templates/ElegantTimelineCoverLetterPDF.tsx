@@ -1,7 +1,7 @@
 /**
  * Elegant Timeline – Cover Letter PDF Template
- * Mirrors ElegantTimelineCoverLetter.tsx: decorative left border accent,
- * large styled name, contact info below, then body.
+ * Mirrors ElegantTimelineCoverLetter.tsx: centered large name, contact
+ * info below, then body.
  */
 
 import { Document, Page, Text, View } from "@react-pdf/renderer";
@@ -46,82 +46,51 @@ export const ElegantTimelineCoverLetterPDF: React.FC<CoverLetterPDFProps> = ({
         }}
       >
         <BackgroundPdf styles={s} />
-        {/* ── Elegant header with left accent bar ───────────── */}
-        <View
-          style={{
-            flexDirection: "row",
-            marginBottom: 16,
-          }}
-        >
-          {/* Decorative left accent bar */}
-          <View
+        {/* ── Elegant centered header (matches the preview) ─── */}
+        <View style={{ marginBottom: s.sp(24) }}>
+          <Text
             style={{
-              width: 4,
-              backgroundColor: s.primaryColor,
-              marginRight: 12,
-              borderRadius: 2,
+              fontSize: s.nameFontSize,
+              fontWeight: 700,
+              color: s.primaryColor,
+              marginBottom: s.sp(6),
+              textAlign: "center",
             }}
-          />
+          >
+            {h.name}
+          </Text>
 
-          <View style={{ flex: 1 }}>
+          {contactParts.length > 0 && (
             <Text
               style={{
-                fontSize: s.nameFontSize,
-                fontWeight: 700,
-                color: s.primaryColor,
-                marginBottom: 4,
+                fontSize: s.smallFontSize,
+                color: s.secondaryColor,
+                textAlign: "center",
               }}
             >
-              {h.name}
+              {contactParts.join("  ·  ")}
             </Text>
-
-            {/* Thin accent underline beneath name */}
-            <View
+          )}
+          {linkParts.length > 0 && (
+            <Text
               style={{
-                height: 1,
-                width: 48,
-                backgroundColor: s.accentColor,
-                marginBottom: 6,
+                fontSize: s.smallFontSize,
+                color: s.accentColor,
+                marginTop: s.sp(6),
+                textAlign: "center",
               }}
-            />
-
-            {contactParts.length > 0 && (
-              <Text
-                style={{ fontSize: s.smallFontSize, color: s.secondaryColor }}
-              >
-                {contactParts.join("  ·  ")}
-              </Text>
-            )}
-            {linkParts.length > 0 && (
-              <Text
-                style={{
-                  fontSize: s.smallFontSize,
-                  color: s.accentColor,
-                  marginTop: 2,
-                }}
-              >
-                {linkParts.join("  ·  ")}
-              </Text>
-            )}
-          </View>
+            >
+              {linkParts.join("  ·  ")}
+            </Text>
+          )}
         </View>
-
-        {/* Divider */}
-        <View
-          style={{
-            height: 1,
-            backgroundColor: s.secondaryColor,
-            marginBottom: 14,
-            opacity: 0.3,
-          }}
-        />
 
         {/* ── Date ─────────────────────────────────────────── */}
         <Text
           style={{
             fontSize: s.fontSize,
             color: s.secondaryColor,
-            marginBottom: 14,
+            marginBottom: s.sp(18),
           }}
         >
           {today}

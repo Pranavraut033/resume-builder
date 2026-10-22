@@ -144,7 +144,7 @@ export async function generateCoverLetterPDF(
 ): Promise<void> {
   const { pdf } = await import("@react-pdf/renderer");
 
-  const styles = resolvePDFCustomization(customization);
+  const styles = resolvePDFCustomization(customization, { fit: false });
   // Mirrors CoverLetterRenderer.tsx's resolution: prefer the dedicated
   // cover-letter template, falling back to the legacy euro-sidebar alias
   // (for old rows with no coverLetterTemplate set) and then the resume

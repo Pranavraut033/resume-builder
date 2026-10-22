@@ -50,8 +50,8 @@ export const CompactModernCoverLetterPDF: React.FC<CoverLetterPDFProps> = ({
           style={{
             borderBottomWidth: 1,
             borderBottomColor: s.secondaryColor,
-            paddingBottom: 4,
-            marginBottom: 8,
+            paddingBottom: s.sp(6),
+            marginBottom: s.sp(12),
           }}
         >
           <Text
@@ -59,7 +59,7 @@ export const CompactModernCoverLetterPDF: React.FC<CoverLetterPDFProps> = ({
               fontSize: s.nameFontSize * 0.85,
               fontWeight: 700,
               color: s.primaryColor,
-              marginBottom: 2,
+              marginBottom: s.sp(3),
             }}
           >
             {h.name}
@@ -85,7 +85,7 @@ export const CompactModernCoverLetterPDF: React.FC<CoverLetterPDFProps> = ({
           style={{
             fontSize: s.fontSize,
             color: s.secondaryColor,
-            marginBottom: 6,
+            marginBottom: s.sp(9),
           }}
         >
           {today}

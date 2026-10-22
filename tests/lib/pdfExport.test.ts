@@ -162,6 +162,15 @@ describe("generateResumePDF", () => {
 });
 
 describe("generateCoverLetterPDF", () => {
+  it("resolves styles with fit disabled so the resume's fit-to-page scale never applies", async () => {
+    const { resolvePDFCustomization } = await import("@/lib/pdf/resolveStyles");
+    const c = customization("modern-minimal");
+
+    await generateCoverLetterPDF("cover letter text", resume, c, "c.pdf");
+
+    expect(resolvePDFCustomization).toHaveBeenCalledWith(c, { fit: false });
+  });
+
   it("uses the template-specific cover letter component", async () => {
     await generateCoverLetterPDF(
       "cover letter text",

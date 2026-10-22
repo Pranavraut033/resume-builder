@@ -12,7 +12,12 @@ import { formatCoverLetterDate } from "@/lib/coverLetterDate";
 import { JobDetailsJSON, ResumeJSON } from "@/types/resume";
 
 import { htmlToPdfNodes } from "../htmlToPdf";
-import { getPagePt, ResolvedPDFStyles, withAlpha } from "../resolveStyles";
+import {
+  fitLabel,
+  getPagePt,
+  ResolvedPDFStyles,
+  withAlpha,
+} from "../resolveStyles";
 
 export interface CoverLetterPDFProps {
   coverLetter: string;
@@ -32,6 +37,8 @@ export const TechSidebarCoverLetterPDF: React.FC<CoverLetterPDFProps> = ({
 
   const sidebarBg = withAlpha(s.secondaryColor, "1a"); // ~10% opacity
   const { w: pagePtW, h: pagePtH } = getPagePt(s.pageFormat);
+  // Sidebar is 35% wide with sp(18) padding each side (below).
+  const sidebarTextWidth = pagePtW * 0.35 - 2 * s.sp(18);
 
   const contactItems = [
     h.email && { label: "Email", value: h.email },
@@ -52,6 +59,10 @@ export const TechSidebarCoverLetterPDF: React.FC<CoverLetterPDFProps> = ({
           color: s.textColor,
           backgroundColor: s.backgroundColor,
           flexDirection: "column",
+          // Margin on every page; the header bar below cancels the top
+          // padding with a negative margin so it stays full-bleed on page 1.
+          paddingTop: s.marginPt,
+          paddingBottom: s.marginPt,
         }}
       >
         <BackgroundPdf styles={s} />
@@ -75,8 +86,8 @@ export const TechSidebarCoverLetterPDF: React.FC<CoverLetterPDFProps> = ({
         <View
           style={{
             backgroundColor: s.primaryColor,
-            paddingHorizontal: s.marginPt,
-            paddingVertical: s.marginPt * 0.6,
+            marginTop: -s.marginPt,
+            padding: s.marginPt,
           }}
         >
           <Text
@@ -84,7 +95,7 @@ export const TechSidebarCoverLetterPDF: React.FC<CoverLetterPDFProps> = ({
               fontSize: s.nameFontSize,
               fontWeight: 700,
               color: "#ffffff",
-              marginBottom: 2,
+              marginBottom: s.sp(3),
             }}
           >
             {h.name}
@@ -104,7 +115,7 @@ export const TechSidebarCoverLetterPDF: React.FC<CoverLetterPDFProps> = ({
           <View
             style={{
               width: "35%",
-              padding: s.marginPt * 0.6,
+              padding: s.sp(18),
             }}
           >
             <Text
@@ -112,14 +123,14 @@ export const TechSidebarCoverLetterPDF: React.FC<CoverLetterPDFProps> = ({
                 fontSize: s.fontSize,
                 fontWeight: 700,
                 color: s.primaryColor,
-                marginBottom: 8,
+                marginBottom: s.sp(9),
                 textTransform: "uppercase",
               }}
             >
               Contact
             </Text>
             {contactItems.map((item, i) => (
-              <View key={i} style={{ marginBottom: 6 }}>
+              <View key={i} style={{ marginBottom: s.sp(6) }}>
                 <Text
                   style={{
                     fontSize: s.smallFontSize,
@@ -135,13 +146,13 @@ export const TechSidebarCoverLetterPDF: React.FC<CoverLetterPDFProps> = ({
                     color: s.textColor,
                   }}
                 >
-                  {item.value}
+                  {fitLabel(item.value, sidebarTextWidth, s.smallFontSize)}
                 </Text>
               </View>
             ))}
 
             {/* Date in sidebar */}
-            <View style={{ marginTop: 16 }}>
+            <View style={{ marginTop: s.sp(12) }}>
               <Text
                 style={{
                   fontSize: s.smallFontSize,
@@ -161,7 +172,8 @@ export const TechSidebarCoverLetterPDF: React.FC<CoverLetterPDFProps> = ({
           <View
             style={{
               width: "65%",
-              padding: s.marginPt * 0.75,
+              paddingHorizontal: s.marginPt,
+              paddingTop: s.marginPt,
             }}
           >
             {htmlToPdfNodes(coverLetter, s)}
