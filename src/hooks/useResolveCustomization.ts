@@ -10,16 +10,32 @@ import {
   ThemeColors,
 } from "@/types/customization";
 
+// Sizes are `@theme` tokens in global.css (px = pt / 0.75) so the DOM preview
+// matches the PDF engine's pt sizes.
 const fontSizeMap: Record<FontSize, string> = {
-  small: "text-xs",
-  medium: "text-sm",
-  large: "text-base",
+  small: "text-doc-body-sm",
+  medium: "text-doc-body-md",
+  large: "text-doc-body-lg",
 };
 
+const metaSizeMap: Record<FontSize, string> = {
+  small: "text-doc-meta-sm",
+  medium: "text-doc-meta-md",
+  large: "text-doc-meta-lg",
+};
+
+const headingSizeMap: Record<FontSize, string> = {
+  small: "text-doc-heading-sm",
+  medium: "text-doc-heading-md",
+  large: "text-doc-heading-lg",
+};
+
+// Fixed-px page margins (24/36/48 pt) — never scaled by the Size preset's
+// `--spacing` override.
 const marginSizeMap: Record<MarginSize, string> = {
-  narrow: "p-8",
-  normal: "p-12",
-  wide: "p-16",
+  narrow: "p-page-narrow",
+  normal: "p-page-normal",
+  wide: "p-page-wide",
 };
 
 const lineHeightMap: Record<Leading, string> = {
@@ -29,9 +45,9 @@ const lineHeightMap: Record<Leading, string> = {
 };
 
 const nameSizeMap: Record<FontSize, string> = {
-  small: "text-2xl",
-  medium: "text-3xl",
-  large: "text-4xl",
+  small: "text-doc-name-sm",
+  medium: "text-doc-name-md",
+  large: "text-doc-name-lg",
 };
 
 export default function useResolveCustomization(
@@ -64,12 +80,9 @@ export default function useResolveCustomization(
   const background: BackgroundId =
     rawBackground && isBackgroundId(rawBackground) ? rawBackground : "none";
 
+  const metaSize = metaSizeMap[fontSize as FontSize] || metaSizeMap.medium;
   const headingSize =
-    textSize === "text-xs"
-      ? "text-base"
-      : textSize === "text-sm"
-        ? "text-lg"
-        : "text-xl";
+    headingSizeMap[fontSize as FontSize] || headingSizeMap.medium;
   return {
     primaryColor,
     secondaryColor,
@@ -79,6 +92,7 @@ export default function useResolveCustomization(
     colorsTuple,
     background,
     textSize,
+    metaSize,
     fontFamily: fontFamilyCss(fontFamily),
     lineHeight: lineHeightMap[lineHeight as Leading] || lineHeightMap.medium,
     marginClass,

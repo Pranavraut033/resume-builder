@@ -57,7 +57,7 @@ function TableRow({
         className={variant === "boxed" && !last ? "border-b" : ""}
         style={variant === "boxed" ? { borderColor } : undefined}
       >
-        <div className="p-2 text-xs">{children}</div>
+        <div className="p-2">{children}</div>
       </div>
     );
   }
@@ -65,12 +65,12 @@ function TableRow({
     return (
       <div className="grid grid-cols-[110px_1fr]">
         <div
-          className="border-r p-2 text-right text-xs font-semibold"
+          className="border-r p-2 text-right font-semibold"
           style={{ borderColor }}
         >
           {label}
         </div>
-        <div className="p-2 text-xs">{children}</div>
+        <div className="p-2">{children}</div>
       </div>
     );
   }
@@ -80,33 +80,40 @@ function TableRow({
       style={{ borderColor }}
     >
       <div
-        className="border-r p-2 text-xs font-semibold"
+        className="border-r p-2 font-semibold"
         style={{ backgroundColor: accentColor, borderColor }}
       >
         {label}
       </div>
-      <div className="p-2 text-xs">{children}</div>
+      <div className="p-2">{children}</div>
     </div>
   );
 }
 
 /** Shared table-entry wrapper: a bordered box containing `TableRow`s.
  * `variant="label"` (europass-classic) drops the outer box border — the
- * single vertical divider comes from `TableRow`'s own `border-r` instead. */
+ * single vertical divider comes from `TableRow`'s own `border-r` instead.
+ * `metaSize` (the secondary-text size class) is set here once and inherited
+ * by every `TableRow` cell, instead of being threaded through each row. */
 function TableEntry({
   children,
   borderColor,
+  metaSize,
   variant = "boxed",
 }: {
   children: ReactNode;
   borderColor: string;
+  metaSize: string;
   variant?: "boxed" | "label";
 }) {
   if (variant === "label") {
-    return <div>{children}</div>;
+    return <div className={metaSize}>{children}</div>;
   }
   return (
-    <div className="overflow-hidden border" style={{ borderColor }}>
+    <div
+      className={`overflow-hidden border ${metaSize}`}
+      style={{ borderColor }}
+    >
       {children}
     </div>
   );
@@ -172,17 +179,20 @@ function achievementsField({
       placeholder="Add bullet points, one per line…"
       renderDisplay={(v) => (
         <ul
-          className={`${theme.textSize} ${theme.lineHeight} list-none space-y-1`}
+          className={`${theme.textSize} ${theme.lineHeight} list-none space-y-[2.667px]`}
         >
           {v
             .split("\n")
             .filter(Boolean)
             .map((a, i) => (
-              <li key={i}>
-                <span className="mr-1.5" style={{ color: theme.accentColor }}>
+              <li key={i} className="flex">
+                <span
+                  className="w-[13.333px] shrink-0"
+                  style={{ color: theme.accentColor }}
+                >
                   {bulletGlyph(bulletStyle)}
                 </span>
-                {a}
+                <span className="min-w-0 flex-1">{a}</span>
               </li>
             ))}
         </ul>
@@ -343,7 +353,7 @@ const experience: DomSectionBuilder = ({ resume, theme, edit, config }) =>
         node:
           entryStyle === "timeline" ? (
             <div
-              className="relative border-l-2 pb-3 pl-4"
+              className="relative border-l-2 pb-2 pl-4"
               style={{ borderColor: theme.accentColor }}
             >
               <span
@@ -351,7 +361,7 @@ const experience: DomSectionBuilder = ({ resume, theme, edit, config }) =>
                 style={{ backgroundColor: theme.accentColor }}
               />
               <p
-                className={`${theme.textSize} mb-0.5`}
+                className={`${theme.metaSize} mb-0.5`}
                 style={{ color: theme.secondaryColor }}
               >
                 {dates}
@@ -363,7 +373,7 @@ const experience: DomSectionBuilder = ({ resume, theme, edit, config }) =>
                 {roleField}
               </h3>
               <p
-                className={`${theme.textSize}`}
+                className={`${theme.metaSize}`}
                 style={{ color: theme.secondaryColor }}
               >
                 {companyField}
@@ -372,9 +382,9 @@ const experience: DomSectionBuilder = ({ resume, theme, edit, config }) =>
               {achievements}
             </div>
           ) : entryStyle === "date-column" ? (
-            <div className="flex gap-3 pb-3">
+            <div className="flex gap-3 pb-2">
               <div
-                className={`w-[22%] shrink-0 text-right ${theme.textSize}`}
+                className={`w-[22%] shrink-0 text-right ${theme.metaSize}`}
                 style={{ color: theme.accentColor }}
               >
                 {dates}
@@ -390,7 +400,7 @@ const experience: DomSectionBuilder = ({ resume, theme, edit, config }) =>
                   {roleField}
                 </h3>
                 <p
-                  className={`${theme.textSize}`}
+                  className={`${theme.metaSize}`}
                   style={{ color: theme.secondaryColor }}
                 >
                   {companyField}
@@ -412,7 +422,7 @@ const experience: DomSectionBuilder = ({ resume, theme, edit, config }) =>
                 {roleField}
               </h3>
               <p
-                className={`${theme.textSize}`}
+                className={`${theme.metaSize}`}
                 style={{ color: theme.secondaryColor }}
               >
                 {companyField}
@@ -433,7 +443,11 @@ const experience: DomSectionBuilder = ({ resume, theme, edit, config }) =>
         sectionKey: "experience",
         itemIndex: expIndex,
         node: (
-          <TableEntry borderColor={borderColor} variant={variant}>
+          <TableEntry
+            borderColor={borderColor}
+            metaSize={theme.metaSize}
+            variant={variant}
+          >
             <TableRow
               label="Company"
               accentColor={theme.accentColor + "20"}
@@ -517,7 +531,7 @@ const experience: DomSectionBuilder = ({ resume, theme, edit, config }) =>
                 />
               </h3>
               <p
-                className={`${theme.textSize} ${theme.lineHeight}`}
+                className={`${theme.metaSize} ${theme.lineHeight}`}
                 style={{ color: theme.secondaryColor }}
               >
                 <EditableText
@@ -533,7 +547,7 @@ const experience: DomSectionBuilder = ({ resume, theme, edit, config }) =>
               dates,
               theme,
               dateStyle: config.dateStyle,
-              textSize: theme.textSize,
+              textSize: theme.metaSize,
             })}
           </div>
           {(exp.description || edit.editable) && (
@@ -569,7 +583,7 @@ const projects: DomSectionBuilder = ({ resume, theme, edit, config }) =>
         href={project.url ?? ""}
         onCommit={(v) => edit.updateProject(projectIndex, { url: v })}
         placeholder="https://…"
-        className={`${theme.textSize} ml-2 hover:underline`}
+        className={`${theme.metaSize} ml-2 hover:underline`}
         style={{ color: theme.secondaryColor }}
       >
         [Link]
@@ -598,7 +612,7 @@ const projects: DomSectionBuilder = ({ resume, theme, edit, config }) =>
     );
     const technologiesField = project.technologies.length > 0 && (
       <div
-        className={`${theme.textSize}`}
+        className={`${theme.metaSize}`}
         style={{ color: theme.secondaryColor }}
       >
         <span className="font-medium">Technologies:</span>{" "}
@@ -679,7 +693,7 @@ const projects: DomSectionBuilder = ({ resume, theme, edit, config }) =>
     ) {
       const dateLine = dateRangeField && (
         <p
-          className={`${theme.textSize}`}
+          className={`${theme.metaSize}`}
           style={{ color: theme.secondaryColor }}
         >
           {dateRangeField}
@@ -695,7 +709,7 @@ const projects: DomSectionBuilder = ({ resume, theme, edit, config }) =>
         node:
           entryStyle === "timeline" ? (
             <div
-              className="relative border-l-2 pb-3 pl-4"
+              className="relative border-l-2 pb-2 pl-4"
               style={{ borderColor: theme.accentColor }}
             >
               <span
@@ -704,7 +718,7 @@ const projects: DomSectionBuilder = ({ resume, theme, edit, config }) =>
               />
               {dateRangeField && (
                 <p
-                  className={`${theme.textSize} mb-0.5`}
+                  className={`${theme.metaSize} mb-0.5`}
                   style={{ color: theme.secondaryColor }}
                 >
                   {dateRangeField}
@@ -723,9 +737,9 @@ const projects: DomSectionBuilder = ({ resume, theme, edit, config }) =>
               {technologiesField}
             </div>
           ) : entryStyle === "date-column" ? (
-            <div className="flex gap-3 pb-3">
+            <div className="flex gap-3 pb-2">
               <div
-                className={`w-[22%] shrink-0 text-right ${theme.textSize}`}
+                className={`w-[22%] shrink-0 text-right ${theme.metaSize}`}
                 style={{ color: theme.accentColor }}
               >
                 {dateRangeField}
@@ -777,7 +791,11 @@ const projects: DomSectionBuilder = ({ resume, theme, edit, config }) =>
         sectionKey: "projects",
         itemIndex: projectIndex,
         node: (
-          <TableEntry borderColor={borderColor} variant={variant}>
+          <TableEntry
+            borderColor={borderColor}
+            metaSize={theme.metaSize}
+            variant={variant}
+          >
             <TableRow
               label="Project"
               accentColor={theme.accentColor + "20"}
@@ -827,7 +845,7 @@ const projects: DomSectionBuilder = ({ resume, theme, edit, config }) =>
                 dates: dateRangeField,
                 theme,
                 dateStyle: config.dateStyle,
-                textSize: theme.textSize,
+                textSize: theme.metaSize,
               })}
             </div>
           )}
@@ -912,11 +930,11 @@ function parseSkillsFromEdit(text: string): Skill[] {
 }
 
 /** Styles whose paginator block is single (the whole section in one block) —
- * `list`/`grid`/`columns` stay one-block-per-category so a long skills list
+ * `chips`/`list`/`grid`/`columns` stay one-block-per-category so a long skills list
  * can still split across a page break; see `skills` below. */
 const SINGLE_BLOCK_SKILL_STYLES: ReadonlySet<
   ResolvedTemplateConfig["skillStyle"]
-> = new Set(["inline", "chips", "table"]);
+> = new Set(["inline", "table"]);
 
 /** Renders skill group(s) per `skillStyle` — chips/list/table/grid/columns
  * are purely `renderDisplay` alternatives to the always-on inline text. For
@@ -960,7 +978,7 @@ function SkillLabel({
   return (
     <div className="mb-0.5">
       <div
-        className={cn("text-xs font-bold", skillLabelClassFor(headingStyle))}
+        className={cn("font-bold", skillLabelClassFor(headingStyle))}
         style={{ color }}
       >
         {category}
@@ -1007,7 +1025,7 @@ function skillsGroupDisplay(
               {group.skills.map((s, si) => (
                 <span
                   key={si}
-                  className="rounded-full px-1 py-0.5 text-xs font-medium"
+                  className="rounded-full px-1 py-0.5 font-medium"
                   style={{
                     backgroundColor: theme.accentColor + "1a",
                     color: theme.accentColor,
@@ -1035,7 +1053,7 @@ function skillsGroupDisplay(
                 color={theme.primaryColor}
               />
             )}
-            <div className={`text-xs ${theme.lineHeight}`}>
+            <div className={theme.lineHeight}>
               {group.skills.map((s, si) => (
                 <span key={si}>
                   {si > 0 && ", "}
@@ -1071,7 +1089,7 @@ function skillsGroupDisplay(
               {group.category && (
                 <div
                   className={cn(
-                    "px-2 py-1 text-xs font-bold",
+                    "px-2 py-1 font-bold",
                     skillLabelClassFor(headingStyle)
                   )}
                   style={{
@@ -1082,13 +1100,13 @@ function skillsGroupDisplay(
                   {group.category}
                 </div>
               )}
-              <div className={`px-2 py-1.5 text-xs ${theme.lineHeight}`}>
+              <div className={`px-2 py-1.5 ${theme.lineHeight}`}>
                 {group.skills.map((s) => s.name).join(", ")}
               </div>
             </div>
           ))
         ) : (
-          <div className="px-2 py-1.5 text-xs">—</div>
+          <div className="px-2 py-1.5">—</div>
         )}
       </div>
     );
@@ -1106,7 +1124,7 @@ function skillsGroupDisplay(
                 color={theme.primaryColor}
               />
             )}
-            <div className={`text-xs ${theme.lineHeight}`}>
+            <div className={theme.lineHeight}>
               {group.skills.map((s, si) => (
                 <span key={si}>
                   {si > 0 && ", "}
@@ -1134,7 +1152,7 @@ function skillsGroupDisplay(
               color={theme.primaryColor}
             />
           )}
-          <div className={`text-xs ${theme.lineHeight}`}>
+          <div className={theme.lineHeight}>
             {group.skills.map((s, si) => (
               <span key={si}>
                 {si > 0 && ", "}
@@ -1169,7 +1187,7 @@ const skills: DomSectionBuilder = ({ resume, theme, edit, config }) => {
     (_, groupIndex): Block => ({
       sectionKey: "skills",
       node: (
-        <div className={`${theme.textSize} ${theme.lineHeight}`}>
+        <div className={`${theme.metaSize} ${theme.lineHeight}`}>
           {groupIndex === 0 ? (
             <EditableText
               value={serialized}
@@ -1290,7 +1308,7 @@ const education: DomSectionBuilder = ({ resume, theme, edit, config }) =>
         node:
           entryStyle === "timeline" ? (
             <div
-              className="relative border-l-2 pb-3 pl-4"
+              className="relative border-l-2 pb-2 pl-4"
               style={{ borderColor: theme.accentColor }}
             >
               <span
@@ -1298,7 +1316,7 @@ const education: DomSectionBuilder = ({ resume, theme, edit, config }) =>
                 style={{ backgroundColor: theme.accentColor }}
               />
               <p
-                className={`${theme.textSize} mb-0.5`}
+                className={`${theme.metaSize} mb-0.5`}
                 style={{ color: theme.secondaryColor }}
               >
                 {dates}
@@ -1310,14 +1328,14 @@ const education: DomSectionBuilder = ({ resume, theme, edit, config }) =>
                 {degreeField}
               </h3>
               <p
-                className={`${theme.textSize}`}
+                className={`${theme.metaSize}`}
                 style={{ color: theme.secondaryColor }}
               >
                 {institutionField}
               </p>
               {gpaField && (
                 <p
-                  className={`${theme.textSize}`}
+                  className={`${theme.metaSize}`}
                   style={{ color: theme.secondaryColor }}
                 >
                   {gpaField}
@@ -1325,9 +1343,9 @@ const education: DomSectionBuilder = ({ resume, theme, edit, config }) =>
               )}
             </div>
           ) : entryStyle === "date-column" ? (
-            <div className="flex gap-3 pb-3">
+            <div className="flex gap-3 pb-2">
               <div
-                className={`w-[22%] shrink-0 text-right ${theme.textSize}`}
+                className={`w-[22%] shrink-0 text-right ${theme.metaSize}`}
                 style={{ color: theme.accentColor }}
               >
                 {dates}
@@ -1343,14 +1361,14 @@ const education: DomSectionBuilder = ({ resume, theme, edit, config }) =>
                   {degreeField}
                 </h3>
                 <p
-                  className={`${theme.textSize}`}
+                  className={`${theme.metaSize}`}
                   style={{ color: theme.secondaryColor }}
                 >
                   {institutionField}
                 </p>
                 {gpaField && (
                   <p
-                    className={`${theme.textSize}`}
+                    className={`${theme.metaSize}`}
                     style={{ color: theme.secondaryColor }}
                   >
                     {gpaField}
@@ -1371,7 +1389,7 @@ const education: DomSectionBuilder = ({ resume, theme, edit, config }) =>
                 {degreeField}
               </h3>
               <p
-                className={`${theme.textSize}`}
+                className={`${theme.metaSize}`}
                 style={{ color: theme.secondaryColor }}
               >
                 {institutionField}
@@ -1380,7 +1398,7 @@ const education: DomSectionBuilder = ({ resume, theme, edit, config }) =>
               </p>
               {gpaField && (
                 <p
-                  className={`${theme.textSize}`}
+                  className={`${theme.metaSize}`}
                   style={{ color: theme.secondaryColor }}
                 >
                   {gpaField}
@@ -1398,7 +1416,11 @@ const education: DomSectionBuilder = ({ resume, theme, edit, config }) =>
         sectionKey: "education",
         itemIndex: eduIndex,
         node: (
-          <TableEntry borderColor={borderColor} variant={variant}>
+          <TableEntry
+            borderColor={borderColor}
+            metaSize={theme.metaSize}
+            variant={variant}
+          >
             <TableRow
               label="Institution"
               accentColor={theme.accentColor + "20"}
@@ -1459,7 +1481,7 @@ const education: DomSectionBuilder = ({ resume, theme, edit, config }) =>
                 {degreeField}
               </h3>
               <p
-                className={`${theme.textSize} ${theme.lineHeight}`}
+                className={`${theme.metaSize} ${theme.lineHeight}`}
                 style={{ color: theme.secondaryColor }}
               >
                 {institutionField}
@@ -1469,12 +1491,12 @@ const education: DomSectionBuilder = ({ resume, theme, edit, config }) =>
               dates,
               theme,
               dateStyle: config.dateStyle,
-              textSize: theme.textSize,
+              textSize: theme.metaSize,
             })}
           </div>
           {gpaField && (
             <p
-              className={`${theme.textSize}`}
+              className={`${theme.metaSize}`}
               style={{ color: theme.secondaryColor }}
             >
               {gpaField}
@@ -1500,7 +1522,7 @@ const certifications: DomSectionBuilder = ({ resume, theme, edit }) =>
             />
           </h3>
           <p
-            className={`${theme.textSize}`}
+            className={`${theme.metaSize}`}
             style={{ color: theme.secondaryColor }}
           >
             <EditableText
@@ -1564,7 +1586,7 @@ const publications: DomSectionBuilder = ({ resume, theme, edit }) =>
             />
           </p>
           <p
-            className={`${theme.textSize}`}
+            className={`${theme.metaSize}`}
             style={{ color: theme.secondaryColor }}
           >
             <EditableText
@@ -1747,7 +1769,7 @@ const volunteer: DomSectionBuilder = ({ resume, theme, edit, config }) =>
         node:
           entryStyle === "timeline" ? (
             <div
-              className="relative border-l-2 pb-3 pl-4"
+              className="relative border-l-2 pb-2 pl-4"
               style={{ borderColor: theme.accentColor }}
             >
               <span
@@ -1755,7 +1777,7 @@ const volunteer: DomSectionBuilder = ({ resume, theme, edit, config }) =>
                 style={{ backgroundColor: theme.accentColor }}
               />
               <p
-                className={`${theme.textSize} mb-0.5`}
+                className={`${theme.metaSize} mb-0.5`}
                 style={{ color: theme.secondaryColor }}
               >
                 {dates}
@@ -1767,7 +1789,7 @@ const volunteer: DomSectionBuilder = ({ resume, theme, edit, config }) =>
                 {roleField}
               </h3>
               <p
-                className={`${theme.textSize}`}
+                className={`${theme.metaSize}`}
                 style={{ color: theme.secondaryColor }}
               >
                 {organizationField}
@@ -1779,9 +1801,9 @@ const volunteer: DomSectionBuilder = ({ resume, theme, edit, config }) =>
               )}
             </div>
           ) : entryStyle === "date-column" ? (
-            <div className="flex gap-3 pb-3">
+            <div className="flex gap-3 pb-2">
               <div
-                className={`w-[22%] shrink-0 text-right ${theme.textSize}`}
+                className={`w-[22%] shrink-0 text-right ${theme.metaSize}`}
                 style={{ color: theme.accentColor }}
               >
                 {dates}
@@ -1797,7 +1819,7 @@ const volunteer: DomSectionBuilder = ({ resume, theme, edit, config }) =>
                   {roleField}
                 </h3>
                 <p
-                  className={`${theme.textSize}`}
+                  className={`${theme.metaSize}`}
                   style={{ color: theme.secondaryColor }}
                 >
                   {organizationField}
@@ -1822,7 +1844,7 @@ const volunteer: DomSectionBuilder = ({ resume, theme, edit, config }) =>
                 {roleField}
               </h3>
               <p
-                className={`${theme.textSize}`}
+                className={`${theme.metaSize}`}
                 style={{ color: theme.secondaryColor }}
               >
                 {organizationField}
@@ -1846,7 +1868,11 @@ const volunteer: DomSectionBuilder = ({ resume, theme, edit, config }) =>
         sectionKey: "volunteer",
         itemIndex: volIndex,
         node: (
-          <TableEntry borderColor={borderColor} variant={variant}>
+          <TableEntry
+            borderColor={borderColor}
+            metaSize={theme.metaSize}
+            variant={variant}
+          >
             <TableRow
               label="Organization"
               accentColor={theme.accentColor + "20"}
@@ -1907,7 +1933,7 @@ const volunteer: DomSectionBuilder = ({ resume, theme, edit, config }) =>
                 {roleField}
               </h3>
               <p
-                className={`${theme.textSize} ${theme.lineHeight}`}
+                className={`${theme.metaSize} ${theme.lineHeight}`}
                 style={{ color: theme.secondaryColor }}
               >
                 {organizationField}
@@ -1917,7 +1943,7 @@ const volunteer: DomSectionBuilder = ({ resume, theme, edit, config }) =>
               dates,
               theme,
               dateStyle: config.dateStyle,
-              textSize: theme.textSize,
+              textSize: theme.metaSize,
             })}
           </div>
           {descriptionField && (
@@ -1945,7 +1971,7 @@ const awards: DomSectionBuilder = ({ resume, theme, edit }) =>
             />
           </h3>
           <p
-            className={`${theme.textSize}`}
+            className={`${theme.metaSize}`}
             style={{ color: theme.secondaryColor }}
           >
             <EditableText
@@ -1984,25 +2010,31 @@ const custom: DomSectionBuilder = ({ resume, instance, theme, config }) => {
   const section = (resume.sectionLayout?.custom ?? []).find(
     (c) => c.id === instance.id
   );
-  if (!section) return [];
+  // An empty custom section renders nothing at all — no block means no
+  // heading either (the heading is emitted off the first block).
+  const items = (section?.items ?? []).filter((item) => item.trim() !== "");
+  if (!section || items.length === 0) return [];
   return [
     {
       sectionKey: instance.id,
       node:
         section.type === "text" ? (
           <p className={`${theme.textSize} ${theme.lineHeight}`}>
-            {section.items.join(" ")}
+            {items.join(" ")}
           </p>
         ) : (
           <ul
-            className={`${theme.textSize} ${theme.lineHeight} list-none space-y-1`}
+            className={`${theme.textSize} ${theme.lineHeight} list-none space-y-[2.667px]`}
           >
-            {section.items.map((item, i) => (
-              <li key={i}>
-                <span className="mr-1.5" style={{ color: theme.accentColor }}>
+            {items.map((item, i) => (
+              <li key={i} className="flex">
+                <span
+                  className="w-[13.333px] shrink-0"
+                  style={{ color: theme.accentColor }}
+                >
                   {bulletGlyph(config.bulletStyle)}
                 </span>
-                {item}
+                <span className="min-w-0 flex-1">{item}</span>
               </li>
             ))}
           </ul>

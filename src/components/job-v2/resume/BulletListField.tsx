@@ -1,6 +1,12 @@
 "use client";
 
-import { useRef, useState, useCallback, useLayoutEffect } from "react";
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from "react";
 
 import cn from "@/lib/cn";
 
@@ -37,6 +43,23 @@ export function BulletListField({
   useLayoutEffect(() => {
     inputRefs.current.forEach((el) => el && resize(el));
   }, [bullets]);
+
+  // Re-measure when the column width or web font changes after mount —
+  // otherwise a wrapped bullet stays one row tall and its last line is
+  // clipped from the preview.
+  useEffect(() => {
+    const resizeAll = () => inputRefs.current.forEach((el) => el && resize(el));
+    const ro = new ResizeObserver(resizeAll);
+    if (containerRef.current) ro.observe(containerRef.current);
+    // The resume font is injected by fontLoader after first paint, so
+    // `fonts.ready` alone resolves too early.
+    document.fonts?.ready.then(resizeAll);
+    document.fonts?.addEventListener("loadingdone", resizeAll);
+    return () => {
+      ro.disconnect();
+      document.fonts?.removeEventListener("loadingdone", resizeAll);
+    };
+  }, []);
 
   const commit = useCallback(
     (next: string[]) => onChange(next.filter(Boolean)),

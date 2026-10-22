@@ -9,6 +9,10 @@ import { BulletListField } from "./BulletListField";
 import { useInlineEdit } from "./InlineEditContext";
 import { InlineField } from "./InlineField";
 
+// `.rte-content` (rte.css) pins the app editor's 15px/relaxed type; inside a
+// resume the field must follow the document's Size preset like the PDF does.
+const INHERIT_DOC_TEXT = "text-[length:inherit]! leading-[inherit]!";
+
 type FieldType = "text" | "textarea" | "bullet" | "richtext" | "date";
 
 interface EditableTextProps {
@@ -45,7 +49,7 @@ export function EditableText({
       ) : (
         <RichTextEditorContent
           content={value}
-          className={displayClassName ?? ""}
+          className={`${INHERIT_DOC_TEXT} ${displayClassName ?? ""}`}
         />
       );
     }
@@ -55,7 +59,7 @@ export function EditableText({
         onChange={onCommit}
         placeholder={placeholder}
         className={className}
-        contentClassName="p-0! min-h-0!"
+        contentClassName={`p-0! min-h-0! ${INHERIT_DOC_TEXT}`}
         toolbarMode="bubble-only"
       />
     );

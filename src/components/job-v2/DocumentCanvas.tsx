@@ -95,8 +95,14 @@ export function DocumentCanvas() {
         <div
           ref={clContainerRef}
           className={cn(
-            "shadow-agent-modal relative mx-auto w-full max-w-[794px] cursor-text",
-            "rounded-sm bg-white ring-1 ring-black/5"
+            "shadow-agent-modal relative mx-auto w-full cursor-text",
+            "rounded-sm bg-white ring-1 ring-black/5",
+            // Same page size as the resume canvas (getPageDimensions: A4
+            // 794x1123, Letter 816x1056). Static class strings — a dynamic
+            // value would need an inline style (hard rule 4).
+            customization.pageFormat === "letter"
+              ? "min-h-[1056px] max-w-[816px]"
+              : "min-h-[1123px] max-w-[794px]"
           )}
           onClick={() => setIsCoverLetterEditing(true)}
           onBlur={() => {

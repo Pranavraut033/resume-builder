@@ -104,6 +104,26 @@
   --font-agent-display: "Manrope", sans-serif;
   --font-agent-body: "Inter", sans-serif;
   --font-agent-label: "Inter", sans-serif;
+  /* Document (resume/cover letter) type scale — px = pt / 0.75, mirrors the
+     PDF engine's pt sizes (body 9/10/11, meta body-1, heading 12/13.5/15,
+     name 20/24/28). Utilities: text-doc-body-md etc. */
+  --text-doc-body-sm: 12px;
+  --text-doc-body-md: 13.333px;
+  --text-doc-body-lg: 14.667px;
+  --text-doc-meta-sm: 10.667px;
+  --text-doc-meta-md: 12px;
+  --text-doc-meta-lg: 13.333px;
+  --text-doc-heading-sm: 16px;
+  --text-doc-heading-md: 18px;
+  --text-doc-heading-lg: 20px;
+  --text-doc-name-sm: 26.667px;
+  --text-doc-name-md: 32px;
+  --text-doc-name-lg: 37.333px;
+  /* Document page margins (24/36/48 pt) — fixed px so the Size preset's
+     --spacing override (.doc-size-*) never scales them. Utility: p-page-*. */
+  --spacing-page-narrow: 32px;
+  --spacing-page-normal: 48px;
+  --spacing-page-wide: 64px;
   /* Radius */
   --radius-agent: 0.5rem;
   --radius-agent-sm: 0.25rem;
@@ -117,6 +137,17 @@
   --shadow-agent-modal:
     0 8px 60px rgba(19, 27, 46, 0.08), 0 4px 20px rgba(19, 27, 46, 0.06);
   --shadow-agent-card: 0 2px 20px rgba(19, 27, 46, 0.04);
+  /* Rainbow swatch for the custom-color picker. Utility: bg-color-wheel. */
+  --background-image-color-wheel: conic-gradient(
+    from 0deg,
+    red,
+    yellow,
+    lime,
+    cyan,
+    blue,
+    magenta,
+    red
+  );
 }
 
 /* Dark overrides key off the resolved [data-theme] attribute (set by

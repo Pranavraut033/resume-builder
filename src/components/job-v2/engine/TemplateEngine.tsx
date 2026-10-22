@@ -12,17 +12,6 @@ import {
   SortableContext,
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
-import {
-  CalendarDays,
-  Flag,
-  Github,
-  Globe,
-  IdCard,
-  Linkedin,
-  Mail,
-  MapPin,
-  Phone,
-} from "lucide-react";
 import React, { useEffect, useRef, useState } from "react";
 
 import MeasurementContainer from "@/components/job/templates/shared/MeasurementContainer";
@@ -72,6 +61,22 @@ function buildColumnBlocks(
   return blocks;
 }
 
+/**
+ * Gap below block `i`: section→section 16px (`mb-4`), entry→entry 8px
+ * (`mb-2`), none after a column's last block. `tight` blocks (timeline /
+ * date-column) carry their own `pb-2` entry gap, so only the section boundary
+ * adds the remaining 8px. Used by both the rendered pages and the off-screen
+ * measurement pass — the paginator reads this margin back off the DOM, so the
+ * two must agree.
+ */
+function blockGapClass(blocks: Block[], i: number): string {
+  const next = blocks[i + 1];
+  if (!next) return "";
+  const newSection = next.sectionKey !== blocks[i].sectionKey;
+  if (blocks[i].tight) return newSection ? "mb-2" : "";
+  return newSection ? "mb-4" : "mb-2";
+}
+
 interface TemplateEngineProps extends TemplateRendererProps {
   config: TemplateConfig;
 }
@@ -93,6 +98,7 @@ export const TemplateEngine: React.FC<TemplateEngineProps> = ({
     primaryColor,
     secondaryColor,
     textSize,
+    metaSize,
     fontFamily,
     lineHeight,
     headingSize,
@@ -186,10 +192,12 @@ export const TemplateEngine: React.FC<TemplateEngineProps> = ({
         ? theme.accentColor
         : resolvedStyle === "rule-above" || resolvedStyle === "boxed"
           ? (override?.color ?? secondaryColor + "60")
-          : (override?.color ?? secondaryColor);
+          : resolvedStyle === "bar"
+            ? (override?.color ?? primaryColor)
+            : (override?.color ?? secondaryColor);
     return (
       <h2
-        className={`${headingSize} group/heading mb-1.5 flex items-center gap-2 font-semibold ${isHeadingCentered ? "justify-center text-center" : "justify-between"} ${headingClassFor(resolvedStyle)}`}
+        className={`${headingSize} group/heading mt-0 mb-1.5 flex items-center gap-2 font-semibold ${isHeadingCentered ? "justify-center text-center" : "justify-between"} ${headingClassFor(resolvedStyle)}`}
         style={{
           color: isSolidSidebarColumn
             ? theme.backgroundColor
@@ -254,11 +262,20 @@ export const TemplateEngine: React.FC<TemplateEngineProps> = ({
   useEffect(() => {
     const el = headerRef.current;
     if (!el) return;
-    const obs = new ResizeObserver(([e]) =>
-      setHeaderHeight(e.contentRect.height)
-    );
+    // The space the header takes on the page: its border box (padding +
+    // border, which `contentRect` omits) plus its `margin-bottom` (which can
+    // collapse out of the wrapper `el`, so it's read off the <header> itself).
+    // offsetHeight, not getBoundingClientRect: the canvas scales the document
+    // with a CSS transform, which the rect would include.
+    const measure = () => {
+      const header = el.firstElementChild as HTMLElement | null;
+      if (!header) return 0;
+      const margin = parseFloat(getComputedStyle(header).marginBottom) || 0;
+      return header.offsetHeight + margin;
+    };
+    const obs = new ResizeObserver(() => setHeaderHeight(measure()));
     obs.observe(el);
-    setHeaderHeight(el.getBoundingClientRect().height);
+    setHeaderHeight(measure());
     return () => obs.disconnect();
   }, []);
 
@@ -287,13 +304,11 @@ export const TemplateEngine: React.FC<TemplateEngineProps> = ({
     count: col0Blocks.length,
     pageContentHeight: columnPageContentHeight / fitScaleForBudget,
     firstPageReserved: columnFirstPageReserved,
-    gapPx: 12,
   });
   const col1 = useBlockPaginator({
     count: col1Blocks.length,
     pageContentHeight: columnPageContentHeight / fitScaleForBudget,
     firstPageReserved: columnFirstPageReserved,
-    gapPx: 12,
   });
 
   const page0Budget = columnPageContentHeight - columnFirstPageReserved;
@@ -356,22 +371,29 @@ export const TemplateEngine: React.FC<TemplateEngineProps> = ({
   const headerHeadlineColor =
     isFilled || isSplit ? theme.backgroundColor : theme.accentColor;
   const headerContactColor = isFilled ? theme.backgroundColor : secondaryColor;
-  const headerLinkColor = isFilled ? theme.backgroundColor : theme.accentColor;
 
+  // Header → first section is 24px (18pt) for every variant. Variants with a
+  // rule (bottom border / left bar) split it 12px padding + 12px margin
+  // (9pt + 9pt); the rest are all margin, filled keeps its inner bottom pad.
+  const isBottomRuled =
+    !isFilled &&
+    !isLeftAccent &&
+    !isPlain &&
+    !isBoxed &&
+    !isSplit &&
+    !isMinimal;
   const headerWrapperClassName = [
-    isMinimal ? "mb-3 pb-1.5" : "mb-5 pb-3",
+    isBottomRuled || isLeftAccent
+      ? "mb-3 pb-3"
+      : isFilled
+        ? "mb-6 pb-3"
+        : "mb-6",
     isCentered && "text-center",
     isFilled && "px-6 pt-6 rounded-md",
     isLeftAccent && "border-l-4 pl-4",
     isBoxed && "rounded-md border p-4",
     isSplit && "overflow-hidden rounded-md",
-    !isFilled &&
-      !isLeftAccent &&
-      !isPlain &&
-      !isBoxed &&
-      !isSplit &&
-      !isMinimal &&
-      "border-b-2",
+    isBottomRuled && "border-b-2",
   ]
     .filter(Boolean)
     .join(" ");
@@ -455,8 +477,6 @@ export const TemplateEngine: React.FC<TemplateEngineProps> = ({
     </div>
   );
 
-  const contactIconClass = "h-3.5 w-3.5 shrink-0";
-
   // Factored so "split" (two-tone) can compose them into two side-by-side
   // blocks instead of the single name/headline/contact stack every other
   // header variant uses — same EditableText/EditableLink fields either way,
@@ -487,142 +507,62 @@ export const TemplateEngine: React.FC<TemplateEngineProps> = ({
     </div>
   );
 
+  // One wrapping row with "•" separators, same field order as the PDF's
+  // `ContactLine` (PDFTemplateEngine.tsx) so header height — and therefore
+  // page breaks — match the export.
+  const h = resume.header;
+  const contactField = (
+    key: keyof typeof h,
+    placeholder: string,
+    link = false
+  ): { key: string; node: React.ReactNode } | null => {
+    const value = (h[key] as string | null) ?? "";
+    if (!value && !edit.editable) return null;
+    return {
+      key,
+      node: link ? (
+        <EditableLink
+          href={value}
+          onCommit={(v) => edit.updateHeader({ [key]: v })}
+          placeholder={placeholder}
+          className="hover:underline"
+        />
+      ) : (
+        <EditableText
+          value={value}
+          onCommit={(v) => edit.updateHeader({ [key]: v })}
+          placeholder={placeholder}
+        />
+      ),
+    };
+  };
+  const contactItems = [
+    contactField("email", "email@example.com"),
+    contactField("phone", "Phone"),
+    contactField("location", "Location"),
+    contactField("linkedin", "LinkedIn URL", true),
+    contactField("github", "GitHub URL", true),
+    contactField("website", "Website URL", true),
+    contactField("workAuthorization", "Work authorization"),
+    contactField("nationality", "Nationality"),
+    contactField("dateOfBirth", "Date of birth"),
+  ].filter((i): i is { key: string; node: React.ReactNode } => i !== null);
+
   const contactBlockNode = (
     <div
-      className={`${textSize} ${lineHeight} space-y-0.5`}
+      className={`flex flex-wrap items-baseline ${metaSize} ${lineHeight} ${isCentered ? "justify-center" : ""}`}
       style={{ color: headerContactColor }}
     >
-      <div
-        className={`flex flex-wrap gap-x-4 gap-y-0.5 ${isCentered ? "justify-center" : ""}`}
-      >
-        {(resume.header.email || edit.editable) && (
-          <span className="inline-flex items-center gap-1.5">
-            <Mail
-              className={contactIconClass}
-              style={{ color: headerContactColor }}
-            />
-            <EditableText
-              value={resume.header.email}
-              onCommit={(v) => edit.updateHeader({ email: v })}
-              placeholder="email@example.com"
-            />
-          </span>
-        )}
-        {(resume.header.phone || edit.editable) && (
-          <span className="inline-flex items-center gap-1.5">
-            <Phone
-              className={contactIconClass}
-              style={{ color: headerContactColor }}
-            />
-            <EditableText
-              value={resume.header.phone || ""}
-              onCommit={(v) => edit.updateHeader({ phone: v })}
-              placeholder="Phone"
-            />
-          </span>
-        )}
-        {(resume.header.location || edit.editable) && (
-          <span className="inline-flex items-center gap-1.5">
-            <MapPin
-              className={contactIconClass}
-              style={{ color: headerContactColor }}
-            />
-            <EditableText
-              value={resume.header.location || ""}
-              onCommit={(v) => edit.updateHeader({ location: v })}
-              placeholder="Location"
-            />
-          </span>
-        )}
-        {(resume.header.workAuthorization || edit.editable) && (
-          <span className="inline-flex items-center gap-1.5">
-            <IdCard
-              className={contactIconClass}
-              style={{ color: headerContactColor }}
-            />
-            <EditableText
-              value={resume.header.workAuthorization || ""}
-              onCommit={(v) => edit.updateHeader({ workAuthorization: v })}
-              placeholder="Work authorization"
-            />
-          </span>
-        )}
-        {(resume.header.nationality || edit.editable) && (
-          <span className="inline-flex items-center gap-1.5">
-            <Flag
-              className={contactIconClass}
-              style={{ color: headerContactColor }}
-            />
-            <EditableText
-              value={resume.header.nationality || ""}
-              onCommit={(v) => edit.updateHeader({ nationality: v })}
-              placeholder="Nationality"
-            />
-          </span>
-        )}
-        {(resume.header.dateOfBirth || edit.editable) && (
-          <span className="inline-flex items-center gap-1.5">
-            <CalendarDays
-              className={contactIconClass}
-              style={{ color: headerContactColor }}
-            />
-            <EditableText
-              value={resume.header.dateOfBirth || ""}
-              onCommit={(v) => edit.updateHeader({ dateOfBirth: v })}
-              placeholder="Date of birth"
-            />
-          </span>
-        )}
-      </div>
-      <div
-        className={`flex flex-wrap gap-x-4 gap-y-0.5 ${isCentered ? "justify-center" : ""}`}
-      >
-        {(resume.header.linkedin || edit.editable) && (
-          <span className="inline-flex items-center gap-1.5">
-            <Linkedin
-              className={contactIconClass}
-              style={{ color: headerLinkColor }}
-            />
-            <EditableLink
-              href={resume.header.linkedin ?? ""}
-              onCommit={(v) => edit.updateHeader({ linkedin: v })}
-              placeholder="LinkedIn URL"
-              className="hover:underline"
-              style={{ color: headerLinkColor }}
-            />
-          </span>
-        )}
-        {(resume.header.github || edit.editable) && (
-          <span className="inline-flex items-center gap-1.5">
-            <Github
-              className={contactIconClass}
-              style={{ color: headerLinkColor }}
-            />
-            <EditableLink
-              href={resume.header.github ?? ""}
-              onCommit={(v) => edit.updateHeader({ github: v })}
-              placeholder="GitHub URL"
-              className="hover:underline"
-              style={{ color: headerLinkColor }}
-            />
-          </span>
-        )}
-        {(resume.header.website || edit.editable) && (
-          <span className="inline-flex items-center gap-1.5">
-            <Globe
-              className={contactIconClass}
-              style={{ color: headerLinkColor }}
-            />
-            <EditableLink
-              href={resume.header.website ?? ""}
-              onCommit={(v) => edit.updateHeader({ website: v })}
-              placeholder="Website URL"
-              className="hover:underline"
-              style={{ color: headerLinkColor }}
-            />
-          </span>
-        )}
-      </div>
+      {contactItems.map((item, i) => (
+        <span key={item.key} className="inline-flex min-w-0 items-baseline">
+          {i > 0 && (
+            <span aria-hidden className="mx-[0.4em]">
+              •
+            </span>
+          )}
+          <span className="min-w-0 break-all">{item.node}</span>
+        </span>
+      ))}
     </div>
   );
 
@@ -713,7 +653,7 @@ export const TemplateEngine: React.FC<TemplateEngineProps> = ({
       const showDivider = config.sectionDivider && isNewSection && i !== 0;
 
       return (
-        <div key={idx} className={block.tight ? "" : "mb-3"}>
+        <div key={idx} className={blockGapClass(blocks, idx)}>
           {showDivider && (
             <hr
               className="mb-4"
@@ -776,16 +716,27 @@ export const TemplateEngine: React.FC<TemplateEngineProps> = ({
             : { paddingLeft: outerPadX, paddingRight: outerPadX }
         }
       >
-        {col0Blocks.map((block, i) => (
-          <div key={i} ref={col0.setRef(i)}>
-            {(i === 0 || col0Blocks[i - 1].sectionKey !== block.sectionKey) &&
-              sectionHeadingNode(
-                instanceFor(block.sectionKey, col0Instances),
-                0
+        {col0Blocks.map((block, i) => {
+          const isNewSection =
+            i === 0 || col0Blocks[i - 1].sectionKey !== block.sectionKey;
+          return (
+            <div
+              key={i}
+              ref={col0.setRef(i)}
+              className={blockGapClass(col0Blocks, i)}
+            >
+              {config.sectionDivider && isNewSection && i !== 0 && (
+                <hr className="mb-4" />
               )}
-            {block.node}
-          </div>
-        ))}
+              {isNewSection &&
+                sectionHeadingNode(
+                  instanceFor(block.sectionKey, col0Instances),
+                  0
+                )}
+              {block.node}
+            </div>
+          );
+        })}
       </div>
     </MeasurementContainer>
   );
@@ -797,16 +748,27 @@ export const TemplateEngine: React.FC<TemplateEngineProps> = ({
           className={`${spaceClass} ${justifyClass ?? ""}`}
           style={{ paddingLeft: gutterX, paddingRight: outerPadX }}
         >
-          {col1Blocks.map((block, i) => (
-            <div key={i} ref={col1.setRef(i)}>
-              {(i === 0 || col1Blocks[i - 1].sectionKey !== block.sectionKey) &&
-                sectionHeadingNode(
-                  instanceFor(block.sectionKey, col1Instances),
-                  1
+          {col1Blocks.map((block, i) => {
+            const isNewSection =
+              i === 0 || col1Blocks[i - 1].sectionKey !== block.sectionKey;
+            return (
+              <div
+                key={i}
+                ref={col1.setRef(i)}
+                className={blockGapClass(col1Blocks, i)}
+              >
+                {config.sectionDivider && isNewSection && i !== 0 && (
+                  <hr className="mb-4" />
                 )}
-              {block.node}
-            </div>
-          ))}
+                {isNewSection &&
+                  sectionHeadingNode(
+                    instanceFor(block.sectionKey, col1Instances),
+                    1
+                  )}
+                {block.node}
+              </div>
+            );
+          })}
         </div>
       </MeasurementContainer>
     ) : null;
@@ -935,9 +897,10 @@ export const TemplateEngine: React.FC<TemplateEngineProps> = ({
         colors={colorsTuple}
       >
         {!headerSpansMain && pageIndex === 0 && (
+          // Zoomed with the columns so "fit to one page" shrinks the whole page.
           <div
             className={spaceClass}
-            style={{ padding: marginPx, paddingBottom: 0 }}
+            style={{ padding: marginPx, paddingBottom: 0, zoom: fitScale }}
           >
             {headerNode}
           </div>
@@ -947,7 +910,7 @@ export const TemplateEngine: React.FC<TemplateEngineProps> = ({
           style={{
             height:
               !headerSpansMain && pageIndex === 0
-                ? `calc(100% - ${headerHeight + marginPx}px)`
+                ? `calc(100% - ${(headerHeight + marginPx) * fitScale}px)`
                 : "100%",
           }}
         >

@@ -45,4 +45,18 @@ describe("groupBlocksIntoPages", () => {
   it("does not add a gap before the first block on a page", () => {
     expect(groupBlocksIntoPages([1000], 1000, 0, 100)).toEqual([[0]]);
   });
+
+  it("uses the per-block gap after each preceding block when gapPx is an array", () => {
+    // 400 + 50 + 400 = 850 fits; + 200 gap + 400 would not; the 0 gap after
+    // block 2 lets block 3 (100) fit.
+    expect(
+      groupBlocksIntoPages([400, 400, 400, 100], 1000, 0, [50, 200, 0, 0])
+    ).toEqual([
+      [0, 1],
+      [2, 3],
+    ]);
+    expect(groupBlocksIntoPages([400, 400, 100], 1000, 0, [50, 0, 0])).toEqual([
+      [0, 1, 2],
+    ]);
+  });
 });

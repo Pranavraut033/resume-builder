@@ -11,13 +11,16 @@
  * @param gapPx             Vertical gap in px rendered between consecutive
  *                          blocks on the same page (e.g. a `mb-4` margin).
  *                          Not applied before the first block on a page.
+ *                          A number is one uniform gap; an array gives the
+ *                          gap rendered *after* each block (index-aligned
+ *                          with `heights`), for gaps that differ per block.
  * @returns Array of pages; each page is an array of block indices.
  */
 export function groupBlocksIntoPages(
   heights: number[],
   pageContentHeight: number,
   firstPageReserved = 0,
-  gapPx = 0
+  gapPx: number | number[] = 0
 ): number[][] {
   if (heights.length === 0) return [[]];
 
@@ -28,7 +31,8 @@ export function groupBlocksIntoPages(
     const h = heights[i];
     const currentPage = pages[pages.length - 1];
     const isFirstOnPage = currentPage.length === 0;
-    const required = h + (isFirstOnPage ? 0 : gapPx);
+    const gapBefore = typeof gapPx === "number" ? gapPx : (gapPx[i - 1] ?? 0);
+    const required = h + (isFirstOnPage ? 0 : gapBefore);
 
     // A block taller than a full page still gets placed (own page) to avoid
     // an infinite loop — it will simply overflow that page.
