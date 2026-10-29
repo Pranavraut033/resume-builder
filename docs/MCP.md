@@ -136,19 +136,29 @@ where the bundled paths don't exist yet — fall back to
 repo root, exactly as the in-app instructions do when they can't find a
 bundled entrypoint.
 
-### 2b. Connect a plugin-aware host (Cowork, Claude Code's plugin marketplace)
+### 2b. Connect a plugin-aware host (Claude Code, Cowork) — recommended
 
-Hosts that install MCP servers from a downloaded plugin archive instead of a
-hand-typed command can use the **"Download udaan.plugin"** button on the
-same in-app **Connect Claude Code** page. It writes a single `udaan.plugin`
-zip file — the Claude Code plugin layout inside
-(`.claude-plugin/plugin.json`, `.mcp.json` with this install's node/stdio.js
-paths and `DATABASE_URL`, and `skills/resume-mcp/SKILL.md`) — so the host can
-install straight from that one file instead of the JSON/CLI snippets above.
-Backed by the `export_cowork_plugin` Tauri command
-(`src-tauri/src/mcp_server.rs`, using the `zip` crate with `Stored`/no
-compression since the contents are tiny text files); same this-machine-only
-caveat as the stdio paths elsewhere in this doc.
+The plugin is hosted in its own public repo,
+[`Pranavraut033/udaan-plugin`](https://github.com/Pranavraut033/udaan-plugin),
+so there's nothing to download — just add it by name:
+
+```
+/plugin marketplace add Pranavraut033/udaan-plugin
+/plugin install udaan@udaan
+```
+
+A hosted plugin can't contain per-machine paths, so its `.mcp.json` runs a
+fixed launcher, `${HOME}/.udaan/bin/udaan-mcp`. The desktop app (re)writes
+that launcher on every release launch (`install_mcp_launcher` in
+`src-tauri/src/mcp_server.rs`) with this install's bundled node, `stdio.js`
+and `DATABASE_URL` baked in — so **open the app once after installing**, and
+the plugin keeps working after updates or moving the app. The server itself
+runs over stdio, so the app doesn't need to be open or the MCP toggle on.
+On Windows the launcher is `udaan-mcp.cmd`; if your host can't resolve it,
+use the `claude mcp add` snippet from section 2 instead.
+
+The plugin repo carries a copy of `skills/resume-mcp/SKILL.md` — this repo's
+copy is the source of truth; push changes there too.
 
 ### 3. The HTTP alternative
 

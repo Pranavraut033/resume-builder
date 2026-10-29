@@ -126,7 +126,8 @@ Udaan ships an optional MCP server that lets your chat assistant drive the same 
 tailoring, fit checks, editing your profile with a diff preview before anything saves — while the thinking
 happens on your existing subscription.
 
-Turn it on in **Settings** (it's off by default) and download the connector. Full setup: [docs/MCP.md](./MCP.md).
+Open Udaan once, then in Claude Code run `/plugin marketplace add Pranavraut033/udaan-plugin` and
+`/plugin install udaan@udaan` — nothing to download. Full setup: [docs/MCP.md](./MCP.md).
 
 This is the best option if you're already paying for a chat assistant, since you're not adding a second bill.
 

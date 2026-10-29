@@ -123,35 +123,28 @@ by `guardAlignOps`
 | `src/lib/llm/prompts/templates/deep-analysis.ts` | `analyze_document` template ("what do I change in the document?") — merges the old ATS-analysis and proofread purposes into one findings pass; lite/full mode varies the prompt body, not the output schema. Self-registers with `templateRegistry`; imported by `src/lib/llm/prompts/index.ts`'s barrel. Replaces the deleted `ats.ts`/`proofread.ts`/`gap-analysis.ts` templates (the ATS half).                                                                            |
 | `src/lib/llm/prompts/templates/fit-check.ts`     | `analyze_fit` template ("should I apply, and what's blocking me?") — hard knockout gates, missing experience, seniority, domain mismatch; never wording or keyword matching. Self-registers with `templateRegistry`; imported by the same barrel. Replaces the gap-analysis half of the deleted templates above.                                                                                                                                                              |
 
-## The exported `.plugin` bundle and its versioning
+## The hosted plugin (`Pranavraut033/udaan-plugin`)
 
-`export_cowork_plugin` (`src-tauri/src/mcp_server.rs`, invoked from `src/lib/mcpServer.ts`'s
-`exportCoworkPlugin()`) zips `.claude-plugin/plugin.json` + `.mcp.json` + `skills/resume-mcp/SKILL.md` into a
-single `.plugin` file a plugin-aware host (Claude Code, Cowork, ...) can install from directly. Two things worth
-knowing before touching any of this:
+The Claude Code plugin lives in its own public repo, not here, so users install it with
+`/plugin marketplace add Pranavraut033/udaan-plugin` + `/plugin install udaan@udaan` — no download. Its
+`.mcp.json` runs the fixed path `${HOME}/.udaan/bin/udaan-mcp`, a launcher the desktop app rewrites on every
+release startup (`install_mcp_launcher`, `src-tauri/src/mcp_server.rs`, called from `lib.rs`'s `.setup()`) with
+this install's bundled node + `stdio.js` + `DATABASE_URL`. The old download-a-`.plugin`-zip export
+(`export_cowork_plugin`) is gone. Two things to keep in sync by hand:
 
-- **The bundle is versioned automatically off the app's own version** (`app.package_info().version`, kept in
-  sync across `package.json`/`tauri.conf.json`/`Cargo.toml` by the `git-release` skill) — `plugin.json`'s
-  `"version"` field is set from it dynamically, and `exportCoworkPlugin()`'s save-dialog `defaultPath` reads
-  the same version via `@tauri-apps/api/app`'s `getVersion()` to name the download `udaan-<version>.plugin`.
-  There is no separate skill-bundle version number to maintain by hand — don't invent one, and don't revert the
-  filename to a bare `udaan.plugin` for cosmetic reasons; the version in the filename is what lets a user with
-  several old downloads in `~/Downloads` tell which is current without opening any of them.
-- **`plugin.json`'s hardcoded `"description"` field** (in `mcp_server.rs`, next to the `"version"` line) is a
-  second, independent summary of this app's MCP capability that can silently drift from `SKILL.md` — the actual
-  wire-facing runbook. Whenever `src/mcp/**` changes shape (a purpose, a flow, a tool's argument schema), update
-  `skills/resume-mcp/SKILL.md` in the same change (this file, `chat-mcp.md`, is a map to it, not a substitute),
-  and check whether `plugin.json`'s description still names the right capabilities too.
+- **`skills/resume-mcp/SKILL.md`** — this repo's copy is the source of truth; whenever `src/mcp/**` changes
+  shape, update it here AND push the same file to the plugin repo.
+- **The plugin repo's `plugin.json` `"description"`/`"version"`** — an independent summary of this MCP surface
+  that can drift; bump the version when SKILL.md or the launcher contract changes.
 
 ## Docs referencing this surface
 
-| File                                                   | Purpose                                                                                                          |
-| ------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------- |
-| `docs/MCP.md`                                          | Setup/security docs for the MCP server — update when the tool surface or auth story changes.                     |
-| `docs/MCP_ARCHITECTURE.md`                             | Diagrams: tool surface, request lifecycle, `add_job` draft state machine.                                        |
-| `skills/resume-mcp/SKILL.md`                           | Tool-driving runbook for an external MCP host — update when a flow's step sequence changes, in the SAME change.  |
-| `src/lib/mcpServer.ts` (`exportCoworkPlugin`)          | Frontend trigger for the plugin export — versions the downloaded filename off the app's own version.             |
-| `src-tauri/src/mcp_server.rs` (`export_cowork_plugin`) | Builds the `.plugin` zip — `plugin.json`'s `"version"`/`"description"`, `.mcp.json`, and the bundled `SKILL.md`. |
+| File                                                   | Purpose                                                                                                         |
+| ------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------- |
+| `docs/MCP.md`                                          | Setup/security docs for the MCP server — update when the tool surface or auth story changes.                    |
+| `docs/MCP_ARCHITECTURE.md`                             | Diagrams: tool surface, request lifecycle, `add_job` draft state machine.                                       |
+| `skills/resume-mcp/SKILL.md`                           | Tool-driving runbook for an external MCP host — update when a flow's step sequence changes, in the SAME change. |
+| `src-tauri/src/mcp_server.rs` (`install_mcp_launcher`) | Writes `~/.udaan/bin/udaan-mcp` — the fixed command the hosted plugin's `.mcp.json` runs.                       |
 
 ## Manual-trigger UI entry points (not chat/MCP internals, but reach the same purposes)
 

@@ -29,9 +29,9 @@ More screenshots and demo clips (Fit Check, chat editing, cover letters, customi
 - **EU/German CVs**: optional profile photo, nationality, date of birth, and hobbies section; DE/EU region prompt guidance; an Anschreiben cover letter style
 - **Documents view**: browse all generated resumes and cover letters across jobs (`/documents`)
 - **Notifications**: a bell in the sidebar shows background task progress and results (e.g. bookmark parsing, job creation — which now runs off the page and links back to the finished job), with history and a clear-all action
-- **PDF & TXT export**: generate application-ready documents
+- **PDF & TXT export**: generate application-ready documents, named `First_Last_Company_Resume.pdf`; **Preview PDF** shows the exact exported file before you download, and a hint suggests a smaller size or fit-to-one-page when the last page is nearly empty
 - **10 LLM providers**: OpenAI, Google Gemini, Anthropic (Claude), xAI Grok, Groq, DeepSeek, Mistral, OpenRouter, Perplexity, local Ollama — plus a custom OpenAI-compatible endpoint (e.g. NVIDIA NIM, a local proxy) for anything not on that list, or a managed pay-as-you-go gateway (no key required); switch per job. See [docs/FREE_SETUP.md](./docs/FREE_SETUP.md) for running entirely without paid API access.
-- **MCP server (optional)**: drive the same job-parsing/tailoring/fit-check/deep-analysis/humanizing flows, plus reading and editing your base profile with a diff preview before anything saves, from Claude Desktop or another MCP host on your own chat subscription — no API key configured in this app required. Opt-in toggle + one-click connector download in **Settings**, off by default; see [docs/MCP.md](./docs/MCP.md)
+- **MCP server (optional)**: drive the same job-parsing/tailoring/fit-check/deep-analysis/humanizing flows, plus reading and editing your base profile with a diff preview before anything saves, from Claude Desktop or another MCP host on your own chat subscription — no API key configured in this app required. Install the Claude Code plugin with `/plugin marketplace add Pranavraut033/udaan-plugin` then `/plugin install udaan@udaan` — nothing to download; see [docs/MCP.md](./docs/MCP.md)
 - **Secure key storage**: API keys are AES-256-GCM encrypted on disk (desktop), keyed off a per-install master key held in the OS keychain, or `localStorage` (web) — never on the server
 - **Backup & restore**: export the entire local database to a JSON file and restore it later, from **Settings**
 - **Email job tracking (optional)**: connect Gmail read-only — a build can bundle a default OAuth client so this needs no setup, otherwise (or to override it) provision your own in a few minutes — and recruiting emails are classified and linked to the matching job automatically, browsable on an **Emails** page, while job-alert digests (LinkedIn, Indeed, …) are split into individual postings on a **Job Opportunities** page; see [docs/EMAIL_TRACKING.md](./docs/EMAIL_TRACKING.md)
@@ -86,7 +86,7 @@ The app is **self-signed** (not signed by a CA-trusted/registered publisher), so
 - **Styling**: Tailwind CSS v4
 - **State**: Zustand (LLM provider/model selection, notifications, background bookmark-parsing queue)
 - **LLM providers**: OpenAI, Google Gemini, Anthropic, Grok, Groq, DeepSeek, Mistral, OpenRouter, Perplexity, Ollama, or the managed gateway (all client-side); provider base classes/prompt infra live in the `@pranavraut033/llm-core` package (`packages/llm-core/`), ATS scoring logic in `@pranavraut033/ats-checker` (`packages/ats-checker/`)
-- **PDF export**: `@react-pdf/renderer` / `pdf-lib`
+- **PDF export**: `@react-pdf/renderer` / `pdf-lib` (preview rendered with `pdfjs-dist`)
 - **Drag & drop**: `@dnd-kit`
 - **Testing**: Vitest + Testing Library, Playwright for e2e
 
