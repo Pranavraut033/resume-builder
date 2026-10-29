@@ -372,6 +372,10 @@ pub fn run() {
                 }
 
                 next_server_child = Some(child);
+
+                if let Err(e) = mcp_server::install_mcp_launcher(app.handle()) {
+                    eprintln!("could not install MCP launcher: {e}");
+                }
             }
 
             app.manage(NextServerState(Mutex::new(next_server_child)));
@@ -420,7 +424,6 @@ pub fn run() {
             mcp_server::mcp_server_stop,
             mcp_server::mcp_server_status,
             mcp_server::mcp_server_stdio_command,
-            mcp_server::export_cowork_plugin,
         ])
         .build(tauri::generate_context!())
         .unwrap_or_else(|error| {

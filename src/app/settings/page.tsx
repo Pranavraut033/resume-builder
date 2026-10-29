@@ -43,7 +43,6 @@ import {
   stopMcpServer,
   getMcpServerStatus,
   getMcpStdioCommand,
-  exportCoworkPlugin,
   MCP_SERVER_PORT,
   McpStdioCommand,
 } from "@/lib/mcpServer";
@@ -55,6 +54,9 @@ import { ProviderType } from "@/types/llm";
 import packageJson from "../../../package.json";
 import { EmailTrackingSettings } from "../../components/settings/EmailTrackingSettings";
 import { ProviderCard } from "../../components/settings/ProviderCard";
+
+const PLUGIN_INSTALL_COMMANDS = `/plugin marketplace add Pranavraut033/udaan-plugin
+/plugin install udaan@udaan`;
 
 const logger = createLogger("SettingsPage");
 
@@ -94,7 +96,7 @@ export default function SettingsPage() {
   const [mcpConfigCopied, setMcpConfigCopied] = useState(false);
   const [mcpStdioCommand, setMcpStdioCommand] =
     useState<McpStdioCommand | null>(null);
-  const [exportingPlugin, setExportingPlugin] = useState(false);
+  const [pluginCmdCopied, setPluginCmdCopied] = useState(false);
 
   // Providers the user has explicitly opened via "Add provider" this
   // session, even before a key is saved — so the card doesn't disappear the
@@ -449,22 +451,14 @@ export default function SettingsPage() {
     }
   };
 
-  const handleExportPlugin = async () => {
-    setExportingPlugin(true);
+  const handleCopyPluginCommands = async () => {
     try {
-      const savedPath = await exportCoworkPlugin();
-      if (savedPath) {
-        pushToast({
-          title: "Connector downloaded",
-          description: savedPath,
-          variant: "success",
-        });
-      }
+      await navigator.clipboard.writeText(PLUGIN_INSTALL_COMMANDS);
+      setPluginCmdCopied(true);
+      setTimeout(() => setPluginCmdCopied(false), 2000);
     } catch (err) {
-      logger.error("Error exporting MCP connector", { err });
-      pushToast({ title: "Couldn't download connector", variant: "error" });
-    } finally {
-      setExportingPlugin(false);
+      logger.error("Error copying plugin install commands", { err });
+      pushToast({ title: "Couldn't copy to clipboard", variant: "error" });
     }
   };
 
@@ -563,28 +557,36 @@ export default function SettingsPage() {
                 </div>
               )}
 
-              <SettingsRow
-                label="Connector file"
-                description="The easiest way to connect an assistant that supports plugin installs. Prefer typing a command instead, or need a different host? See the manual setup instructions."
-                control={
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <p className="text-agent-on-surface text-sm font-medium">
+                    Claude Code plugin
+                  </p>
                   <div className="flex items-center gap-3">
-                    <Button
-                      variant="gradient"
-                      size="sm"
-                      onClick={handleExportPlugin}
-                      disabled={exportingPlugin || !mcpStdioCommand}
-                    >
-                      {exportingPlugin ? "Downloading…" : "Download connector"}
-                    </Button>
                     <Link
                       href="/settings/mcp"
                       className="text-agent-primary text-sm underline"
                     >
                       Manual setup
                     </Link>
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      onClick={handleCopyPluginCommands}
+                    >
+                      {pluginCmdCopied ? "Copied" : "Copy"}
+                    </Button>
                   </div>
-                }
-              />
+                </div>
+                <pre className="bg-agent-surface-container text-agent-on-surface min-w-0 overflow-x-auto rounded-lg p-3 text-xs">
+                  <code>{PLUGIN_INSTALL_COMMANDS}</code>
+                </pre>
+                <p className="text-agent-on-surface-variant text-xs">
+                  Run these in Claude Code (or any plugin-aware host). Works
+                  even while this app is closed — it only needs to have been
+                  launched once.
+                </p>
+              </div>
 
               {mcpRunning && (
                 <div className="bg-agent-surface-container space-y-3 rounded-xl px-4 py-3">

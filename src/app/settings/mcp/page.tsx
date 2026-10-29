@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { ReactNode, useEffect, useState } from "react";
 
 import {
@@ -120,16 +119,21 @@ export default function SettingsMcpPage() {
       </div>
 
       <div className="space-y-8">
-        <PageSection title="Easiest: download the connector">
+        <PageSection title="Easiest: install the plugin">
           <SurfacePanel>
             <p className="text-agent-on-surface-variant text-sm leading-relaxed">
-              For assistants that install from a downloaded file (Claude
-              Code&apos;s plugin marketplace, Cowork, and similar), head back to{" "}
-              <Link href="/settings" className="text-agent-primary underline">
-                Settings
-              </Link>{" "}
-              and use <strong>Download connector</strong> in the MCP Server
-              section — one file, no typing required.
+              In Claude Code (or another plugin-aware host like Cowork), run:
+            </p>
+            <pre className="bg-agent-surface-container text-agent-on-surface mt-2 min-w-0 overflow-x-auto rounded-lg p-3 text-xs">
+              <code>
+                {`/plugin marketplace add Pranavraut033/udaan-plugin
+/plugin install udaan@udaan`}
+              </code>
+            </pre>
+            <p className="text-agent-on-surface-variant mt-2 text-sm leading-relaxed">
+              Nothing to download. The plugin starts this app&apos;s own server,
+              so it works even while the app is closed — it just needs to have
+              been opened once.
             </p>
           </SurfacePanel>
         </PageSection>

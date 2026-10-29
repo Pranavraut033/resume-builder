@@ -83,32 +83,3 @@ export async function getMcpStdioCommand(): Promise<McpStdioCommand> {
     databaseUrl: result.database_url,
   };
 }
-
-/**
- * Prompts the user for a save location, then writes a self-contained MCP
- * plugin bundle — a `.plugin` zip containing `.claude-plugin/plugin.json` +
- * `.mcp.json` + `skills/resume-mcp/` (the Claude Code plugin layout) — there,
- * for any plugin-aware host (Claude Code, Cowork, ...) that installs from a
- * single downloaded archive rather than a hand-typed command. Returns the
- * written path, or `null` if the user cancelled the save dialog. Same
- * dev-build caveat as `getMcpStdioCommand()`: rejects when nothing is
- * bundled yet.
- */
-export async function exportCoworkPlugin(): Promise<string | null> {
-  assertTauriContext();
-  const { save } = await import("@tauri-apps/plugin-dialog");
-  const { getVersion } = await import("@tauri-apps/api/app");
-  // Bare semver (e.g. "1.15.0"), same format as Rust's
-  // `app.package_info().version.to_string()` — the version baked into the
-  // bundle's own `.claude-plugin/plugin.json` (see export_cowork_plugin) —
-  // so the filename and the bundle contents never disagree. Versioned so
-  // multiple downloads across app updates are distinguishable by filename
-  // alone without opening any of them.
-  const version = await getVersion();
-  const destPath = await save({
-    defaultPath: `udaan-${version}.plugin`,
-    filters: [{ name: "Cowork plugin", extensions: ["plugin"] }],
-  });
-  if (!destPath) return null;
-  return invoke<string>("export_cowork_plugin", { destPath });
-}

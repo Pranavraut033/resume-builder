@@ -282,16 +282,6 @@ async function bundleMcpServer() {
     }
   }
 
-  // Bundled alongside stdio.js/http.js so `mcp_server.rs::export_cowork_plugin`
-  // can package it into a downloadable plugin without any new tauri.conf.json
-  // resources entry — it rides along inside the already-bundled mcp/ dir.
-  const skillSrc = path.join(root, "skills", "resume-mcp", "SKILL.md");
-  if (existsSync(skillSrc)) {
-    const skillOutDir = path.join(mcpOutputDir, "skills", "resume-mcp");
-    await mkdir(skillOutDir, { recursive: true });
-    await cp(skillSrc, path.join(skillOutDir, "SKILL.md"));
-  }
-
   const traceDir = await mkdtemp(path.join(os.tmpdir(), "mcp-trace-"));
   let resolvedPaths;
   try {

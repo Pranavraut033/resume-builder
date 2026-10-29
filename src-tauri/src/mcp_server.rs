@@ -1,6 +1,5 @@
 use std::{
     fs,
-    io::Write,
     path::{Path, PathBuf},
     process::{Child, Command, Stdio},
     sync::Mutex,
@@ -266,6 +265,10 @@ pub struct McpStdioCommand {
 /// `npm run mcp` dev workflow when this errors.
 #[tauri::command]
 pub fn mcp_server_stdio_command(app: tauri::AppHandle) -> Result<McpStdioCommand, String> {
+    resolve_stdio_command(&app)
+}
+
+fn resolve_stdio_command(app: &tauri::AppHandle) -> Result<McpStdioCommand, String> {
     let resource_dir = app.path().resource_dir().map_err(|e| e.to_string())?;
     let mcp_dir = find_bundled_mcp_dir(&resource_dir)?;
     let node_bin = find_bundled_node_bin(&mcp_dir)?;
@@ -279,72 +282,52 @@ pub fn mcp_server_stdio_command(app: tauri::AppHandle) -> Result<McpStdioCommand
     })
 }
 
-/// Writes a self-contained MCP plugin bundle (Claude Code plugin layout —
-/// `.claude-plugin/plugin.json` + `.mcp.json` + `skills/`) as a single
-/// `.plugin` zip file at `dest_path`, so a plugin-aware host (Claude Code,
-/// Cowork, ...) can install it directly — installers scan an archive, not a
-/// loose folder, hence zipping rather than writing the tree straight to
-/// disk. Same this-machine-only caveat as `mcp_server_stdio_command`: the
-/// paths baked into `.mcp.json` are this install's absolute bundled
-/// node/stdio.js, not portable to another machine.
-#[tauri::command]
-pub fn export_cowork_plugin(app: tauri::AppHandle, dest_path: String) -> Result<String, String> {
-    let resource_dir = app.path().resource_dir().map_err(|e| e.to_string())?;
-    let mcp_dir = find_bundled_mcp_dir(&resource_dir)?;
-    let node_bin = find_bundled_node_bin(&mcp_dir)?;
-    let app_data_dir = app.path().app_data_dir().map_err(|e| e.to_string())?;
-    let database_url = format!("file:{}", app_data_dir.join("app.db").display());
+/// Writes a stable launcher at `~/.udaan/bin/udaan-mcp` that runs this
+/// install's bundled Node + `stdio.js` with the right `DATABASE_URL`. The
+/// GitHub-hosted plugin's `.mcp.json` can't carry per-machine paths, so it
+/// points at this fixed location instead; the launcher is rewritten on every
+/// launch because those paths change after an app update or move.
+pub fn install_mcp_launcher(app: &tauri::AppHandle) -> Result<PathBuf, String> {
+    let cmd = resolve_stdio_command(app)?;
+    let dir = app
+        .path()
+        .home_dir()
+        .map_err(|e| e.to_string())?
+        .join(".udaan")
+        .join("bin");
+    fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
 
-    let version = app.package_info().version.to_string();
-    let plugin_json = serde_json::json!({
-        "name": "udaan",
-        "version": version,
-        "description": "Drive Udaan's resume/job flows (parse, tailor, Deep Analysis, Fit Check, term alignment, cover letters, humanizing) via MCP, using your own model instead of an API key stored in the app."
-    });
+    #[cfg(not(windows))]
+    let sq = |s: &str| s.replace('\'', "'\\''");
+    #[cfg(not(windows))]
+    let (path, content) = (
+        dir.join("udaan-mcp"),
+        format!(
+            "#!/bin/sh\n# Written by Udaan on every launch — edits are overwritten.\nexport DATABASE_URL='{}'\nexec '{}' '{}' \"$@\"\n",
+            sq(&cmd.database_url),
+            sq(&cmd.node_path),
+            sq(&cmd.stdio_path)
+        ),
+    );
+    #[cfg(windows)]
+    let (path, content) = (
+        dir.join("udaan-mcp.cmd"),
+        format!(
+            "@echo off\r\nrem Written by Udaan on every launch - edits are overwritten.\r\nset \"DATABASE_URL={}\"\r\n\"{}\" \"{}\" %*\r\n",
+            cmd.database_url, cmd.node_path, cmd.stdio_path
+        ),
+    );
 
-    let mcp_json = serde_json::json!({
-        "mcpServers": {
-            "resume-builder": {
-                "command": node_bin.display().to_string(),
-                "args": [mcp_dir.join("stdio.js").display().to_string()],
-                "env": { "DATABASE_URL": database_url }
-            }
-        }
-    });
+    if fs::read_to_string(&path).ok().as_deref() == Some(&content) {
+        return Ok(path);
+    }
+    fs::write(&path, &content).map_err(|e| e.to_string())?;
 
-    let skill_src = mcp_dir.join("skills").join("resume-mcp").join("SKILL.md");
-    let skill_md = fs::read_to_string(&skill_src).unwrap_or_default();
+    #[cfg(not(windows))]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        fs::set_permissions(&path, fs::Permissions::from_mode(0o755)).map_err(|e| e.to_string())?;
+    }
 
-    let dest_path = PathBuf::from(dest_path);
-    let file = fs::File::create(&dest_path).map_err(|e| e.to_string())?;
-    let mut zip = zip::ZipWriter::new(file);
-    let options =
-        zip::write::SimpleFileOptions::default().compression_method(zip::CompressionMethod::Stored);
-
-    zip.start_file(".claude-plugin/plugin.json", options)
-        .map_err(|e| e.to_string())?;
-    zip.write_all(
-        serde_json::to_string_pretty(&plugin_json)
-            .map_err(|e| e.to_string())?
-            .as_bytes(),
-    )
-    .map_err(|e| e.to_string())?;
-
-    zip.start_file(".mcp.json", options)
-        .map_err(|e| e.to_string())?;
-    zip.write_all(
-        serde_json::to_string_pretty(&mcp_json)
-            .map_err(|e| e.to_string())?
-            .as_bytes(),
-    )
-    .map_err(|e| e.to_string())?;
-
-    zip.start_file("skills/resume-mcp/SKILL.md", options)
-        .map_err(|e| e.to_string())?;
-    zip.write_all(skill_md.as_bytes())
-        .map_err(|e| e.to_string())?;
-
-    zip.finish().map_err(|e| e.to_string())?;
-
-    Ok(dest_path.display().to_string())
+    Ok(path)
 }
