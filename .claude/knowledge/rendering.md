@@ -64,9 +64,10 @@ These fail green — no type error, no test failure, just wrong output. Know the
 - **TXT export is config-blind by design.** `TxtSectionBuilder` receives only `{ resume, instance }` — no
   style axis ever reaches it. TXT changes only when section order/column/visibility changes via
   `buildSections()`. Never widen that signature to make an axis reach TXT.
-- **There is no DOM↔PDF parity test.** The two engines mirror each other by hand; an axis implemented in
-  `TemplateEngine.tsx` and forgotten in `PDFTemplateEngine.tsx` leaves the suite green and the export broken.
-  Grep both sides and compare branch counts.
+- **The DOM↔PDF parity test (`tests/lib/pdf/templateParity.test.tsx`) compares text, not geometry.** It renders
+  every template through both engines and checks section/entry order, key values and leaked markup — jsdom
+  has no layout, so page breaks and heights are NOT covered. An axis implemented in `TemplateEngine.tsx` and
+  forgotten in `PDFTemplateEngine.tsx` can still pass it; grep both sides and compare branch counts.
 - **`resolveStyles.ts` reads nothing from `TemplateConfig`** and has no axis branches — a new axis never
   belongs there.
 - **A PDF `borderColor`/`border{Top,Right,Bottom,Left}Color` fed `withAlpha()`'s `rgba(...)` string renders a
@@ -123,7 +124,33 @@ More silent failure modes (found while aligning the engines):
   `alignSelf: "stretch"` (see `ContactLine`).
 - **Pagination units must match**: a DOM paginator block is unbreakable, so the PDF counterpart is
   `wrap={false}`. `chips`/`list`/`grid`/`columns` skills are one block per category in both engines;
-  `inline`/`table` stay one block (`SINGLE_BLOCK_SKILL_STYLES`).
+  `inline`/`table` stay one block (`SINGLE_BLOCK_SKILL_STYLES`). Experience entries split between bullets
+  (`splitEntry` in both `sections.tsx`): head + first bullet, then one `continuation` block per bullet that
+  pads its own 2pt top inside the entry's rail/indent; `table`/`label-column` entries stay atomic.
+- **Split bullet editors hold the whole list.** Each slice's `BulletListField` gets the full list plus a
+  `window`, so Enter/Backspace/Delete work across blocks; a module-level `pendingFocus` hands the caret to the
+  slice that renders the target bullet, skipping the hidden (`aria-hidden`) measurement copy, which mounts
+  the same field and would otherwise swallow it. Structural edits keep a new empty bullet in the data until
+  blur, so its block exists to receive focus.
+- **Two-column vertical geometry is the page margin, as in the PDF.** Columns pad `marginPx` top/bottom on
+  every page, but start flush under a full-width header on page 0; with `headerSpan: "main"` only the main
+  column reserves the header's height. A column padding of its own on top of that pushes the editor's page
+  breaks above the export's.
+- **Line height has two classes, same in both engines.** Prose (summary, descriptions, bullets, prose skill
+  styles, languages, hobbies, citations) uses the body leading — explicit `lineHeight: s.lineHeight` on the PDF
+  `Text`, `theme.lineHeight` on the DOM element. Everything else (headings, titles, company, institution,
+  dates, chips) uses the font's natural ratio: PDF `Text` with no `lineHeight`, DOM inheriting
+  `leading-[normal]` from `DocumentCanvas`. Name is 1.25 in both. A new prose element needs the leading on
+  both sides; a new label needs it on neither. A unitless `lineHeight` on a react-pdf `View` resolves against
+  that View's own font size (default 18) and then inherits as points — never set it on a View.
+- **A block that opens a page keeps its preceding gap.** react-pdf keeps a View's `marginTop` at the top of a
+  new page; the DOM renders the gap as a top margin (`pageTopGapClass`) and `groupBlocksIntoPages` counts it.
+- **A column's first section is the first that renders.** `renderColumn` (PDF) skips sections whose builder
+  returns null before handing out the "first" flag; otherwise an empty section shifts the column down by the
+  section gap.
+- **Edit-only chrome still takes space in the editor** (empty-field placeholders such as a project's
+  "Start - Present", language ×/+Add controls), so on resumes with empty optional fields the editor breaks a
+  little earlier than the export.
 - **Legacy font names** (Georgia, Garamond, Verdana, Trebuchet MS) resolve through `resolveFontName()`
   (`fonts/registry.ts`) in `fontFamilyCss`, `fontLoader` and `registerPDFFont` alike; every Google spec has an
   italic face (Inter reuses upright, its v4 package has no italic).
@@ -164,7 +191,10 @@ Mirrors the DOM engine for `@react-pdf/renderer`.
 
 ### Export
 
-- `src/lib/pdfExport.ts` — PDF export entry point.
+- `src/lib/pdfExport.ts` — PDF export entry point: `build{Resume,CoverLetter}PdfBlob()` (Helvetica retry on font
+  errors) + `downloadBlob()`. "Preview PDF" (`job-v2/PdfPreviewModal.tsx`) draws that same blob with pdf.js on
+  canvases (worker needs CSP `worker-src 'self' blob:` in `tauri.conf.json`). Filenames come from
+  `exportFilename()` → `First_Last_Company_Resume.pdf`.
 - `src/lib/txtExport.ts` + `src/lib/resumeToText.ts` — TXT export (the third engine).
 - `src/lib/download.ts` — browser/desktop download plumbing.
 
@@ -172,7 +202,9 @@ Mirrors the DOM engine for `@react-pdf/renderer`.
 
 - `src/lib/paginator.ts` — `groupBlocksIntoPages()`: greedy bin-packing of block heights into pages. **A block
   is never split across a page boundary.** Takes `firstPageReserved` (header height on page 0 only) and
-  `gapPx` (inter-block margin, not applied before a page's first block).
+  `gapPx` (inter-block margin, not applied before a page's first block). `pageUsedHeights()` gives each
+  page's fill; `useBlockPaginator` exposes the last page's as `lastPageHeight`, which drives the editor-only
+  `PageFillHint` (last page < 25% full → "Use <smaller> size" / "Fit to one page").
 - `src/hooks/useBlockPaginator.ts` — measures real DOM block heights and feeds the paginator.
 - `src/lib/pageDimensions.ts` — page size constants (A4 / Letter).
 
