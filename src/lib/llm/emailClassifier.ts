@@ -5,6 +5,7 @@ import { z } from "zod";
 import { extractCompanyName } from "@/lib/email/companyName";
 import { isJobAlert } from "@/lib/email/jobAlert";
 import { getProviderInstance } from "@/lib/llm/providers/factory";
+import { generateRequestId, trackTokenUsage } from "@/lib/llm/tokenTracker";
 import { createLogger } from "@/lib/logger";
 import { useModelStore } from "@/store/modelStore";
 import { LLMGenerationOptions } from "@/types/llm";
@@ -271,12 +272,18 @@ ${email.bodyText || email.snippet}`;
       temperature: 0.1,
     };
 
-    const { result } = await provider.runStructuredLLM(
+    const { result, usage } = await provider.runStructuredLLM(
       prompt,
       options,
       EmailClassificationSchema,
       "EmailClassificationSchema"
     );
+
+    await trackTokenUsage({
+      ...usage,
+      purpose: "email_classification",
+      requestId: generateRequestId("email_classification"),
+    });
 
     return result;
   } catch (err) {
