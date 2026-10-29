@@ -15,7 +15,30 @@ interface BulletListFieldProps {
   onChange: (items: string[]) => void;
   placeholder?: string;
   className?: string;
+  /** Identifies one logical bullet list shown as several slices (one per
+   * paginator block). Lets the caret follow a bullet into another slice. */
+  focusKey?: string;
+  /** `[start, end)` — render only these bullets of `items` (the FULL list).
+   * Edits still operate on the whole list, so Enter/Backspace/Delete work
+   * across slice boundaries. */
+  window?: [number, number];
 }
+
+type Caret = number | "start" | "end";
+
+/** Caret request that outlives the field that made it: after a structural
+ * edit the target bullet may be rendered by another slice's field (which
+ * remounts with the committed list). */
+let pendingFocus: { key: string; index: number; caret: Caret } | null = null;
+const setPendingFocus = (next: typeof pendingFocus) => {
+  pendingFocus = next;
+};
+
+const placeCaret = (el: HTMLTextAreaElement, caret: Caret) => {
+  el.focus();
+  const pos = caret === "end" ? el.value.length : caret === "start" ? 0 : caret;
+  el.setSelectionRange(pos, pos);
+};
 
 /**
  * BulletListField — notion-style bullet editor.
@@ -28,12 +51,15 @@ export function BulletListField({
   onChange,
   placeholder = "Add a bullet point…",
   className,
+  focusKey,
+  window: range,
 }: BulletListFieldProps) {
   const [bullets, setBullets] = useState<string[]>(
     items.length > 0 ? [...items] : [""]
   );
   const containerRef = useRef<HTMLDivElement>(null);
   const inputRefs = useRef<(HTMLTextAreaElement | null)[]>([]);
+  const inWindow = (i: number) => !range || (i >= range[0] && i < range[1]);
 
   const resize = (el: HTMLTextAreaElement) => {
     el.style.height = "auto";
@@ -61,20 +87,33 @@ export function BulletListField({
     };
   }, []);
 
+  // A sliced list keeps a new empty bullet in the data until blur, so the
+  // slice that will render it exists; blur drops empties.
   const commit = useCallback(
-    (next: string[]) => onChange(next.filter(Boolean)),
-    [onChange]
+    (next: string[], final = false) =>
+      onChange(range && !final ? next : next.filter(Boolean)),
+    [onChange, range]
   );
 
-  const focus = (index: number, atEnd = true) => {
+  const focus = (index: number, caret: Caret) => {
+    if (focusKey) setPendingFocus({ key: focusKey, index, caret });
     setTimeout(() => {
       const el = inputRefs.current[index];
-      if (!el) return;
-      el.focus();
-      const pos = atEnd ? el.value.length : 0;
-      el.setSelectionRange(pos, pos);
+      if (!el || !el.isConnected) return;
+      placeCaret(el, caret);
+      setPendingFocus(null);
     }, 0);
   };
+
+  // Take a caret request made by a sibling slice (or by this field before it
+  // remounted). Skip hidden measurement copies, which render the same field.
+  useEffect(() => {
+    if (!focusKey || pendingFocus?.key !== focusKey) return;
+    const el = inputRefs.current[pendingFocus.index];
+    if (!el || el.closest("[aria-hidden]")) return;
+    placeCaret(el, pendingFocus.caret);
+    setPendingFocus(null);
+  });
 
   const handleChange = (i: number, value: string) => {
     const next = [...bullets];
@@ -85,20 +124,20 @@ export function BulletListField({
 
   const handleBlur = (e: React.FocusEvent<HTMLDivElement>) => {
     if (!containerRef.current?.contains(e.relatedTarget as Node)) {
-      commit(bullets);
+      commit(bullets, true);
     }
   };
 
   const removeAt = (i: number, focusPrev: boolean) => {
     if (bullets.length === 1) {
       setBullets([""]);
-      commit([]);
+      commit([], true);
       return;
     }
     const next = bullets.filter((_, idx) => idx !== i);
     setBullets(next);
     commit(next);
-    focus(focusPrev ? Math.max(0, i - 1) : Math.min(next.length - 1, i));
+    focus(focusPrev ? Math.max(0, i - 1) : Math.min(next.length - 1, i), "end");
   };
 
   const mergeUp = (i: number) => {
@@ -109,12 +148,7 @@ export function BulletListField({
     next.splice(i, 1);
     setBullets(next);
     commit(next);
-    setTimeout(() => {
-      const el = inputRefs.current[i - 1];
-      if (!el) return;
-      el.focus();
-      el.setSelectionRange(caretPos, caretPos);
-    }, 0);
+    focus(i - 1, caretPos);
   };
 
   const mergeDown = (i: number) => {
@@ -125,12 +159,7 @@ export function BulletListField({
     next.splice(i + 1, 1);
     setBullets(next);
     commit(next);
-    setTimeout(() => {
-      const el = inputRefs.current[i];
-      if (!el) return;
-      el.focus();
-      el.setSelectionRange(caretPos, caretPos);
-    }, 0);
+    focus(i, caretPos);
   };
 
   const handleKeyDown = (
@@ -153,7 +182,7 @@ export function BulletListField({
       next.splice(i + 1, 0, after);
       setBullets(next);
       commit(next);
-      focus(i + 1, false);
+      focus(i + 1, "start");
     } else if (e.key === "Backspace" && atStart) {
       e.preventDefault();
       if (bullets[i] === "") {
@@ -179,31 +208,33 @@ export function BulletListField({
         className
       )}
     >
-      {bullets.map((bullet, i) => (
-        <div key={i} className="flex items-baseline gap-1.5 px-0.5">
-          <span
-            className="text-agent-on-surface-variant shrink-0 select-none"
-            style={{ font: "inherit" }}
-          >
-            •
-          </span>
-          <textarea
-            ref={(el) => {
-              inputRefs.current[i] = el;
-            }}
-            rows={1}
-            value={bullet}
-            placeholder={i === 0 && bullets.length === 1 ? placeholder : ""}
-            onChange={(e) => {
-              handleChange(i, e.target.value);
-              resize(e.target);
-            }}
-            onKeyDown={(e) => handleKeyDown(e, i)}
-            className="w-full resize-none bg-transparent outline-none"
-            style={{ font: "inherit", overflowY: "hidden" }}
-          />
-        </div>
-      ))}
+      {bullets.map((bullet, i) =>
+        inWindow(i) ? (
+          <div key={i} className="flex items-baseline gap-1.5 px-0.5">
+            <span
+              className="text-agent-on-surface-variant shrink-0 select-none"
+              style={{ font: "inherit" }}
+            >
+              •
+            </span>
+            <textarea
+              ref={(el) => {
+                inputRefs.current[i] = el;
+              }}
+              rows={1}
+              value={bullet}
+              placeholder={i === 0 && bullets.length === 1 ? placeholder : ""}
+              onChange={(e) => {
+                handleChange(i, e.target.value);
+                resize(e.target);
+              }}
+              onKeyDown={(e) => handleKeyDown(e, i)}
+              className="w-full resize-none bg-transparent outline-none"
+              style={{ font: "inherit", overflowY: "hidden" }}
+            />
+          </div>
+        ) : null
+      )}
     </div>
   );
 }

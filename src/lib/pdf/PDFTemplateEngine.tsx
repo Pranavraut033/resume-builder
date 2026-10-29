@@ -55,12 +55,15 @@ function ContactLine({
   header,
   color,
   fontSize,
+  lineHeight,
   centered,
   width,
 }: {
   header: ResumeJSON["header"];
   color: string;
   fontSize: number;
+  /** Unitless ratio, same as the body text (the DOM contact row inherits it). */
+  lineHeight: number;
   centered?: boolean;
   /** Available width in pt; URL labels longer than this are shortened. */
   width: number;
@@ -94,7 +97,7 @@ function ContactLine({
     header.dateOfBirth ? { label: header.dateOfBirth } : null,
   ].filter((i): i is { label: string; href?: string } => i !== null);
 
-  const textStyle = { fontSize, color, maxWidth: "100%" } as const;
+  const textStyle = { fontSize, lineHeight, color, maxWidth: "100%" } as const;
   return (
     <View
       style={{
@@ -436,6 +439,7 @@ export const PDFTemplateEngine: React.FC<PDFTemplateEngineProps> = ({
       header={resume.header}
       color={color}
       fontSize={smallFontSize}
+      lineHeight={s.lineHeight}
       centered={centered}
       width={width}
     />
@@ -471,6 +475,7 @@ export const PDFTemplateEngine: React.FC<PDFTemplateEngineProps> = ({
       <Text
         style={{
           fontSize: nameFontSize,
+          lineHeight: 1.25,
           fontWeight: nameFontWeight,
           color: backgroundColor,
           marginBottom: s.sp(3),
@@ -480,7 +485,12 @@ export const PDFTemplateEngine: React.FC<PDFTemplateEngineProps> = ({
       </Text>
       {resume.header.headline ? (
         <Text
-          style={{ fontSize, color: backgroundColor, marginBottom: s.sp(3) }}
+          style={{
+            lineHeight: s.lineHeight,
+            fontSize,
+            color: backgroundColor,
+            marginBottom: s.sp(3),
+          }}
         >
           {resume.header.headline}
         </Text>
@@ -494,6 +504,7 @@ export const PDFTemplateEngine: React.FC<PDFTemplateEngineProps> = ({
       <Text
         style={{
           fontSize: nameFontSize,
+          lineHeight: 1.25,
           fontWeight: nameFontWeight,
           color: primaryColor,
           marginBottom: s.sp(3),
@@ -502,7 +513,14 @@ export const PDFTemplateEngine: React.FC<PDFTemplateEngineProps> = ({
         {resume.header.name}
       </Text>
       {resume.header.headline ? (
-        <Text style={{ fontSize, color: accentColor, marginBottom: s.sp(3) }}>
+        <Text
+          style={{
+            lineHeight: s.lineHeight,
+            fontSize,
+            color: accentColor,
+            marginBottom: s.sp(3),
+          }}
+        >
           {resume.header.headline}
         </Text>
       ) : null}
@@ -515,6 +533,7 @@ export const PDFTemplateEngine: React.FC<PDFTemplateEngineProps> = ({
       <Text
         style={{
           fontSize: nameFontSize,
+          lineHeight: 1.25,
           fontWeight: nameFontWeight,
           color: primaryColor,
           marginBottom: s.sp(3),
@@ -523,7 +542,14 @@ export const PDFTemplateEngine: React.FC<PDFTemplateEngineProps> = ({
         {resume.header.name}
       </Text>
       {resume.header.headline ? (
-        <Text style={{ fontSize, color: accentColor, marginBottom: s.sp(3) }}>
+        <Text
+          style={{
+            lineHeight: s.lineHeight,
+            fontSize,
+            color: accentColor,
+            marginBottom: s.sp(3),
+          }}
+        >
           {resume.header.headline}
         </Text>
       ) : null}
@@ -536,6 +562,7 @@ export const PDFTemplateEngine: React.FC<PDFTemplateEngineProps> = ({
       <Text
         style={{
           fontSize: nameFontSize,
+          lineHeight: 1.25,
           fontWeight: nameFontWeight,
           color: primaryColor,
           marginBottom: s.sp(2),
@@ -545,7 +572,14 @@ export const PDFTemplateEngine: React.FC<PDFTemplateEngineProps> = ({
       </Text>
       {/* Stacked under the name, like the DOM minimal header. */}
       {resume.header.headline ? (
-        <Text style={{ fontSize, color: accentColor, marginBottom: s.sp(3) }}>
+        <Text
+          style={{
+            lineHeight: s.lineHeight,
+            fontSize,
+            color: accentColor,
+            marginBottom: s.sp(3),
+          }}
+        >
           {resume.header.headline}
         </Text>
       ) : null}
@@ -558,6 +592,7 @@ export const PDFTemplateEngine: React.FC<PDFTemplateEngineProps> = ({
       <Text
         style={{
           fontSize: nameFontSize,
+          lineHeight: 1.25,
           fontWeight: nameFontWeight,
           color: primaryColor,
           marginBottom: s.sp(3),
@@ -566,7 +601,14 @@ export const PDFTemplateEngine: React.FC<PDFTemplateEngineProps> = ({
         {resume.header.name}
       </Text>
       {resume.header.headline ? (
-        <Text style={{ fontSize, color: accentColor, marginBottom: s.sp(3) }}>
+        <Text
+          style={{
+            lineHeight: s.lineHeight,
+            fontSize,
+            color: accentColor,
+            marginBottom: s.sp(3),
+          }}
+        >
           {resume.header.headline}
         </Text>
       ) : null}
@@ -658,6 +700,7 @@ export const PDFTemplateEngine: React.FC<PDFTemplateEngineProps> = ({
       <Text
         style={{
           fontSize: nameFontSize,
+          lineHeight: 1.25,
           fontWeight: nameFontWeight,
           color: primaryColor,
           marginBottom: s.sp(3),
@@ -669,6 +712,7 @@ export const PDFTemplateEngine: React.FC<PDFTemplateEngineProps> = ({
       {resume.header.headline ? (
         <Text
           style={{
+            lineHeight: s.lineHeight,
             fontSize,
             color: accentColor,
             marginBottom: s.sp(3),
@@ -724,6 +768,7 @@ export const PDFTemplateEngine: React.FC<PDFTemplateEngineProps> = ({
           <Text
             style={{
               fontSize: nameFontSize,
+              lineHeight: 1.25,
               fontWeight: nameFontWeight,
               color: primaryColor,
               marginBottom: s.sp(3),
@@ -732,7 +777,9 @@ export const PDFTemplateEngine: React.FC<PDFTemplateEngineProps> = ({
             {resume.header.name}
           </Text>
           {resume.header.headline ? (
-            <Text style={{ fontSize, color: accentColor }}>
+            <Text
+              style={{ lineHeight: s.lineHeight, fontSize, color: accentColor }}
+            >
               {resume.header.headline}
             </Text>
           ) : null}
@@ -779,6 +826,7 @@ export const PDFTemplateEngine: React.FC<PDFTemplateEngineProps> = ({
         <Text
           style={{
             fontSize: nameFontSize,
+            lineHeight: 1.25,
             fontWeight: nameFontWeight,
             color: backgroundColor,
             marginBottom: s.sp(3),
@@ -787,7 +835,13 @@ export const PDFTemplateEngine: React.FC<PDFTemplateEngineProps> = ({
           {resume.header.name}
         </Text>
         {resume.header.headline ? (
-          <Text style={{ fontSize, color: backgroundColor }}>
+          <Text
+            style={{
+              lineHeight: s.lineHeight,
+              fontSize,
+              color: backgroundColor,
+            }}
+          >
             {resume.header.headline}
           </Text>
         ) : null}
@@ -831,6 +885,7 @@ export const PDFTemplateEngine: React.FC<PDFTemplateEngineProps> = ({
         {resume.header.headline ? (
           <Text
             style={{
+              lineHeight: s.lineHeight,
               fontSize: smallFontSize,
               color: accentColor,
               marginBottom: s.sp(3),
@@ -844,6 +899,7 @@ export const PDFTemplateEngine: React.FC<PDFTemplateEngineProps> = ({
         <Text
           style={{
             fontSize: nameFontSize,
+            lineHeight: 1.25,
             fontWeight: nameFontWeight,
             color: primaryColor,
             marginBottom: s.sp(3),
@@ -966,12 +1022,32 @@ export const PDFTemplateEngine: React.FC<PDFTemplateEngineProps> = ({
     );
   };
 
+  // A column's "first" section is the first that renders: an empty one
+  // (builder → null) before it must not hand it the section gap/divider.
+  const renderColumn = (
+    instances: typeof col0Instances,
+    isSidebar: boolean
+  ) => {
+    const rendered = instances.map((instance) =>
+      renderSection(instance, isSidebar)
+    );
+    const firstIdx = rendered.findIndex(Boolean);
+    return instances.map((instance, i) =>
+      i < firstIdx
+        ? null
+        : renderSection(
+            instance,
+            isSidebar,
+            config.sectionDivider && i > firstIdx,
+            i === firstIdx
+          )
+    );
+  };
+
   // ── Render columns ──────────────────────────────────────────────────────
   if (config.columns === 1) {
     // Single-column layout
-    const sections = col0Instances.map((instance, i) =>
-      renderSection(instance, false, config.sectionDivider && i > 0, i === 0)
-    );
+    const sections = renderColumn(col0Instances, false);
 
     return (
       <Document>
@@ -1011,12 +1087,8 @@ export const PDFTemplateEngine: React.FC<PDFTemplateEngineProps> = ({
   const sidebarRight = config.sidebarSide === "right";
   const headerSpansMain = config.headerSpan === "main";
 
-  const col0Sections = col0Instances.map((instance, i) =>
-    renderSection(instance, true, config.sectionDivider && i > 0, i === 0)
-  );
-  const col1Sections = col1Instances.map((instance, i) =>
-    renderSection(instance, false, config.sectionDivider && i > 0, i === 0)
-  );
+  const col0Sections = renderColumn(col0Instances, true);
+  const col1Sections = renderColumn(col1Instances, false);
 
   // Horizontal insets mirror the DOM engine's geometry (TemplateEngine.tsx):
   // `outerPadX` (page edge → column text) is the full margin, `gutterX`

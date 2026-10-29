@@ -32,7 +32,8 @@ import { HeadingStyle } from "@/types/customization";
 import { getSectionLayout } from "@/types/resume";
 
 import { buildSections } from "./buildSections";
-import { photoDomStyle, photoRadius } from "./photoFrame";
+import PageFillHint from "./PageFillHint";
+import { photoDomStyle } from "./photoFrame";
 import { isListSection, SECTION_REGISTRY } from "./sections";
 import { resolveTemplateConfig } from "./templates";
 import {
@@ -69,9 +70,18 @@ function buildColumnBlocks(
  * measurement pass — the paginator reads this margin back off the DOM, so the
  * two must agree.
  */
+/** The same gap as a top margin, for a block that opens a page: react-pdf keeps
+ * a View's `marginTop` at the top of a new page, so the DOM does too (and the
+ * paginator counts it — see `groupBlocksIntoPages`). */
+function pageTopGapClass(blocks: Block[], i: number): string {
+  const gap = i > 0 ? blockGapClass(blocks, i - 1) : "";
+  return gap === "mb-4" ? "mt-4" : gap === "mb-2" ? "mt-2" : "";
+}
+
 function blockGapClass(blocks: Block[], i: number): string {
   const next = blocks[i + 1];
   if (!next) return "";
+  if (next.continuation) return "";
   const newSection = next.sectionKey !== blocks[i].sectionKey;
   if (blocks[i].tight) return newSection ? "mb-2" : "";
   return newSection ? "mb-4" : "mb-2";
@@ -119,7 +129,6 @@ export const TemplateEngine: React.FC<TemplateEngineProps> = ({
   // measured heights don't match what actually renders (see plan 1a).
   const outerPadX = marginPx; // page edge → column text
   const gutterX = marginPx * 0.6; // between the two columns
-  const colPadY = marginPx * 0.7; // column top/bottom padding
   const colWidthPx = (ratio: number) => ratio * widthPx;
   const [ratio0, ratio1] = config.columnRatio ?? [0.35, 0.65];
 
@@ -285,10 +294,13 @@ export const TemplateEngine: React.FC<TemplateEngineProps> = ({
   // pages don't. `pageContentHeight` below is the page-N value (what every
   // page after the first can hold); `firstPageReserved` is how much less
   // page 0 can hold on top of that.
-  const columnPageContentHeight =
-    config.columns === 2 ? heightPx - 2 * colPadY : contentHeightPx;
-  const columnFirstPageReserved =
-    config.columns === 2 ? marginPx + headerHeight : headerHeight;
+  // Same vertical geometry as the PDF (PDFTemplateEngine.tsx): the full page
+  // margin top and bottom on EVERY page, columns flush under the header on
+  // page 0. With `headerSpan: "main"` only the main column holds the header.
+  const columnPageContentHeight = contentHeightPx;
+  const columnFirstPageReserved = headerHeight;
+  const sidebarFirstPageReserved =
+    config.columns === 2 && config.headerSpan === "main" ? 0 : headerHeight;
 
   // ── "Fit to one page" ────────────────────────────────────────────────────
   // `fitScaleForBudget` lags one render behind (like `headerHeight` above):
@@ -303,7 +315,7 @@ export const TemplateEngine: React.FC<TemplateEngineProps> = ({
   const col0 = useBlockPaginator({
     count: col0Blocks.length,
     pageContentHeight: columnPageContentHeight / fitScaleForBudget,
-    firstPageReserved: columnFirstPageReserved,
+    firstPageReserved: sidebarFirstPageReserved,
   });
   const col1 = useBlockPaginator({
     count: col1Blocks.length,
@@ -416,65 +428,62 @@ export const TemplateEngine: React.FC<TemplateEngineProps> = ({
     photoSizePx,
     photoFrameColor
   );
-  const photoNode = (photoDataUrl || edit.editable) && (
+  // Only a real photo takes header width. The edit-only upload control floats
+  // in the header's corner (below) so the editor header wraps exactly like
+  // the export, where there is no placeholder.
+  const photoNode = photoDataUrl && (
     <div className={`relative shrink-0 ${isCentered ? "mb-3" : ""}`}>
-      {photoDataUrl ? (
-        <>
-          {/* eslint-disable-next-line @next/next/no-img-element -- ponytail: photoDataUrl is a base64 data: URL, not a next/image-optimizable remote asset */}
-          <img
-            src={photoDataUrl}
-            alt=""
-            className="h-20 w-20 object-cover"
-            style={photoStyle}
-          />
-          {edit.editable && (
-            <button
-              onClick={() => edit.updateHeader({ photoDataUrl: null })}
-              aria-label="Remove photo"
-              className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-black/60 text-xs leading-none text-white"
-            >
-              ×
-            </button>
-          )}
-        </>
-      ) : (
-        <label
-          className="text-agent-on-surface-variant hover:bg-agent-primary-container flex h-20 w-20 cursor-pointer items-center justify-center border border-dashed text-center text-xs"
-          style={{ borderRadius: photoRadius(photoShape, photoSizePx) }}
+      {/* eslint-disable-next-line @next/next/no-img-element -- ponytail: photoDataUrl is a base64 data: URL, not a next/image-optimizable remote asset */}
+      <img
+        src={photoDataUrl}
+        alt=""
+        className="h-20 w-20 object-cover"
+        style={photoStyle}
+      />
+      {edit.editable && (
+        <button
+          onClick={() => edit.updateHeader({ photoDataUrl: null })}
+          aria-label="Remove photo"
+          className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-black/60 text-xs leading-none text-white"
         >
-          + Photo
-          <input
-            type="file"
-            accept="image/*"
-            className="hidden"
-            onChange={async (e) => {
-              const file = e.target.files?.[0];
-              e.target.value = ""; // allow re-selecting the same file
-              if (!file) return;
-              try {
-                const dataUrl = await compressImage(file);
-                if (dataUrl.length > MAX_PHOTO_DATA_URL_LENGTH) {
-                  pushToast({
-                    title: "Photo too large",
-                    description:
-                      "Even compressed, this photo is too large to store. Try a smaller or simpler image.",
-                    variant: "error",
-                  });
-                  return;
-                }
-                edit.updateHeader({ photoDataUrl: dataUrl });
-              } catch {
-                pushToast({
-                  title: "Couldn't process photo",
-                  description: "That file couldn't be read as an image.",
-                  variant: "error",
-                });
-              }
-            }}
-          />
-        </label>
+          ×
+        </button>
       )}
     </div>
+  );
+  const photoUpload = !photoDataUrl && edit.editable && (
+    <label className="bg-agent-surface text-agent-on-surface-variant hover:bg-agent-primary-container absolute top-1 right-1 z-10 cursor-pointer rounded-full border border-dashed px-2 py-0.5 text-xs opacity-0 transition-opacity group-hover/header:opacity-100 focus-within:opacity-100">
+      + Photo
+      <input
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={async (e) => {
+          const file = e.target.files?.[0];
+          e.target.value = ""; // allow re-selecting the same file
+          if (!file) return;
+          try {
+            const dataUrl = await compressImage(file);
+            if (dataUrl.length > MAX_PHOTO_DATA_URL_LENGTH) {
+              pushToast({
+                title: "Photo too large",
+                description:
+                  "Even compressed, this photo is too large to store. Try a smaller or simpler image.",
+                variant: "error",
+              });
+              return;
+            }
+            edit.updateHeader({ photoDataUrl: dataUrl });
+          } catch {
+            pushToast({
+              title: "Couldn't process photo",
+              description: "That file couldn't be read as an image.",
+              variant: "error",
+            });
+          }
+        }}
+      />
+    </label>
   );
 
   // Factored so "split" (two-tone) can compose them into two side-by-side
@@ -483,7 +492,7 @@ export const TemplateEngine: React.FC<TemplateEngineProps> = ({
   // just rearranged, so editability parity holds across variants.
   const nameNode = (
     <h1
-      className={`mb-1 ${nameSize} ${nameWeightClass}`}
+      className={`mb-1 ${nameSize} ${nameWeightClass} leading-tight`}
       style={{ color: headerNameColor }}
     >
       <EditableText
@@ -568,7 +577,7 @@ export const TemplateEngine: React.FC<TemplateEngineProps> = ({
 
   const headerNode = headerHidden ? null : (
     <header
-      className={headerWrapperClassName}
+      className={`group/header relative ${headerWrapperClassName}`}
       style={{
         borderColor: isLeftAccent
           ? theme.accentColor
@@ -583,6 +592,7 @@ export const TemplateEngine: React.FC<TemplateEngineProps> = ({
           : {}),
       }}
     >
+      {photoUpload}
       {isSplit ? (
         <div className="flex flex-wrap">
           <div
@@ -653,7 +663,10 @@ export const TemplateEngine: React.FC<TemplateEngineProps> = ({
       const showDivider = config.sectionDivider && isNewSection && i !== 0;
 
       return (
-        <div key={idx} className={blockGapClass(blocks, idx)}>
+        <div
+          key={idx}
+          className={`${blockGapClass(blocks, idx)} ${i === 0 ? pageTopGapClass(blocks, idx) : ""}`}
+        >
           {showDivider && (
             <hr
               className="mb-4"
@@ -778,6 +791,23 @@ export const TemplateEngine: React.FC<TemplateEngineProps> = ({
       ? Math.max(col0.pageGroups.length, col1.pageGroups.length)
       : col0.pageGroups.length;
 
+  // Nearly-empty last page → suggest a smaller Size / Fit to one page. Only
+  // columns that actually reach the last page count toward its fill.
+  const lastPageFill =
+    Math.max(
+      ...[col0, col1]
+        .filter((c) => c.pageGroups.length === pageCount)
+        .map((c) => c.lastPageHeight)
+    ) / columnPageContentHeight;
+  const pageFillHint = edit.editable &&
+    !fitToPage &&
+    pageCount > 1 &&
+    col0.measured &&
+    col1.measured &&
+    lastPageFill < 0.25 && (
+      <PageFillHint pageNumber={pageCount} fill={lastPageFill} />
+    );
+
   const pages = Array.from({ length: pageCount }, (_, pageIndex) => {
     const group0 = col0.pageGroups[pageIndex] ?? [];
     const prevGroup0 = col0.pageGroups[pageIndex - 1] ?? [];
@@ -796,6 +826,7 @@ export const TemplateEngine: React.FC<TemplateEngineProps> = ({
           pageCount={pageCount}
           background={background}
           colors={colorsTuple}
+          footer={pageIndex === pageCount - 1 && pageFillHint}
         >
           <div
             className={`${spaceClass} ${justifyClass ?? ""}`}
@@ -837,6 +868,10 @@ export const TemplateEngine: React.FC<TemplateEngineProps> = ({
     // "main"` — that's an intentionally conservative reserve (see report),
     // not a pagination/measurement change, which is Cluster 1's file.
     const sidebarRight = config.sidebarSide === "right";
+    // Page 0 under a full-width header: the header wrapper already supplies
+    // the top margin, so the columns start flush.
+    const colPadTop =
+      pageIndex === 0 && config.headerSpan !== "main" ? 0 : marginPx;
     const headerSpansMain = config.headerSpan === "main";
     const sidebarFillColor =
       config.sidebarFill === "solid"
@@ -853,8 +888,8 @@ export const TemplateEngine: React.FC<TemplateEngineProps> = ({
         className={justifyClass}
         style={{
           width: `${ratio0 * 100}%`,
-          paddingTop: colPadY,
-          paddingBottom: colPadY,
+          paddingTop: colPadTop,
+          paddingBottom: marginPx,
           paddingLeft: sidebarRight ? gutterX : outerPadX,
           paddingRight: sidebarRight ? outerPadX : gutterX,
           backgroundColor: sidebarFillColor,
@@ -873,8 +908,8 @@ export const TemplateEngine: React.FC<TemplateEngineProps> = ({
         className={justifyClass}
         style={{
           width: `${ratio1 * 100}%`,
-          paddingTop: colPadY,
-          paddingBottom: colPadY,
+          paddingTop: colPadTop,
+          paddingBottom: marginPx,
           paddingLeft: sidebarRight ? outerPadX : gutterX,
           paddingRight: sidebarRight ? gutterX : outerPadX,
           overflowY: "hidden",
@@ -895,6 +930,7 @@ export const TemplateEngine: React.FC<TemplateEngineProps> = ({
         pageCount={pageCount}
         background={background}
         colors={colorsTuple}
+        footer={pageIndex === pageCount - 1 && pageFillHint}
       >
         {!headerSpansMain && pageIndex === 0 && (
           // Zoomed with the columns so "fit to one page" shrinks the whole page.

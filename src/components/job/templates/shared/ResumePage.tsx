@@ -15,6 +15,8 @@ const ResumePage: React.FC<{
   /** Optional theme-coloured background pattern rendered behind the content. */
   background?: BackgroundId;
   colors?: ThemeColors;
+  /** Editor-only content shown under the page (e.g. the page-fill hint). */
+  footer?: React.ReactNode;
 }> = ({
   widthPx,
   heightPx,
@@ -23,6 +25,7 @@ const ResumePage: React.FC<{
   pageCount,
   background,
   colors,
+  footer,
 }) => (
   <div
     style={{
@@ -71,6 +74,7 @@ const ResumePage: React.FC<{
         Page {pageIndex + 1} of {pageCount}
       </div>
     )}
+    {footer}
   </div>
 );
 

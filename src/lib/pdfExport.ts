@@ -64,11 +64,10 @@ export const COVER_LETTER_TEMPLATE_MAP: Record<
  * Uses the new unified PDF template engine if a config exists in TEMPLATE_CONFIG,
  * otherwise falls back to legacy per-template components.
  */
-export async function generateResumePDF(
+export async function buildResumePdfBlob(
   resume: ResumeJSON,
-  customization: SanitizedCustomization,
-  filename: string
-): Promise<void> {
+  customization: SanitizedCustomization
+): Promise<Blob> {
   // Dynamic import keeps the heavy react-pdf bundle out of the server bundle
   const { pdf } = await import("@react-pdf/renderer");
 
@@ -116,6 +115,11 @@ export async function generateResumePDF(
     }
   }
 
+  return blob;
+}
+
+/** Triggers a browser download of `blob` as `filename`. */
+export function downloadBlob(blob: Blob, filename: string): void {
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
@@ -124,6 +128,14 @@ export async function generateResumePDF(
   a.click();
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
+}
+
+export async function generateResumePDF(
+  resume: ResumeJSON,
+  customization: SanitizedCustomization,
+  filename: string
+): Promise<void> {
+  downloadBlob(await buildResumePdfBlob(resume, customization), filename);
 }
 
 /**
@@ -135,13 +147,12 @@ export async function generateResumePDF(
  *
  * Must be called from a client context (browser / Tauri).
  */
-export async function generateCoverLetterPDF(
+export async function buildCoverLetterPdfBlob(
   coverLetter: string,
   resume: ResumeJSON,
   customization: SanitizedCustomization,
-  filename: string,
   jobDetails?: JobDetailsJSON | null
-): Promise<void> {
+): Promise<Blob> {
   const { pdf } = await import("@react-pdf/renderer");
 
   const styles = resolvePDFCustomization(customization, { fit: false });
@@ -182,12 +193,23 @@ export async function generateCoverLetterPDF(
     }
   }
 
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = filename;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
+  return blob;
+}
+
+export async function generateCoverLetterPDF(
+  coverLetter: string,
+  resume: ResumeJSON,
+  customization: SanitizedCustomization,
+  filename: string,
+  jobDetails?: JobDetailsJSON | null
+): Promise<void> {
+  downloadBlob(
+    await buildCoverLetterPdfBlob(
+      coverLetter,
+      resume,
+      customization,
+      jobDetails
+    ),
+    filename
+  );
 }

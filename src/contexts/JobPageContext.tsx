@@ -22,16 +22,23 @@ import {
   saveAtsAnalysis as saveAtsAnalysisAction,
   saveFitCheck as saveFitCheckAction,
 } from "@/actions/job";
+import { PdfPreviewModal } from "@/components/job-v2/PdfPreviewModal";
 import { Button } from "@/components/ui/Button";
 import { FallbackState } from "@/components/ui/FallbackState";
 import { useToast } from "@/components/ui/ToastProvider";
 import { JobPageData, useJobPageDataQuery } from "@/hooks/useJobPageDataQuery";
 import { areJsonValuesEqual } from "@/lib";
 import { DateFormat } from "@/lib/date";
+import { exportFilename } from "@/lib/exportFilename";
 import { loadGoogleFont } from "@/lib/fontLoader";
 import { ResumeHistory } from "@/lib/llm/ResumeHistory";
 import logger from "@/lib/logger";
-import { generateCoverLetterPDF, generateResumePDF } from "@/lib/pdfExport";
+import {
+  buildCoverLetterPdfBlob,
+  buildResumePdfBlob,
+  generateCoverLetterPDF,
+  generateResumePDF,
+} from "@/lib/pdfExport";
 import { coverLetterToText, resumeToText } from "@/lib/resumeToText";
 import {
   DEFAULT_CUSTOMIZATION,
@@ -87,6 +94,7 @@ export interface JobPageContextType {
   isExportingPdf: boolean;
   isExportingTxt: boolean;
   onPDFExport: () => void;
+  onPDFPreview: () => void;
   onTXTExport: () => void;
   onJSONExport: () => void;
   onCopyText: () => void;
@@ -145,6 +153,11 @@ export function JobPageProvider({
 
   const [isExportingTxt, setIsExportingTxt] = useState(false);
   const [isExportingPdf, setIsExportingPdf] = useState(false);
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+  const [previewBlob, setPreviewBlob] = useState<Blob | null>(null);
+  const [previewLoading, setPreviewLoading] = useState(false);
+  const [previewError, setPreviewError] = useState<string | undefined>();
+  const [previewFilename, setPreviewFilename] = useState("");
   const [chatSnapPosition, setChatSnapPosition] =
     useState<ChatSnapPosition>("undocked");
 
@@ -219,6 +232,44 @@ export function JobPageProvider({
     if (result) setResumeState(result);
   }, []);
 
+  const onPDFPreview = useCallback(async () => {
+    const jobData = data?.job;
+    if (!jobData) return;
+
+    const isCoverLetter = contentType === "coverLetter";
+    setPreviewFilename(
+      exportFilename(
+        resume.header.name,
+        jobData.company?.name,
+        isCoverLetter ? "cover-letter" : "resume"
+      )
+    );
+    setPreviewBlob(null);
+    setPreviewError(undefined);
+    setPreviewLoading(true);
+    setIsPreviewOpen(true);
+    setIsExportingPdf(true);
+
+    try {
+      setPreviewBlob(
+        isCoverLetter
+          ? await buildCoverLetterPdfBlob(
+              coverLetter,
+              resume,
+              customization,
+              jobData.details
+            )
+          : await buildResumePdfBlob(resume, customization)
+      );
+    } catch (err) {
+      logger.error("JobPageContext", "PDF preview failed:", err);
+      setPreviewError("Could not generate the PDF preview.");
+    } finally {
+      setPreviewLoading(false);
+      setIsExportingPdf(false);
+    }
+  }, [data?.job, contentType, resume, customization, coverLetter]);
+
   const onPDFExport = useCallback(async () => {
     const jobData = data?.job;
     if (!jobData) return;
@@ -227,7 +278,11 @@ export function JobPageProvider({
 
     try {
       if (contentType === "coverLetter") {
-        const filename = `${jobData.company?.name ?? "Cover Letter"} ${resume.header.name} Cover Letter.pdf`;
+        const filename = exportFilename(
+          resume.header.name,
+          jobData.company?.name,
+          "cover-letter"
+        );
         await generateCoverLetterPDF(
           coverLetter,
           resume,
@@ -236,7 +291,11 @@ export function JobPageProvider({
           jobData.details
         );
       } else {
-        const filename = `${jobData.company?.name ?? "Resume"} ${resume.header.name} Resume.pdf`;
+        const filename = exportFilename(
+          resume.header.name,
+          jobData.company?.name,
+          "resume"
+        );
         await generateResumePDF(resume, customization, filename);
       }
     } catch (err) {
@@ -534,6 +593,7 @@ export function JobPageProvider({
     onCopyText,
     onJSONExport,
     onPDFExport,
+    onPDFPreview,
     onTXTExport,
     profile: data.profile,
     refetch,
@@ -552,7 +612,17 @@ export function JobPageProvider({
   };
 
   return (
-    <JobPageContext.Provider value={value}>{children}</JobPageContext.Provider>
+    <JobPageContext.Provider value={value}>
+      {children}
+      <PdfPreviewModal
+        open={isPreviewOpen}
+        onClose={() => setIsPreviewOpen(false)}
+        blob={previewBlob}
+        loading={previewLoading}
+        error={previewError}
+        filename={previewFilename}
+      />
+    </JobPageContext.Provider>
   );
 }
 

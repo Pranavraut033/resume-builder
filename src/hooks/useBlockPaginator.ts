@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 
-import { groupBlocksIntoPages } from "@/lib/paginator";
+import { groupBlocksIntoPages, pageUsedHeights } from "@/lib/paginator";
 
 type RefCallback = (el: HTMLElement | null) => void;
 
@@ -46,6 +46,8 @@ interface UseBlockPaginatorResult {
    * scale from the un-paginated content height.
    */
   totalHeight: number;
+  /** Height in px used on the last page (incl. the header reserve when it is page 0). 0 until measured. */
+  lastPageHeight: number;
 }
 
 /**
@@ -87,6 +89,7 @@ export function useBlockPaginator({
   // aren't blocked forever by an empty column.
   const [measured, setMeasured] = useState(count === 0);
   const [totalHeight, setTotalHeight] = useState(0);
+  const [lastPageHeight, setLastPageHeight] = useState(0);
 
   // Stable recompute — reads dimensions from refs so its identity never changes.
   const recompute = useCallback(() => {
@@ -120,6 +123,11 @@ export function useBlockPaginator({
       heights.reduce((acc, h) => acc + h, 0) +
       gaps.slice(0, -1).reduce((acc, g) => acc + g, 0);
     setTotalHeight((prev) => (prev === sum ? prev : sum));
+    const last =
+      pageUsedHeights(groups, heights, firstPageReservedRef.current, gaps).at(
+        -1
+      ) ?? 0;
+    setLastPageHeight((prev) => (prev === last ? prev : last));
   }, []); // stable — no deps
 
   // Reset when count changes.
@@ -133,6 +141,7 @@ export function useBlockPaginator({
     marginsRef.current = Array.from({ length: count }, () => 0);
     setMeasured(count === 0);
     setTotalHeight(0);
+    setLastPageHeight(0);
     setPageGroups([Array.from({ length: count }, (_, i) => i)]);
   }, [count]);
 
@@ -210,5 +219,5 @@ export function useBlockPaginator({
     [recompute]
   );
 
-  return { setRef, pageGroups, measured, totalHeight };
+  return { setRef, pageGroups, measured, totalHeight, lastPageHeight };
 }

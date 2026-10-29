@@ -42,10 +42,41 @@ export function groupBlocksIntoPages(
       currentPage.push(i);
       usedHeight += required;
     } else {
+      // The gap stays above a block that opens a new page (react-pdf keeps a
+      // View's marginTop there, and the DOM renders it — TemplateEngine's
+      // `pageTopGapClass`).
       pages.push([i]);
-      usedHeight = h;
+      usedHeight = h + gapBefore;
     }
   }
 
   return pages;
+}
+
+/**
+ * Height in px actually used on each page — the packed blocks plus the gaps
+ * between them (and the header reserve on page 0). Same gap rule as
+ * `groupBlocksIntoPages`: no gap before a page's first block.
+ */
+export function pageUsedHeights(
+  pages: number[][],
+  heights: number[],
+  firstPageReserved = 0,
+  gapPx: number | number[] = 0
+): number[] {
+  return pages.map((page, p) =>
+    page.reduce(
+      (used, idx, j) =>
+        used +
+        heights[idx] +
+        // A page-opening block keeps its preceding gap (see above), except
+        // the document's very first block.
+        (j === 0 && p === 0
+          ? 0
+          : typeof gapPx === "number"
+            ? gapPx
+            : (gapPx[idx - 1] ?? 0)),
+      p === 0 ? firstPageReserved : 0
+    )
+  );
 }

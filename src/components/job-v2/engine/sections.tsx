@@ -159,23 +159,42 @@ const summary: DomSectionBuilder = ({ resume, theme, edit }) => {
  * the edit surface (a single bullet-mode textarea) never changes shape. */
 function achievementsField({
   items,
+  all = items,
+  offset = 0,
   onCommit,
   theme,
   bulletStyle,
   editable,
+  focusKey,
 }: {
+  /** The slice this field shows (the whole list unless the entry is split). */
   items: string[];
+  /** The entry's full list — what the editor holds and commits. */
+  all?: string[];
+  /** Index of `items[0]` within `all`. */
+  offset?: number;
   onCommit: (items: string[]) => void;
   theme: ResolvedTheme;
   bulletStyle: ResolvedTemplateConfig["bulletStyle"];
   editable: boolean;
+  focusKey?: string;
 }) {
   if (items.length === 0 && !editable) return null;
   return (
     <EditableText
-      value={items.join("\n")}
-      onCommit={(v) => onCommit(v.split("\n").filter(Boolean))}
+      // Editing: every slice holds the full list (so Enter/Backspace/Delete
+      // work across blocks) and shows only its own bullets. Remount on any
+      // list change so each slice's local state matches the committed list.
+      key={offset + ":" + all.join("\n")}
+      value={(editable ? all : items).join("\n")}
+      onCommit={(v) => onCommit(v.split("\n"))}
+      focusKey={focusKey}
+      bulletWindow={
+        editable ? [offset, offset + Math.max(1, items.length)] : undefined
+      }
       fieldType="bullet"
+      // Same leading and 2pt gap as the display list and the PDF.
+      className={`${theme.textSize} ${theme.lineHeight} space-y-[2.667px]`}
       placeholder="Add bullet points, one per line…"
       renderDisplay={(v) => (
         <ul
@@ -201,6 +220,64 @@ function achievementsField({
   );
 }
 
+/** Splits one entry into paginator blocks so a page may break between its
+ * bullets: the head block (`headBody` + first bullet, keeps `itemIndex`) then
+ * one `continuation` block per remaining bullet. ≤1 bullets stays one block.
+ * `wrap` is the entry's container (rail / marker indent / date column), applied
+ * to every block — `head` is true only on the first (dots live there), `final`
+ * only on the last (the entry's bottom padding goes there). Mirrors the PDF
+ * `splitEntry` in lib/pdf/sections.tsx. */
+function splitEntry({
+  sectionKey,
+  itemIndex,
+  tight,
+  items,
+  field,
+  headBody,
+  wrap,
+}: {
+  sectionKey: string;
+  itemIndex: number;
+  tight?: boolean;
+  items: string[];
+  field: (slice: string[], offset: number) => ReactNode;
+  headBody: (bullets: ReactNode) => ReactNode;
+  wrap: (body: ReactNode, edge: { head: boolean; final: boolean }) => ReactNode;
+}): Block[] {
+  if (items.length <= 1) {
+    return [
+      {
+        sectionKey,
+        itemIndex,
+        tight,
+        node: wrap(headBody(field(items, 0)), { head: true, final: true }),
+      },
+    ];
+  }
+  return [
+    {
+      sectionKey,
+      itemIndex,
+      tight,
+      node: wrap(headBody(field(items.slice(0, 1), 0)), {
+        head: true,
+        final: false,
+      }),
+    },
+    ...items.slice(1).map(
+      (item, k): Block => ({
+        sectionKey,
+        tight,
+        continuation: true,
+        node: wrap(<div className="pt-[2.667px]">{field([item], k + 1)}</div>, {
+          head: false,
+          final: k === items.length - 2,
+        }),
+      })
+    ),
+  ];
+}
+
 /** Wraps an `EditableDateRange` in a tinted pill when `dateStyle === "badge"`, otherwise leaves it as secondary-colored plain text. */
 function dateNode({
   dates,
@@ -216,7 +293,7 @@ function dateNode({
   if (dateStyle === "badge") {
     return (
       <span
-        className={`${textSize} shrink-0 rounded-full px-3 py-1 font-medium`}
+        className={`${textSize} shrink-0 rounded-full px-3 py-1`}
         style={{
           backgroundColor: theme.primaryColor + "1a",
           color: theme.primaryColor,
@@ -237,7 +314,7 @@ function dateNode({
 }
 
 const experience: DomSectionBuilder = ({ resume, theme, edit, config }) =>
-  resume.experience.map((exp, expIndex): Block => {
+  resume.experience.flatMap((exp, expIndex): Block[] => {
     const entryStyle = config.entryStyle;
     const isMultiColumn = config.columns > 1;
     const dates = (
@@ -250,20 +327,29 @@ const experience: DomSectionBuilder = ({ resume, theme, edit, config }) =>
       />
     );
 
-    const achievements = achievementsField({
-      items: exp.achievements,
-      onCommit: (items) => edit.updateExperienceAchievements(expIndex, items),
-      theme,
-      bulletStyle: config.bulletStyle,
-      editable: edit.editable,
-    });
+    // One bullet editor per slice of the list; a split entry shows one
+    // slice per block (see `splitEntry`).
+    const field = (slice: string[], offset: number) =>
+      achievementsField({
+        items: slice,
+        all: exp.achievements,
+        offset,
+        onCommit: (items) => edit.updateExperienceAchievements(expIndex, items),
+        theme,
+        bulletStyle: config.bulletStyle,
+        editable: edit.editable,
+        focusKey: `experience:${expIndex}`,
+      });
 
     if (entryStyle === "compact") {
-      return {
+      return splitEntry({
         sectionKey: "experience",
         itemIndex: expIndex,
-        node: (
-          <div>
+        items: exp.achievements,
+        field,
+        wrap: (body) => <div>{body}</div>,
+        headBody: (bullets) => (
+          <>
             <p className={`${theme.textSize}`}>
               <span
                 className="font-semibold"
@@ -289,7 +375,7 @@ const experience: DomSectionBuilder = ({ resume, theme, edit, config }) =>
               </span>
             </p>
             {(exp.description || edit.editable) && (
-              <div className={`${theme.textSize} leading-snug`}>
+              <div className={`${theme.textSize} ${theme.lineHeight}`}>
                 <EditableText
                   value={exp.description}
                   onCommit={(v) =>
@@ -300,10 +386,10 @@ const experience: DomSectionBuilder = ({ resume, theme, edit, config }) =>
                 />
               </div>
             )}
-            {achievements}
-          </div>
+            {bullets}
+          </>
         ),
-      };
+      });
     }
 
     if (
@@ -343,176 +429,198 @@ const experience: DomSectionBuilder = ({ resume, theme, edit, config }) =>
       // (creative-modern) drops the rail for a floating dot; "date-column"
       // (european-modern/french-elegant) moves the date into its own narrow
       // left column, ruled off the entry body by a thin vertical line.
-      return {
+      // Every unit repeats the container; the dot / date live on the head
+      // only, the entry's bottom padding on the final unit only, so a rail
+      // or date-column rule stays continuous across a page break.
+      const body = (bullets: ReactNode) =>
+        entryStyle === "timeline" ? (
+          <>
+            <p
+              className={`${theme.metaSize} mb-0.5`}
+              style={{ color: theme.secondaryColor }}
+            >
+              {dates}
+            </p>
+            <h3 className="font-semibold" style={{ color: theme.accentColor }}>
+              {roleField}
+            </h3>
+            <p
+              className={`${theme.metaSize}`}
+              style={{ color: theme.secondaryColor }}
+            >
+              {companyField}
+            </p>
+            {description}
+            {bullets}
+          </>
+        ) : entryStyle === "date-column" ? (
+          <>
+            <h3 className="font-semibold" style={{ color: theme.accentColor }}>
+              {roleField}
+            </h3>
+            <p
+              className={`${theme.metaSize}`}
+              style={{ color: theme.secondaryColor }}
+            >
+              {companyField}
+            </p>
+            {description}
+            {bullets}
+          </>
+        ) : (
+          <>
+            <h3 className="font-semibold" style={{ color: theme.accentColor }}>
+              {roleField}
+            </h3>
+            <p
+              className={`${theme.metaSize}`}
+              style={{ color: theme.secondaryColor }}
+            >
+              {companyField}
+              {" · "}
+              {dates}
+            </p>
+            {description}
+            {bullets}
+          </>
+        );
+
+      return splitEntry({
         sectionKey: "experience",
         itemIndex: expIndex,
         tight:
           entryStyle === "timeline" || entryStyle === "date-column"
             ? true
             : undefined,
-        node:
+        items: exp.achievements,
+        field,
+        headBody: body,
+        wrap: (inner, { head, final }) =>
           entryStyle === "timeline" ? (
             <div
-              className="relative border-l-2 pb-2 pl-4"
+              className={`relative border-l-2 pl-4 ${final ? "pb-2" : ""}`}
               style={{ borderColor: theme.accentColor }}
             >
-              <span
-                className="absolute top-1.5 -left-[5px] h-2 w-2 rounded-full"
-                style={{ backgroundColor: theme.accentColor }}
-              />
-              <p
-                className={`${theme.metaSize} mb-0.5`}
-                style={{ color: theme.secondaryColor }}
-              >
-                {dates}
-              </p>
-              <h3
-                className="font-semibold"
-                style={{ color: theme.accentColor }}
-              >
-                {roleField}
-              </h3>
-              <p
-                className={`${theme.metaSize}`}
-                style={{ color: theme.secondaryColor }}
-              >
-                {companyField}
-              </p>
-              {description}
-              {achievements}
+              {head && (
+                <span
+                  className="absolute top-1.5 -left-[5px] h-2 w-2 rounded-full"
+                  style={{ backgroundColor: theme.accentColor }}
+                />
+              )}
+              {inner}
             </div>
           ) : entryStyle === "date-column" ? (
-            <div className="flex gap-3 pb-2">
+            <div className={`flex gap-3 ${final ? "pb-2" : ""}`}>
               <div
                 className={`w-[22%] shrink-0 text-right ${theme.metaSize}`}
                 style={{ color: theme.accentColor }}
               >
-                {dates}
+                {head ? dates : null}
               </div>
               <div
                 className="flex-1 border-l pl-3"
                 style={{ borderColor: theme.secondaryColor + "40" }}
               >
-                <h3
-                  className="font-semibold"
-                  style={{ color: theme.accentColor }}
-                >
-                  {roleField}
-                </h3>
-                <p
-                  className={`${theme.metaSize}`}
-                  style={{ color: theme.secondaryColor }}
-                >
-                  {companyField}
-                </p>
-                {description}
-                {achievements}
+                {inner}
               </div>
             </div>
           ) : (
             <div className="relative pl-5">
-              <span
-                className="absolute top-1.5 left-0 h-2.5 w-2.5 rounded-full"
-                style={{ backgroundColor: theme.accentColor }}
-              />
-              <h3
-                className="font-semibold"
-                style={{ color: theme.accentColor }}
-              >
-                {roleField}
-              </h3>
-              <p
-                className={`${theme.metaSize}`}
-                style={{ color: theme.secondaryColor }}
-              >
-                {companyField}
-                {" · "}
-                {dates}
-              </p>
-              {description}
-              {achievements}
+              {head && (
+                <span
+                  className="absolute top-1.5 left-0 h-2.5 w-2.5 rounded-full"
+                  style={{ backgroundColor: theme.accentColor }}
+                />
+              )}
+              {inner}
             </div>
           ),
-      };
+      });
     }
 
     if (entryStyle === "table" || entryStyle === "label-column") {
       const borderColor = theme.secondaryColor + "40";
       const variant = entryStyle === "label-column" ? "label" : "boxed";
-      return {
-        sectionKey: "experience",
-        itemIndex: expIndex,
-        node: (
-          <TableEntry
-            borderColor={borderColor}
-            metaSize={theme.metaSize}
-            variant={variant}
-          >
-            <TableRow
-              label="Company"
-              accentColor={theme.accentColor + "20"}
+      const achievements = field(exp.achievements, 0);
+      return [
+        {
+          sectionKey: "experience",
+          itemIndex: expIndex,
+          node: (
+            <TableEntry
               borderColor={borderColor}
+              metaSize={theme.metaSize}
               variant={variant}
             >
-              <EditableText
-                value={exp.company}
-                onCommit={(v) =>
-                  edit.updateExperience(expIndex, { company: v })
-                }
-                placeholder="Company"
-              />
-            </TableRow>
-            <TableRow
-              label="Role"
-              accentColor={theme.accentColor + "20"}
-              borderColor={borderColor}
-              variant={variant}
-            >
-              <EditableText
-                value={exp.role}
-                onCommit={(v) => edit.updateExperience(expIndex, { role: v })}
-                placeholder="Role"
-              />
-            </TableRow>
-            <TableRow
-              label="Duration"
-              accentColor={theme.accentColor + "20"}
-              borderColor={borderColor}
-              variant={variant}
-            >
-              {dates}
-            </TableRow>
-            <TableRow
-              label="Details"
-              accentColor={theme.accentColor + "20"}
-              borderColor={borderColor}
-              last
-              variant={variant}
-            >
-              {(exp.description || edit.editable) && (
-                <div className={`${theme.lineHeight} mb-1`}>
-                  <EditableText
-                    value={exp.description}
-                    onCommit={(v) =>
-                      edit.updateExperience(expIndex, { description: v })
-                    }
-                    fieldType="richtext"
-                    placeholder="Describe your role…"
-                  />
-                </div>
-              )}
-              {achievements}
-            </TableRow>
-          </TableEntry>
-        ),
-      };
+              <TableRow
+                label="Company"
+                accentColor={theme.accentColor + "20"}
+                borderColor={borderColor}
+                variant={variant}
+              >
+                <EditableText
+                  value={exp.company}
+                  onCommit={(v) =>
+                    edit.updateExperience(expIndex, { company: v })
+                  }
+                  placeholder="Company"
+                />
+              </TableRow>
+              <TableRow
+                label="Role"
+                accentColor={theme.accentColor + "20"}
+                borderColor={borderColor}
+                variant={variant}
+              >
+                <EditableText
+                  value={exp.role}
+                  onCommit={(v) => edit.updateExperience(expIndex, { role: v })}
+                  placeholder="Role"
+                />
+              </TableRow>
+              <TableRow
+                label="Duration"
+                accentColor={theme.accentColor + "20"}
+                borderColor={borderColor}
+                variant={variant}
+              >
+                {dates}
+              </TableRow>
+              <TableRow
+                label="Details"
+                accentColor={theme.accentColor + "20"}
+                borderColor={borderColor}
+                last
+                variant={variant}
+              >
+                {(exp.description || edit.editable) && (
+                  <div className={`${theme.lineHeight} mb-1`}>
+                    <EditableText
+                      value={exp.description}
+                      onCommit={(v) =>
+                        edit.updateExperience(expIndex, { description: v })
+                      }
+                      fieldType="richtext"
+                      placeholder="Describe your role…"
+                    />
+                  </div>
+                )}
+                {achievements}
+              </TableRow>
+            </TableEntry>
+          ),
+        },
+      ];
     }
 
-    return {
+    return splitEntry({
       sectionKey: "experience",
       itemIndex: expIndex,
-      node: (
-        <div>
+      items: exp.achievements,
+      field,
+      wrap: (body) => <div>{body}</div>,
+      headBody: (bullets) => (
+        <>
           <div
             className={cn(
               "mb-1 flex items-start justify-between",
@@ -531,7 +639,7 @@ const experience: DomSectionBuilder = ({ resume, theme, edit, config }) =>
                 />
               </h3>
               <p
-                className={`${theme.metaSize} ${theme.lineHeight}`}
+                className={`${theme.metaSize}`}
                 style={{ color: theme.secondaryColor }}
               >
                 <EditableText
@@ -562,10 +670,10 @@ const experience: DomSectionBuilder = ({ resume, theme, edit, config }) =>
               />
             </div>
           )}
-          {achievements}
-        </div>
+          {bullets}
+        </>
       ),
-    };
+    });
   });
 
 const projects: DomSectionBuilder = ({ resume, theme, edit, config }) =>
@@ -677,7 +785,7 @@ const projects: DomSectionBuilder = ({ resume, theme, edit, config }) =>
               )}
             </p>
             {(project.description || edit.editable) && (
-              <div className={`${theme.textSize} leading-snug`}>
+              <div className={`${theme.textSize} ${theme.lineHeight}`}>
                 {descriptionField}
               </div>
             )}
@@ -840,7 +948,8 @@ const projects: DomSectionBuilder = ({ resume, theme, edit, config }) =>
             {urlLinkField}
           </h3>
           {dateRangeField && (
-            <div>
+            // flex: a badge's padding takes space, as in the PDF.
+            <div className="flex">
               {dateNode({
                 dates: dateRangeField,
                 theme,
@@ -1025,7 +1134,7 @@ function skillsGroupDisplay(
               {group.skills.map((s, si) => (
                 <span
                   key={si}
-                  className="rounded-full px-1 py-0.5 font-medium"
+                  className="rounded-full px-1 py-0.5"
                   style={{
                     backgroundColor: theme.accentColor + "1a",
                     color: theme.accentColor,
@@ -1187,7 +1296,9 @@ const skills: DomSectionBuilder = ({ resume, theme, edit, config }) => {
     (_, groupIndex): Block => ({
       sectionKey: "skills",
       node: (
-        <div className={`${theme.metaSize} ${theme.lineHeight}`}>
+        // No leading here: labels and chips use the natural line height like
+        // the PDF; the prose skill styles set the body leading themselves.
+        <div className={theme.metaSize}>
           {groupIndex === 0 ? (
             <EditableText
               value={serialized}
@@ -1481,7 +1592,7 @@ const education: DomSectionBuilder = ({ resume, theme, edit, config }) =>
                 {degreeField}
               </h3>
               <p
-                className={`${theme.metaSize} ${theme.lineHeight}`}
+                className={`${theme.metaSize}`}
                 style={{ color: theme.secondaryColor }}
               >
                 {institutionField}
@@ -1745,7 +1856,7 @@ const volunteer: DomSectionBuilder = ({ resume, theme, edit, config }) =>
               </span>
             </p>
             {descriptionField && (
-              <div className={`${theme.textSize} leading-snug`}>
+              <div className={`${theme.textSize} ${theme.lineHeight}`}>
                 {descriptionField}
               </div>
             )}
@@ -1933,7 +2044,7 @@ const volunteer: DomSectionBuilder = ({ resume, theme, edit, config }) =>
                 {roleField}
               </h3>
               <p
-                className={`${theme.metaSize} ${theme.lineHeight}`}
+                className={`${theme.metaSize}`}
                 style={{ color: theme.secondaryColor }}
               >
                 {organizationField}

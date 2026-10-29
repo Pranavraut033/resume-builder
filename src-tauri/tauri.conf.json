@@ -32,7 +32,8 @@
         "img-src": "'self' data: blob:",
         "style-src": "'self' 'unsafe-inline'",
         "script-src": "'self'",
-        "font-src": "'self' data:"
+        "font-src": "'self' data:",
+        "worker-src": "'self' blob:"
       }
     }
   },

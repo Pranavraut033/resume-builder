@@ -23,6 +23,10 @@ interface EditableTextProps {
   className?: string;
   displayClassName?: string;
   renderDisplay?: (value: string) => React.ReactNode;
+  /** `fieldType="bullet"` only: see `BulletListField`. With `bulletWindow`,
+   * `value` is the FULL list and only that window of it is shown. */
+  focusKey?: string;
+  bulletWindow?: [number, number];
 }
 
 /**
@@ -39,6 +43,8 @@ export function EditableText({
   className,
   displayClassName,
   renderDisplay,
+  focusKey,
+  bulletWindow,
 }: EditableTextProps) {
   const { editable } = useInlineEdit();
 
@@ -72,10 +78,15 @@ export function EditableText({
   if (fieldType === "bullet") {
     return (
       <BulletListField
-        items={value.split("\n").filter(Boolean)}
+        // A windowed list keeps transient empty bullets (see BulletListField).
+        items={
+          bulletWindow ? value.split("\n") : value.split("\n").filter(Boolean)
+        }
         onChange={(items) => onCommit(items.join("\n"))}
         placeholder={placeholder}
         className={className}
+        focusKey={focusKey}
+        window={bulletWindow}
       />
     );
   }

@@ -76,6 +76,7 @@ export function FloatingActionBar({
     isExportingPdf,
     onJSONExport,
     onPDFExport,
+    onPDFPreview,
     redoResume,
     undoResume,
   } = useJobPageContext();
@@ -113,6 +114,17 @@ export function FloatingActionBar({
       )}
     >
       <div className="border-agent-outline-variant bg-agent-surface-lowest/80 shadow-agent-modal pointer-events-auto flex items-center gap-0.5 rounded-full border p-1 backdrop-blur-xs">
+        {/* Preview PDF */}
+        <button
+          onClick={onPDFPreview}
+          disabled={isExportingPdf}
+          className="text-agent-on-surface-variant hover:bg-agent-surface-container hover:text-agent-on-surface flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition-all disabled:opacity-50"
+          title="Preview PDF"
+        >
+          <Icon name="eye" className="h-3.5 w-3.5" />
+          <span className="hidden sm:inline">Preview</span>
+        </button>
+
         {/* Export PDF */}
         <button
           onClick={onPDFExport}

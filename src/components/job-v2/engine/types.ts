@@ -24,6 +24,10 @@ export type Block = {
    * entries, whose own `pb-3`/left-rail need to butt directly against the next
    * entry so the rail reads as one continuous line. */
   tight?: boolean;
+  /** A later slice of an entry that spans several blocks (one bullet each after
+   * the head). Carries no `itemIndex` (not a drag/sortable item) and pads
+   * itself, so the block before it gets no bottom margin. */
+  continuation?: boolean;
 };
 
 /** Resolved Tailwind-class/color bag a section builder needs to render. */

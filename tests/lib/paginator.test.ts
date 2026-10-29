@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { groupBlocksIntoPages } from "@/lib/paginator";
+import { groupBlocksIntoPages, pageUsedHeights } from "@/lib/paginator";
 
 describe("groupBlocksIntoPages", () => {
   it("returns a single empty page when there are no blocks", () => {
@@ -57,6 +57,21 @@ describe("groupBlocksIntoPages", () => {
     ]);
     expect(groupBlocksIntoPages([400, 400, 100], 1000, 0, [50, 0, 0])).toEqual([
       [0, 1, 2],
+    ]);
+  });
+});
+
+describe("pageUsedHeights", () => {
+  it("sums blocks, inner gaps and the page-0 reserve", () => {
+    const heights = [100, 200, 50, 30];
+    const pages = groupBlocksIntoPages(heights, 320, 20, 10);
+    expect(pages).toEqual([[0], [1, 2, 3]]);
+    expect(pageUsedHeights(pages, heights, 20, 10)).toEqual([120, 310]);
+  });
+
+  it("uses per-block gaps from an array", () => {
+    expect(pageUsedHeights([[0, 1, 2]], [10, 10, 10], 0, [5, 7, 0])).toEqual([
+      42,
     ]);
   });
 });

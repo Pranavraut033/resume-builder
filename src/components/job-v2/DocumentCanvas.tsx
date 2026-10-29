@@ -42,7 +42,7 @@ export function DocumentCanvas() {
     updateResumeState,
   } = useJobPageContext();
 
-  const { textSize, lineHeight, fontFamily, textColor } =
+  const { textSize, fontFamily, textColor } =
     useResolveCustomization(customization);
 
   const [isCoverLetterEditing, setIsCoverLetterEditing] = useState(false);
@@ -164,7 +164,10 @@ export function DocumentCanvas() {
                 updateResume={updateResumeState}
               >
                 <div
-                  className={cn(textSize, lineHeight)}
+                  // Labels (titles, dates, meta) use the font's natural line height,
+                  // as react-pdf does for a Text without `lineHeight`; prose
+                  // sets the body leading explicitly in both engines.
+                  className={cn(textSize, "leading-[normal]")}
                   style={{ fontFamily, color: textColor }}
                 >
                   <TemplateRenderer

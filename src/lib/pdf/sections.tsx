@@ -107,28 +107,97 @@ function bulletList(
   );
 }
 
+/** An entry that may break between bullets: `head` (entry head + first bullet)
+ * is one unbreakable unit, each `rest[k]` (one more bullet) another. */
+type EntrySplit = { head: React.ReactNode; rest: React.ReactNode[] };
+
+const isEntrySplit = (v: React.ReactNode | EntrySplit): v is EntrySplit =>
+  typeof v === "object" &&
+  v !== null &&
+  !React.isValidElement(v) &&
+  "head" in v &&
+  "rest" in v;
+
 /** Entries with sp(6) between them and no trailing margin. `tight` (rail /
  * date-column styles) skips the gap — those pad themselves to keep the rail
- * continuous. */
+ * continuous. A render callback returns either a node (one atomic unit) or an
+ * `EntrySplit` (see `splitEntry`) whose units each get their own
+ * `wrap={false}` View, so the page may break between bullets. */
 function entries<T>(
   list: T[],
   s: ResolvedPDFStyles,
-  render: (item: T, i: number, last: boolean) => React.ReactNode,
+  render: (item: T, i: number, last: boolean) => React.ReactNode | EntrySplit,
   tight = false
 ): React.ReactNode {
   return (
     <>
-      {list.map((item, i) => (
-        <View
-          key={i}
-          wrap={false}
-          style={{ marginTop: !tight && i > 0 ? s.sp(6) : 0 }}
-        >
-          {render(item, i, i === list.length - 1)}
-        </View>
-      ))}
+      {list.map((item, i) => {
+        const out = render(item, i, i === list.length - 1);
+        const marginTop = !tight && i > 0 ? s.sp(6) : 0;
+        if (!isEntrySplit(out)) {
+          return (
+            <View key={i} wrap={false} style={{ marginTop }}>
+              {out}
+            </View>
+          );
+        }
+        return (
+          <React.Fragment key={i}>
+            <View wrap={false} style={{ marginTop }}>
+              {out.head}
+            </View>
+            {out.rest.map((unit, k) => (
+              <View key={k} wrap={false}>
+                {unit}
+              </View>
+            ))}
+          </React.Fragment>
+        );
+      })}
     </>
   );
+}
+
+/** Splits an entry with >1 bullets into head (`headBody` + first bullet) and
+ * one unit per remaining bullet; ≤1 bullets stays a single node. `wrap` is the
+ * entry's container (rail / marker indent / date column) — it is applied to
+ * every unit, with `head` true only on the first (dots live there) and
+ * `final` true only on the last (the entry's bottom padding goes there). A
+ * continuation's `paddingTop` sits INSIDE the wrapper so a rail stays
+ * continuous. */
+function splitEntry(
+  items: string[],
+  s: ResolvedPDFStyles,
+  config: ResolvedTemplateConfig,
+  fontSize: number,
+  headBody: (bullets: React.ReactNode) => React.ReactNode,
+  wrap: (
+    body: React.ReactNode,
+    edge: { head: boolean; final: boolean }
+  ) => React.ReactNode
+): React.ReactNode | EntrySplit {
+  if (items.length <= 1) {
+    return wrap(headBody(bulletList(items, s, config, fontSize)), {
+      head: true,
+      final: true,
+    });
+  }
+  return {
+    head: wrap(headBody(bulletList(items.slice(0, 1), s, config, fontSize)), {
+      head: true,
+      final: false,
+    }),
+    rest: items
+      .slice(1)
+      .map((item, k) =>
+        wrap(
+          <View style={{ paddingTop: s.sp(2) }}>
+            {bulletList([item], s, config, fontSize)}
+          </View>,
+          { head: false, final: k === items.length - 2 }
+        )
+      ),
+  };
 }
 
 const isRailStyle = (entryStyle: ResolvedTemplateConfig["entryStyle"]) =>
@@ -422,8 +491,9 @@ function pdfDateNode({
           color: primaryColor,
           backgroundColor: withAlpha(primaryColor, "1a"),
           borderRadius: 8,
-          paddingVertical: sp(2),
-          paddingHorizontal: sp(6),
+          // DOM: `px-3 py-1` (sections.tsx `dateNode`).
+          paddingVertical: sp(3),
+          paddingHorizontal: sp(9),
           ...extra,
         }}
       >
@@ -453,7 +523,8 @@ function rowDate(
     secondaryColor: s.secondaryColor,
     smallFontSize: s.smallFontSize,
     sp: s.sp,
-    extra: stacked ? undefined : { flexShrink: 0, marginLeft: s.sp(8) },
+    // DOM row is `gap-4` (12pt) between title block and date.
+    extra: stacked ? undefined : { flexShrink: 0, marginLeft: s.sp(12) },
   });
 }
 
@@ -477,23 +548,34 @@ const pdfExperience: PDFSectionBuilder = ({ resume, styles: s, config }) => {
     formatDateRange(exp.startDate, exp.endDate, dateFormat);
 
   if (entryStyle === "compact") {
-    return entries(resume.experience, s, (exp) => (
-      <View>
-        <Text style={{ fontSize, color: s.textColor }}>
-          <Text style={{ fontWeight: 700, color: accentColor }}>
-            {exp.role}
-          </Text>
-          {" — "}
-          {exp.company}
-          <Text style={{ fontSize: smallFontSize, color: s.secondaryColor }}>
-            {"  ·  "}
-            {range(exp)}
-          </Text>
-        </Text>
-        {richBlock(exp.description, s, { fontSize: smallFontSize })}
-        {bulletList(exp.achievements, s, config, smallFontSize)}
-      </View>
-    ));
+    return entries(resume.experience, s, (exp) =>
+      splitEntry(
+        exp.achievements,
+        s,
+        config,
+        smallFontSize,
+        (bullets) => (
+          <>
+            <Text style={{ fontSize, color: s.textColor }}>
+              <Text style={{ fontWeight: 700, color: accentColor }}>
+                {exp.role}
+              </Text>
+              {" — "}
+              {exp.company}
+              <Text
+                style={{ fontSize: smallFontSize, color: s.secondaryColor }}
+              >
+                {"  ·  "}
+                {range(exp)}
+              </Text>
+            </Text>
+            {richBlock(exp.description, s, { fontSize: smallFontSize })}
+            {bullets}
+          </>
+        ),
+        (body) => <View>{body}</View>
+      )
+    );
   }
 
   if (
@@ -509,13 +591,54 @@ const pdfExperience: PDFSectionBuilder = ({ resume, styles: s, config }) => {
           marginTop: s.sp(2),
           marginBottom: exp.achievements.length > 0 ? s.sp(3) : 0,
         });
-        const achievements = bulletList(exp.achievements, s, config);
         if (entryStyle === "date-column") {
-          return dateColumnEntry(
+          return splitEntry(
+            exp.achievements,
             s,
-            last,
-            range(exp),
+            config,
+            fontSize,
+            (bullets) => (
+              <>
+                <Text style={{ fontSize, fontWeight: 700, color: accentColor }}>
+                  {exp.role}
+                </Text>
+                <Text
+                  style={{ fontSize: smallFontSize, color: s.secondaryColor }}
+                >
+                  {exp.company}
+                </Text>
+                {description}
+                {bullets}
+              </>
+            ),
+            (body, edge) =>
+              dateColumnEntry(
+                s,
+                last || !edge.final,
+                edge.head ? range(exp) : null,
+                body
+              )
+          );
+        }
+        const timeline = entryStyle === "timeline";
+        return splitEntry(
+          exp.achievements,
+          s,
+          config,
+          fontSize,
+          (bullets) => (
             <>
+              {timeline ? (
+                <Text
+                  style={{
+                    fontSize: smallFontSize,
+                    color: s.secondaryColor,
+                    marginBottom: s.sp(2),
+                  }}
+                >
+                  {range(exp)}
+                </Text>
+              ) : null}
               <Text style={{ fontSize, fontWeight: 700, color: accentColor }}>
                 {exp.role}
               </Text>
@@ -523,37 +646,18 @@ const pdfExperience: PDFSectionBuilder = ({ resume, styles: s, config }) => {
                 style={{ fontSize: smallFontSize, color: s.secondaryColor }}
               >
                 {exp.company}
+                {entryStyle === "marker" ? ` · ${range(exp)}` : ""}
               </Text>
               {description}
-              {achievements}
+              {bullets}
             </>
-          );
-        }
-        const timeline = entryStyle === "timeline";
-        return (
-          <View style={railBox(s, timeline, last)}>
-            {railDot(s, timeline)}
-            {timeline ? (
-              <Text
-                style={{
-                  fontSize: smallFontSize,
-                  color: s.secondaryColor,
-                  marginBottom: s.sp(2),
-                }}
-              >
-                {range(exp)}
-              </Text>
-            ) : null}
-            <Text style={{ fontSize, fontWeight: 700, color: accentColor }}>
-              {exp.role}
-            </Text>
-            <Text style={{ fontSize: smallFontSize, color: s.secondaryColor }}>
-              {exp.company}
-              {entryStyle === "marker" ? ` · ${range(exp)}` : ""}
-            </Text>
-            {description}
-            {achievements}
-          </View>
+          ),
+          (body, edge) => (
+            <View style={railBox(s, timeline, last || !edge.final)}>
+              {edge.head ? railDot(s, timeline) : null}
+              {body}
+            </View>
+          )
         );
       },
       isRailStyle(entryStyle)
@@ -615,40 +719,51 @@ const pdfExperience: PDFSectionBuilder = ({ resume, styles: s, config }) => {
     ));
   }
 
-  return entries(resume.experience, s, (exp) => (
-    <View>
-      <View
-        style={{
-          flexDirection: isMultiColumn ? "column" : "row",
-          justifyContent: isMultiColumn ? undefined : "space-between",
-          alignItems: "flex-start",
-          gap: isMultiColumn ? s.sp(2) : undefined,
-          marginBottom: s.sp(2),
-        }}
-      >
-        {/* `flex: 1` only makes sense in row mode, to push the date to
+  return entries(resume.experience, s, (exp) =>
+    splitEntry(
+      exp.achievements,
+      s,
+      config,
+      fontSize,
+      (bullets) => (
+        <>
+          <View
+            style={{
+              flexDirection: isMultiColumn ? "column" : "row",
+              justifyContent: isMultiColumn ? undefined : "space-between",
+              alignItems: "flex-start",
+              gap: isMultiColumn ? s.sp(6) : undefined, // DOM `flex-col gap-2`
+              marginBottom: s.sp(2),
+            }}
+          >
+            {/* `flex: 1` only makes sense in row mode, to push the date to
                 the right edge. In column mode (isMultiColumn) it sets
                 flexBasis: 0 on a column-direction child with no explicit
                 height, which react-pdf's Yoga layout collapses to zero
                 height — the date node then renders at the same y as this
                 block instead of below it. */}
-        <View style={isMultiColumn ? undefined : { flex: 1 }}>
-          <Text style={{ fontSize, fontWeight: 700, color: accentColor }}>
-            {exp.role}
-          </Text>
-          <Text style={{ fontSize: smallFontSize, color: s.secondaryColor }}>
-            {exp.company}
-          </Text>
-        </View>
-        {rowDate(s, config, range(exp), isMultiColumn)}
-      </View>
-      {richBlock(exp.description, s, {
-        justify: config.justifyText,
-        marginBottom: exp.achievements.length > 0 ? s.sp(3) : 0,
-      })}
-      {bulletList(exp.achievements, s, config)}
-    </View>
-  ));
+            <View style={isMultiColumn ? undefined : { flex: 1 }}>
+              <Text style={{ fontSize, fontWeight: 700, color: accentColor }}>
+                {exp.role}
+              </Text>
+              <Text
+                style={{ fontSize: smallFontSize, color: s.secondaryColor }}
+              >
+                {exp.company}
+              </Text>
+            </View>
+            {rowDate(s, config, range(exp), isMultiColumn)}
+          </View>
+          {richBlock(exp.description, s, {
+            justify: config.justifyText,
+            marginBottom: exp.achievements.length > 0 ? s.sp(3) : 0,
+          })}
+          {bullets}
+        </>
+      ),
+      (body) => <View>{body}</View>
+    )
+  );
 };
 
 const pdfProjects: PDFSectionBuilder = ({ resume, styles: s, config }) => {
@@ -810,21 +925,16 @@ const pdfProjects: PDFSectionBuilder = ({ resume, styles: s, config }) => {
 
   return entries(resume.projects, s, (proj) => (
     <View>
-      <View
-        style={{
-          flexDirection: "row",
-          justifyContent: "space-between",
-          alignItems: "flex-start",
-        }}
-      >
-        <Text
-          style={{ flex: 1, fontSize, fontWeight: 700, color: accentColor }}
-        >
-          {proj.name}
-          {link(proj)}
-        </Text>
-        {hasDates(proj) ? rowDate(s, config, range(proj), false) : null}
-      </View>
+      {/* Date stacked under the name, as the DOM's standard project entry. */}
+      <Text style={{ fontSize, fontWeight: 700, color: accentColor }}>
+        {proj.name}
+        {link(proj)}
+      </Text>
+      {hasDates(proj) ? (
+        <View style={{ flexDirection: "row" }}>
+          {rowDate(s, config, range(proj), true)}
+        </View>
+      ) : null}
       {richBlock(proj.description, s, {
         justify: config.justifyText,
         marginBottom: proj.technologies.length > 0 ? s.sp(3) : 0,
@@ -893,7 +1003,7 @@ const pdfSkills: PDFSectionBuilder = ({ resume, styles: s, config }) => {
                 color: s.accentColor,
                 backgroundColor: withAlpha(s.accentColor, "1a"),
                 borderRadius: 8,
-                paddingVertical: s.sp(2),
+                paddingVertical: s.sp(1.5),
                 paddingHorizontal: s.sp(3),
               }}
             >
@@ -1189,7 +1299,7 @@ const pdfEducation: PDFSectionBuilder = ({ resume, styles: s, config }) => {
           flexDirection: isMultiColumn ? "column" : "row",
           justifyContent: isMultiColumn ? undefined : "space-between",
           alignItems: "flex-start",
-          gap: isMultiColumn ? s.sp(2) : undefined,
+          gap: isMultiColumn ? s.sp(6) : undefined, // DOM `flex-col gap-2`
         }}
       >
         {/* See pdfExperience's identical comment above — `flex: 1` only
@@ -1441,7 +1551,7 @@ const pdfVolunteer: PDFSectionBuilder = ({ resume, styles: s, config }) => {
           flexDirection: isMultiColumn ? "column" : "row",
           justifyContent: isMultiColumn ? undefined : "space-between",
           alignItems: "flex-start",
-          gap: isMultiColumn ? s.sp(2) : undefined,
+          gap: isMultiColumn ? s.sp(6) : undefined, // DOM `flex-col gap-2`
         }}
       >
         {/* See pdfExperience's identical comment above — `flex: 1` only
