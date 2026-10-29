@@ -2,6 +2,27 @@
 
 All notable changes to this project are documented in this file.
 
+## [1.22.0] - 2026-10-29
+
+### Added
+
+- Preview PDF: the exact file that will be exported, drawn with pdf.js inside the app before you download it ([1ef87b4])
+- A page-fill hint in the editor when the last page is under 25% full, offering a smaller page size or fit-to-one-page ([1ef87b4])
+- A US Letter / A4 page size picker; the Customize panel is regrouped and its controls fixed ([32dc99b])
+- Embedded serif equivalents and italic faces for every font, with legacy font names (Georgia, Garamond, Verdana, Trebuchet MS) mapped to them ([8babc70])
+- The MCP plugin is now hosted on GitHub: `/plugin marketplace add Pranavraut033/udaan-plugin` + `/plugin install udaan@udaan`; the app writes a stable launcher to `~/.udaan/bin/udaan-mcp` on every launch ([082dee8])
+
+### Fixed
+
+- The exported PDF now matches the editor: same spacing, line heights, two-column margins and page breaks; long experience entries split between bullets instead of jumping whole to the next page ([45cf8c7], [402a86b], [1ef87b4])
+- Cover-letter preview and PDF layouts now agree across templates ([bdddddd])
+- Exported files are named `First_Last_Company_Resume.pdf` ([1ef87b4])
+- Email classification now counts toward token usage like every other AI call ([005565f])
+
+### Removed
+
+- The "Download connector" `.plugin` file export, replaced by the hosted plugin ([082dee8])
+
 ## [1.21.0] - 2026-09-21
 
 ### Added

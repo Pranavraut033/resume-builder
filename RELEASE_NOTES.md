@@ -1,3 +1,17 @@
+# v1.22.0 — 2026-10-29
+
+What you see is what you download: a real PDF preview, and exports that finally match the editor.
+
+- **New: Preview PDF.** See the exact file you're about to export, right in the app, before downloading it.
+- **New: a hint when your last page is nearly empty,** with one click to switch to a smaller size or fit everything on one page.
+- **New: US Letter or A4.** Pick your page size in Customize, which is also reorganized and easier to use.
+- **Better fonts.** Every font now has proper italics and a matching serif option, and older font choices carry over.
+- **Easier Claude setup.** Connect Claude Code with two commands, no file to download: `/plugin marketplace add Pranavraut033/udaan-plugin`, then `/plugin install udaan@udaan`. Open Udaan once after updating so the plugin can find it.
+- **Fixed: the PDF matches the editor.** Spacing, line heights and page breaks now line up, and long jobs break between bullet points instead of jumping to the next page.
+- **Fixed: cover letters** look the same in preview and PDF across all templates.
+- **Fixed: clearer file names** like `Jane_Doe_Acme_Resume.pdf`.
+- **Changed:** the "Download connector" button is gone; use the plugin commands above.
+
 # v1.21.0 — 2026-09-21
 
 Your inbox becomes a job pipeline: a dedicated Emails page, plus a Job Opportunities page built from your job-alert digests.
