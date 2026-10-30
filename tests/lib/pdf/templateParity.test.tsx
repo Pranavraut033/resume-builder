@@ -142,8 +142,8 @@ function scanExperience(haystack: string, from: number) {
 }
 
 describe("DOM <-> PDF template parity", () => {
-  it("covers all 13 templates", () => {
-    expect(TEMPLATE_IDS).toHaveLength(13);
+  it("covers all 17 templates", () => {
+    expect(TEMPLATE_IDS).toHaveLength(17);
   });
 
   it.each(TEMPLATE_IDS)("%s", { timeout: 120_000 }, async (id) => {

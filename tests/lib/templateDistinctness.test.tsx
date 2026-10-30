@@ -115,8 +115,8 @@ const AXIS_KEYS = [
 ] as const;
 
 describe("template config distinctness", () => {
-  it("covers all 13 templates", () => {
-    expect(TEMPLATE_IDS).toHaveLength(13);
+  it("covers all 17 templates", () => {
+    expect(TEMPLATE_IDS).toHaveLength(17);
   });
 
   it("every pair of templates differs on at least 3 visual axes", () => {
@@ -172,40 +172,45 @@ describe("template DOM output distinctness", () => {
 });
 
 describe("template editability parity", () => {
-  it("exposes the same editable fields in every template", () => {
-    const counts = TEMPLATE_IDS.map((id) => {
-      const { container, unmount } = render(
-        <ToastProvider>
-          <InlineEditProvider resume={fixtureResume} updateResume={() => {}}>
-            <TemplateEngine
-              resume={fixtureResume}
-              customization={{ ...DEFAULT_CUSTOMIZATION, template: id }}
-              config={TEMPLATE_CONFIG[id]!}
-            />
-          </InlineEditProvider>
-        </ToastProvider>
-      );
+  // Renders every template with InlineEditProvider; ~8s under full-suite load.
+  it(
+    "exposes the same editable fields in every template",
+    { timeout: 30_000 },
+    () => {
+      const counts = TEMPLATE_IDS.map((id) => {
+        const { container, unmount } = render(
+          <ToastProvider>
+            <InlineEditProvider resume={fixtureResume} updateResume={() => {}}>
+              <TemplateEngine
+                resume={fixtureResume}
+                customization={{ ...DEFAULT_CUSTOMIZATION, template: id }}
+                config={TEMPLATE_CONFIG[id]!}
+              />
+            </InlineEditProvider>
+          </ToastProvider>
+        );
 
-      const result = {
-        id,
-        clickToEdit: container.querySelectorAll('[role="button"]').length,
-        bulletTextareas: container.querySelectorAll("textarea").length,
-        dragHandles: container.querySelectorAll(
-          '[aria-label^="Drag to reorder"]'
-        ).length,
-        deleteButtons: container.querySelectorAll('[aria-label^="Delete "]')
-          .length,
-      };
-      unmount();
-      return result;
-    });
-
-    const [baseline, ...rest] = counts;
-    for (const c of rest) {
-      expect(c, `${c.id} vs ${baseline.id}`).toEqual({
-        ...baseline,
-        id: c.id,
+        const result = {
+          id,
+          clickToEdit: container.querySelectorAll('[role="button"]').length,
+          bulletTextareas: container.querySelectorAll("textarea").length,
+          dragHandles: container.querySelectorAll(
+            '[aria-label^="Drag to reorder"]'
+          ).length,
+          deleteButtons: container.querySelectorAll('[aria-label^="Delete "]')
+            .length,
+        };
+        unmount();
+        return result;
       });
+
+      const [baseline, ...rest] = counts;
+      for (const c of rest) {
+        expect(c, `${c.id} vs ${baseline.id}`).toEqual({
+          ...baseline,
+          id: c.id,
+        });
+      }
     }
-  });
+  );
 });

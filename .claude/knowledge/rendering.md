@@ -14,14 +14,14 @@ so DOM, PDF, and TXT stay in sync by construction. Adding a template should mean
 you find yourself writing a new component per template, stop and check whether an existing style axis
 expresses it.
 
-## The 13 templates
+## The 17 templates
 
 `TEMPLATE_CONFIG` in `src/components/job-v2/engine/templates.ts` is a
 `Partial<Record<TemplateType, TemplateConfig>>` keyed by:
 
 `modern-minimal` · `tech-sidebar` · `creative-modern` · `bjet-professional` · `two-tone` ·
 `business-professional` · `compact-modern` · `academic-serif` · `elegant-timeline` · `euro-sidebar` ·
-`european-modern` · `europass-classic` · `french-elegant`
+`european-modern` · `europass-classic` · `french-elegant` · `executive-classic` · `swiss-grid` · `bold-band` · `ats-clean`
 
 `resolveTemplateConfig()` applies defaults once so every engine sees the same fully-resolved config.
 
@@ -42,7 +42,7 @@ expresses it.
 `resolveTemplateConfig()` applies those defaults, so **engines must always read the resolved config**, never a
 raw `TemplateConfig`.
 
-**`tests/lib/templateDistinctness.test.tsx` enforces two invariants**: every pair of the 13 templates differs on
+**`tests/lib/templateDistinctness.test.tsx` enforces two invariants**: every pair of the 17 templates differs on
 **≥3 axes**, and all templates expose **identical editable fields**. The second is the one that bites — a new
 `entryStyle`/`skillStyle` branch must re-wrap the same `EditableText`/`EditableDateRange` fields as the
 `standard` branch, not replace them with plain text, or inline editing silently dies for that template.
@@ -161,7 +161,7 @@ More silent failure modes (found while aligning the engines):
 
 | File                              | Purpose                                                                                     |
 | --------------------------------- | ------------------------------------------------------------------------------------------- |
-| `templates.ts`                    | `TEMPLATE_CONFIG` (all 13) + `resolveTemplateConfig()`.                                     |
+| `templates.ts`                    | `TEMPLATE_CONFIG` (all 17) + `resolveTemplateConfig()`.                                     |
 | `types.ts`                        | `TemplateConfig` and the style-axis unions.                                                 |
 | `buildSections.ts`                | `buildSections()` — resolves order/visibility/custom sections. Shared by all three engines. |
 | `sections.tsx`                    | DOM section registry.                                                                       |
@@ -236,5 +236,5 @@ Mirrors the DOM engine for `@react-pdf/renderer`.
    to Modern Minimal (the designed default), so there's no silent bug to fix immediately — defer until a
    user explicitly requests a custom cover-letter look for that resume template.
 4. Run `npm run test:run -- tests/lib/templateDistinctness.test.tsx` — it will fail on <3-axis distinctness or
-   a dropped editable field. All 13 templates must pass.
+   a dropped editable field. All 17 templates must pass.
 5. Verify rendered output, not just the test.

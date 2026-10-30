@@ -24,7 +24,11 @@ export type TemplateType =
   | "euro-sidebar"
   | "european-modern"
   | "europass-classic"
-  | "french-elegant";
+  | "french-elegant"
+  | "executive-classic"
+  | "swiss-grid"
+  | "bold-band"
+  | "ats-clean";
 
 /**
  * Cover-letter templates, independent of `TemplateType` (the resume's
@@ -254,6 +258,59 @@ export const AVAILABLE_TEMPLATES: Array<Template> = [
     bestFor:
       "Design, communications, and creative-industry roles wanting an elegant, minimalist CV",
     colors: ["#3a3a3a", "#8a8a8a", "#6b5b4f", "#2b2b2b", "#ffffff"],
+  },
+  {
+    id: "executive-classic",
+    name: "Executive Classic",
+    description:
+      "Traditional serif single column with an accent-bar header, underlined section titles and a labeled skill list",
+    fontFamily: "Libre Baskerville",
+    features: [
+      "Accent-bar header",
+      "Underlined section titles",
+      "Labeled skill list",
+    ],
+    bestFor: "Directors, executives, finance, law, consulting",
+    colors: ["#1e3a5f", "#4b5563", "#7c5e2f", "#111827", "#ffffff"],
+  },
+  {
+    id: "swiss-grid",
+    name: "Swiss Grid",
+    description:
+      "Typographic single column with a ruled-off date column, hairline section rules and a light display name",
+    fontFamily: "Work Sans",
+    features: ["Date column", "Hairline section rules", "Light display name"],
+    bestFor: "Designers, architects, product roles",
+    colors: ["#111111", "#525252", "#e11d48", "#171717", "#ffffff"],
+  },
+  {
+    id: "bold-band",
+    name: "Bold Band",
+    description:
+      "Single column with a full-width colour band header, accent-marker entries, skill chips and date badges",
+    fontFamily: "Montserrat",
+    features: [
+      "Colour-band header",
+      "Accent-marker entries",
+      "Skill chips",
+      "Date badges",
+    ],
+    bestFor: "Marketing, sales, startups, early-career applicants",
+    colors: ["#0f766e", "#475569", "#b45309", "#1f2937", "#ffffff"],
+  },
+  {
+    id: "ats-clean",
+    name: "ATS Clean",
+    description:
+      "Dense, parser-friendly single column with compact one-line entries, accent-rule headings and a categorized skill grid",
+    fontFamily: "Roboto",
+    features: [
+      "Compact entries",
+      "Accent-rule headings",
+      "Categorized skill grid",
+    ],
+    bestFor: "High-volume applications, large-company ATS portals, engineers",
+    colors: ["#1f2937", "#4b5563", "#2563eb", "#111827", "#ffffff"],
   },
 ];
 
