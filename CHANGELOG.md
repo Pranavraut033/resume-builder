@@ -2,6 +2,12 @@
 
 All notable changes to this project are documented in this file.
 
+## [1.23.0] - 2026-10-31
+
+### Added
+
+- Four single-column resume templates: Executive Classic, Swiss Grid, Bold Band and ATS Clean (17 templates in total) ([1c4b719])
+
 ## [1.22.0] - 2026-10-29
 
 ### Added

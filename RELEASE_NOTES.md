@@ -1,3 +1,9 @@
+# v1.23.0 — 2026-10-31
+
+Four new single-column templates, for when you want a classic, one-flow resume.
+
+- **New: Executive Classic, Swiss Grid, Bold Band and ATS Clean.** Four single-column templates, bringing the total to 17. ATS Clean is plain and parser-friendly; Bold Band and Swiss Grid are more designed.
+
 # v1.22.0 — 2026-10-29
 
 What you see is what you download: a real PDF preview, and exports that finally match the editor.
